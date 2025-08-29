@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/utils/auto_size_text.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 void main() {
   runApp(const MusaffaTerminalApp());
@@ -16,6 +18,7 @@ class MusaffaTerminalApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
+        fontFamily: Constants.FONT_DEFAULT_NEW,
       ),
       home: const HomeScreen(),
     );
@@ -29,10 +32,16 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Musaffa Terminal'),
+        title: MusaffaAutoSizeText.titleLarge(
+          'Musaffa Terminal',
+          group: MusaffaAutoSizeText.groups.titleLargeGroup,
+        ),
       ),
-      body: const Center(
-        child: Text('Welcome to Musaffa Terminal'),
+      body: Center(
+        child: MusaffaAutoSizeText.bodyLarge(
+          'Welcome to Musaffa Terminal',
+          group: MusaffaAutoSizeText.groups.bodyLargeGroup,
+        ),
       ),
     );
   }
