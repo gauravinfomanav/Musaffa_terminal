@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/Components/tabbar.dart';
 
 void main() {
   runApp(const MusaffaTerminalApp());
@@ -31,17 +32,18 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: MusaffaAutoSizeText.titleLarge(
-          'Musaffa Terminal',
-          group: MusaffaAutoSizeText.groups.titleLargeGroup,
-        ),
-      ),
-      body: Center(
-        child: MusaffaAutoSizeText.bodyLarge(
-          'Welcome to Musaffa Terminal',
-          group: MusaffaAutoSizeText.groups.bodyLargeGroup,
-        ),
+      body: Column(
+        children: [
+          const HomeTabBar(),
+          Expanded(
+            child: Center(
+              child: MusaffaAutoSizeText.bodyLarge(
+                'Welcome to Musaffa Terminal',
+                group: MusaffaAutoSizeText.groups.bodyLargeGroup,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
