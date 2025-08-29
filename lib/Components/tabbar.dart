@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/controllers/finhub_controller.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 
 class HomeTabBar extends StatelessWidget {
   final ValueChanged<String>? onSearch;
@@ -27,18 +28,16 @@ class HomeTabBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Search bar (left half)
           Expanded(
-            flex: 2,
+            flex: 1,
             child: _SearchField(
               onChanged: onSearch,
               onSubmitted: (_) => onSearchSubmit?.call(),
             ),
           ),
           const SizedBox(width: 16),
-          // Market indices (right half)
           Expanded(
-            flex: 2,
+            flex: 3,
             child: _MarketIndicesStrip(controller: controller),
           ),
         ],
@@ -86,16 +85,25 @@ class _MarketIndicesStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (controller.isLoading.value) {
-        return const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+      if (controller.isLoading.value && controller.indices.isEmpty) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: List.generate(
+              8,
+              (i) => Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: ShimmerWidgets.box(
+                  width: 120,
+                  height: 18,
+                  borderRadius: BorderRadius.circular(6),
+                  baseColor: Colors.grey[200],
+                  highlightColor: Colors.grey[100],
+                ),
+              ),
             ),
-          ],
+          ),
         );
       }
 
@@ -103,16 +111,20 @@ class _MarketIndicesStrip extends StatelessWidget {
         return const SizedBox.shrink();
       }
 
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: controller.indices
-            .map(
-              (index) => Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: _IndexItem(index: index),
-              ),
-            )
-            .toList(),
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: controller.indices
+              .take(20)
+              .map(
+                (index) => Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: _IndexItem(index: index),
+                ),
+              )
+              .toList(),
+        ),
       );
     });
   }
