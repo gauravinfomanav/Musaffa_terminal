@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
-import 'package:musaffa_terminal/Components/tradingview_chart.dart';
 
 void main() {
   runApp(const MusaffaTerminalApp());
@@ -61,10 +60,10 @@ class HomeScreen extends StatelessWidget {
             },
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TradingViewChart(
-                height: 500,
+            child: Center(
+              child: MusaffaAutoSizeText.bodyLarge(
+                'Welcome to Musaffa Terminal',
+                group: MusaffaAutoSizeText.groups.bodyLargeGroup,
               ),
             ),
           ),
