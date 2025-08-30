@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/controllers/finhub_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 class HomeTabBar extends StatelessWidget {
   final ValueChanged<String>? onSearch;
@@ -55,21 +56,63 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 48,
       child: TextField(
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         textInputAction: TextInputAction.search,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: Colors.black87,
+        ),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.search, size: 20),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            size: 22,
+            color: Colors.black54,
+          ),
           hintText: 'Search for ETFs or stocks',
-          hintStyle: const TextStyle(color: Colors.black54),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          hintStyle: const TextStyle(
+            color: Colors.black38,
+            fontSize: 16,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            fontWeight: FontWeight.w400,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           filled: true,
-          fillColor: const Color(0xFFF4F5F7),
+          fillColor: Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Colors.grey.shade200,
+              width: 1.5,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Colors.blue.shade400,
+              width: 2,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Colors.red.shade300,
+              width: 1.5,
+            ),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Colors.red.shade400,
+              width: 2,
+            ),
           ),
         ),
       ),
