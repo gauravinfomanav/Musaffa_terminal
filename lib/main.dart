@@ -17,10 +17,22 @@ class MusaffaTerminalApp extends StatelessWidget {
       title: 'Musaffa Terminal',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
         fontFamily: Constants.FONT_DEFAULT_NEW,
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+        fontFamily: Constants.FONT_DEFAULT_NEW,
+      ),
+      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }
@@ -32,9 +44,21 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? const Color(0xFF0F0F0F) 
+          : const Color(0xFFFAFAFA),
       body: Column(
         children: [
-          const HomeTabBar(),
+          HomeTabBar(
+            onThemeToggle: () {
+              final currentTheme = Theme.of(context).brightness;
+              Get.changeThemeMode(
+                currentTheme == Brightness.dark 
+                    ? ThemeMode.light 
+                    : ThemeMode.dark,
+              );
+            },
+          ),
           Expanded(
             child: Center(
               child: MusaffaAutoSizeText.bodyLarge(

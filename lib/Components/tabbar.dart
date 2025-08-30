@@ -8,38 +8,73 @@ import 'package:musaffa_terminal/utils/constants.dart';
 class HomeTabBar extends StatelessWidget {
   final ValueChanged<String>? onSearch;
   final VoidCallback? onSearchSubmit;
+  final VoidCallback? onThemeToggle;
 
-  const HomeTabBar({super.key, this.onSearch, this.onSearchSubmit});
+  const HomeTabBar({
+    super.key, 
+    this.onSearch, 
+    this.onSearchSubmit,
+    this.onThemeToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(FinhubController());
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.06),
+            blurRadius: isDarkMode ? 8 : 12,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
+          // Theme toggle button
+          GestureDetector(
+            onTap: onThemeToggle,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                size: 20,
+                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Search field
           Expanded(
             flex: 1,
             child: _SearchField(
               onChanged: onSearch,
               onSubmitted: (_) => onSearchSubmit?.call(),
+              isDarkMode: isDarkMode,
             ),
           ),
           const SizedBox(width: 16),
+          // Market indices
           Expanded(
             flex: 3,
-            child: _MarketIndicesStrip(controller: controller),
+            child: _MarketIndicesStrip(
+              controller: controller,
+              isDarkMode: isDarkMode,
+            ),
           ),
         ],
       ),
@@ -50,68 +85,77 @@ class HomeTabBar extends StatelessWidget {
 class _SearchField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final bool isDarkMode;
 
-  const _SearchField({this.onChanged, this.onSubmitted});
+  const _SearchField({
+    this.onChanged, 
+    this.onSubmitted,
+    required this.isDarkMode,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: 44,
       child: TextField(
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         textInputAction: TextInputAction.search,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-          color: Colors.black87,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF1F2937),
+          fontFamily: Constants.FONT_DEFAULT_NEW,
         ),
         decoration: InputDecoration(
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            size: 22,
-            color: Colors.black54,
+          prefixIcon: Icon(
+            Icons.search,
+            size: 20,
+            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
           ),
-          hintText: 'Search for ETFs or stocks',
-          hintStyle: const TextStyle(
-            color: Colors.black38,
-            fontSize: 16,
+          hintText: 'Search symbols, ETFs, or stocks...',
+          hintStyle: TextStyle(
+            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+            fontSize: 15,
             fontFamily: Constants.FONT_DEFAULT_NEW,
             fontWeight: FontWeight.w400,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              width: 1,
+            ),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(
-              color: Colors.grey.shade200,
-              width: 1.5,
+              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              width: 1,
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.blue.shade400,
-              width: 2,
-            ),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.red.shade300,
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(
+              color: Color(0xFF4F46E5),
               width: 1.5,
             ),
           ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(
+              color: Color(0xFFDC2626),
+              width: 1,
+            ),
+          ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.red.shade400,
-              width: 2,
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(
+              color: Color(0xFFDC2626),
+              width: 1.5,
             ),
           ),
         ),
@@ -122,8 +166,12 @@ class _SearchField extends StatelessWidget {
 
 class _MarketIndicesStrip extends StatelessWidget {
   final FinhubController controller;
+  final bool isDarkMode;
 
-  const _MarketIndicesStrip({required this.controller});
+  const _MarketIndicesStrip({
+    required this.controller,
+    required this.isDarkMode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -141,8 +189,8 @@ class _MarketIndicesStrip extends StatelessWidget {
                   width: 120,
                   height: 18,
                   borderRadius: BorderRadius.circular(6),
-                  baseColor: Colors.grey[200],
-                  highlightColor: Colors.grey[100],
+                  baseColor: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  highlightColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
                 ),
               ),
             ),
@@ -163,7 +211,10 @@ class _MarketIndicesStrip extends StatelessWidget {
               .map(
                 (index) => Padding(
                   padding: const EdgeInsets.only(left: 12),
-                  child: _IndexItem(index: index),
+                  child: _IndexItem(
+                    index: index,
+                    isDarkMode: isDarkMode,
+                  ),
                 ),
               )
               .toList(),
@@ -175,14 +226,18 @@ class _MarketIndicesStrip extends StatelessWidget {
 
 class _IndexItem extends StatelessWidget {
   final MarketIndex index;
+  final bool isDarkMode;
 
-  const _IndexItem({required this.index});
+  const _IndexItem({
+    required this.index,
+    required this.isDarkMode,
+  });
 
   @override
   Widget build(BuildContext context) {
     final color = index.isPositive 
-        ? const Color(0xFF0FA958) 
-        : const Color(0xFFD43C30);
+        ? const Color(0xFF10B981) 
+        : const Color(0xFFEF4444);
     final icon = index.isPositive 
         ? Icons.arrow_upward 
         : Icons.arrow_downward;
@@ -192,7 +247,7 @@ class _IndexItem extends StatelessWidget {
       children: [
         MusaffaAutoSizeText.labelMedium(
           index.displayName,
-          color: Colors.black87,
+          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF1F2937),
           group: MusaffaAutoSizeText.groups.labelMediumGroup,
         ),
         const SizedBox(width: 6),
