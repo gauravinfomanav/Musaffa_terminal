@@ -1,78 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:musaffa_terminal/utils/auto_size_text.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
-import 'package:musaffa_terminal/Components/tabbar.dart';
-import 'package:musaffa_terminal/Components/market_summary.dart';
+import 'package:musaffa_terminal/Screens/main_screen.dart';
 
 void main() {
-  runApp(const MusaffaTerminalApp());
+  runApp(MyApp());
 }
 
-class MusaffaTerminalApp extends StatelessWidget {
-  const MusaffaTerminalApp({super.key});
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'Musaffa Terminal',
-      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        fontFamily: Constants.FONT_DEFAULT_NEW,
+        primarySwatch: Colors.blue,
+        brightness: Brightness.light,
       ),
       darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        fontFamily: Constants.FONT_DEFAULT_NEW,
+        primarySwatch: Colors.blue,
+        brightness: Brightness.dark,
       ),
-      themeMode: ThemeMode.light,
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF0F0F0F) 
-          : const Color(0xFFFAFAFA),
-      body: Column(
-        children: [
-          HomeTabBar(
-            onThemeToggle: () {
-              final currentTheme = Theme.of(context).brightness;
-              Get.changeThemeMode(
-                currentTheme == Brightness.dark 
-                    ? ThemeMode.light 
-                    : ThemeMode.dark,
-              );
-            },
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  MarketSummaryDynamicTable(),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+      themeMode: ThemeMode.light, // Set default to light mode
+      home: MainScreen(),
     );
   }
 }

@@ -39,7 +39,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8),
+      width: double.infinity,
       child: Column(
         children: [
           Obx(() {

@@ -185,12 +185,15 @@ class _MarketIndicesStrip extends StatelessWidget {
               8,
               (i) => Padding(
                 padding: const EdgeInsets.only(left: 12),
-                child: ShimmerWidgets.box(
-                  width: 120,
-                  height: 18,
-                  borderRadius: BorderRadius.circular(6),
-                  baseColor: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  highlightColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+                child: Container(
+                  padding: EdgeInsets.symmetric(vertical: 12), // Increased vertical padding for larger scroll area
+                  child: ShimmerWidgets.box(
+                    width: 120,
+                    height: 18,
+                    borderRadius: BorderRadius.circular(6),
+                    baseColor: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                    highlightColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+                  ),
                 ),
               ),
             ),
@@ -211,9 +214,12 @@ class _MarketIndicesStrip extends StatelessWidget {
               .map(
                 (index) => Padding(
                   padding: const EdgeInsets.only(left: 12),
-                  child: _IndexItem(
-                    index: index,
-                    isDarkMode: isDarkMode,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 12), // Increased vertical padding for larger scroll area
+                    child: _IndexItem(
+                      index: index,
+                      isDarkMode: isDarkMode,
+                    ),
                   ),
                 ),
               )
