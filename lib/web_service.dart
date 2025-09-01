@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class WebService {
@@ -22,6 +23,30 @@ class WebService {
       return resp;
     } catch (e) {
       return http.Response(jsonEncode({'error': e.toString()}), 500);
+    }
+  }
+  Future<http.Response> postTypeSense(
+      List<String> path, String body, Map<String, dynamic>? params) async {
+    var typesenseUrl = _typesenseUrl;
+    var typesenseKey = _typesenseKey;
+
+    var headers = {
+      HttpHeaders.contentTypeHeader: 'application/json',
+      HttpHeaders.acceptHeader: 'application/json',
+      'X-TYPESENSE-API-KEY': typesenseKey,
+    };
+
+    var requestUrl = Uri.parse(typesenseUrl)
+        .replace(pathSegments: path, queryParameters: params);
+
+    try {
+      var resp = await http.post(requestUrl, headers: headers, body: body);
+
+      return resp;
+    } catch (_) {
+      return Future(() {
+        return http.Response('', 404);
+      });
     }
   }
 }

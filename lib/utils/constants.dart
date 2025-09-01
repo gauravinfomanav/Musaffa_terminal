@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class Constants {
   static const String FONT_DEFAULT_NEW = 'Poppins';
@@ -14,6 +15,25 @@ class Constants {
     2: 'C',
     1: 'C-',
   };
+  
+
+  
+}
+class WebResponse<T, P> {
+  T? payload;
+  P? errorMessage;
+  String? exceptionMessage;
+
+  WebResponse({this.payload, this.errorMessage, this.exceptionMessage});
+}
+
+class FirestoreConstants{
+  static const COMPANY_PROFILE_COLLECTION = "company_profile_collection_new";
+  static const ETF_PROFILE_COLLECTION = "etf_profile_collection_4";
+  static const ETF_COUNTRY_EXPOSURE_COLLECTION = "etf_country_exposure_collection";
+  static const ETF_SECTOR_EXPOSURE_COLLECTION = "etf_sector_exposure_collection";
+  static const ETF_HOLDINGS_COLLECTION = "etf_holdings_collection_2";
+
 }
 
 // Dashboard Text Styles - Consistent across all components
