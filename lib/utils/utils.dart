@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/models/company_profile.dart';
 import 'package:musaffa_terminal/models/etfs.dart';
 
@@ -290,89 +292,104 @@ Widget showLogo(
   String symbol,
   String url, {
   double? sideWidth = 25,
-  bool circular = false,
+  bool circular = true, // Changed default to true for circular logos
   double? fontsize,
   String name = "",
   Color borderColor = const Color(0xFFE7ECFB),
 }) {
+  // Create circular placeholder with first letter of ticker symbol
   Widget placeholder = Container(
     width: sideWidth,
     height: sideWidth,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       border: Border.all(color: borderColor, width: 2),
-      
     ),
     child: Center(
-        child: FittedBox(
-      fit: BoxFit.contain,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            name.characters.isNotEmpty ? name.characters.first : "",
-            style: TextStyle(
-                fontSize: fontsize ?? 20,
-                fontWeight: FontWeight.w400,
-                fontFamily: Constants.FONT_DEFAULT_NEW),
-          )
-        ],
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : symbol.isNotEmpty ? symbol[0].toUpperCase() : "?",
+          style: TextStyle(
+            fontSize: fontsize ?? (sideWidth! * 0.4), // Dynamic font size based on container size
+            fontWeight: FontWeight.w600,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            color: Colors.grey.shade700,
+          ),
+        ),
       ),
-    )),
+    ),
   );
 
+  // If no URL provided, return placeholder immediately
+  if (url.isEmpty) {
+    return circular ? placeholder : ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: placeholder,
+    );
+  }
+
   Widget childWidget;
-  var hardCodedSymbolLogosList = [
-    "AAPL",
-    "AMZN",
-    "JPM",
-    "NKE",
-    "MS",
-    "UBER",
-    "AMD",
-    "BX",
-    "BLK",
-    "BMY",
-    "SYK"
-  ];
-  if (hardCodedSymbolLogosList.contains(symbol)) {
-    childWidget = SvgPicture.asset(
-      'resources/images/$symbol.svg',
+  
+  // Check if URL is valid
+  bool isSvg = false;
+  try {
+    isSvg = url.toLowerCase().contains(".svg");
+  } catch (e) {
+    isSvg = false;
+  }
+  
+  if (isSvg) {
+    childWidget = SvgPicture.network(
+      url,
       width: sideWidth,
+      height: sideWidth,
+      fit: BoxFit.contain,
+      placeholderBuilder: (BuildContext context) {
+        return _buildShimmerPlaceholder(sideWidth!);
+      },
+      errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+        return placeholder;
+      },
     );
   } else {
-    bool isSvg = true;
-    try {
-      List<String> paths = url.split("/");
-
-      isSvg = paths.last.contains(".svg");
-    } catch (e) {}
-    if (isSvg)
-      childWidget = SvgPicture.network(
-        url,
-        width: sideWidth,
-        placeholderBuilder: (BuildContext context) {
-          return placeholder;
-        },
-      );
-    else {
-      childWidget = Image.network(
-        url,
-        width: sideWidth,
-        errorBuilder:
-            (BuildContext context, Object exception, StackTrace? stackTrace) {
-          return placeholder;
-        },
-      );
-    }
+    childWidget = Image.network(
+      url,
+      width: sideWidth,
+      height: sideWidth,
+      fit: BoxFit.contain,
+      loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+        if (loadingProgress == null) return child;
+        return _buildShimmerPlaceholder(sideWidth!);
+      },
+      errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+        return placeholder;
+      },
+    );
   }
-  if (circular)
+  
+  // Apply circular clipping if requested
+  if (circular) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(800.0),
+      borderRadius: BorderRadius.circular(sideWidth! / 2),
       child: childWidget,
     );
-  else
-    return childWidget;
+  } else {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: childWidget,
+    );
+  }
+}
+
+Widget _buildShimmerPlaceholder(double size) {
+  return ShimmerWidgets.box(
+    width: size,
+    height: size,
+    borderRadius: BorderRadius.circular(size / 2),
+    baseColor: Colors.grey.shade200,
+    highlightColor: Colors.grey.shade50,
+  );
 }
 
 num? parseVariableAsNum(dynamic data) {

@@ -36,78 +36,63 @@ class SearchService {
       final searchesArr = [companyProfileQuery, etfProfileQuery];
       final req = {"searches": searchesArr};
 
-      print('🔍 DEBUG: Search request: ${jsonEncode(req)}');
-      
       final response = await _webService.postTypeSense(['multi_search'], jsonEncode(req), {});
       
-      print('🔍 DEBUG: Response status: ${response.statusCode}');
-      print('🔍 DEBUG: Response body: ${response.body}');
-      
-              if (response.statusCode == 200) {
-          final res = jsonDecode(response.body);
-          final results = res["results"] as List<dynamic>;
+      if (response.statusCode == 200) {
+        final res = jsonDecode(response.body);
+        final results = res["results"] as List<dynamic>;
+        
+        List<TickerModel> allResults = [];
+        
+        // Process company profile results
+        if (results.isNotEmpty) {
+          final companyResults = results[0];
+          final companyHits = companyResults['hits'] as List<dynamic>? ?? [];
           
-          print('🔍 DEBUG: Number of result sets: ${results.length}');
-          
-          List<TickerModel> allResults = [];
-          
-          // Process company profile results
-          if (results.isNotEmpty) {
-            final companyResults = results[0];
-            final companyHits = companyResults['hits'] as List<dynamic>? ?? [];
-            
-            print('🔍 DEBUG: Company hits: ${companyHits.length}');
-            
-            for (final hit in companyHits) {
-              final document = hit['document'] as Map<String, dynamic>?;
-              if (document != null) {
-                print('🔍 DEBUG: Company document: ${document['ticker']} - ${document['name']}');
-                allResults.add(TickerModel(
-                  symbol: document['ticker']?.toString(),
-                  companyName: document['name']?.toString(),
-                  exchange: document['exchange']?.toString(),
-                  countryName: document['country']?.toString(),
-                  logo: document['logo']?.toString(),
-                  isStock: true,
-                  currentPrice: null,
-                  currency: document['currency']?.toString(),
-                ));
-              }
+          for (final hit in companyHits) {
+            final document = hit['document'] as Map<String, dynamic>?;
+            if (document != null) {
+              allResults.add(TickerModel(
+                symbol: document['ticker']?.toString(),
+                companyName: document['name']?.toString(),
+                exchange: document['exchange']?.toString(),
+                countryName: document['country']?.toString(),
+                logo: document['logo']?.toString(),
+                isStock: true,
+                currentPrice: null,
+                currency: document['currency']?.toString(),
+              ));
             }
           }
-          
-          // Process ETF results
-          if (results.length > 1) {
-            final etfResults = results[1];
-            final etfHits = etfResults['hits'] as List<dynamic>? ?? [];
-            
-            print('🔍 DEBUG: ETF hits: ${etfHits.length}');
-            
-            for (final hit in etfHits) {
-              final document = hit['document'] as Map<String, dynamic>?;
-              if (document != null) {
-                print('🔍 DEBUG: ETF document: ${document['symbol']} - ${document['name']}');
-                allResults.add(TickerModel(
-                  symbol: document['symbol']?.toString(),
-                  companyName: document['name']?.toString(),
-                  exchange: document['exchange']?.toString(),
-                  countryName: document['domicile']?.toString(),
-                  logo: document['logo']?.toString(),
-                  isStock: false,
-                  currentPrice: null,
-                  currency: document['currency']?.toString(),
-                ));
-              }
-            }
-          }
-          
-          print('🔍 DEBUG: Total results: ${allResults.length}');
-          return allResults;
         }
+        
+        // Process ETF results
+        if (results.length > 1) {
+          final etfResults = results[1];
+          final etfHits = etfResults['hits'] as List<dynamic>? ?? [];
+          
+          for (final hit in etfHits) {
+            final document = hit['document'] as Map<String, dynamic>?;
+            if (document != null) {
+              allResults.add(TickerModel(
+                symbol: document['symbol']?.toString(),
+                companyName: document['name']?.toString(),
+                exchange: document['exchange']?.toString(),
+                countryName: document['domicile']?.toString(),
+                logo: document['logo']?.toString(),
+                isStock: false,
+                currentPrice: null,
+                currency: document['currency']?.toString(),
+              ));
+            }
+          }
+        }
+        
+        return allResults;
+      }
       
       return [];
     } catch (e) {
-      print('Search error: $e');
       return [];
     }
   }

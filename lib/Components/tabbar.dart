@@ -4,9 +4,10 @@ import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/controllers/finhub_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 
 class HomeTabBar extends StatelessWidget {
   final ValueChanged<String>? onSearch;
@@ -227,7 +228,6 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
         _removeOverlay();
       }
     } catch (e) {
-      print('Search error: $e');
       setState(() {
         _searchResults = [];
       });
@@ -236,151 +236,25 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
   }
 
   void _onTickerSelected(TickerModel ticker) {
-    print('DEBUG: Ticker selected: ${ticker.symbol} - ${ticker.name}');
-    try {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TickerDetailScreen(ticker: ticker),
-        ),
-      );
-      print('DEBUG: Navigation successful');
-    } catch (e) {
-      print('DEBUG: Navigation error: $e');
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TickerDetailScreen(ticker: ticker),
+      ),
+    );
     _removeOverlay();
     setState(() {
       _showResults = false;
     });
   }
 
-  Widget _buildLogoWidget(String logoUrl, bool isStock, TickerModel ticker) {
-    if (!isStock) {
-      // For ETFs, show first letter or number from name
-      String initialLetter = 'E'; // Default fallback
-      if (ticker.name != null && ticker.name!.isNotEmpty) {
-        String name = ticker.name!.trim();
-        // Find first alphanumeric character
-        for (int i = 0; i < name.length; i++) {
-          if (RegExp(r'[a-zA-Z0-9]').hasMatch(name[i])) {
-            initialLetter = name[i].toUpperCase();
-            break;
-          }
-        }
-      }
-      
-      return Container(
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
-          color: Colors.green.shade100,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Center(
-          child: Text(
-            initialLetter,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.green.shade700,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-            ),
-          ),
-        ),
-      );
-    }
 
-    if (logoUrl.isEmpty) {
-      // For stocks without logo, show first letter or number from name
-      String initialLetter = 'S'; // Default fallback
-      if (ticker.name != null && ticker.name!.isNotEmpty) {
-        String name = ticker.name!.trim();
-        // Find first alphanumeric character
-        for (int i = 0; i < name.length; i++) {
-          if (RegExp(r'[a-zA-Z0-9]').hasMatch(name[i])) {
-            initialLetter = name[i].toUpperCase();
-            break;
-          }
-        }
-      }
-      
-      return Container(
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
-          color: Colors.blue.shade100,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Center(
-          child: Text(
-            initialLetter,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.blue.shade700,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-            ),
-          ),
-        ),
-      );
-    }
 
-    if (logoUrl.toLowerCase().endsWith('.svg')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: SvgPicture.network(
-          logoUrl,
-          width: 20,
-          height: 20,
-          fit: BoxFit.cover,
-          placeholderBuilder: (context) => ShimmerWidgets.box(
-            width: 20,
-            height: 20,
-            borderRadius: BorderRadius.circular(4),
-            baseColor: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            highlightColor: widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-          ),
-          errorBuilder: (context, error, stackTrace) => Icon(
-            Icons.broken_image,
-            size: 16,
-            color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-          ),
-        ),
-      );
-    } else {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: Image.network(
-          logoUrl,
-          width: 20,
-          height: 20,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return ShimmerWidgets.box(
-              width: 20,
-              height: 20,
-              borderRadius: BorderRadius.circular(4),
-              baseColor: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              highlightColor: widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) => Icon(
-            Icons.broken_image,
-            size: 16,
-            color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-          ),
-        ),
-      );
-    }
-  }
+
 
   Widget _buildSearchResultItem(TickerModel ticker) {
     return InkWell(
-      onTap: () {
-        print('DEBUG: Search result item tapped: ${ticker.symbol}');
-        _onTickerSelected(ticker);
-      },
+      onTap: () => _onTickerSelected(ticker),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -401,7 +275,12 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: _buildLogoWidget(ticker.logo ?? '', ticker.isStock, ticker),
+              child: showLogo(
+                ticker.symbol ?? '',
+                ticker.logo ?? '',
+                sideWidth: 20,
+                name: ticker.symbol ?? '',
+              ),
             ),
             
             const SizedBox(width: 12),
@@ -720,16 +599,12 @@ class TickerDetailScreen extends StatelessWidget {
                               : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: ticker.logo != null && ticker.logo!.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: _buildDetailLogoWidget(ticker.logo!, isDarkMode, ticker),
-                              )
-                            : Icon(
-                                ticker.isStock ? Icons.business : Icons.show_chart,
-                                size: 32,
-                                color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                              ),
+                        child: showLogo(
+                          ticker.symbol ?? '',
+                          ticker.logo ?? '',
+                          sideWidth: 40,
+                          name: ticker.symbol ?? '',
+                        ),
                       ),
                       
                       const SizedBox(width: 16),
@@ -819,104 +694,7 @@ class TickerDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailLogoWidget(String logoUrl, bool isDarkMode, TickerModel ticker) {
-    if (!ticker.isStock) {
-      // For ETFs, show first letter or number from name
-      String initialLetter = 'E'; // Default fallback
-      if (ticker.name != null && ticker.name!.isNotEmpty) {
-        String name = ticker.name!.trim();
-        // Find first alphanumeric character
-        for (int i = 0; i < name.length; i++) {
-          if (RegExp(r'[a-zA-Z0-9]').hasMatch(name[i])) {
-            initialLetter = name[i].toUpperCase();
-            break;
-          }
-        }
-      }
-      
-      return Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.green.shade100,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            initialLetter,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.green.shade700,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-            ),
-          ),
-        ),
-      );
-    }
 
-    if (logoUrl.isEmpty) {
-      // For stocks without logo, show first letter or number from name
-      String initialLetter = 'S'; // Default fallback
-      if (ticker.name != null && ticker.name!.isNotEmpty) {
-        String name = ticker.name!.trim();
-        // Find first alphanumeric character
-        for (int i = 0; i < name.length; i++) {
-          if (RegExp(r'[a-zA-Z0-9]').hasMatch(name[i])) {
-            initialLetter = name[i].toUpperCase();
-            break;
-          }
-        }
-      }
-      
-      return Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.blue.shade100,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            initialLetter,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.blue.shade700,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (logoUrl.toLowerCase().endsWith('.svg')) {
-      return SvgPicture.network(
-        logoUrl,
-        fit: BoxFit.cover,
-        placeholderBuilder: (context) => Icon(
-          Icons.image,
-          size: 32,
-          color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-        ),
-        errorBuilder: (context, error, stackTrace) => Icon(
-          Icons.broken_image,
-          size: 32,
-          color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-        ),
-      );
-    } else {
-      return Image.network(
-        logoUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Icon(
-          Icons.broken_image,
-          size: 32,
-          color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-        ),
-      );
-    }
-  }
 
   Widget _buildDetailItem(String label, String value, bool isDarkMode) {
     return Column(
