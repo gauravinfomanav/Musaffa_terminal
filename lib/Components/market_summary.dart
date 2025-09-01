@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 class MarketSummaryDynamicTable extends StatefulWidget {
   const MarketSummaryDynamicTable({
@@ -59,10 +60,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                     Expanded(
                       child: Text(
                         controller.errorMessage.value,
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 12,
-                        ),
+                        style: DashboardTextStyles.errorMessage,
                       ),
                     ),
                   ],
@@ -77,10 +75,10 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
               return _buildShimmerLoader();
             } else if (controller.data['hits']?.isEmpty == true) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
                 child: Text(
                   "No data available",
-                  style: TextStyle(fontSize: 14),
+                  style: DashboardTextStyles.noData,
                 ),
               );
             } else {
@@ -91,15 +89,11 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       Text(
                         "Previous day closing data",
                         textAlign: TextAlign.start,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w400,
-                        ),
+                        style:DashboardTextStyles.titleSmall,
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 12),
                   Row(
                     children: [
                       Container(

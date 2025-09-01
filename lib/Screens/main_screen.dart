@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
+import 'package:musaffa_terminal/Components/top_movers_widget.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -46,8 +47,9 @@ class _MainScreenState extends State<MainScreen> {
                 SizedBox(width: 12),
                 
                 Expanded(
-                  child: Container(
-                    color: Colors.red,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TopMoversWidget(),
                   ),
                 ),
               ],
