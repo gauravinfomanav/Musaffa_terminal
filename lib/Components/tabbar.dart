@@ -133,25 +133,19 @@ class _SearchFieldState extends State<_SearchField> {
   }
 
   void _showOverlay() {
-    print('🔍 _showOverlay called with ${_searchResults.length} results');
-    
     _removeOverlay();
     
     if (_searchResults.isEmpty) {
-      print('🔍 No search results to show');
       return;
     }
     
     final RenderBox? renderBox = _searchFieldKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) {
-      print('🔍 RenderBox is null, cannot show overlay');
       return;
     }
     
     final position = renderBox.localToGlobal(Offset.zero);
     final size = renderBox.size;
-    
-    print('🔍 Overlay position: $position, size: $size');
     
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -176,7 +170,6 @@ class _SearchFieldState extends State<_SearchField> {
               itemCount: _searchResults.length,
               itemBuilder: (context, index) {
                 final ticker = _searchResults[index];
-                print('🔍 Building search result item $index: ${ticker.symbol}');
                 return Container(
                   color: Colors.transparent,
                   child: _buildSearchResultItem(ticker),
@@ -189,7 +182,6 @@ class _SearchFieldState extends State<_SearchField> {
     );
     
     Overlay.of(context).insert(_overlayEntry!);
-    print('🔍 Overlay inserted successfully');
   }
 
   Future<void> _performSearch(String query) async {
@@ -213,11 +205,8 @@ class _SearchFieldState extends State<_SearchField> {
       });
       
       if (results.isNotEmpty) {
-        print('🔍 Search results found: ${results.length} items');
-        print('🔍 First result: ${results.first.symbol} - ${results.first.companyName}');
         _showOverlay();
       } else {
-        print('🔍 No search results found');
         _removeOverlay();
       }
     } catch (e) {
@@ -229,15 +218,6 @@ class _SearchFieldState extends State<_SearchField> {
   }
 
   void _onTickerSelected(TickerModel ticker) {
-    print('=== NAVIGATION DEBUG START ===');
-    print('Ticker selected: ${ticker.symbol ?? ticker.ticker}');
-    print('Ticker symbol field: ${ticker.symbol}');
-    print('Ticker ticker field: ${ticker.ticker}');
-    print('Ticker company name: ${ticker.companyName ?? ticker.name}');
-    print('Ticker data: ${ticker.toString()}');
-    print('Current context: $context');
-    print('Widget mounted: ${mounted}');
-    
     // Remove overlay and reset state first
     _removeOverlay();
     setState(() {
@@ -246,47 +226,13 @@ class _SearchFieldState extends State<_SearchField> {
     _searchController.clear();
     _focusNode.unfocus();
     
-    print('State reset complete, attempting navigation...');
-    
-    // Try multiple navigation approaches
-    try {
-      // Method 1: Direct navigation
-      print('Trying Method 1: Direct Navigator.push...');
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TickerDetailScreen(ticker: ticker),
-        ),
-      );
-      print('Method 1 successful!');
-    } catch (e) {
-      print('Method 1 failed: $e');
-      
-      try {
-        // Method 2: Root navigator
-        print('Trying Method 2: Root navigator...');
-        Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(
-            builder: (context) => TickerDetailScreen(ticker: ticker),
-          ),
-        );
-        print('Method 2 successful!');
-      } catch (e2) {
-        print('Method 2 failed: $e2');
-        
-        try {
-          // Method 3: Using Get.to (since you have GetX)
-          print('Trying Method 3: Get.to...');
-          Get.to(() => TickerDetailScreen(ticker: ticker));
-          print('Method 3 successful!');
-        } catch (e3) {
-          print('Method 3 failed: $e3');
-          print('All navigation methods failed!');
-        }
-      }
-    }
-    
-    print('=== NAVIGATION DEBUG END ===');
+    // Navigate to ticker detail screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TickerDetailScreen(ticker: ticker),
+      ),
+    );
   }
 
 
@@ -294,18 +240,10 @@ class _SearchFieldState extends State<_SearchField> {
 
 
   Widget _buildSearchResultItem(TickerModel ticker) {
-    print('🔍 Building search result item for: ${ticker.symbol}');
-    
     return GestureDetector(
       behavior: HitTestBehavior.opaque, // This ensures the entire area is tappable
       onTap: () {
-        print('🔍 GESTURE DETECTED: ${ticker.symbol}');
-        print('🔍 Ticker object: ${ticker.toString()}');
-        print('🔍 Ticker symbol: ${ticker.symbol}');
-        print('🔍 Ticker company: ${ticker.companyName}');
-        print('🔍 About to call _onTickerSelected...');
         _onTickerSelected(ticker);
-        print('🔍 _onTickerSelected called successfully');
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
