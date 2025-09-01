@@ -101,7 +101,7 @@ class _SearchField extends StatefulWidget {
   State<_SearchField> createState() => _SearchFieldState();
 }
 
-class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver {
+class _SearchFieldState extends State<_SearchField> {
   final TextEditingController _searchController = TextEditingController();
   List<TickerModel> _searchResults = [];
   bool _showResults = false;
@@ -113,44 +113,19 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
   void initState() {
     super.initState();
     _focusNode = FocusNode();
-    _focusNode.addListener(_onFocusChange);
-    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     _removeOverlay();
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  void _onFocusChange() {
-    if (!_focusNode.hasFocus && _showResults) {
-      setState(() {
-        _showResults = false;
-      });
-      _removeOverlay();
-      _searchController.clear();
-    }
-  }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // App lost focus or user navigated away
-      if (_showResults) {
-        setState(() {
-          _showResults = false;
-        });
-        _removeOverlay();
-        _searchController.clear();
-      }
-    }
-  }
+
+
 
   void _removeOverlay() {
     _overlayEntry?.remove();
@@ -158,15 +133,25 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
   }
 
   void _showOverlay() {
+    print('🔍 _showOverlay called with ${_searchResults.length} results');
+    
     _removeOverlay();
     
-    if (_searchResults.isEmpty) return;
+    if (_searchResults.isEmpty) {
+      print('🔍 No search results to show');
+      return;
+    }
     
     final RenderBox? renderBox = _searchFieldKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
+    if (renderBox == null) {
+      print('🔍 RenderBox is null, cannot show overlay');
+      return;
+    }
     
     final position = renderBox.localToGlobal(Offset.zero);
     final size = renderBox.size;
+    
+    print('🔍 Overlay position: $position, size: $size');
     
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -191,7 +176,11 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
               itemCount: _searchResults.length,
               itemBuilder: (context, index) {
                 final ticker = _searchResults[index];
-                return _buildSearchResultItem(ticker);
+                print('🔍 Building search result item $index: ${ticker.symbol}');
+                return Container(
+                  color: Colors.transparent,
+                  child: _buildSearchResultItem(ticker),
+                );
               },
             ),
           ),
@@ -200,6 +189,7 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
     );
     
     Overlay.of(context).insert(_overlayEntry!);
+    print('🔍 Overlay inserted successfully');
   }
 
   Future<void> _performSearch(String query) async {
@@ -223,8 +213,11 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
       });
       
       if (results.isNotEmpty) {
+        print('🔍 Search results found: ${results.length} items');
+        print('🔍 First result: ${results.first.symbol} - ${results.first.companyName}');
         _showOverlay();
       } else {
+        print('🔍 No search results found');
         _removeOverlay();
       }
     } catch (e) {
@@ -236,16 +229,64 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
   }
 
   void _onTickerSelected(TickerModel ticker) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TickerDetailScreen(ticker: ticker),
-      ),
-    );
+    print('=== NAVIGATION DEBUG START ===');
+    print('Ticker selected: ${ticker.symbol ?? ticker.ticker}');
+    print('Ticker symbol field: ${ticker.symbol}');
+    print('Ticker ticker field: ${ticker.ticker}');
+    print('Ticker company name: ${ticker.companyName ?? ticker.name}');
+    print('Ticker data: ${ticker.toString()}');
+    print('Current context: $context');
+    print('Widget mounted: ${mounted}');
+    
+    // Remove overlay and reset state first
     _removeOverlay();
     setState(() {
       _showResults = false;
     });
+    _searchController.clear();
+    _focusNode.unfocus();
+    
+    print('State reset complete, attempting navigation...');
+    
+    // Try multiple navigation approaches
+    try {
+      // Method 1: Direct navigation
+      print('Trying Method 1: Direct Navigator.push...');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TickerDetailScreen(ticker: ticker),
+        ),
+      );
+      print('Method 1 successful!');
+    } catch (e) {
+      print('Method 1 failed: $e');
+      
+      try {
+        // Method 2: Root navigator
+        print('Trying Method 2: Root navigator...');
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (context) => TickerDetailScreen(ticker: ticker),
+          ),
+        );
+        print('Method 2 successful!');
+      } catch (e2) {
+        print('Method 2 failed: $e2');
+        
+        try {
+          // Method 3: Using Get.to (since you have GetX)
+          print('Trying Method 3: Get.to...');
+          Get.to(() => TickerDetailScreen(ticker: ticker));
+          print('Method 3 successful!');
+        } catch (e3) {
+          print('Method 3 failed: $e3');
+          print('All navigation methods failed!');
+        }
+      }
+    }
+    
+    print('=== NAVIGATION DEBUG END ===');
   }
 
 
@@ -253,11 +294,23 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
 
 
   Widget _buildSearchResultItem(TickerModel ticker) {
-    return InkWell(
-      onTap: () => _onTickerSelected(ticker),
+    print('🔍 Building search result item for: ${ticker.symbol}');
+    
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, // This ensures the entire area is tappable
+      onTap: () {
+        print('🔍 GESTURE DETECTED: ${ticker.symbol}');
+        print('🔍 Ticker object: ${ticker.toString()}');
+        print('🔍 Ticker symbol: ${ticker.symbol}');
+        print('🔍 Ticker company: ${ticker.companyName}');
+        print('🔍 About to call _onTickerSelected...');
+        _onTickerSelected(ticker);
+        print('🔍 _onTickerSelected called successfully');
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
+          color: Colors.transparent, // Make sure background is transparent
           border: Border(
             bottom: BorderSide(
               color: (widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)).withOpacity(0.3),
@@ -291,7 +344,7 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    ticker.symbol ?? '',
+                    ticker.symbol ?? ticker.ticker ?? '',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -300,7 +353,7 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
                     ),
                   ),
                   Text(
-                    ticker.companyName ?? '',
+                    ticker.companyName ?? ticker.name ?? '',
                     style: TextStyle(
                       fontSize: 12,
                       color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280),
@@ -354,21 +407,10 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Close search results when tapping outside
-        if (_showResults) {
-          setState(() {
-            _showResults = false;
-          });
-          _removeOverlay();
-          _searchController.clear();
-        }
-      },
-      child: SizedBox(
-        key: _searchFieldKey,
-        height: 44,
-                child: TextField(
+    return SizedBox(
+      key: _searchFieldKey,
+      height: 44,
+      child: TextField(
           controller: _searchController,
           focusNode: _focusNode,
           onChanged: (value) {
@@ -442,7 +484,7 @@ class _SearchFieldState extends State<_SearchField> with WidgetsBindingObserver 
           ),
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -563,7 +605,7 @@ class TickerDetailScreen extends StatelessWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: Text(ticker.symbol ?? 'Stock Details'),
+        title: Text(ticker.symbol ?? ticker.ticker ?? 'Stock Details'),
         backgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         foregroundColor: isDarkMode ? Colors.white : Colors.black,
         elevation: 0,
@@ -600,10 +642,10 @@ class TickerDetailScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: showLogo(
-                          ticker.symbol ?? '',
+                          ticker.symbol ?? ticker.ticker ?? '',
                           ticker.logo ?? '',
                           sideWidth: 40,
-                          name: ticker.symbol ?? '',
+                          name: ticker.symbol ?? ticker.ticker ?? '',
                         ),
                       ),
                       
@@ -615,7 +657,7 @@ class TickerDetailScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              ticker.symbol ?? '',
+                              ticker.symbol ?? ticker.ticker ?? '',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w700,
@@ -624,7 +666,7 @@ class TickerDetailScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              ticker.companyName ?? '',
+                              ticker.companyName ?? ticker.name ?? '',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280),
@@ -677,7 +719,7 @@ class TickerDetailScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'You are now viewing the ${ticker.symbol} stock page. This is a placeholder for the detailed stock information screen.',
+                      'You are now viewing the ${ticker.symbol ?? ticker.ticker} stock page. This is a placeholder for the detailed stock information screen.',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.blue.shade700,
