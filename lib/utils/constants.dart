@@ -107,4 +107,40 @@ class DashboardTextStyles {
     fontFamily: Constants.FONT_DEFAULT_NEW,
     color: secondaryTextColor,
   );
+  
+  // Header Styles - For stock detail page header
+  static TextStyle get headerTitle => TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    fontFamily: Constants.FONT_DEFAULT_NEW,
+    color: primaryTextColor,
+  );
+  
+  static TextStyle get headerTicker => TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    fontFamily: Constants.FONT_DEFAULT_NEW,
+    color: secondaryTextColor,
+  );
+  
+  static TextStyle get headerPrice => TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    fontFamily: Constants.FONT_DEFAULT_NEW,
+    color: primaryTextColor,
+  );
+  
+  static TextStyle get headerChange => TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    fontFamily: Constants.FONT_DEFAULT_NEW,
+    color: secondaryTextColor,
+  );
+  
+  static TextStyle get headerMetric => TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    fontFamily: Constants.FONT_DEFAULT_NEW,
+    color: secondaryTextColor,
+  );
 }
