@@ -82,6 +82,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     _buildStockHeader(stockData, isDarkMode),
                     const SizedBox(height: 16),
 
+                    // Performance Heatmap
+                    _buildPerformanceHeatmap(stockData, isDarkMode),
+                    const SizedBox(height: 16),
+
                     // Row 1: Price & Market, Valuation, Financial Ratios
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,4 +559,108 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ),
     );
   }
+
+  Widget _buildPerformanceHeatmap(StocksData stockData, bool isDarkMode) {
+    final performanceData = {
+      '1D': stockData.change1DPercent ?? 0,
+      '1W': stockData.priceChange1WPercent ?? 0,
+      '1M': stockData.priceChange1MPercent ?? 0,
+      '3M': stockData.priceChange3MPercent ?? 0,
+      '6M': stockData.priceChange6MPercent ?? 0,
+      '1Y': stockData.priceChange1YPercent ?? 0,
+      '3Y': stockData.priceChange3YPercent ?? 0,
+      '5Y': stockData.priceChange5YPercent ?? 0,
+      'YTD': stockData.priceChangeYTDPercent ?? 0,
+    };
+
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.35, // Reduced to 35% of screen width
+      padding: const EdgeInsets.all(10), // Slightly increased padding
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(6), // Smaller radius
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Performance Heatmap',
+            style: DashboardTextStyles.headerTitle.copyWith(fontSize: 14), // Increased title size
+          ),
+          const SizedBox(height: 10), // Increased spacing
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 6, // Increased spacing
+              mainAxisSpacing: 6, // Increased spacing
+              childAspectRatio: 2.8, // Adjusted for better proportions
+            ),
+            itemCount: performanceData.length,
+            itemBuilder: (context, index) {
+              final period = performanceData.keys.elementAt(index);
+              final value = performanceData[period] ?? 0;
+              return _buildHeatmapCell(period, value.toDouble(), isDarkMode);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeatmapCell(String period, double value, bool isDarkMode) {
+    final isPositive = value >= 0;
+    final absValue = value.abs();
+    
+    Color cellColor;
+    if (absValue == 0) {
+      cellColor = isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+    } else if (absValue <= 1) {
+      cellColor = isPositive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2);
+    } else if (absValue <= 5) {
+      cellColor = isPositive ? Colors.green.withOpacity(0.4) : Colors.red.withOpacity(0.4);
+    } else if (absValue <= 15) {
+      cellColor = isPositive ? Colors.green.withOpacity(0.6) : Colors.red.withOpacity(0.6);
+    } else {
+      cellColor = isPositive ? Colors.green.withOpacity(0.8) : Colors.red.withOpacity(0.8);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cellColor,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            period,
+            style: DashboardTextStyles.headerMetric.copyWith(
+              fontSize: 11, // Increased text size
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2), 
+          Text(
+            '${value >= 0 ? '+' : ''}${value.toStringAsFixed(1)}%',
+            style: DashboardTextStyles.headerMetric.copyWith(
+              fontSize: 10, // Increased text size
+              fontWeight: FontWeight.w500,
+              color: isPositive ? Colors.green.shade700 : Colors.red.shade700, // Better contrast
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
 }
