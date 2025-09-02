@@ -213,10 +213,8 @@ class StatusBadge extends StatelessWidget {
                   getStatus(),
                   textAlign: TextAlign.center,
                   maxLines: 1,
-                  style: TextStyle(
-                      fontSize: 12,
+                  style: DashboardTextStyles.tickerSymbol.copyWith(
                       overflow: TextOverflow.ellipsis,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
                       fontWeight: FontWeight.w500,
                       color: getStatusColor()),
                 ),

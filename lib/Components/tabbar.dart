@@ -7,18 +7,21 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
+import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 
 
 class HomeTabBar extends StatelessWidget {
   final ValueChanged<String>? onSearch;
   final VoidCallback? onSearchSubmit;
   final VoidCallback? onThemeToggle;
+  final bool showBackButton;
 
   const HomeTabBar({
     super.key, 
     this.onSearch, 
     this.onSearchSubmit,
     this.onThemeToggle,
+    this.showBackButton = false,
   });
 
   @override
@@ -38,30 +41,41 @@ class HomeTabBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Theme toggle button
-          GestureDetector(
-            onTap: onThemeToggle,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
+              child: Row(
+          children: [
+            // Back button or Theme toggle button
+            if (showBackButton)
+              GestureDetector(
+                onTap: () => Get.back(),
+                child: Icon(
+                  Icons.arrow_back_ios,
+                  size: 24,
+                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                 ),
               ),
-              child: Icon(
-                isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                size: 20,
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
+            if (showBackButton) const SizedBox(width: 12),
+            // Theme toggle button
+            // GestureDetector(
+            //   onTap: onThemeToggle,
+            //   child: Container(
+            //     width: 44,
+            //     height: 44,
+            //     decoration: BoxDecoration(
+            //       color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
+            //       borderRadius: BorderRadius.circular(8),
+            //       border: Border.all(
+            //         color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            //         width: 1,
+            //       ),
+            //     ),
+            //     child: Icon(
+            //       isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            //       size: 20,
+            //       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+            //     ),
+            //   ),
+            // ),
+            // const SizedBox(width: 12),
           // Search field
           Expanded(
             flex: 1,
@@ -135,7 +149,8 @@ class _SearchFieldState extends State<_SearchField> {
   void _showOverlay() {
     _removeOverlay();
     
-    if (_searchResults.isEmpty) {
+    // Only show overlay if there are search results AND the text field is not empty
+    if (_searchResults.isEmpty || _searchController.text.isEmpty) {
       return;
     }
     
@@ -283,19 +298,14 @@ class _SearchFieldState extends State<_SearchField> {
                 children: [
                   Text(
                     ticker.symbol ?? ticker.ticker ?? '',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF1F2937),
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    style: DashboardTextStyles.stockName.copyWith(
+                      color: widget.isDarkMode ? const Color(0xFFE0E0E0) : DashboardTextStyles.stockName.color,
                     ),
                   ),
                   Text(
                     ticker.companyName ?? ticker.name ?? '',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280),
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    style: DashboardTextStyles.tickerSymbol.copyWith(
+                      color: widget.isDarkMode ? const Color(0xFF6B7280) : DashboardTextStyles.tickerSymbol.color,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -324,13 +334,10 @@ class _SearchFieldState extends State<_SearchField> {
                       const SizedBox(width: 2),
                       Text(
                         '\$${ticker.currentPrice!.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                        style: DashboardTextStyles.dataCell.copyWith(
                           color: ticker.percentChange != null && ticker.percentChange! >= 0 
                               ? Colors.green.shade600 
                               : Colors.red.shade600,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
                         ),
                       ),
                     ],
@@ -360,14 +367,18 @@ class _SearchFieldState extends State<_SearchField> {
               _showResults = false;
             });
             _removeOverlay();
+          } else {
+            // Clear results when text is less than 2 characters but not empty
+            setState(() {
+              _searchResults = [];
+              _showResults = false;
+            });
+            _removeOverlay();
           }
         },
         textInputAction: TextInputAction.search,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF1F2937),
-          fontFamily: Constants.FONT_DEFAULT_NEW,
+        style: DashboardTextStyles.stockName.copyWith(
+          color: widget.isDarkMode ? const Color(0xFFE0E0E0) : DashboardTextStyles.stockName.color,
         ),
         decoration: InputDecoration(
           prefixIcon: Icon(
@@ -376,11 +387,8 @@ class _SearchFieldState extends State<_SearchField> {
             color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
           ),
           hintText: 'Search symbols, ETFs, or stocks...',
-          hintStyle: TextStyle(
+          hintStyle: DashboardTextStyles.tickerSymbol.copyWith(
             color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-            fontSize: 15,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontWeight: FontWeight.w400,
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           filled: true,
@@ -531,174 +539,4 @@ class _IndexItem extends StatelessWidget {
   }
 }
 
-// Ticker Detail Screen
-class TickerDetailScreen extends StatelessWidget {
-  final TickerModel ticker;
 
-  const TickerDetailScreen({Key? key, required this.ticker}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(ticker.symbol ?? ticker.ticker ?? 'Stock Details'),
-        backgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        foregroundColor: isDarkMode ? Colors.white : Colors.black,
-        elevation: 0,
-      ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stock Info Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // Logo
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: ticker.logo != null && ticker.logo!.isNotEmpty
-                              ? Colors.transparent
-                              : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: showLogo(
-                          ticker.symbol ?? ticker.ticker ?? '',
-                          ticker.logo ?? '',
-                          sideWidth: 40,
-                          name: ticker.symbol ?? ticker.ticker ?? '',
-                        ),
-                      ),
-                      
-                      const SizedBox(width: 16),
-                      
-                      // Ticker and Company Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ticker.symbol ?? ticker.ticker ?? '',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF1F2937),
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                              ),
-                            ),
-                            Text(
-                              ticker.companyName ?? ticker.name ?? '',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280),
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Additional Details
-                  Row(
-                    children: [
-                      _buildDetailItem('Type', ticker.isStock ? 'Stock' : 'ETF', isDarkMode),
-                      const SizedBox(width: 24),
-                      _buildDetailItem('Exchange', ticker.exchange ?? 'N/A', isDarkMode),
-                      const SizedBox(width: 24),
-                      _buildDetailItem('Country', ticker.countryName ?? 'N/A', isDarkMode),
-                    ],
-                  ),
-                  
-                  if (ticker.currentPrice != null) ...[
-                    const SizedBox(height: 16),
-                    _buildDetailItem('Current Price', '\$${ticker.currentPrice!.toStringAsFixed(2)}', isDarkMode),
-                  ],
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Message
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'You are now viewing the ${ticker.symbol ?? ticker.ticker} stock page. This is a placeholder for the detailed stock information screen.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue.shade700,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-
-
-  Widget _buildDetailItem(String label, String value, bool isDarkMode) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280),
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF1F2937),
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-        ),
-      ],
-    );
-  }
-}
