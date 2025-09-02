@@ -15,9 +15,23 @@ class Constants {
     2: 'C',
     1: 'C-',
   };
-  
 
-  
+  // Utility function to format large numbers with K, M, B, T suffixes
+  static String getShortenedMarketCapV2(num? value) {
+    if (value == null) return "--";
+
+    if (value >= 1e12) {
+      return "\$${(value / 1e12).toStringAsFixed(2)}T";
+    } else if (value >= 1e9) {
+      return "\$${(value / 1e9).toStringAsFixed(2)}B";
+    } else if (value >= 1e6) {
+      return "\$${(value / 1e6).toStringAsFixed(2)}M";
+    } else if (value >= 1e3) {
+      return "\$${(value / 1e3).toStringAsFixed(2)}K";
+    } else {
+      return "\$${value.toStringAsFixed(2)}";
+    }
+  }
 }
 class WebResponse<T, P> {
   T? payload;

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/recommendation_widget.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
+import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -19,16 +21,24 @@ class TickerDetailScreen extends StatefulWidget {
 
 class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late StockDetailsController controller;
+  late RecommendationController recommendationController;
 
   @override
   void initState() {
     super.initState();
     controller = Get.put(StockDetailsController());
+    recommendationController = RecommendationController();
     
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.fetchStockDetails(widget.ticker.symbol ?? widget.ticker.ticker ?? '');
     });
+  }
+
+  @override
+  void dispose() {
+    recommendationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -82,8 +92,24 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     _buildStockHeader(stockData, isDarkMode),
                     const SizedBox(height: 16),
 
-                    // Performance Heatmap
-                    _buildPerformanceHeatmap(stockData, isDarkMode),
+                    // Recommendation and Performance Heatmap Row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: RecommendationWidget(
+                            symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                            controller: recommendationController,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 1,
+                          child: _buildPerformanceHeatmap(stockData, isDarkMode),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
 
                     // Row 1: Price & Market, Valuation, Financial Ratios
@@ -135,7 +161,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
   Widget _buildPriceMetrics(StocksData stockData, bool isDarkMode) {
     final data = [
-      ['Market Cap', '\$${((stockData.usdMarketCap ?? 0) / 1000).toStringAsFixed(1)}B'],
+      ['Market Cap', Constants.getShortenedMarketCapV2(stockData.usdMarketCap)],
       ['52W High', '\$${stockData.d52WeekHigh?.toStringAsFixed(2) ?? '--'}'],
       ['52W Low', '\$${stockData.d52WeekLow?.toStringAsFixed(2) ?? '--'}'],
       ['Volume', '${((stockData.volume ?? 0) / 1000000).toStringAsFixed(1)}M'],
@@ -192,7 +218,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ['EPS (1Y)', '${stockData.epsGrowth1y?.toStringAsFixed(2) ?? '--'}%'],
       ['EPS (3Y)', '${stockData.epsGrowth3Y?.toStringAsFixed(2) ?? '--'}%'],
       ['Market Cap (3Y)', '${stockData.marketCapChange3y?.toStringAsFixed(2) ?? '--'}%'],
-      ['EBITDA', '${stockData.ebitdaEstimateAnnual?.toStringAsFixed(2) ?? '--'}'],
+      ['EBITDA', Constants.getShortenedMarketCapV2(stockData.ebitdaEstimateAnnual)],
     ];
     
     return _buildCompactTable('Growth', data, isDarkMode);
@@ -349,7 +375,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Market Cap: \$${((stockData.usdMarketCap ?? 0) / 1000).toStringAsFixed(1)}B',
+                        'Market Cap: ${Constants.getShortenedMarketCapV2(stockData.usdMarketCap)}',
                         style: DashboardTextStyles.headerMetric,
                       ),
                       Text(
@@ -543,7 +569,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                       children: [
                         Text('Enterprise Value:', style: DashboardTextStyles.headerMetric),
                         Text(
-                          '\$${((stockData.enterpriseValue! / 1000)).toStringAsFixed(1)}B',
+                          Constants.getShortenedMarketCapV2(stockData.enterpriseValue),
                           style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -574,11 +600,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     };
 
     return Container(
-      width: MediaQuery.of(context).size.width * 0.35, // Reduced to 35% of screen width
-      padding: const EdgeInsets.all(10), // Slightly increased padding
+      width: double.infinity,
+      padding: const EdgeInsets.all(8), // Reduced padding for terminal look
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(6), // Smaller radius
+        borderRadius: BorderRadius.circular(4), // Smaller radius for terminal look
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
           width: 1,
@@ -589,17 +615,22 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         children: [
           Text(
             'Performance Heatmap',
-            style: DashboardTextStyles.headerTitle.copyWith(fontSize: 14), // Increased title size
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
+            ),
           ),
-          const SizedBox(height: 10), // Increased spacing
+          const SizedBox(height: 8), // Reduced spacing for terminal look
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 6, // Increased spacing
-              mainAxisSpacing: 6, // Increased spacing
-              childAspectRatio: 2.8, // Adjusted for better proportions
+              crossAxisSpacing: 4, // Reduced spacing for terminal look
+              mainAxisSpacing: 4, // Reduced spacing for terminal look
+              childAspectRatio: 2.2, // Adjusted for larger text and better readability
             ),
             itemCount: performanceData.length,
             itemBuilder: (context, index) {
@@ -617,23 +648,36 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     final isPositive = value >= 0;
     final absValue = value.abs();
     
+    // Terminal-appropriate colors - solid colors, no opacity
     Color cellColor;
+    Color textColor;
+    
     if (absValue == 0) {
+      // Neutral/zero performance
       cellColor = isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+      textColor = isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
     } else if (absValue <= 1) {
-      cellColor = isPositive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2);
+      // Very small change
+      cellColor = isPositive ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2);
+      textColor = isPositive ? const Color(0xFF065F46) : const Color(0xFF991B1B);
     } else if (absValue <= 5) {
-      cellColor = isPositive ? Colors.green.withOpacity(0.4) : Colors.red.withOpacity(0.4);
+      // Small change
+      cellColor = isPositive ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA);
+      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
     } else if (absValue <= 15) {
-      cellColor = isPositive ? Colors.green.withOpacity(0.6) : Colors.red.withOpacity(0.6);
+      // Medium change
+      cellColor = isPositive ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5);
+      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
     } else {
-      cellColor = isPositive ? Colors.green.withOpacity(0.8) : Colors.red.withOpacity(0.8);
+      // Large change
+      cellColor = isPositive ? const Color(0xFF34D399) : const Color(0xFFF87171);
+      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
     }
 
     return Container(
       decoration: BoxDecoration(
         color: cellColor,
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(2), // Smaller radius for terminal look
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
           width: 0.5,
@@ -644,18 +688,21 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         children: [
           Text(
             period,
-            style: DashboardTextStyles.headerMetric.copyWith(
-              fontSize: 11, // Increased text size
+            style: TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: textColor,
             ),
           ),
-          const SizedBox(height: 2), 
+          const SizedBox(height: 2), // Increased spacing for better readability
           Text(
             '${value >= 0 ? '+' : ''}${value.toStringAsFixed(1)}%',
-            style: DashboardTextStyles.headerMetric.copyWith(
-              fontSize: 10, // Increased text size
+            style: TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: isPositive ? Colors.green.shade700 : Colors.red.shade700, // Better contrast
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: textColor,
             ),
           ),
         ],
