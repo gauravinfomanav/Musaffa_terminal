@@ -22,6 +22,7 @@ class TickerDetailScreen extends StatefulWidget {
 class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late StockDetailsController controller;
   late RecommendationController recommendationController;
+  int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
 
   @override
   void initState() {
@@ -63,94 +64,86 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             },
           ),
           
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              
-              if (controller.errorMessage.isNotEmpty) {
-                return Center(
-                  child: Text(
-                    controller.errorMessage.value,
-                    style: DashboardTextStyles.errorMessage,
+          // Action Buttons
+          Container(
+            margin: const EdgeInsets.only(left: 12,right: 12,top: 8,bottom: 2),
+            child: Row(
+              children: [
+                OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedTabIndex = 0;
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                    side: BorderSide(
+                      color: _selectedTabIndex == 0 
+                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                          : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                      width: _selectedTabIndex == 0 ? 2 : 1,
+                    ),
+                    backgroundColor: _selectedTabIndex == 0 
+                        ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
+                        : Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   ),
-                );
-              }
-              
-              if (controller.stockData.value == null) {
-                return const Center(child: Text('No data available'));
-              }
-              
-              final stockData = controller.stockData.value!;
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Section
-                    _buildStockHeader(stockData, isDarkMode),
-                    const SizedBox(height: 16),
-
-                    // Recommendation and Performance Heatmap Row
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: RecommendationWidget(
-                            symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                            controller: recommendationController,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 1,
-                          child: _buildPerformanceHeatmap(stockData, isDarkMode),
-                        ),
-                      ],
+                  child: Text(
+                    'Overview',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      color: _selectedTabIndex == 0 
+                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                          : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Row 1: Price & Market, Valuation, Financial Ratios
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _buildPriceMetrics(stockData, isDarkMode),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildValuationMetrics(stockData, isDarkMode),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildFinancialRatios(stockData, isDarkMode),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Row 2: Performance, Growth, Risk & Efficiency
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _buildPerformanceMetrics(stockData, isDarkMode),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildGrowthMetrics(stockData, isDarkMode),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildRiskMetrics(stockData, isDarkMode),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              );
-            }),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedTabIndex = 1;
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                    side: BorderSide(
+                      color: _selectedTabIndex == 1 
+                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                          : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                      width: _selectedTabIndex == 1 ? 2 : 1,
+                    ),
+                    backgroundColor: _selectedTabIndex == 1 
+                        ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
+                        : Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  child: Text(
+                    'Financial',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      color: _selectedTabIndex == 1 
+                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                          : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          Expanded(
+            child: _selectedTabIndex == 0
+                ? _buildOverviewTab(isDarkMode)
+                : _buildFinancialTab(isDarkMode),
           ),
         ],
       ),
@@ -706,6 +699,144 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab(bool isDarkMode) {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      
+      if (controller.errorMessage.isNotEmpty) {
+        return Center(
+          child: Text(
+            controller.errorMessage.value,
+            style: DashboardTextStyles.errorMessage,
+          ),
+        );
+      }
+      
+      if (controller.stockData.value == null) {
+        return const Center(child: Text('No data available'));
+      }
+      
+      final stockData = controller.stockData.value!;
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Section
+            _buildStockHeader(stockData, isDarkMode),
+            const SizedBox(height: 16),
+
+            // Recommendation and Performance Heatmap Row
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: RecommendationWidget(
+                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                    controller: recommendationController,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: _buildPerformanceHeatmap(stockData, isDarkMode),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Row 1: Price & Market, Valuation, Financial Ratios
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildPriceMetrics(stockData, isDarkMode),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildValuationMetrics(stockData, isDarkMode),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildFinancialRatios(stockData, isDarkMode),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Row 2: Growth, Risk & Efficiency (Performance removed - shown in heatmap)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildGrowthMetrics(stockData, isDarkMode),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildRiskMetrics(stockData, isDarkMode),
+                ),
+                const SizedBox(width: 8),
+                // Empty space to maintain layout
+                Expanded(
+                  child: Container(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildFinancialTab(bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.analytics_outlined,
+              size: 64,
+              color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Financial Analysis',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Coming Soon',
+              style: TextStyle(
+                fontSize: 16,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Advanced financial metrics, charts, and analysis tools will be available here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

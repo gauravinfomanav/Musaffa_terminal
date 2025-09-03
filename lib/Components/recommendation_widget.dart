@@ -136,8 +136,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
 
   Widget _buildCustomGauge(RecommendationModel recommendation) {
     return Container(
-      width: 180,
-      height: 100,
+      width: 220,
+      height: 125,
       child: CustomPaint(
         painter: GaugePainter(
           value: _pointerValue,
