@@ -4,9 +4,11 @@ import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/recommendation_widget.dart';
 import 'package:musaffa_terminal/Components/financial_fundamentals_widget.dart';
+import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
+import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -25,6 +27,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late StockDetailsController controller;
   late RecommendationController recommendationController;
   late FinancialFundamentalsController financialFundamentalsController;
+  late TradingViewController tradingViewController;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
 
   @override
@@ -33,6 +36,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     controller = Get.put(StockDetailsController());
     recommendationController = RecommendationController();
     financialFundamentalsController = FinancialFundamentalsController();
+    tradingViewController = TradingViewController();
     
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,6 +48,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   void dispose() {
     recommendationController.dispose();
     financialFundamentalsController.dispose();
+    tradingViewController.dispose();
     super.dispose();
   }
 
@@ -737,21 +742,25 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             _buildStockHeader(stockData, isDarkMode),
             const SizedBox(height: 16),
 
-            // Recommendation and Performance Heatmap Row
+            // Recommendation and TradingView Chart Row
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   flex: 2,
-                  child: RecommendationWidget(
+                  child: TradingViewWidget(
                     symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: recommendationController,
+                    controller: tradingViewController,
+                    height: 400,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 1,
-                  child: _buildPerformanceHeatmap(stockData, isDarkMode),
+                  child: RecommendationWidget(
+                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                    controller: recommendationController,
+                  ),
                 ),
               ],
             ),

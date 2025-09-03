@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingView Chart</title>
+    <style>
+        html, body {
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .tradingview-widget-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        #trading-view-chart {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Custom scrollbar for macOS */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="tradingview-widget-container">
+        <div id="trading-view-chart"></div>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript">
+        function initChart(symbolStr, colorTheme, height) {
+            // Format symbol for TradingView (e.g., "AAPL" -> "NASDAQ:AAPL")
+            const formattedSymbol = formatSymbol(symbolStr);
+            
+            const options = {
+                "symbols": [
+                    [formattedSymbol]
+                ],
+                "chartOnly": true,
+                "width": "100%",
+                "height": height || "400px",
+                "locale": "en",
+                "colorTheme": colorTheme,
+                "autosize": true,
+                "showVolume": true,
+                "hideDateRanges": false,
+                "hideMarketStatus": true,
+                "hideSymbolLogo": false,
+                "scalePosition": "right",
+                "scaleMode": "Normal",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                "fontSize": "12",
+                "noTimeScale": false,
+                "valuesTracking": "1",
+                "changeMode": "price-and-percent",
+                "chartType": "candlesticks",
+                "container_id": "trading-view-chart",
+                "studies": [
+                    "MASimple@tv-basicstudies",
+                    "RSI@tv-basicstudies",
+                    "MACD@tv-basicstudies"
+                ],
+                "time_frames": [
+                    { text: "1D", resolution: "1", description: "1 Day" },
+                    { text: "1W", resolution: "5", description: "1 Week" },
+                    { text: "1M", resolution: "60", description: "1 Month" },
+                    { text: "3M", resolution: "D", description: "3 Months" },
+                    { text: "1Y", resolution: "D", description: "1 Year" }
+                ]
+            };
+
+            // Theme-specific colors
+            if (colorTheme === 'light') {
+                options.backgroundColor = "#FFFFFF";
+                options.gridLineColor = "#E1E5E9";
+                options.fontColor = "#131722";
+            } else {
+                options.backgroundColor = "#131722";
+                options.gridLineColor = "#2B2B43";
+                options.fontColor = "#D1D4DC";
+            }
+
+            // Create the chart
+            new TradingView.MediumWidget(options);
+        }
+
+        function formatSymbol(symbol) {
+            // Common exchanges mapping
+            const exchanges = {
+                'AAPL': 'NASDAQ',
+                'MSFT': 'NASDAQ',
+                'GOOGL': 'NASDAQ',
+                'AMZN': 'NASDAQ',
+                'TSLA': 'NASDAQ',
+                'META': 'NASDAQ',
+                'NVDA': 'NASDAQ',
+                'NFLX': 'NASDAQ',
+                'JPM': 'NYSE',
+                'JNJ': 'NYSE',
+                'V': 'NYSE',
+                'PG': 'NYSE',
+                'UNH': 'NYSE',
+                'HD': 'NYSE',
+                'MA': 'NYSE',
+                'DIS': 'NYSE',
+                'PYPL': 'NASDAQ',
+                'ADBE': 'NASDAQ',
+                'CRM': 'NYSE',
+                'ABT': 'NYSE'
+            };
+            
+            const exchange = exchanges[symbol] || 'NASDAQ';
+            return `${exchange}:${symbol}`;
+        }
+
+        function updateSymbol(newSymbol) {
+            const container = document.getElementById('trading-view-chart');
+            if (container) {
+                container.innerHTML = '';
+                const currentTheme = document.body.getAttribute('data-theme') || 'light';
+                const currentHeight = document.body.getAttribute('data-height') || '400px';
+                initChart(newSymbol, currentTheme, currentHeight);
+            }
+        }
+
+                 function updateTheme(newTheme) {
+             const container = document.getElementById('trading-view-chart');
+             if (container) {
+                 container.innerHTML = '';
+                 const currentSymbol = document.body.getAttribute('data-symbol') || 'AAPL';
+                 const currentHeight = document.body.getAttribute('data-height') || '400px';
+                 initChart(currentSymbol, newTheme, currentHeight);
+             }
+         }
+         
+         function updateHeight(newHeight) {
+             const container = document.getElementById('trading-view-chart');
+             if (container) {
+                 container.innerHTML = '';
+                 const currentSymbol = document.body.getAttribute('data-symbol') || 'AAPL';
+                 const currentTheme = document.body.getAttribute('data-theme') || 'light';
+                 initChart(currentSymbol, currentTheme, newHeight);
+             }
+         }
+
+                 // Initialize with default values
+         document.addEventListener('DOMContentLoaded', function() {
+             console.log('DOM loaded, initializing chart...');
+             try {
+                 initChart('AAPL', 'light', '400px');
+                 console.log('Chart initialization completed');
+             } catch (error) {
+                 console.error('Error initializing chart:', error);
+             }
+         });
+         
+         // Also expose functions globally for Flutter to call
+         window.initChart = initChart;
+         window.updateSymbol = updateSymbol;
+         window.updateTheme = updateTheme;
+         window.updateHeight = updateHeight;
+         
+         console.log('TradingView chart functions exposed to window object');
+    </script>
+</body>
+</html>
