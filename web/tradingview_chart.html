@@ -23,23 +23,38 @@
             height: 100%;
         }
         
-        /* Custom scrollbar for macOS */
+        /* Hide scrollbars completely */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            display: none;
+            width: 0;
+            height: 0;
         }
         
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        /* Hide scrollbars for Firefox */
+        * {
+            scrollbar-width: none;
         }
         
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
+        /* Hide scrollbars for IE/Edge */
+        * {
+            -ms-overflow-style: none;
         }
         
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.3);
+        /* Prevent any internal scrolling in the chart */
+        .tradingview-widget-container,
+        #trading-view-chart,
+        iframe,
+        .tradingview-widget,
+        [class*="tradingview"] {
+            overflow: hidden !important;
+            scroll-behavior: auto !important;
+            overscroll-behavior: none !important;
+        }
+        
+        /* Ensure chart container has no scroll */
+        body, html {
+            overflow: hidden !important;
+            scroll-behavior: auto !important;
         }
     </style>
 </head>
@@ -75,7 +90,7 @@
                 "noTimeScale": false,
                 "valuesTracking": "1",
                 "changeMode": "price-and-percent",
-                "chartType": "candlesticks",
+                "chartType": "line",
                 "container_id": "trading-view-chart",
                 "studies": [
                     "MASimple@tv-basicstudies",
@@ -88,7 +103,9 @@
                     { text: "1M", resolution: "60", description: "1 Month" },
                     { text: "3M", resolution: "D", description: "3 Months" },
                     { text: "1Y", resolution: "D", description: "1 Year" }
-                ]
+                ],
+                "disableScrolling": true,
+                "noScroll": true
             };
 
             // Theme-specific colors

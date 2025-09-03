@@ -212,15 +212,14 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
       child: Stack(
         children: [
           // WebView or Fallback
-          _isWebViewSupported && _webViewController != null
-            ? WebViewWidget(
-                controller: _webViewController!,
-                gestureRecognizers: _createGestureRecognizers(),
-              )
-            : _buildFallback(isDarkMode),
+          if (_isWebViewSupported && _webViewController != null)
+            WebViewWidget(
+              controller: _webViewController!,
+              gestureRecognizers: _createGestureRecognizers(),
+            ),
           
-          // Loading indicator
-          if (_isLoading && widget.showLoading && _isWebViewSupported && _webViewController != null)
+          // Loading indicator - show when loading OR when WebView not ready
+          if (_isLoading || _webViewController == null)
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -238,7 +237,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Loading Chart...',
+                        _webViewController == null ? 'Initializing Chart...' : 'Loading Chart...',
                         style: TextStyle(
                           color: isDarkMode ? Colors.white : Colors.black87,
                           fontSize: 14,
@@ -290,46 +289,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
     );
   }
 
-  Widget _buildFallback(bool isDarkMode) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.show_chart,
-            size: 64,
-            color: const Color(0xFF81AACE),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Chart Not Available',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: isDarkMode ? Colors.white : Colors.black87,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'TradingView chart is not supported on this platform',
-            style: TextStyle(
-              fontSize: 14,
-              color: isDarkMode ? Colors.white70 : Colors.black54,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+  // Fallback method removed - loading indicator handles all states now
 
   Set<Factory<OneSequenceGestureRecognizer>> _createGestureRecognizers() {
     return <Factory<OneSequenceGestureRecognizer>>{
