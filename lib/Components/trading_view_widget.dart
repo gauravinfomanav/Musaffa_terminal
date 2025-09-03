@@ -30,6 +30,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   bool _isLoading = true;
   String _htmlContent = '';
   bool _isWebViewSupported = true;
+  bool _isWebViewInitialized = false;
 
   @override
   void initState() {
@@ -51,6 +52,12 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
 
   Future<void> _initializeWebView() async {
     try {
+      // Prevent multiple initializations
+      if (_isWebViewInitialized) {
+        debugPrint('WebView already initialized, skipping...');
+        return;
+      }
+      
       debugPrint('Initializing WebView for ${widget.symbol}');
       
       _webViewController = WebViewController()
@@ -106,6 +113,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
         baseUrl: 'https://s3.tradingview.com', // Required for external script loading
       );
       
+      _isWebViewInitialized = true;
       debugPrint('WebView initialized successfully');
     } catch (e) {
       debugPrint('Error initializing WebView: $e');
@@ -183,9 +191,14 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   void didUpdateWidget(TradingViewWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     
-    // Update chart if symbol changes
-    if (oldWidget.symbol != widget.symbol) {
-      widget.controller.updateSymbol(widget.symbol);
+    // Update chart if symbol changes, but only if WebView is ready
+    if (oldWidget.symbol != widget.symbol && _webViewController != null && !_isLoading) {
+      // Use a small delay to avoid rapid successive calls
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted && _webViewController != null) {
+          widget.controller.updateSymbol(widget.symbol);
+        }
+      });
     }
   }
 
@@ -193,29 +206,18 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: widget.height,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
       child: Stack(
         children: [
           // WebView or Fallback
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: _isWebViewSupported && _webViewController != null
-              ? WebViewWidget(
-                  controller: _webViewController!,
-                  gestureRecognizers: _createGestureRecognizers(),
-                )
-              : _buildFallback(isDarkMode),
-          ),
+          _isWebViewSupported && _webViewController != null
+            ? WebViewWidget(
+                controller: _webViewController!,
+                gestureRecognizers: _createGestureRecognizers(),
+              )
+            : _buildFallback(isDarkMode),
           
           // Loading indicator
           if (_isLoading && widget.showLoading && _isWebViewSupported && _webViewController != null)
@@ -249,56 +251,37 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
               ),
             ),
           
-          // Chart header
+          // Theme toggle button - positioned at top right corner
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 8,
+            right: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(8),
-                  topRight: Radius.circular(8),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.show_chart,
-                    color: const Color(0xFF81AACE),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${widget.symbol} Chart',
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  ),
-                  const Spacer(),
-                  // Theme toggle button
-                  IconButton(
-                    onPressed: () {
-                      final newTheme = isDarkMode ? 'light' : 'dark';
-                      widget.controller.updateTheme(newTheme);
-                    },
-                    icon: Icon(
-                      isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                      color: const Color(0xFF81AACE),
-                      size: 16,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
-                    ),
+                color: isDarkMode ? const Color(0xFF404040).withOpacity(0.8) : const Color(0xFFE5E7EB).withOpacity(0.8),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
                 ],
+              ),
+              child: IconButton(
+                onPressed: () {
+                  final newTheme = isDarkMode ? 'light' : 'dark';
+                  widget.controller.updateTheme(newTheme);
+                },
+                icon: Icon(
+                  isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  color: const Color(0xFF81AACE),
+                  size: 18,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
               ),
             ),
           ),
@@ -367,6 +350,10 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
 
   @override
   void dispose() {
+    // Clean up WebView controller to prevent recreation errors
+    if (_webViewController != null) {
+      _webViewController = null;
+    }
     super.dispose();
   }
 }

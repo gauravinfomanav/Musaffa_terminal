@@ -604,7 +604,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8), // Reduced padding for terminal look
+      padding: const EdgeInsets.all(10), // Reduced padding for terminal look
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(4), // Smaller radius for terminal look
@@ -625,7 +625,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
             ),
           ),
-          const SizedBox(height: 8), // Reduced spacing for terminal look
+          const SizedBox(height: 6), // Reduced spacing for terminal look
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -633,7 +633,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               crossAxisCount: 3,
               crossAxisSpacing: 4, // Reduced spacing for terminal look
               mainAxisSpacing: 4, // Reduced spacing for terminal look
-              childAspectRatio: 2.2, // Adjusted for larger text and better readability
+              childAspectRatio: 2, // Adjusted for larger text and better readability
             ),
             itemCount: performanceData.length,
             itemBuilder: (context, index) {
@@ -742,12 +742,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             _buildStockHeader(stockData, isDarkMode),
             const SizedBox(height: 16),
 
-            // Recommendation and TradingView Chart Row
+            // TradingView Chart and Analytics Row
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Half screen width for chart
                 Expanded(
-                  flex: 2,
                   child: TradingViewWidget(
                     symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
                     controller: tradingViewController,
@@ -755,11 +755,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Half screen width for analytics in column
                 Expanded(
-                  flex: 1,
-                  child: RecommendationWidget(
-                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: recommendationController,
+                  child: Column(
+                    children: [
+                      // RecommendationWidget(
+                      //   symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                      //   controller: recommendationController,
+                      // ),
+                      // const SizedBox(height: 8),
+                      _buildPerformanceHeatmap(stockData, isDarkMode),
+                    ],
                   ),
                 ),
               ],
