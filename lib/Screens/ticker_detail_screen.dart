@@ -3,8 +3,10 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/recommendation_widget.dart';
+import 'package:musaffa_terminal/Components/financial_fundamentals_widget.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
+import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -22,6 +24,7 @@ class TickerDetailScreen extends StatefulWidget {
 class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late StockDetailsController controller;
   late RecommendationController recommendationController;
+  late FinancialFundamentalsController financialFundamentalsController;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
 
   @override
@@ -29,6 +32,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     super.initState();
     controller = Get.put(StockDetailsController());
     recommendationController = RecommendationController();
+    financialFundamentalsController = FinancialFundamentalsController();
     
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,6 +43,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   @override
   void dispose() {
     recommendationController.dispose();
+    financialFundamentalsController.dispose();
     super.dispose();
   }
 
@@ -795,49 +800,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   }
 
   Widget _buildFinancialTab(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.analytics_outlined,
-              size: 64,
-              color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Financial Analysis',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Coming Soon',
-              style: TextStyle(
-                fontSize: 16,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Advanced financial metrics, charts, and analysis tools will be available here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return FinancialFundamentalsWidget(
+      symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+      controller: financialFundamentalsController,
     );
   }
   
