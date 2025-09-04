@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
-import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
-import 'package:musaffa_terminal/Components/recommendation_widget.dart';
-import 'package:musaffa_terminal/Components/financial_fundamentals_widget.dart';
+import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
@@ -815,9 +813,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   }
 
   Widget _buildFinancialTab(bool isDarkMode) {
-    return FinancialFundamentalsWidget(
+    return TerminalFinancialsScreen(
       symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-      controller: financialFundamentalsController,
+      currency: widget.ticker.currency ?? 'USD',
     );
   }
   
