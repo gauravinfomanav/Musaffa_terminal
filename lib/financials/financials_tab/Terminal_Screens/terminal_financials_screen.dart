@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_statements_screen.dart';
-import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_ratios_screen.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_per_share_screen.dart';
+import 'package:musaffa_terminal/Components/reusable_bar_graph.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
+import 'package:get/get.dart';
 
 class TerminalFinancialsScreen extends StatefulWidget {
   final String symbol;
@@ -19,8 +20,25 @@ class TerminalFinancialsScreen extends StatefulWidget {
 }
 
 class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
-  int selectedIndex = 0;
-  final List<String> buttonNames = ["Statements", "Ratios", "Per Share Data"];
+  bool isQuarterly = false; 
+  String selectedMetric = 'Revenue per Share (TTM)'; 
+  late FinancialFundamentalsController controller;
+  
+  // List of available metrics for cycling
+  final List<String> availableMetrics = [
+    'Revenue per Share (TTM)',
+    'EBIT per Share (TTM)',
+    'Earnings per Share (EPS) (TTM)',
+    'Dividend per Share (TTM)',
+    'EPS Annual Data',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(FinancialFundamentalsController());
+    controller.fetchFinancialFundamentals(widget.symbol);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,88 +50,36 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Terminal-style header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD1D5DB),
-                width: 1,
-              ),
-            ),
+          // Terminal-style title with toggle button
+          _buildTerminalTitleWithToggle(isDarkMode),
+          
+          // Row layout with table and chart
+          Expanded(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'FINANCIAL DATA',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-                    letterSpacing: 1.2,
+                // Table area (left side)
+                Expanded(
+                  flex: 2,
+                  child: TerminalPerShareScreen(
+                    symbol: widget.symbol,
+                    currency: widget.currency,
+                    onMetricSelected: (metric) {
+                      setState(() {
+                        selectedMetric = metric;
+                      });
+                    },
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  widget.symbol,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                  ),
+                
+                const SizedBox(width: 16),
+                
+                // Chart area (right side)
+                Expanded(
+                  flex: 2,
+                  child: _buildDynamicChart(isDarkMode),
                 ),
               ],
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // Terminal-style tab buttons
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: List.generate(
-                buttonNames.length,
-                (index) => Expanded(
-                  child: _buildTerminalTabButton(
-                    buttonNames[index],
-                    selectedIndex == index,
-                    () => setState(() => selectedIndex = index),
-                    isDarkMode,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // Content area
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: _buildContent(isDarkMode),
             ),
           ),
         ],
@@ -121,52 +87,253 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
     );
   }
 
-  Widget _buildTerminalTabButton(String title, bool isSelected, VoidCallback onPressed, bool isDarkMode) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(3),
-        ),
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: isSelected 
-                ? Colors.white
-                : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+
+  Widget _buildTerminalTitleWithToggle(bool isDarkMode) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            'PER SHARE DATA',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
+              
+            ),
           ),
+          
+          // _buildReusableToggleButton('Annual', true, isDarkMode), // Commented out for now
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDynamicChart(bool isDarkMode) {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+            ),
+          ),
+        );
+      }
+
+      final financialData = controller.financialData.value;
+      if (financialData == null) {
+        return Center(
+          child: Text(
+            'No data available',
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ),
+        );
+      }
+
+      // Get real data based on selected metric
+      List<BarData> chartData = _getRealChartDataForMetric(selectedMetric, financialData);
+      
+      return TerminalBarChart(
+        title: selectedMetric,
+        data: chartData,
+        unit: '',
+        titleWidget: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              selectedMetric,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
+              ),
+            ),
+            _buildMetricToggleButton(isDarkMode),
+          ],
+        ),
+      );
+    });
+  }
+
+  List<BarData> _getRealChartDataForMetric(String metric, FinancialFundamentals financialData) {
+    Map<String, double?>? dataMap;
+    
+    // Get the appropriate data map based on selected metric
+    switch (metric) {
+      case 'Revenue per Share (TTM)':
+        dataMap = financialData.revenuePerShareTTM;
+        break;
+      case 'EBIT per Share (TTM)':
+        dataMap = financialData.ebitPerShareTTM;
+        break;
+      case 'Earnings per Share (EPS) (TTM)':
+        dataMap = financialData.epsTTM;
+        break;
+      case 'Dividend per Share (TTM)':
+        dataMap = financialData.dividendPerShareTTM;
+        break;
+      case 'EPS Annual Data':
+        // Convert epsData Map<String, double> to Map<String, double?>
+        dataMap = financialData.epsData?.map((key, value) => MapEntry(key, value));
+        break;
+      default:
+        dataMap = financialData.revenuePerShareTTM;
+    }
+    
+    if (dataMap == null || dataMap.isEmpty) {
+      return [];
+    }
+    
+    // Convert the data map to BarData list and sort by year
+    List<BarData> chartData = dataMap.entries
+        .where((entry) => entry.value != null)
+        .map((entry) => BarData(year: entry.key, value: entry.value!))
+        .toList();
+    
+    // Sort by year (ascending)
+    chartData.sort((a, b) => a.year.compareTo(b.year));
+    
+    return chartData;
+  }
+
+  Widget _buildMetricToggleButton(bool isDarkMode) {
+    return GestureDetector(
+      onTap: () {
+        final currentIndex = availableMetrics.indexOf(selectedMetric);
+        final nextIndex = (currentIndex + 1) % availableMetrics.length;
+        setState(() => selectedMetric = availableMetrics[nextIndex]);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _getShortMetricName(selectedMetric),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_up,
+              size: 14,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 14,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildContent(bool isDarkMode) {
-    switch (selectedIndex) {
-      case 0:
-        return TerminalStatementsScreen(
-          symbol: widget.symbol,
-          currency: widget.currency,
-        );
-      case 1:
-        return TerminalRatiosScreen(
-          symbol: widget.symbol,
-          currency: widget.currency,
-        );
-      case 2:
-        return TerminalPerShareScreen(
-          symbol: widget.symbol,
-          currency: widget.currency,
-        );
+  String _getShortMetricName(String fullName) {
+    switch (fullName) {
+      case 'Revenue per Share (TTM)':
+        return 'Revenue';
+      case 'EBIT per Share (TTM)':
+        return 'EBIT';
+      case 'Earnings per Share (EPS) (TTM)':
+        return 'EPS';
+      case 'Dividend per Share (TTM)':
+        return 'Dividend';
+      case 'EPS Annual Data':
+        return 'EPS Annual';
       default:
-        return Container();
+        return fullName;
     }
   }
+
+  // Reusable toggle button widget - Ready for future use
+  // Usage: _buildReusableToggleButton('Annual', true, isDarkMode)
+  // ignore: unused_element
+  Widget _buildReusableToggleButton(String title, bool wantToggle, bool isDarkMode) {
+    if (!wantToggle) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => setState(() => isQuarterly = !isQuarterly),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isQuarterly ? 'Quarterly' : 'Annual',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_up,
+              size: 12,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 12,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }

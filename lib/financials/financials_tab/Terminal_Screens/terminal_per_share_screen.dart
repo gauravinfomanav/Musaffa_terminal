@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
+import 'package:musaffa_terminal/Components/expandable_dynamic_table.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 class TerminalPerShareScreen extends StatefulWidget {
   final String symbol;
   final String currency;
+  final Function(String)? onMetricSelected;
 
   const TerminalPerShareScreen({
     Key? key,
     required this.symbol,
     required this.currency,
+    this.onMetricSelected,
   }) : super(key: key);
 
   @override
@@ -33,24 +37,9 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
     
     return Obx(() {
       if (controller.isLoading.value) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Loading Per Share Data...',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                ),
-              ),
-            ],
-          ),
+        return ShimmerWidgets.perShareTableShimmer(
+          baseColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
+          highlightColor: isDarkMode ? const Color(0xFF404040) : Colors.grey[100]!,
         );
       }
 
@@ -92,122 +81,120 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       allYears.addAll(financialData.epsData!.keys);
     }
     
-    List<String> sortedYears = allYears.toList()..sort((a, b) => b.compareTo(a));
+    List<String> sortedYears = allYears.toList()..sort((a, b) => a.compareTo(b));
 
-    // Define metrics with their data
-    final metrics = [
-      {
-        'name': 'Revenue per Share (TTM)',
-        'data': financialData.revenuePerShareTTM,
-      },
-      {
-        'name': 'EBIT per Share (TTM)',
-        'data': financialData.ebitPerShareTTM,
-      },
-      {
-        'name': 'Earnings per Share (EPS) (TTM)',
-        'data': financialData.epsTTM,
-      },
-      {
-        'name': 'Dividend per Share (TTM)',
-        'data': financialData.dividendPerShareTTM,
-      },
+    // Create columns for the expandable table - include metric names as first column
+    List<ExpandableTableColumn> columns = [
+      ExpandableTableColumn(
+        key: 'metric',
+        title: 'Metric',
+        width: 200,
+        alignment: TextAlign.left,
+      ),
+      ...sortedYears.map((year) => ExpandableTableColumn(
+        key: year,
+        title: year,
+        width: 80,
+        isNumeric: true,
+        alignment: TextAlign.right,
+      )),
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          columnSpacing: 8,
-          horizontalMargin: 8,
-          headingRowColor: MaterialStateProperty.all(
-            isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-          ),
-          dataRowColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-            }
-            return null;
-          }),
-          columns: [
-            DataColumn(
-              label: Container(
-                width: 200,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Per Share Metrics',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-                  ),
-                ),
-              ),
-            ),
-            ...sortedYears.map((year) => DataColumn(
-              label: Container(
-                width: 80,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  year,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-                  ),
-                ),
-              ),
-            )),
-          ],
-          rows: metrics.map((metric) {
-            final metricName = metric['name'] as String;
-            final data = metric['data'] as Map<String, double?>?;
-            
-            return DataRow(
-              cells: [
-                DataCell(
-                  Container(
-                    width: 200,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      metricName,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-                      ),
-                    ),
-                  ),
-                ),
-                ...sortedYears.map((year) {
-                  final value = data?[year];
-                  
-                  return DataCell(
-                    Container(
-                      width: 80,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Text(
-                        value != null ? value.toStringAsFixed(2) : '--',
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: isDarkMode ? const Color(0xFFD1D5DB) : const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            );
-          }).toList(),
-        ),
+    // Create expandable table data
+    List<ExpandableTableRowData> tableData = [];
+
+    // Add TTM metrics directly (not as a group)
+    if (financialData.revenuePerShareTTM != null && financialData.revenuePerShareTTM!.isNotEmpty) {
+      tableData.add(ExpandableTableRowData(
+        id: 'revenue_ttm',
+        name: 'Revenue per Share (TTM)',
+        data: {
+          'metric': 'Revenue per Share (TTM)',
+          ..._createYearDataMap(financialData.revenuePerShareTTM!, sortedYears),
+        },
+      ));
+    }
+    
+    if (financialData.ebitPerShareTTM != null && financialData.ebitPerShareTTM!.isNotEmpty) {
+      tableData.add(ExpandableTableRowData(
+        id: 'ebit_ttm',
+        name: 'EBIT per Share (TTM)',
+        data: {
+          'metric': 'EBIT per Share (TTM)',
+          ..._createYearDataMap(financialData.ebitPerShareTTM!, sortedYears),
+        },
+      ));
+    }
+    
+    if (financialData.epsTTM != null && financialData.epsTTM!.isNotEmpty) {
+      tableData.add(ExpandableTableRowData(
+        id: 'eps_ttm',
+        name: 'Earnings per Share (EPS) (TTM)',
+        data: {
+          'metric': 'Earnings per Share (EPS) (TTM)',
+          ..._createYearDataMap(financialData.epsTTM!, sortedYears),
+        },
+      ));
+    }
+    
+    if (financialData.dividendPerShareTTM != null && financialData.dividendPerShareTTM!.isNotEmpty) {
+      tableData.add(ExpandableTableRowData(
+        id: 'dividend_ttm',
+        name: 'Dividend per Share (TTM)',
+        data: {
+          'metric': 'Dividend per Share (TTM)',
+          ..._createYearDataMap(financialData.dividendPerShareTTM!, sortedYears),
+        },
+      ));
+    }
+
+    // Add Annual EPS data if available
+    if (financialData.epsData != null && financialData.epsData!.isNotEmpty) {
+      tableData.add(ExpandableTableRowData(
+        id: 'eps_annual',
+        name: 'EPS Annual Data',
+        data: {
+          'metric': 'EPS Annual Data',
+          ..._createYearDataMap(financialData.epsData!, sortedYears),
+        },
+      ));
+    }
+
+    // Add other metrics if available
+    List<ExpandableTableRowData> otherMetrics = [];
+  
+    if (otherMetrics.isNotEmpty) {
+      tableData.add(ExpandableTableRowData(
+        id: 'other_group',
+        name: 'Other Metrics',
+        data: {},
+        isExpandable: true,
+        isExpanded: false,
+        children: otherMetrics,
+      ));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+      child: ExpandableDynamicTable(
+        columns: columns,
+        data: tableData,
+        considerPadding: false,
+        showNameColumn: false, // Don't show separate name column since we have metric column
+        onRowSelect: (row) {
+          // Handle row selection and notify parent
+          print('Selected: ${row.name}');
+          widget.onMetricSelected?.call(row.name);
+        },
       ),
     );
+  }
+
+  Map<String, dynamic> _createYearDataMap(Map<String, double?> sourceData, List<String> years) {
+    Map<String, dynamic> result = {};
+    for (String year in years) {
+      result[year] = sourceData[year];
+    }
+    return result;
   }
 }

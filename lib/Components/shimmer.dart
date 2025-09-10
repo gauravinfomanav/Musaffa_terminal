@@ -584,6 +584,82 @@ class ShimmerWidgets {
     );
   }
 
+  static Widget perShareTableShimmer({
+    Color? baseColor,
+    Color? highlightColor,
+  }) {
+    return Shimmer.fromColors(
+      baseColor: baseColor ?? Colors.grey[300]!,
+      highlightColor: highlightColor ?? Colors.grey[100]!,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+        child: Column(
+          children: [
+            // Table Header
+            Row(
+              children: [
+                // Metric column
+                Container(
+                  width: 200,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Year columns
+                ...List.generate(5, (index) => [
+                  Container(
+                    width: 80,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ]).expand((x) => x),
+              ],
+            ),
+            const SizedBox(height: 8),
+            
+            // Table Rows
+            ...List.generate(5, (index) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  // Metric name
+                  Container(
+                    width: 200,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Year data
+                  ...List.generate(5, (yearIndex) => [
+                    Container(
+                      width: 80,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ]).expand((x) => x),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
   static Widget activeRewardContainer({
     Color? baseColor,
     Color? highlightColor,
