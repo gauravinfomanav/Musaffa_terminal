@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_annual.dart' as annual;
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_quarterly.dart' as quarterly;
 
@@ -98,7 +99,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
   Widget build(BuildContext context) {
     return Obx(() {
       if (isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
+        return _buildLoadingShimmer();
       }
       
       if (isQuarterly) {
@@ -107,6 +108,40 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
         return _buildAnnualTables();
       }
     });
+  }
+
+  Widget _buildLoadingShimmer() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildStatementShimmer('INCOME STATEMENT'),
+          const SizedBox(height: 20),
+          _buildStatementShimmer('BALANCE SHEET'),
+          const SizedBox(height: 20),
+          _buildStatementShimmer('CASH FLOW'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatementShimmer(String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        ShimmerWidgets.perShareTableShimmer(),
+      ],
+    );
   }
 
   Widget _buildAnnualTables() {

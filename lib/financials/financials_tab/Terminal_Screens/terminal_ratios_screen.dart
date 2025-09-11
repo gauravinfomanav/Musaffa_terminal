@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_annual_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_quarterly_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -42,13 +43,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       if (isQuarterly) {
         // Show Quarterly Ratios
         if (quarterlyRatiosController.isLoading.value) {
-          return Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-              ),
-            ),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+            child: ShimmerWidgets.perShareTableShimmer(),
           );
         }
 
@@ -90,13 +87,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       } else {
         // Show Annual Ratios
         if (annualRatiosController.isLoading.value) {
-          return Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-              ),
-            ),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+            child: ShimmerWidgets.perShareTableShimmer(),
           );
         }
 
