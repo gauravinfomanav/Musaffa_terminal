@@ -50,62 +50,56 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Terminal-style title with toggle button
-          _buildTerminalTitleWithToggle(isDarkMode),
-          
-          // Row layout with table and chart
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Table area (left side)
-                Expanded(
-                  flex: 2,
-                  child: TerminalPerShareScreen(
-                    symbol: widget.symbol,
-                    currency: widget.currency,
-                    onMetricSelected: (metric) {
-                      setState(() {
-                        selectedMetric = metric;
-                      });
-                    },
-                  ),
+          _buildTerminalTitleWithToggle(isDarkMode, title: 'PER SHARE DATA', showAnnualToggle: false),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: TerminalPerShareScreen(
+                  symbol: widget.symbol,
+                  currency: widget.currency,
+                  onMetricSelected: (metric) {
+                    setState(() {
+                      selectedMetric = metric;
+                    });
+                  },
                 ),
-                
-                const SizedBox(width: 16),
-                
-                // Chart area (right side)
-                Expanded(
-                  flex: 2,
-                  child: _buildDynamicChart(isDarkMode),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: _buildDynamicChart(isDarkMode),
+              ),
+            ],
           ),
+          const SizedBox(height: 12),
+          _buildTerminalTitleWithToggle(isDarkMode, title: 'COMPANY FINANCIALS', showAnnualToggle: true),
         ],
       ),
     );
   }
 
 
-  Widget _buildTerminalTitleWithToggle(bool isDarkMode) {
+  Widget _buildTerminalTitleWithToggle(bool isDarkMode, {String title = 'PER SHARE DATA', bool showAnnualToggle = false}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
           Text(
-            'PER SHARE DATA',
+            title,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-              
             ),
           ),
-          
-          // _buildReusableToggleButton('Annual', true, isDarkMode), // Commented out for now
+          if (showAnnualToggle) ...[
+            const Spacer(),
+            _buildReusableToggleButton('Annual', true, isDarkMode),
+          ],
         ],
       ),
     );
@@ -270,7 +264,6 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
 
   // Reusable toggle button widget - Ready for future use
   // Usage: _buildReusableToggleButton('Annual', true, isDarkMode)
-  // ignore: unused_element
   Widget _buildReusableToggleButton(String title, bool wantToggle, bool isDarkMode) {
     if (!wantToggle) {
       return Container(
