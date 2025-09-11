@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_per_share_screen.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_ratios_screen.dart';
+import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_statements_screen.dart';
 import 'package:musaffa_terminal/Components/reusable_bar_graph.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
@@ -78,6 +79,9 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
             const SizedBox(height: 12),
             _buildTerminalTitleWithToggle(isDarkMode, title: 'COMPANY FINANCIALS', showAnnualToggle: true),
             TerminalRatiosScreen(symbol: widget.symbol),
+            const SizedBox(height: 12),
+            _buildTerminalTitleWithToggle(isDarkMode, title: 'FINANCIAL STATEMENTS', showAnnualToggle: true),
+            TerminalStatementsScreen(symbol: widget.symbol),
           ],
         ),
       ),

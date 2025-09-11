@@ -449,7 +449,10 @@ class FinancialDataTransformer {
       return FinancialExpandableRowData(
         id: name,
         name: name,
-        data: data,
+        data: {
+          'metric': name,
+          ...data,
+        },
         children: childrenMap.containsKey(name) 
             ? _transformSubItems(childrenMap[name]!, periods, 1)
             : null,
@@ -492,7 +495,10 @@ class FinancialDataTransformer {
       return FinancialExpandableRowData(
         id: name,
         name: name,
-        data: data,
+        data: {
+          'metric': name,
+          ...data,
+        },
         children: childrenMap.containsKey(name) 
             ? _transformSubItems(childrenMap[name]!, periods, level + 1)
             : null,
