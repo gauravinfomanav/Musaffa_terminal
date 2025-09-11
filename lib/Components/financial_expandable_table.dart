@@ -1,76 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
-
-class ExpandableTableRowData {
+// Data model for financial expandable table
+class FinancialExpandableRowData {
   final String id;
   final String name;
-  final String? symbol;
-  final String? logo;
-  final Map<String, dynamic> data;
-  final List<ExpandableTableRowData>? children; 
+  final Map<String, dynamic> data; // Year/Quarter -> Value mapping
+  final List<FinancialExpandableRowData>? children;
   final bool isExpandable;
   final bool isExpanded;
-  final int level; 
-  final bool showAsId; 
-  final String? customTitle; 
-  final String? customSubtitle; 
+  final int level;
+  final bool isHeader; // For ratios header rows
+  final String? customTitle;
+  final String? customSubtitle;
 
-  ExpandableTableRowData({
+  FinancialExpandableRowData({
     required this.id,
     required this.name,
-    this.symbol,
-    this.logo,
     required this.data,
     this.children,
     this.isExpandable = false,
     this.isExpanded = false,
     this.level = 0,
-    this.showAsId = false,
+    this.isHeader = false,
     this.customTitle,
     this.customSubtitle,
   });
 
-  ExpandableTableRowData copyWith({
+  FinancialExpandableRowData copyWith({
     String? id,
     String? name,
-    String? symbol,
-    String? logo,
     Map<String, dynamic>? data,
-    List<ExpandableTableRowData>? children,
+    List<FinancialExpandableRowData>? children,
     bool? isExpandable,
     bool? isExpanded,
     int? level,
-    bool? showAsId,
+    bool? isHeader,
     String? customTitle,
     String? customSubtitle,
   }) {
-    return ExpandableTableRowData(
+    return FinancialExpandableRowData(
       id: id ?? this.id,
       name: name ?? this.name,
-      symbol: symbol ?? this.symbol,
-      logo: logo ?? this.logo,
       data: data ?? this.data,
       children: children ?? this.children,
       isExpandable: isExpandable ?? this.isExpandable,
       isExpanded: isExpanded ?? this.isExpanded,
       level: level ?? this.level,
-      showAsId: showAsId ?? this.showAsId,
+      isHeader: isHeader ?? this.isHeader,
       customTitle: customTitle ?? this.customTitle,
       customSubtitle: customSubtitle ?? this.customSubtitle,
     );
   }
 }
 
-
-class ExpandableTableColumn {
+class FinancialExpandableColumn {
   final String key;
   final String title;
   final double? width;
   final bool isNumeric;
   final TextAlign alignment;
 
-  ExpandableTableColumn({
+  FinancialExpandableColumn({
     required this.key,
     required this.title,
     this.width,
@@ -79,8 +70,8 @@ class ExpandableTableColumn {
   });
 }
 
-class ExpandableDynamicTable extends StatefulWidget {
-  const ExpandableDynamicTable({
+class FinancialExpandableTable extends StatefulWidget {
+  const FinancialExpandableTable({
     Key? key,
     required this.columns,
     required this.data,
@@ -91,23 +82,25 @@ class ExpandableDynamicTable extends StatefulWidget {
     this.headerHeight = 32,
     this.expandIconSize = 16,
     this.indentSize = 20,
+    this.headerBackgroundColor = const Color(0xFFEFF4FF),
   }) : super(key: key);
 
-  final List<ExpandableTableColumn> columns;
-  final List<ExpandableTableRowData> data;
+  final List<FinancialExpandableColumn> columns;
+  final List<FinancialExpandableRowData> data;
   final bool showNameColumn;
-  final Function(ExpandableTableRowData)? onRowSelect;
+  final Function(FinancialExpandableRowData)? onRowSelect;
   final bool considerPadding;
   final double rowHeight;
   final double headerHeight;
   final double expandIconSize;
   final double indentSize;
+  final Color headerBackgroundColor;
 
   @override
-  State<ExpandableDynamicTable> createState() => _ExpandableDynamicTableState();
+  State<FinancialExpandableTable> createState() => _FinancialExpandableTableState();
 }
 
-class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
+class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
   final ScrollController _scrollController = ScrollController();
   bool _increaseShadow = false;
   Map<String, bool> _expandedRows = {};
@@ -143,10 +136,10 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     });
   }
 
-  List<ExpandableTableRowData> _getFlattenedRows() {
-    List<ExpandableTableRowData> flattened = [];
+  List<FinancialExpandableRowData> _getFlattenedRows() {
+    List<FinancialExpandableRowData> flattened = [];
     
-    void addRowAndChildren(ExpandableTableRowData row) {
+    void addRowAndChildren(FinancialExpandableRowData row) {
       flattened.add(row);
       
       if (row.isExpandable && 
@@ -200,60 +193,52 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
           ),
         ],
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          dataTableTheme: DataTableThemeData(
-            dataRowColor: WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
-            headingRowColor: WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
-          ),
-        ),
-        child: DataTable(
+      child: DataTable(
           showCheckboxColumn: false,
           headingRowHeight: widget.headerHeight,
           horizontalMargin: 0,
           dataRowMinHeight: widget.rowHeight,
           dataRowMaxHeight: widget.rowHeight,
         columns: [
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                "Name",
-                style: DashboardTextStyles.columnHeader,
+            DataColumn(
+              label: Expanded(
+                child: Text(
+                  "Name",
+                  style: DashboardTextStyles.columnHeader,
+                ),
               ),
             ),
-          ),
-        ],
-        rows: flattenedRows.map((row) {
-          return DataRow(
-            cells: [
-              DataCell(
-                Padding(
-                  padding: EdgeInsets.only(
-                    right: 30.0,
-                    left: row.level * widget.indentSize,
+          ],
+          rows: flattenedRows.map((row) {
+            return DataRow(
+              cells: [
+                DataCell(
+                  Padding(
+                    padding: EdgeInsets.only(
+                      right: 30.0,
+                      left: row.level * widget.indentSize,
+                    ),
+                    child: _buildNameCell(row),
                   ),
-                  child: _buildNameCell(row),
+                  onTap: row.isExpandable ? null : () => widget.onRowSelect?.call(row),
                 ),
-                onTap: row.isExpandable ? null : () => widget.onRowSelect?.call(row),
-              ),
-            ],
-          );
-        }).toList(),
-        dividerThickness: 0,
-        border: TableBorder(
-          bottom: BorderSide.none,
-          verticalInside: BorderSide.none,
-          horizontalInside: BorderSide(
-            color: Theme.of(context).primaryColorLight,
-            width: 0.8,
+              ],
+            );
+          }).toList(),
+          dividerThickness: 0,
+          border: TableBorder(
+            bottom: BorderSide.none,
+            verticalInside: BorderSide.none,
+            horizontalInside: BorderSide(
+              color: Theme.of(context).primaryColorLight,
+              width: 0.8,
+            ),
           ),
         ),
-        ),
-      ),
     );
   }
 
-  Widget _buildNameCell(ExpandableTableRowData row) {
+  Widget _buildNameCell(FinancialExpandableRowData row) {
     return GestureDetector(
       onTap: row.isExpandable ? () => _toggleExpansion(row.id) : null,
       child: Container(
@@ -265,7 +250,7 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
         child: Row(
           children: [
             Expanded(
-              child: _buildTickerCell(row),
+              child: _buildTextCell(row),
             ),
             if (row.isExpandable) ...[
               const SizedBox(width: 8),
@@ -285,19 +270,15 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     );
   }
 
-  Widget _buildTickerCell(ExpandableTableRowData row) {
-    // Determine what to display based on options - only titles, no tickers
+  Widget _buildTextCell(FinancialExpandableRowData row) {
     String title = row.customTitle ?? row.name;
     String? subtitle = row.customSubtitle;
     
-    // Choose appropriate text styles based on content type
-    TextStyle titleStyle = row.showAsId 
-        ? DashboardTextStyles.tickerSymbol.copyWith(fontSize: 11) 
+    TextStyle titleStyle = row.isHeader 
+        ? DashboardTextStyles.columnHeader.copyWith(fontWeight: FontWeight.bold)
         : DashboardTextStyles.stockName;
     
-    TextStyle subtitleStyle = row.showAsId 
-        ? DashboardTextStyles.tickerSymbol.copyWith(fontSize: 10) 
-        : DashboardTextStyles.tickerSymbol;
+    TextStyle subtitleStyle = DashboardTextStyles.tickerSymbol;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -307,7 +288,7 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
           Text(
             title,
             style: titleStyle,
-            maxLines: row.showAsId ? 2 : 1, // Allow 2 lines for IDs
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         if (subtitle != null && subtitle.isNotEmpty)
@@ -377,7 +358,7 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     );
   }
 
-  Widget _buildCellContent(ExpandableTableRowData row, ExpandableTableColumn column) {
+  Widget _buildCellContent(FinancialExpandableRowData row, FinancialExpandableColumn column) {
     final value = row.data[column.key];
     
     if (value == null) {
@@ -402,6 +383,11 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     }
 
     if (value is String) {
+      // Use different text style for metric column (first column)
+      TextStyle textStyle = column.key == 'metric' 
+          ? DashboardTextStyles.stockName 
+          : DashboardTextStyles.dataCell;
+      
       // Check if it's a change value (starts with + or -)
       Color textColor = DashboardTextStyles.primaryTextColor;
       if (value.startsWith('+')) {
@@ -412,7 +398,7 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       
       return Text(
         value,
-        style: DashboardTextStyles.dataCell.copyWith(color: textColor),
+        style: textStyle.copyWith(color: textColor),
         textAlign: column.alignment,
       );
     }
@@ -422,5 +408,143 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       style: DashboardTextStyles.dataCell,
       textAlign: column.alignment,
     );
+  }
+}
+
+// Helper class to transform different data structures to FinancialExpandableRowData
+class FinancialDataTransformer {
+  
+  // Transform Financial Statements data (Annual/Quarterly)
+  static List<FinancialExpandableRowData> transformFinancialStatements(
+    List<dynamic> financialData,
+    List<String> periods, // years or quarters
+  ) {
+    // Group by name to create one row per item with all periods
+    Map<String, Map<String, String>> groupedData = {};
+    Map<String, List<dynamic>> childrenMap = {};
+    
+    for (var item in financialData) {
+      String name = item.name;
+      String period = item.year; // or quarter
+      String value = item.originalValue;
+      
+      groupedData.putIfAbsent(name, () => {});
+      groupedData[name]![period] = value;
+      
+      if (item.subItems != null && item.subItems.isNotEmpty) {
+        childrenMap[name] = item.subItems;
+      }
+    }
+    
+    return groupedData.entries.map((entry) {
+      String name = entry.key;
+      Map<String, String> periodData = entry.value;
+      
+      // Convert to dynamic data map
+      Map<String, dynamic> data = {};
+      for (var period in periods) {
+        data[period] = periodData[period] ?? '--';
+      }
+      
+      return FinancialExpandableRowData(
+        id: name,
+        name: name,
+        data: data,
+        children: childrenMap.containsKey(name) 
+            ? _transformSubItems(childrenMap[name]!, periods, 1)
+            : null,
+        isExpandable: childrenMap.containsKey(name),
+        level: 0,
+      );
+    }).toList();
+  }
+  
+  static List<FinancialExpandableRowData> _transformSubItems(
+    List<dynamic> subItems,
+    List<String> periods,
+    int level,
+  ) {
+    Map<String, Map<String, String>> groupedData = {};
+    Map<String, List<dynamic>> childrenMap = {};
+    
+    for (var item in subItems) {
+      String name = item.name;
+      String period = item.year;
+      String value = item.originalValue;
+      
+      groupedData.putIfAbsent(name, () => {});
+      groupedData[name]![period] = value;
+      
+      if (item.subItems != null && item.subItems.isNotEmpty) {
+        childrenMap[name] = item.subItems;
+      }
+    }
+    
+    return groupedData.entries.map((entry) {
+      String name = entry.key;
+      Map<String, String> periodData = entry.value;
+      
+      Map<String, dynamic> data = {};
+      for (var period in periods) {
+        data[period] = periodData[period] ?? '--';
+      }
+      
+      return FinancialExpandableRowData(
+        id: name,
+        name: name,
+        data: data,
+        children: childrenMap.containsKey(name) 
+            ? _transformSubItems(childrenMap[name]!, periods, level + 1)
+            : null,
+        isExpandable: childrenMap.containsKey(name),
+        level: level,
+      );
+    }).toList();
+  }
+  
+  // Transform Ratios data (Annual/Quarterly)
+  static List<FinancialExpandableRowData> transformRatios(
+    List<dynamic> ratiosData,
+    List<String> periods,
+  ) {
+    return ratiosData.map((item) {
+      Map<String, dynamic> data = {};
+      for (var period in periods) {
+        data[period] = item.values[period]?.toStringAsFixed(2) ?? '--';
+      }
+      
+      return FinancialExpandableRowData(
+        id: item.metric,
+        name: item.metric,
+        data: {
+          'metric': item.metric,
+          ...data,
+        },
+        isHeader: item.metric.startsWith('**') && item.metric.endsWith('**'),
+        level: 0,
+      );
+    }).toList();
+  }
+  
+  // Transform Per Share data
+  static List<FinancialExpandableRowData> transformPerShareData(
+    Map<String, double?> sourceData,
+    List<String> periods,
+    String metricName,
+  ) {
+    Map<String, dynamic> data = {};
+    for (var period in periods) {
+      double? value = sourceData[period];
+      data[period] = value?.toStringAsFixed(2) ?? '--';
+    }
+    
+    return [
+      FinancialExpandableRowData(
+        id: metricName,
+        name: metricName,
+        data: data,
+        level: 0,
+      ),
+    ];
   }
 }

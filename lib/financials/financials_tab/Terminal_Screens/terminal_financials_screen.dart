@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_per_share_screen.dart';
+import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_ratios_screen.dart';
 import 'package:musaffa_terminal/Components/reusable_bar_graph.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
@@ -47,35 +48,38 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTerminalTitleWithToggle(isDarkMode, title: 'PER SHARE DATA', showAnnualToggle: false),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: TerminalPerShareScreen(
-                  symbol: widget.symbol,
-                  currency: widget.currency,
-                  onMetricSelected: (metric) {
-                    setState(() {
-                      selectedMetric = metric;
-                    });
-                  },
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildTerminalTitleWithToggle(isDarkMode, title: 'PER SHARE DATA', showAnnualToggle: false),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TerminalPerShareScreen(
+                    symbol: widget.symbol,
+                    currency: widget.currency,
+                    onMetricSelected: (metric) {
+                      setState(() {
+                        selectedMetric = metric;
+                      });
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: _buildDynamicChart(isDarkMode),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildTerminalTitleWithToggle(isDarkMode, title: 'COMPANY FINANCIALS', showAnnualToggle: true),
-        ],
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: _buildDynamicChart(isDarkMode),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildTerminalTitleWithToggle(isDarkMode, title: 'COMPANY FINANCIALS', showAnnualToggle: true),
+            TerminalRatiosScreen(symbol: widget.symbol),
+          ],
+        ),
       ),
     );
   }
@@ -264,6 +268,7 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
 
   // Reusable toggle button widget - Ready for future use
   // Usage: _buildReusableToggleButton('Annual', true, isDarkMode)
+
   Widget _buildReusableToggleButton(String title, bool wantToggle, bool isDarkMode) {
     if (!wantToggle) {
       return Container(

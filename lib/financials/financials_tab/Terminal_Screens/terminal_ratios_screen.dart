@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_annual_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_quarterly_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 class TerminalRatiosScreen extends StatefulWidget {
   final String symbol;
-  final String currency;
 
   const TerminalRatiosScreen({
     Key? key,
     required this.symbol,
-    required this.currency,
   }) : super(key: key);
 
   @override
@@ -19,393 +18,219 @@ class TerminalRatiosScreen extends StatefulWidget {
 }
 
 class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
-  int selectedPeriodIndex = 0; // 0: Annual, 1: Quarterly
-  
-  final List<String> periodNames = ["Annual", "Quarterly"];
-  
-  late RatiosController annualController;
-  late QuarterlyRatiosController quarterlyController;
+  bool isQuarterly = false;
+  late RatiosController annualRatiosController;
+  late QuarterlyRatiosController quarterlyRatiosController;
 
   @override
   void initState() {
     super.initState();
-    annualController = Get.put(RatiosController());
-    quarterlyController = Get.put(QuarterlyRatiosController());
     
-    // Fetch initial data
-    _fetchData();
-  }
-
-  void _fetchData() {
-    if (selectedPeriodIndex == 0) {
-      annualController.fetchRatio(widget.symbol);
-    } else {
-      quarterlyController.fetchQuarterlyRatios(widget.symbol);
-    }
+    // Initialize ratios controllers
+    annualRatiosController = Get.put(RatiosController());
+    annualRatiosController.fetchRatio(widget.symbol);
+    
+    quarterlyRatiosController = Get.put(QuarterlyRatiosController());
+    quarterlyRatiosController.fetchQuarterlyRatios(widget.symbol);
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return Column(
-      children: [
-        // Period selector
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            children: List.generate(
-              periodNames.length,
-              (index) => Expanded(
-                child: _buildPeriodButton(
-                  periodNames[index],
-                  selectedPeriodIndex == index,
-                  () {
-                    setState(() {
-                      selectedPeriodIndex = index;
-                    });
-                    _fetchData();
-                  },
-                  isDarkMode,
-                ),
-              ),
-            ),
-          ),
-        ),
-        
-        // Data table
-        Expanded(
-          child: selectedPeriodIndex == 0
-              ? _buildAnnualRatiosTable(isDarkMode)
-              : _buildQuarterlyRatiosTable(isDarkMode),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPeriodButton(String title, bool isSelected, VoidCallback onPressed, bool isDarkMode) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-              : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-          borderRadius: BorderRadius.circular(3),
-          border: Border.all(
-            color: isSelected 
-                ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-                : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: isSelected 
-                ? Colors.white
-                : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnnualRatiosTable(bool isDarkMode) {
     return Obx(() {
-      if (annualController.isLoading.value) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+      if (isQuarterly) {
+        // Show Quarterly Ratios
+        if (quarterlyRatiosController.isLoading.value) {
+          return Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Loading Annual Ratios...',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-
-      if (annualController.yearlyRatiosMap.isEmpty) {
-        return Center(
-          child: Text(
-            'No annual ratios data available',
-            style: TextStyle(
-              fontSize: 11,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
             ),
+          );
+        }
+
+        if (!quarterlyRatiosController.processingComplete.value || 
+            quarterlyRatiosController.tableData.isEmpty) {
+          return Center(
+            child: Text(
+              'No quarterly data available',
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+            ),
+          );
+        }
+
+        // Transform quarterly data for the new table
+        final transformedData = FinancialDataTransformer.transformRatios(
+          quarterlyRatiosController.tableData,
+          quarterlyRatiosController.quarters,
+        );
+
+        final columns = _buildFinancialColumns(quarterlyRatiosController.quarters);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+          child: FinancialExpandableTable(
+            columns: columns,
+            data: transformedData,
+            showNameColumn: false, // Don't show separate name column since we have metric column
+            rowHeight: 40,
+            headerHeight: 32,
+            indentSize: 20,
+            expandIconSize: 14,
+            considerPadding: false,
+          ),
+        );
+      } else {
+        // Show Annual Ratios
+        if (annualRatiosController.isLoading.value) {
+          return Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+              ),
+            ),
+          );
+        }
+
+        final annualData = annualRatiosController.getFinancialDataForYears();
+        if (annualData.isEmpty) {
+          return Center(
+            child: Text(
+              'No annual data available',
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+            ),
+          );
+        }
+
+        // Transform annual data for the new table
+        final transformedData = _transformAnnualRatiosData(annualData, annualRatiosController.years);
+        final columns = _buildFinancialColumns(annualRatiosController.years);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+          child: FinancialExpandableTable(
+            columns: columns,
+            data: transformedData,
+            showNameColumn: false, // Don't show separate name column since we have metric column
+            rowHeight: 40,
+            headerHeight: 32,
+            indentSize: 20,
+            expandIconSize: 14,
+            considerPadding: false,
           ),
         );
       }
-
-      return _buildTerminalRatiosTable(
-        annualController.yearlyRatiosMap,
-        annualController.years.toList(),
-        isDarkMode,
-        'Annual',
-      );
     });
   }
 
-  Widget _buildQuarterlyRatiosTable(bool isDarkMode) {
-    return Obx(() {
-      if (quarterlyController.isLoading.value) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Loading Quarterly Ratios...',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                ),
-              ),
-            ],
-          ),
-        );
-      }
+  List<FinancialExpandableColumn> _buildFinancialColumns(List<String> periods) {
+    List<FinancialExpandableColumn> columns = [
+      FinancialExpandableColumn(
+        key: 'metric',
+        title: 'Name',
+        width: 200,
+        alignment: TextAlign.left,
+      ),
+    ];
 
-      if (!quarterlyController.processingComplete.value || quarterlyController.tableData.isEmpty) {
-        return Center(
-          child: Text(
-            'No quarterly ratios data available',
-            style: TextStyle(
-              fontSize: 11,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-        );
-      }
-
-      return _buildTerminalQuarterlyRatiosTable(
-        quarterlyController.tableData.toList(),
-        quarterlyController.quarters.toList(),
-        isDarkMode,
-        'Quarterly',
+    columns.addAll(periods.map((period) {
+      return FinancialExpandableColumn(
+        key: period,
+        title: period,
+        width: 80,
+        isNumeric: true,
+        alignment: TextAlign.right,
       );
-    });
+    }));
+
+    return columns;
   }
 
-  Widget _buildTerminalRatiosTable(Map<String, YearlyRatios> ratiosMap, List<String> years, bool isDarkMode, String periodType) {
-    // Get all unique ratio names
-    Set<String> allRatioNames = {};
-    for (var yearlyRatios in ratiosMap.values) {
-      allRatioNames.addAll(yearlyRatios.ratios.keys);
-    }
-    
-    List<String> sortedRatioNames = allRatioNames.toList()..sort();
+  List<FinancialExpandableRowData> _transformAnnualRatiosData(
+    Map<String, Map<String, double?>> annualData,
+    List<String> years,
+  ) {
+    // Define the order for ratios display
+    final orderedMetrics = [
+      'netMargin',
+      'quickRatio',
+      'currentRatio',
+      'peTTM',
+      'psTTM',
+      'pb',
+      'fcfMargin',
+      'payoutRatioTTM',
+      'grossMargin',
+      'roeTTM',
+      'roa',
+      'roaTTM',
+      'roic',
+      'inventoryTurnoverTTM',
+      'receivablesTurnoverTTM',
+      'assetTurnoverTTM',
+      'longtermDebtTotalEquity',
+      'totalDebtToTotalAsset',
+      'longtermDebtTotalAsset',
+      'totalDebtToTotalCapital',
+      'operatingMargin',
+    ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          columnSpacing: 8,
-          horizontalMargin: 8,
-          headingRowColor: MaterialStateProperty.all(
-            isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-          ),
-          dataRowColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-            }
-            return null;
-          }),
-          columns: [
-            DataColumn(
-              label: Container(
-                width: 180,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Financial Ratios',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-                  ),
-                ),
-              ),
-            ),
-            ...years.map((year) => DataColumn(
-              label: Container(
-                width: 80,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  year,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-                  ),
-                ),
-              ),
-            )),
-          ],
-          rows: sortedRatioNames.map((ratioName) {
-            return DataRow(
-              cells: [
-                DataCell(
-                  Container(
-                    width: 180,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      ratioName,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-                      ),
-                    ),
-                  ),
-                ),
-                ...years.map((year) {
-                  final yearlyRatios = ratiosMap[year];
-                  final value = yearlyRatios?.getRatio(ratioName);
-                  
-                  return DataCell(
-                    Container(
-                      width: 80,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Text(
-                        value != null ? value.toStringAsFixed(2) : '--',
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: isDarkMode ? const Color(0xFFD1D5DB) : const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
+    // Mapping of metric keys to display names
+    final displayNames = {
+      'netMargin': 'Net Margin',
+      'quickRatio': 'Quick Ratio',
+      'currentRatio': 'Current Ratio',
+      'peTTM': 'P/E (TTM)',
+      'psTTM': 'P/S (TTM)',
+      'pb': 'Price to Book',
+      'fcfMargin': 'Free Cash Flow Margin',
+      'payoutRatioTTM': 'Payout Ratio (TTM)',
+      'grossMargin': 'Gross Margin',
+      'roeTTM': 'ROE (TTM)',
+      'roa': 'Return on Assets',
+      'roaTTM': 'ROA (TTM)',
+      'roic': 'Return on Invested Capital',
+      'inventoryTurnoverTTM': 'Inventory Turnover (TTM)',
+      'receivablesTurnoverTTM': 'Receivables Turnover (TTM)',
+      'assetTurnoverTTM': 'Asset Turnover (TTM)',
+      'longtermDebtTotalEquity': 'Long-Term Debt to Equity',
+      'totalDebtToTotalAsset': 'Total Debt to Total Asset',
+      'longtermDebtTotalAsset': 'Long-Term Debt to Total Asset',
+      'totalDebtToTotalCapital': 'Total Debt to Total Capital',
+      'operatingMargin': 'Operating Margin',
+    };
+
+    return orderedMetrics
+        .where((metric) => annualData.containsKey(metric))
+        .map((metric) {
+      Map<String, dynamic> data = {};
+      for (var year in years) {
+        double? value = annualData[metric]?[year];
+        data[year] = value?.toStringAsFixed(2) ?? '--';
+      }
+
+      return FinancialExpandableRowData(
+        id: metric,
+        name: displayNames[metric] ?? metric,
+        data: {
+          'metric': displayNames[metric] ?? metric,
+          ...data,
+        },
+        level: 0,
+      );
+    }).toList();
   }
 
-  Widget _buildTerminalQuarterlyRatiosTable(List<dynamic> tableData, List<String> quarters, bool isDarkMode, String periodType) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          columnSpacing: 8,
-          horizontalMargin: 8,
-          headingRowColor: MaterialStateProperty.all(
-            isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-          ),
-          dataRowColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-            }
-            return null;
-          }),
-          columns: [
-            DataColumn(
-              label: Container(
-                width: 180,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Financial Ratios',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-                  ),
-                ),
-              ),
-            ),
-            ...quarters.map((quarter) => DataColumn(
-              label: Container(
-                width: 80,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  quarter,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-                  ),
-                ),
-              ),
-            )),
-          ],
-          rows: tableData.map((ratioData) {
-            return DataRow(
-              cells: [
-                DataCell(
-                  Container(
-                    width: 180,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      ratioData.metric,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-                      ),
-                    ),
-                  ),
-                ),
-                ...quarters.map((quarter) {
-                  final value = ratioData.values[quarter];
-                  
-                  return DataCell(
-                    Container(
-                      width: 80,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Text(
-                        value != null ? value.toStringAsFixed(2) : '--',
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: isDarkMode ? const Color(0xFFD1D5DB) : const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
 }
