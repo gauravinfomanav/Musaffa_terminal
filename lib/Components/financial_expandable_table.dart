@@ -104,6 +104,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
   final ScrollController _scrollController = ScrollController();
   bool _increaseShadow = false;
   Map<String, bool> _expandedRows = {};
+  String? _splashRowId; // Track which row should show splash effect
 
   @override
   void initState() {
@@ -130,9 +131,43 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     }
   }
 
+  // Recursive function to find a row by ID in the data tree
+  FinancialExpandableRowData? _findRowById(String rowId, List<FinancialExpandableRowData> rows) {
+    for (var row in rows) {
+      if (row.id == rowId) {
+        return row;
+      }
+      if (row.children != null) {
+        var found = _findRowById(rowId, row.children!);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
   void _toggleExpansion(String rowId) {
     setState(() {
-      _expandedRows[rowId] = !(_expandedRows[rowId] ?? false);
+      bool wasExpanded = _expandedRows[rowId] ?? false;
+      _expandedRows[rowId] = !wasExpanded;
+      
+      // If row is being expanded, show splash effect on child rows
+      if (!wasExpanded) {
+        // Find the parent row recursively
+        FinancialExpandableRowData? parentRow = _findRowById(rowId, widget.data);
+        
+        // Set splash effect on first child row
+        if (parentRow?.children?.isNotEmpty == true) {
+          _splashRowId = parentRow!.children!.first.id;
+          // Remove splash effect after 1 second
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              setState(() {
+                _splashRowId = null;
+              });
+            }
+          });
+        }
+      }
     });
   }
 
@@ -337,8 +372,22 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               return DataRow(
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
                 cells: widget.columns.map((column) {
+                  // If showNameColumn is false and this is the first column (metric column), add expand/collapse functionality
+                  if (!widget.showNameColumn && column.key == 'metric') {
+                    return DataCell(
+                      _buildExpandableCellContent(row, column),
+                    );
+                  }
                   return DataCell(
-                    _buildCellContent(row, column),
+                    Container(
+                      decoration: _splashRowId == row.id 
+                          ? BoxDecoration(
+                              color: Colors.blue.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            )
+                          : null,
+                      child: _buildCellContent(row, column),
+                    ),
                   );
                 }).toList(),
               );
@@ -355,6 +404,94 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildExpandableCellContent(FinancialExpandableRowData row, FinancialExpandableColumn column) {
+    final value = row.data[column.key];
+    
+    if (value == null) {
+      return Text(
+        "--",
+        style: DashboardTextStyles.dataCell,
+        textAlign: column.alignment,
+      );
+    }
+
+    if (value is num) {
+      String formattedValue = value.toString();
+      if (column.isNumeric) {
+        formattedValue = value.abs().toStringAsFixed(2);
+      }
+      
+      return Text(
+        formattedValue,
+        style: DashboardTextStyles.dataCell,
+        textAlign: column.alignment,
+      );
+    }
+
+    if (value is String) {
+      // For metric column with expandable functionality
+      if (column.key == 'metric') {
+        return GestureDetector(
+          onTap: row.isExpandable ? () => _toggleExpansion(row.id) : null,
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            decoration: _splashRowId == row.id 
+                ? BoxDecoration(
+                    color: Colors.blue.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  )
+                : null,
+            child: Row(
+              children: [
+                // Add indentation only for child rows (level > 0)
+                if (row.level > 0) SizedBox(width: row.level * widget.indentSize),
+                Expanded(
+                  child: Text(
+                    value,
+                    style: DashboardTextStyles.stockName,
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+                if (row.isExpandable) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    (_expandedRows[row.id] ?? false) ? '−' : '+',
+                    style: TextStyle(
+                      fontSize: widget.expandIconSize,
+                      fontWeight: FontWeight.w600,
+                      color: DashboardTextStyles.secondaryTextColor,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }
+      
+      // Check if it's a change value (starts with + or -)
+      Color textColor = DashboardTextStyles.primaryTextColor;
+      if (value.startsWith('+')) {
+        textColor = Colors.green;
+      } else if (value.startsWith('-')) {
+        textColor = Colors.red;
+      }
+      
+      return Text(
+        value,
+        style: DashboardTextStyles.dataCell.copyWith(color: textColor),
+        textAlign: column.alignment,
+      );
+    }
+
+    return Text(
+      "--",
+      style: DashboardTextStyles.dataCell,
+      textAlign: column.alignment,
     );
   }
 
@@ -416,14 +553,16 @@ class FinancialDataTransformer {
   
   // Transform Financial Statements data (Annual/Quarterly)
   static List<FinancialExpandableRowData> transformFinancialStatements(
-    List<dynamic> financialData,
+    dynamic financialData, // Can be List<dynamic> or RxList
     List<String> periods, // years or quarters
   ) {
+    // Convert to List if it's an RxList
+    List<dynamic> dataList = financialData is List ? financialData : financialData.toList();
     // Group by name to create one row per item with all periods
     Map<String, Map<String, String>> groupedData = {};
     Map<String, List<dynamic>> childrenMap = {};
     
-    for (var item in financialData) {
+    for (var item in dataList) {
       String name = item.name;
       String period = item.year; // or quarter
       String value = item.originalValue;
@@ -431,12 +570,36 @@ class FinancialDataTransformer {
       groupedData.putIfAbsent(name, () => {});
       groupedData[name]![period] = value;
       
+      // Collect subItems from all occurrences of this item
       if (item.subItems != null && item.subItems.isNotEmpty) {
-        childrenMap[name] = item.subItems;
+        if (!childrenMap.containsKey(name)) {
+          childrenMap[name] = [];
+        }
+        // Add subItems from this occurrence (they may have data for different periods)
+        childrenMap[name]!.addAll(item.subItems);
+        
+        // Debug: Print subItems for expandable items
+        if (name == 'Total Operating Expenses' && period == '2020') {
+          print("DEBUG: Total Operating Expenses 2020 subItems: ${item.subItems.length}");
+          for (var subItem in item.subItems) {
+            print("  - ${subItem.name}: ${subItem.year} = ${subItem.originalValue}");
+          }
+        }
       }
     }
     
-    return groupedData.entries.map((entry) {
+    // Debug: Print collected subItems
+    print("=== DEBUG: Collected subItems ===");
+    childrenMap.forEach((key, value) {
+      print("$key: ${value.length} subItems");
+      Set<String> periods = {};
+      for (var subItem in value) {
+        periods.add(subItem.year);
+      }
+      print("  Available periods: ${periods.toList()}");
+    });
+    
+    List<FinancialExpandableRowData> result = groupedData.entries.map((entry) {
       String name = entry.key;
       Map<String, String> periodData = entry.value;
       
@@ -446,6 +609,11 @@ class FinancialDataTransformer {
         data[period] = periodData[period] ?? '--';
       }
       
+      bool hasChildren = childrenMap.containsKey(name);
+      List<FinancialExpandableRowData>? children = hasChildren 
+          ? _transformSubItems(childrenMap[name]!, periods, 1)
+          : null;
+      
       return FinancialExpandableRowData(
         id: name,
         name: name,
@@ -453,13 +621,13 @@ class FinancialDataTransformer {
           'metric': name,
           ...data,
         },
-        children: childrenMap.containsKey(name) 
-            ? _transformSubItems(childrenMap[name]!, periods, 1)
-            : null,
-        isExpandable: childrenMap.containsKey(name),
+        children: children,
+        isExpandable: hasChildren,
         level: 0,
       );
     }).toList();
+    
+    return result;
   }
   
   static List<FinancialExpandableRowData> _transformSubItems(
