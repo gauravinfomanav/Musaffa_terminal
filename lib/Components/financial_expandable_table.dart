@@ -206,17 +206,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
   List<FinancialExpandableColumn> _buildAllColumns() {
     List<FinancialExpandableColumn> allColumns = List.from(widget.columns);
     
-    // Add YoY Growth column if enabled
-    if (widget.showYoYGrowth) {
-      allColumns.add(FinancialExpandableColumn(
-        key: 'yoy_growth',
-        title: 'YoY Growth',
-        isNumeric: false,
-        alignment: TextAlign.center,
-      ));
-    }
-    
-    // Add 3-Year Average column if enabled
+    // Add 3-Year Average column first if enabled
     if (widget.showThreeYearAvg) {
       allColumns.add(FinancialExpandableColumn(
         key: 'three_year_avg',
@@ -226,7 +216,17 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       ));
     }
     
-    // Add 5-Year CAGR column if enabled
+    // Add YoY Growth column second if enabled
+    if (widget.showYoYGrowth) {
+      allColumns.add(FinancialExpandableColumn(
+        key: 'yoy_growth',
+        title: 'YoY Growth',
+        isNumeric: false,
+        alignment: TextAlign.center,
+      ));
+    }
+    
+    // Add 5-Year CAGR column third if enabled
     if (widget.showFiveYearCAGR) {
       allColumns.add(FinancialExpandableColumn(
         key: 'five_year_cagr',
