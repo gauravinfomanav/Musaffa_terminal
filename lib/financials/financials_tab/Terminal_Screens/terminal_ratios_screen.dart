@@ -82,6 +82,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             indentSize: 20,
             expandIconSize: 14,
             considerPadding: false,
+            showYoYGrowth: true, // Enable YoY Growth column
           ),
         );
       } else {
@@ -122,6 +123,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             indentSize: 20,
             expandIconSize: 14,
             considerPadding: false,
+            showYoYGrowth: true, // Enable YoY Growth column
           ),
         );
       }
@@ -214,6 +216,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
         data[year] = value?.toStringAsFixed(2) ?? '--';
       }
 
+      // Calculate YoY Growth
+      data['yoy_growth'] = _calculateYoYGrowth(annualData[metric], years);
+
       return FinancialExpandableRowData(
         id: metric,
         name: displayNames[metric] ?? metric,
@@ -224,6 +229,32 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
         level: 0,
       );
     }).toList();
+  }
+
+  // Calculate Year-on-Year Growth for ratios
+  String _calculateYoYGrowth(Map<String, double?>? metricData, List<String> years) {
+    if (metricData == null || years.length < 2) return '--';
+    
+    String currentYear = years.last;
+    String previousYear = years[years.length - 2];
+    
+    double? current = metricData[currentYear];
+    double? previous = metricData[previousYear];
+    
+    if (current == null || previous == null || previous == 0) {
+      return '--';
+    }
+    
+    double growth = ((current - previous) / previous) * 100;
+    
+    // Format with + or - sign
+    if (growth > 0) {
+      return '+${growth.toStringAsFixed(1)}%';
+    } else if (growth < 0) {
+      return '${growth.toStringAsFixed(1)}%';
+    } else {
+      return '0.0%';
+    }
   }
 
 }

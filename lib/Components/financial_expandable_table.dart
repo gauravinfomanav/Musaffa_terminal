@@ -83,6 +83,7 @@ class FinancialExpandableTable extends StatefulWidget {
     this.expandIconSize = 16,
     this.indentSize = 20,
     this.headerBackgroundColor = const Color(0xFFEFF4FF),
+    this.showYoYGrowth = false,
   }) : super(key: key);
 
   final List<FinancialExpandableColumn> columns;
@@ -95,6 +96,7 @@ class FinancialExpandableTable extends StatefulWidget {
   final double expandIconSize;
   final double indentSize;
   final Color headerBackgroundColor;
+  final bool showYoYGrowth;
 
   @override
   State<FinancialExpandableTable> createState() => _FinancialExpandableTableState();
@@ -194,6 +196,22 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     }
     
     return flattened;
+  }
+
+  List<FinancialExpandableColumn> _buildAllColumns() {
+    List<FinancialExpandableColumn> allColumns = List.from(widget.columns);
+    
+    // Add YoY Growth column if enabled
+    if (widget.showYoYGrowth) {
+      allColumns.add(FinancialExpandableColumn(
+        key: 'yoy_growth',
+        title: 'YoY Growth',
+        isNumeric: false,
+        alignment: TextAlign.center,
+      ));
+    }
+    
+    return allColumns;
   }
 
   @override
@@ -360,7 +378,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
             horizontalMargin: 0,
             dataRowMinHeight: widget.rowHeight,
             dataRowMaxHeight: widget.rowHeight,
-            columns: widget.columns.map((column) {
+            columns: _buildAllColumns().map((column) {
               return DataColumn(
                 label: Expanded(
                   child: Text(
@@ -374,7 +392,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
             rows: flattenedRows.map((row) {
               return DataRow(
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
-                cells: widget.columns.map((column) {
+                cells: _buildAllColumns().map((column) {
                   // If showNameColumn is false and this is the first column (metric column), add expand/collapse functionality
                   if (!widget.showNameColumn && column.key == 'metric') {
                     return DataCell(
@@ -594,6 +612,9 @@ class FinancialDataTransformer {
         data[period] = periodData[period] ?? '--';
       }
       
+      // Calculate YoY Growth
+      data['yoy_growth'] = _calculateYoYGrowth(periodData, periods);
+      
       bool hasChildren = childrenMap.containsKey(name);
       List<FinancialExpandableRowData>? children = hasChildren 
           ? _transformSubItems(childrenMap[name]!, periods, 1)
@@ -657,6 +678,9 @@ class FinancialDataTransformer {
         data[period] = periodData[period] ?? '--';
       }
       
+      // Calculate YoY Growth for sub-items
+      data['yoy_growth'] = _calculateYoYGrowth(periodData, periods);
+      
       return FinancialExpandableRowData(
         id: name,
         name: name,
@@ -717,5 +741,73 @@ class FinancialDataTransformer {
         level: 0,
       ),
     ];
+  }
+  
+  // Calculate Year-on-Year Growth
+  static String _calculateYoYGrowth(Map<String, String> periodData, List<String> periods) {
+    if (periods.length < 2) return '--';
+    
+    String currentYear = periods.last;
+    String previousYear = periods[periods.length - 2];
+    
+    String? currentValueStr = periodData[currentYear];
+    String? previousValueStr = periodData[previousYear];
+    
+    if (currentValueStr == null || previousValueStr == null || 
+        currentValueStr == '--' || previousValueStr == '--') {
+      return '--';
+    }
+    
+    double? current = _parseFinancialValue(currentValueStr);
+    double? previous = _parseFinancialValue(previousValueStr);
+    
+    if (current == null || previous == null || previous == 0) {
+      return '--';
+    }
+    
+    double growth = ((current - previous) / previous) * 100;
+    
+    // Format with + or - sign
+    if (growth > 0) {
+      return '+${growth.toStringAsFixed(1)}%';
+    } else if (growth < 0) {
+      return '${growth.toStringAsFixed(1)}%';
+    } else {
+      return '0.0%';
+    }
+  }
+  
+  // Parse financial values like "1.2B", "3.5T", "500M", "1.5K"
+  static double? _parseFinancialValue(String value) {
+    if (value == '--' || value.isEmpty) return null;
+    
+    // Remove any whitespace and convert to uppercase
+    String cleanValue = value.trim().toUpperCase();
+    
+    // Try to parse as regular number first
+    double? number = double.tryParse(cleanValue);
+    if (number != null) return number;
+    
+    // Handle suffixes: B (billion), T (trillion), M (million), K (thousand)
+    if (cleanValue.endsWith('B')) {
+      String numStr = cleanValue.substring(0, cleanValue.length - 1);
+      double? num = double.tryParse(numStr);
+      return num != null ? num * 1000000000 : null;
+    } else if (cleanValue.endsWith('T')) {
+      String numStr = cleanValue.substring(0, cleanValue.length - 1);
+      double? num = double.tryParse(numStr);
+      return num != null ? num * 1000000000000 : null;
+    } else if (cleanValue.endsWith('M')) {
+      String numStr = cleanValue.substring(0, cleanValue.length - 1);
+      double? num = double.tryParse(numStr);
+      return num != null ? num * 1000000 : null;
+    } else if (cleanValue.endsWith('K')) {
+      String numStr = cleanValue.substring(0, cleanValue.length - 1);
+      double? num = double.tryParse(numStr);
+      return num != null ? num * 1000 : null;
+    }
+    
+    // If no suffix, try parsing as regular number
+    return double.tryParse(cleanValue);
   }
 }

@@ -257,6 +257,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
             indentSize: 20,
             expandIconSize: 14,
             considerPadding: false,
+            showYoYGrowth: true, // Enable YoY Growth column
           ),
         ),
       ],
