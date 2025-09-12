@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
@@ -84,6 +85,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
             showThreeYearAvg: true, // Enable 3-Year Average column
+            showFiveYearCAGR: true, // Enable 5-Year CAGR column
           ),
         );
       } else {
@@ -126,6 +128,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
             showThreeYearAvg: true, // Enable 3-Year Average column
+            showFiveYearCAGR: true, // Enable 5-Year CAGR column
           ),
         );
       }
@@ -223,6 +226,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       
       // Calculate 3-Year Average
       data['three_year_avg'] = _calculateThreeYearAverage(annualData[metric], years);
+      
+      // Calculate 5-Year CAGR
+      data['five_year_cagr'] = _calculateFiveYearCAGR(annualData[metric], years);
 
       return FinancialExpandableRowData(
         id: metric,
@@ -281,6 +287,35 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     
     double average = values.reduce((a, b) => a + b) / values.length;
     return average.toStringAsFixed(2);
+  }
+
+  // Calculate 5-Year CAGR for ratios
+  String _calculateFiveYearCAGR(Map<String, double?>? metricData, List<String> years) {
+    if (metricData == null || years.length < 5) return '-';
+    
+    // Get the first and last 5 years
+    List<String> lastFiveYears = years.skip(years.length - 5).toList();
+    String oldestYear = lastFiveYears.first;
+    String latestYear = lastFiveYears.last;
+    
+    double? oldestValue = metricData[oldestYear];
+    double? latestValue = metricData[latestYear];
+    
+    if (oldestValue == null || latestValue == null || oldestValue <= 0) {
+      return '-';
+    }
+    
+    // Calculate CAGR: (Latest Year / Oldest Year)^(1/5) - 1
+    double cagr = pow(latestValue / oldestValue, 1.0 / 5.0) - 1.0;
+    
+    // Format as percentage with + or - sign
+    if (cagr > 0) {
+      return '+${(cagr * 100).toStringAsFixed(1)}%';
+    } else if (cagr < 0) {
+      return '${(cagr * 100).toStringAsFixed(1)}%';
+    } else {
+      return '0.0%';
+    }
   }
 
 }

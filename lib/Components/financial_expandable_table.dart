@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
@@ -85,6 +86,7 @@ class FinancialExpandableTable extends StatefulWidget {
     this.headerBackgroundColor = const Color(0xFFEFF4FF),
     this.showYoYGrowth = false,
     this.showThreeYearAvg = false,
+    this.showFiveYearCAGR = false,
   }) : super(key: key);
 
   final List<FinancialExpandableColumn> columns;
@@ -99,6 +101,7 @@ class FinancialExpandableTable extends StatefulWidget {
   final Color headerBackgroundColor;
   final bool showYoYGrowth;
   final bool showThreeYearAvg;
+  final bool showFiveYearCAGR;
 
   @override
   State<FinancialExpandableTable> createState() => _FinancialExpandableTableState();
@@ -218,6 +221,16 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       allColumns.add(FinancialExpandableColumn(
         key: 'three_year_avg',
         title: '3Y Avg',
+        isNumeric: false,
+        alignment: TextAlign.center,
+      ));
+    }
+    
+    // Add 5-Year CAGR column if enabled
+    if (widget.showFiveYearCAGR) {
+      allColumns.add(FinancialExpandableColumn(
+        key: 'five_year_cagr',
+        title: '5Y CAGR',
         isNumeric: false,
         alignment: TextAlign.center,
       ));
@@ -619,6 +632,9 @@ class FinancialDataTransformer {
       // Calculate 3-Year Average
       data['three_year_avg'] = _calculateThreeYearAverage(periodData, periods);
       
+      // Calculate 5-Year CAGR
+      data['five_year_cagr'] = _calculateFiveYearCAGR(periodData, periods);
+      
       bool hasChildren = childrenMap.containsKey(name);
       List<FinancialExpandableRowData>? children = hasChildren 
           ? _transformSubItems(childrenMap[name]!, periods, 1)
@@ -687,6 +703,9 @@ class FinancialDataTransformer {
       
       // Calculate 3-Year Average for sub-items
       data['three_year_avg'] = _calculateThreeYearAverage(periodData, periods);
+      
+      // Calculate 5-Year CAGR for sub-items
+      data['five_year_cagr'] = _calculateFiveYearCAGR(periodData, periods);
       
       return FinancialExpandableRowData(
         id: name,
@@ -822,6 +841,43 @@ class FinancialDataTransformer {
     } else {
       // Regular numbers
       return average.toStringAsFixed(2);
+    }
+  }
+  
+  // Calculate 5-Year CAGR (Compound Annual Growth Rate)
+  static String _calculateFiveYearCAGR(Map<String, String> periodData, List<String> periods) {
+    if (periods.length < 5) return '-';
+    
+    // Get the first and last 5 years
+    List<String> lastFiveYears = periods.skip(periods.length - 5).toList();
+    String oldestYear = lastFiveYears.first;
+    String latestYear = lastFiveYears.last;
+    
+    String? oldestValueStr = periodData[oldestYear];
+    String? latestValueStr = periodData[latestYear];
+    
+    if (oldestValueStr == null || latestValueStr == null || 
+        oldestValueStr == '-' || latestValueStr == '-') {
+      return '-';
+    }
+    
+    double? oldestValue = _parseFinancialValue(oldestValueStr);
+    double? latestValue = _parseFinancialValue(latestValueStr);
+    
+    if (oldestValue == null || latestValue == null || oldestValue <= 0) {
+      return '-';
+    }
+    
+    // Calculate CAGR: (Latest Year / Oldest Year)^(1/5) - 1
+    double cagr = pow(latestValue / oldestValue, 1.0 / 5.0) - 1.0;
+    
+    // Format as percentage with + or - sign
+    if (cagr > 0) {
+      return '+${(cagr * 100).toStringAsFixed(1)}%';
+    } else if (cagr < 0) {
+      return '${(cagr * 100).toStringAsFixed(1)}%';
+    } else {
+      return '0.0%';
     }
   }
   
