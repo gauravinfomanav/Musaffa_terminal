@@ -104,7 +104,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
   final ScrollController _scrollController = ScrollController();
   bool _increaseShadow = false;
   Map<String, bool> _expandedRows = {};
-  String? _splashRowId; // Track which row should show splash effect
+  Set<String> _splashRowIds = {}; // Track which rows should show splash effect
 
   @override
   void initState() {
@@ -150,19 +150,22 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       bool wasExpanded = _expandedRows[rowId] ?? false;
       _expandedRows[rowId] = !wasExpanded;
       
-      // If row is being expanded, show splash effect on child rows
+      // If row is being expanded, show splash effect on all child rows
       if (!wasExpanded) {
         // Find the parent row recursively
         FinancialExpandableRowData? parentRow = _findRowById(rowId, widget.data);
         
-        // Set splash effect on first child row
+        // Set splash effect on all child rows
         if (parentRow?.children?.isNotEmpty == true) {
-          _splashRowId = parentRow!.children!.first.id;
+          _splashRowIds.clear();
+          for (var child in parentRow!.children!) {
+            _splashRowIds.add(child.id);
+          }
           // Remove splash effect after 1 second
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
               setState(() {
-                _splashRowId = null;
+                _splashRowIds.clear();
               });
             }
           });
@@ -251,7 +254,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                   Padding(
                     padding: EdgeInsets.only(
                       right: 30.0,
-                      left: row.level * widget.indentSize,
+                      left: 0, // No spacing for any rows
                     ),
                     child: _buildNameCell(row),
                   ),
@@ -380,7 +383,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                   }
                   return DataCell(
                     Container(
-                      decoration: _splashRowId == row.id 
+                      decoration: _splashRowIds.contains(row.id) 
                           ? BoxDecoration(
                               color: Colors.blue.withOpacity(0.3),
                               borderRadius: BorderRadius.circular(4),
@@ -413,7 +416,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     if (value == null) {
       return Text(
         "--",
-        style: DashboardTextStyles.dataCell,
+        style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
       );
     }
@@ -438,7 +441,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
           onTap: row.isExpandable ? () => _toggleExpansion(row.id) : null,
           child: Container(
             padding: EdgeInsets.symmetric(vertical: 4),
-            decoration: _splashRowId == row.id 
+            decoration: _splashRowIds.contains(row.id) 
                 ? BoxDecoration(
                     color: Colors.blue.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(4),
@@ -446,8 +449,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                 : null,
             child: Row(
               children: [
-                // Add indentation only for child rows (level > 0)
-                if (row.level > 0) SizedBox(width: row.level * widget.indentSize),
+                // No spacing for any rows
                 Expanded(
                   child: Text(
                     value,
@@ -490,7 +492,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
 
     return Text(
       "--",
-      style: DashboardTextStyles.dataCell,
+      style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
       textAlign: column.alignment,
     );
   }
@@ -501,7 +503,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     if (value == null) {
       return Text(
         "--",
-        style: DashboardTextStyles.dataCell,
+        style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
       );
     }
@@ -542,7 +544,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
 
     return Text(
       "--",
-      style: DashboardTextStyles.dataCell,
+      style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
       textAlign: column.alignment,
     );
   }
@@ -578,26 +580,9 @@ class FinancialDataTransformer {
         // Add subItems from this occurrence (they may have data for different periods)
         childrenMap[name]!.addAll(item.subItems);
         
-        // Debug: Print subItems for expandable items
-        if (name == 'Total Operating Expenses' && period == '2020') {
-          print("DEBUG: Total Operating Expenses 2020 subItems: ${item.subItems.length}");
-          for (var subItem in item.subItems) {
-            print("  - ${subItem.name}: ${subItem.year} = ${subItem.originalValue}");
-          }
-        }
       }
     }
     
-    // Debug: Print collected subItems
-    print("=== DEBUG: Collected subItems ===");
-    childrenMap.forEach((key, value) {
-      print("$key: ${value.length} subItems");
-      Set<String> periods = {};
-      for (var subItem in value) {
-        periods.add(subItem.year);
-      }
-      print("  Available periods: ${periods.toList()}");
-    });
     
     List<FinancialExpandableRowData> result = groupedData.entries.map((entry) {
       String name = entry.key;
@@ -647,8 +632,20 @@ class FinancialDataTransformer {
       groupedData[name]![period] = value;
       
       if (item.subItems != null && item.subItems.isNotEmpty) {
-        childrenMap[name] = item.subItems;
+        if (!childrenMap.containsKey(name)) {
+          childrenMap[name] = [];
+        }
+        // Add subItems from this occurrence (they may have data for different periods)
+        childrenMap[name]!.addAll(item.subItems);
       }
+    }
+    
+    // Debug: Print subItems data for child of child
+    if (level > 1) {
+      print("=== DEBUG: Child of Child Data (Level $level) ===");
+      groupedData.forEach((key, value) {
+        print("$key: ${value.keys.toList()}");
+      });
     }
     
     return groupedData.entries.map((entry) {
