@@ -84,6 +84,7 @@ class FinancialExpandableTable extends StatefulWidget {
     this.indentSize = 20,
     this.headerBackgroundColor = const Color(0xFFEFF4FF),
     this.showYoYGrowth = false,
+    this.showThreeYearAvg = false,
   }) : super(key: key);
 
   final List<FinancialExpandableColumn> columns;
@@ -97,6 +98,7 @@ class FinancialExpandableTable extends StatefulWidget {
   final double indentSize;
   final Color headerBackgroundColor;
   final bool showYoYGrowth;
+  final bool showThreeYearAvg;
 
   @override
   State<FinancialExpandableTable> createState() => _FinancialExpandableTableState();
@@ -206,6 +208,16 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       allColumns.add(FinancialExpandableColumn(
         key: 'yoy_growth',
         title: 'YoY Growth',
+        isNumeric: false,
+        alignment: TextAlign.center,
+      ));
+    }
+    
+    // Add 3-Year Average column if enabled
+    if (widget.showThreeYearAvg) {
+      allColumns.add(FinancialExpandableColumn(
+        key: 'three_year_avg',
+        title: '3Y Avg',
         isNumeric: false,
         alignment: TextAlign.center,
       ));
@@ -391,6 +403,9 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
             }).toList(),
             rows: flattenedRows.map((row) {
               return DataRow(
+                color: _splashRowIds.contains(row.id) 
+                    ? WidgetStateProperty.all(const Color.fromARGB(255, 105, 177, 236).withOpacity(0.1))
+                    : null,
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
                 cells: _buildAllColumns().map((column) {
                   // If showNameColumn is false and this is the first column (metric column), add expand/collapse functionality
@@ -400,15 +415,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                     );
                   }
                   return DataCell(
-                    Container(
-                      decoration: _splashRowIds.contains(row.id) 
-                          ? BoxDecoration(
-                              color: Colors.blue.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(4),
-                            )
-                          : null,
-                      child: _buildCellContent(row, column),
-                    ),
+                    _buildCellContent(row, column),
                   );
                 }).toList(),
               );
@@ -459,12 +466,6 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
           onTap: row.isExpandable ? () => _toggleExpansion(row.id) : null,
           child: Container(
             padding: EdgeInsets.symmetric(vertical: 4),
-            decoration: _splashRowIds.contains(row.id) 
-                ? BoxDecoration(
-                    color: Colors.blue.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(4),
-                  )
-                : null,
             child: Row(
               children: [
                 // No spacing for any rows
@@ -609,11 +610,14 @@ class FinancialDataTransformer {
       // Convert to dynamic data map
       Map<String, dynamic> data = {};
       for (var period in periods) {
-        data[period] = periodData[period] ?? '--';
+        data[period] = periodData[period] ?? '-';
       }
       
       // Calculate YoY Growth
       data['yoy_growth'] = _calculateYoYGrowth(periodData, periods);
+      
+      // Calculate 3-Year Average
+      data['three_year_avg'] = _calculateThreeYearAverage(periodData, periods);
       
       bool hasChildren = childrenMap.containsKey(name);
       List<FinancialExpandableRowData>? children = hasChildren 
@@ -675,11 +679,14 @@ class FinancialDataTransformer {
       
       Map<String, dynamic> data = {};
       for (var period in periods) {
-        data[period] = periodData[period] ?? '--';
+        data[period] = periodData[period] ?? '-';
       }
       
       // Calculate YoY Growth for sub-items
       data['yoy_growth'] = _calculateYoYGrowth(periodData, periods);
+      
+      // Calculate 3-Year Average for sub-items
+      data['three_year_avg'] = _calculateThreeYearAverage(periodData, periods);
       
       return FinancialExpandableRowData(
         id: name,
@@ -745,7 +752,7 @@ class FinancialDataTransformer {
   
   // Calculate Year-on-Year Growth
   static String _calculateYoYGrowth(Map<String, String> periodData, List<String> periods) {
-    if (periods.length < 2) return '--';
+    if (periods.length < 2) return '-';
     
     String currentYear = periods.last;
     String previousYear = periods[periods.length - 2];
@@ -754,15 +761,15 @@ class FinancialDataTransformer {
     String? previousValueStr = periodData[previousYear];
     
     if (currentValueStr == null || previousValueStr == null || 
-        currentValueStr == '--' || previousValueStr == '--') {
-      return '--';
+        currentValueStr == '-' || previousValueStr == '-') {
+      return '-';
     }
     
     double? current = _parseFinancialValue(currentValueStr);
     double? previous = _parseFinancialValue(previousValueStr);
     
     if (current == null || previous == null || previous == 0) {
-      return '--';
+      return '-';
     }
     
     double growth = ((current - previous) / previous) * 100;
@@ -774,6 +781,47 @@ class FinancialDataTransformer {
       return '${growth.toStringAsFixed(1)}%';
     } else {
       return '0.0%';
+    }
+  }
+  
+  // Calculate 3-Year Average
+  static String _calculateThreeYearAverage(Map<String, String> periodData, List<String> periods) {
+    if (periods.length < 3) return '-';
+    
+    // Get the last 3 years
+    List<String> lastThreeYears = periods.skip(periods.length - 3).toList();
+    List<double> values = [];
+    
+    for (String year in lastThreeYears) {
+      String? valueStr = periodData[year];
+      if (valueStr != null && valueStr != '-') {
+        double? value = _parseFinancialValue(valueStr);
+        if (value != null) {
+          values.add(value);
+        }
+      }
+    }
+    
+    if (values.isEmpty) return '-';
+    
+    double average = values.reduce((a, b) => a + b) / values.length;
+    
+    // Format the average based on the magnitude
+    if (average >= 1000000000000) {
+      // Trillions
+      return '${(average / 1000000000000).toStringAsFixed(1)}T';
+    } else if (average >= 1000000000) {
+      // Billions
+      return '${(average / 1000000000).toStringAsFixed(1)}B';
+    } else if (average >= 1000000) {
+      // Millions
+      return '${(average / 1000000).toStringAsFixed(1)}M';
+    } else if (average >= 1000) {
+      // Thousands
+      return '${(average / 1000).toStringAsFixed(1)}K';
+    } else {
+      // Regular numbers
+      return average.toStringAsFixed(2);
     }
   }
   

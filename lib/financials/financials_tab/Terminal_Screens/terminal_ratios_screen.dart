@@ -83,6 +83,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             expandIconSize: 14,
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
+            showThreeYearAvg: true, // Enable 3-Year Average column
           ),
         );
       } else {
@@ -124,6 +125,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             expandIconSize: 14,
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
+            showThreeYearAvg: true, // Enable 3-Year Average column
           ),
         );
       }
@@ -218,6 +220,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
 
       // Calculate YoY Growth
       data['yoy_growth'] = _calculateYoYGrowth(annualData[metric], years);
+      
+      // Calculate 3-Year Average
+      data['three_year_avg'] = _calculateThreeYearAverage(annualData[metric], years);
 
       return FinancialExpandableRowData(
         id: metric,
@@ -233,7 +238,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
 
   // Calculate Year-on-Year Growth for ratios
   String _calculateYoYGrowth(Map<String, double?>? metricData, List<String> years) {
-    if (metricData == null || years.length < 2) return '--';
+    if (metricData == null || years.length < 2) return '-';
     
     String currentYear = years.last;
     String previousYear = years[years.length - 2];
@@ -242,7 +247,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     double? previous = metricData[previousYear];
     
     if (current == null || previous == null || previous == 0) {
-      return '--';
+      return '-';
     }
     
     double growth = ((current - previous) / previous) * 100;
@@ -255,6 +260,27 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     } else {
       return '0.0%';
     }
+  }
+
+  // Calculate 3-Year Average for ratios
+  String _calculateThreeYearAverage(Map<String, double?>? metricData, List<String> years) {
+    if (metricData == null || years.length < 3) return '-';
+    
+    // Get the last 3 years
+    List<String> lastThreeYears = years.skip(years.length - 3).toList();
+    List<double> values = [];
+    
+    for (String year in lastThreeYears) {
+      double? value = metricData[year];
+      if (value != null) {
+        values.add(value);
+      }
+    }
+    
+    if (values.isEmpty) return '-';
+    
+    double average = values.reduce((a, b) => a + b) / values.length;
+    return average.toStringAsFixed(2);
   }
 
 }

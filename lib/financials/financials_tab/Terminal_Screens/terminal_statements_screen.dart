@@ -258,6 +258,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
             expandIconSize: 14,
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
+            showThreeYearAvg: true, // Enable 3-Year Average column
           ),
         ),
       ],
