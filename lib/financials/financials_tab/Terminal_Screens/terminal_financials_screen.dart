@@ -5,6 +5,8 @@ import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/term
 import 'package:musaffa_terminal/Components/reusable_bar_graph.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
+import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
+import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:get/get.dart';
 
 class TerminalFinancialsScreen extends StatefulWidget {
@@ -25,6 +27,7 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
   bool isQuarterly = false; 
   String selectedMetric = 'Revenue per Share (TTM)'; 
   late FinancialFundamentalsController controller;
+  late PeerComparisonController peerController;
   
   // List of available metrics for cycling
   final List<String> availableMetrics = [
@@ -40,6 +43,43 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
     super.initState();
     controller = Get.put(FinancialFundamentalsController());
     controller.fetchFinancialFundamentals(widget.symbol);
+    
+    // Initialize peer comparison controller
+    peerController = Get.put(PeerComparisonController());
+    _fetchPeerComparison();
+  }
+
+  /// Fetch peer comparison data
+  Future<void> _fetchPeerComparison() async {
+    try {
+      // Wait a bit for the financial data to load
+      await Future.delayed(Duration(seconds: 2));
+      
+      // Get actual sector/industry from stock details controller
+      final stockDetailsController = Get.find<StockDetailsController>();
+      final stockData = stockDetailsController.stockData.value;
+      
+      if (stockData != null) {
+        await peerController.fetchPeerStocks(
+          currentStockTicker: widget.symbol,
+          sector: stockData.musaffaSector ?? 'Technology', // Use actual sector or fallback
+          industry: stockData.musaffaIndustry ?? 'Software', // Use actual industry or fallback
+          country: stockData.country ?? 'US', // Use actual country or fallback
+          limit: 5,
+        );
+      } else {
+        // Fallback if stock data not available
+        await peerController.fetchPeerStocks(
+          currentStockTicker: widget.symbol,
+          sector: 'Technology',
+          industry: 'Software',
+          country: 'US',
+          limit: 5,
+        );
+      }
+    } catch (e) {
+      print('Error fetching peer comparison: $e');
+    }
   }
 
   @override

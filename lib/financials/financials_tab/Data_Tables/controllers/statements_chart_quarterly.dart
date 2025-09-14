@@ -277,20 +277,6 @@ String _getQuarterLabelFromPeriod(String period) {
     });
   });
 
-  // Debug output to verify hierarchies
-  print("GLOBAL HIERARCHY MAP (QUARTERLY):");
-  globalHierarchyMap.forEach((key, value) {
-    print("Parent: $key, Children: $value");
-  });
-
-  // Debug output to verify value map
-  print("VALUE MAP (QUARTERLY):");
-  valueMap.forEach((key, quarterMap) {
-    print("Item: $key");
-    quarterMap.forEach((quarter, value) {
-      print("  $quarter: $value");
-    });
-  });
 
   // Now build top-level models
   List<FinancialStatementModel> result = [];
@@ -342,7 +328,6 @@ String _getQuarterLabelFromPeriod(String period) {
     }
 
     // Debug for subitems
-    print("Building subitem: $childName for quarter: $quarter with value: $childValue (parent: $parentName)");
 
     result.add(FinancialStatementModel(
       name: childName,
@@ -373,7 +358,6 @@ String _getQuarterLabelFromPeriod(String period) {
         String itemValue = data[key]?.toString() ?? '-';
         
         // Debug output
-        print("Quarter $quarter - Item: $itemName, Value: $itemValue, Parent: $parent");
         
         // Add to value map
         valueMap.putIfAbsent(itemName, () => {});
@@ -393,7 +377,6 @@ String _getQuarterLabelFromPeriod(String period) {
         String itemValue = data[valueKey]?.toString() ?? '-';
         
         // Debug output
-        print("Quarter $quarter - Parent Item: $label, Value: $itemValue, Parent: $parent");
         
         valueMap.putIfAbsent(label, () => {});
         valueMap[label]![quarter] = itemValue;

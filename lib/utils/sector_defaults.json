@@ -1,0 +1,242 @@
+{
+    "buckets": {
+      "retail": [
+        {
+          "key": "Retail/Wholesale",
+          "display_value": "Retail/Wholesale"
+        },
+        {
+          "key": "Retail Trade",
+          "display_value": "Retail Trade"
+        }
+      ],
+      "consumer_goods": [
+        {
+          "key": "Consumer Goods",
+          "display_value": "Consumer Goods"
+        },
+        {
+          "key": "Consumer",
+          "display_value": "Consumer"
+        },
+        {
+          "key": "Consumers",
+          "display_value": "Consumers"
+        }
+      ],
+      "health_care": [
+        {
+          "key": "Healthcare",
+          "display_value": "Healthcare"
+        },
+        {
+          "key": "Health Care",
+          "display_value": "Health Care"
+        }
+      ],
+      "automobiles": [
+        {
+          "key": "Consumer Cyclicals",
+          "display_value": "Consumer Cyclicals"
+        },
+        {
+          "key": "Consumer Discretionary",
+          "display_value": "Consumer Discretionary"
+        }
+      ],
+      "pharmaceuticals": [
+        {
+          "key": "Chemicals",
+          "display_value": "Chemicals"
+        },
+        {
+          "key": "Health Care",
+          "display_value": "Health Care"
+        },
+        {
+          "key": "Health Technology",
+          "display_value": "Health Technology"
+        },
+        {
+          "key": "Healthcare",
+          "display_value": "Healthcare"
+        }
+      ],
+      "building_materials": [
+        {
+          "key": "Basic Materials",
+          "display_value": "Basic Materials"
+        },
+        {
+          "key": "Construction Materials",
+          "display_value": "Construction Materials"
+        },
+        {
+          "key": "Materials",
+          "display_value": "Materials"
+        },
+        {
+          "key": "Real Estate/Construction",
+          "display_value": "Real Estate/Construction"
+        }
+      ],
+      "communications": [
+        {
+          "key": "Communications",
+          "display_value": "Communications"
+        },
+        {
+          "key": "Communication Services",
+          "display_value": "Communication Services"
+        },
+        {
+          "key": "Telecommunications Services",
+          "display_value": "Telecommunications Services"
+        },
+        {
+          "key": "Wireless Telecommunications Services",
+          "display_value": "Wireless Telecommunications Services"
+        }
+      ],
+      "energy": [
+        {
+          "key": "Energy",
+          "display_value": "Energy"
+        },
+        {
+          "key": "Energy Service",
+          "display_value": "Energy Service"
+        },
+        {
+          "key": "Non-Energy Minerals",
+          "display_value": "Non-Energy Minerals"
+        },
+        {
+          "key": "Utility",
+          "display_value": "Utility"
+        }
+      ],
+      "real_estate": [
+        {
+          "key": "Real Estate",
+          "display_value": "Real Estate"
+        },
+        {
+          "key": "Real Estate/Construction",
+          "display_value": "Real Estate/Construction"
+        },
+        {
+          "key": "Real estate investment trust",
+          "display_value": "Real estate investment trust"
+        },
+        {
+          "key": "Constructions",
+          "display_value": "Constructions"
+        }
+      ],
+      "semiconductor_stocks": [
+        {
+          "key": "Information Technology",
+          "display_value": "Information Technology"
+        },
+        {
+          "key": "Technology",
+          "display_value": "Technology"
+        },
+        {
+          "key": "Electronic Technology",
+          "display_value": "Electronic Technology"
+        }
+      ],
+      "financials": [
+        {
+          "key": "Financials",
+          "display_value": "Financials"
+        },
+        {
+          "key": "financials",
+          "display_value": "financials"
+        },
+        {
+          "key": "Financial",
+          "display_value": "Financial"
+        },
+        {
+          "key": "Financial Services",
+          "display_value": "Financial Services"
+        },
+        {
+          "key": "Financial services",
+          "display_value": "Financial services"
+        },
+        {
+          "key": " Finance",
+          "display_value": " Finance"
+        },
+        {
+          "key": " Financial Services",
+          "display_value": " Financial Services"
+        },
+        {
+          "key": "Finance",
+          "display_value": "Finance"
+        },
+        {
+          "key": "LEASING & FINANCE",
+          "display_value": "LEASING & FINANCE"
+        }
+      ],
+      "industrials": [
+        {
+          "key": "Industrials",
+          "display_value": "Industrials"
+        },
+        {
+          "key": " Industrials",
+          "display_value": " Industrials"
+        },
+        {
+          "key": "Industrial Goods",
+          "display_value": "Industrial Goods"
+        }
+      ],
+      "biotechnology": [
+        {
+          "key": "Healthcare",
+          "display_value": "Healthcare"
+        },
+        {
+          "key": "Health Care",
+          "display_value": "Health Care"
+        }
+      ],
+      "technology": [
+        {
+          "key": "Technology",
+          "display_value": "Technology"
+        },
+        {
+          "key": "Information Technology",
+          "display_value": "Information Technology"
+        },
+        {
+          "key": "Electronic Technology",
+          "display_value": "Electronic Technology"
+        },
+        {
+          "key": "Health Technology",
+          "display_value": "Health Technology"
+        }
+      ],
+      "utilities": [
+        {
+          "key": "Utilities",
+          "display_value": "Utilities"
+        },
+        {
+          "key": "Utility",
+          "display_value": "Utility"
+        }
+      ]
+    }
+  }

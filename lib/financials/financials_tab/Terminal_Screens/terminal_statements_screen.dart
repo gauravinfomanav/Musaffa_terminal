@@ -4,6 +4,8 @@ import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_annual.dart' as annual;
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_quarterly.dart' as quarterly;
+import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
+import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 
 class TerminalStatementsScreen extends StatefulWidget {
   final String symbol;
@@ -48,6 +50,45 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     
     // Fetch all data
     _fetchAllData();
+    
+    // Initialize peer comparison
+    _initializePeerComparison();
+  }
+
+  /// Initialize peer comparison for statements screen
+  Future<void> _initializePeerComparison() async {
+    try {
+      // Get peer comparison controller
+      final peerController = Get.find<PeerComparisonController>();
+      
+      // Wait a bit for data to load
+      await Future.delayed(Duration(seconds: 1));
+      
+      // Get actual sector/industry from stock details controller
+      final stockDetailsController = Get.find<StockDetailsController>();
+      final stockData = stockDetailsController.stockData.value;
+      
+      if (stockData != null) {
+        await peerController.fetchPeerStocks(
+          currentStockTicker: widget.symbol,
+          sector: stockData.musaffaSector ?? 'Technology', // Use actual sector or fallback
+          industry: stockData.musaffaIndustry ?? 'Software', // Use actual industry or fallback
+          country: stockData.country ?? 'US', // Use actual country or fallback
+          limit: 5,
+        );
+      } else {
+        // Fallback if stock data not available
+        await peerController.fetchPeerStocks(
+          currentStockTicker: widget.symbol,
+          sector: 'Technology',
+          industry: 'Software',
+          country: 'US',
+          limit: 5,
+        );
+      }
+    } catch (e) {
+      print('Error initializing peer comparison in statements: $e');
+    }
   }
 
   Future<void> _fetchAllData() async {

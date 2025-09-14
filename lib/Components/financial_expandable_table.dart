@@ -681,13 +681,6 @@ class FinancialDataTransformer {
       }
     }
     
-    // Debug: Print subItems data for child of child
-    if (level > 1) {
-      print("=== DEBUG: Child of Child Data (Level $level) ===");
-      groupedData.forEach((key, value) {
-        print("$key: ${value.keys.toList()}");
-      });
-    }
     
     return groupedData.entries.map((entry) {
       String name = entry.key;

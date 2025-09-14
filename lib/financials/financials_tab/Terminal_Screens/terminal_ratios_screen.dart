@@ -5,6 +5,8 @@ import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_annual_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_quarterly_controller.dart';
+import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
+import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 class TerminalRatiosScreen extends StatefulWidget {
@@ -34,6 +36,35 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     
     quarterlyRatiosController = Get.put(QuarterlyRatiosController());
     quarterlyRatiosController.fetchQuarterlyRatios(widget.symbol);
+    
+    // Initialize peer comparison
+    _initializePeerComparison();
+  }
+
+  /// Initialize peer comparison for ratios screen
+  Future<void> _initializePeerComparison() async {
+    try {
+      // Get peer comparison controller
+      final peerController = Get.find<PeerComparisonController>();
+      
+      // Wait a bit for data to load
+      await Future.delayed(Duration(seconds: 1));
+      
+      // Get actual sector/industry from stock details controller
+      final stockDetailsController = Get.find<StockDetailsController>();
+      final stockData = stockDetailsController.stockData.value;
+      if (stockData != null) {
+        await peerController.fetchPeerStocks(
+          currentStockTicker: widget.symbol,
+          sector: stockData.musaffaSector ?? '', // Use actual sector or fallback
+          industry: stockData.musaffaIndustry ?? '', // Use actual industry or fallback
+          country: stockData.country ?? 'US', // Use actual country or fallback
+          limit: 5,
+        );
+      } 
+    } catch (e) {
+      print('Error initializing peer comparison in ratios: $e');
+    }
   }
 
   @override
