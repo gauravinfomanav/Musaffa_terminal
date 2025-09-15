@@ -592,30 +592,34 @@ class ShimmerWidgets {
       baseColor: baseColor ?? Colors.grey[300]!,
       highlightColor: highlightColor ?? Colors.grey[100]!,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
         child: Column(
           children: [
             // Table Header
             Row(
               children: [
-                // Metric column
-                Container(
-                  width: 200,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Year columns
-                ...List.generate(5, (index) => [
-                  Container(
-                    width: 80,
+                // Metric column - responsive width
+                Expanded(
+                  flex: 3,
+                  child: Container(
                     height: 32,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Year columns - responsive width
+                ...List.generate(6, (index) => [
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -625,28 +629,32 @@ class ShimmerWidgets {
             const SizedBox(height: 8),
             
             // Table Rows
-            ...List.generate(5, (index) => Padding(
+            ...List.generate(8, (index) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  // Metric name
-                  Container(
-                    width: 200,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Year data
-                  ...List.generate(5, (yearIndex) => [
-                    Container(
-                      width: 80,
+                  // Metric name - responsive width
+                  Expanded(
+                    flex: 3,
+                    child: Container(
                       height: 48,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Year data - responsive width
+                  ...List.generate(6, (yearIndex) => [
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -655,6 +663,26 @@ class ShimmerWidgets {
               ),
             )),
           ],
+        ),
+      ),
+    );
+  }
+
+  static Widget chartShimmer({
+    Color? baseColor,
+    Color? highlightColor,
+    double? width,
+    double? height,
+  }) {
+    return Shimmer.fromColors(
+      baseColor: baseColor ?? Colors.grey[300]!,
+      highlightColor: highlightColor ?? Colors.grey[100]!,
+      child: Container(
+        width: width ?? double.infinity,
+        height: height ?? 300,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );

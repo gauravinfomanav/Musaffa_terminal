@@ -3,6 +3,7 @@ import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/term
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_ratios_screen.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_statements_screen.dart';
 import 'package:musaffa_terminal/Components/reusable_bar_graph.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
 import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
@@ -150,11 +151,11 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
     return Obx(() {
       if (controller.isLoading.value) {
         return Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-            ),
+          child: ShimmerWidgets.chartShimmer(
+            baseColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
+            highlightColor: isDarkMode ? const Color(0xFF404040) : Colors.grey[100]!,
+            width: 400,
+            height: 300,
           ),
         );
       }
