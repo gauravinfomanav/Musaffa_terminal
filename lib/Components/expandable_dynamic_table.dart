@@ -173,7 +173,11 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       ),
       child: Row(
         children: [
-          if (widget.showNameColumn) _buildNameColumn(),
+          if (widget.showNameColumn) 
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.10, // 10% of screen width - consistent across all tables
+              child: _buildNameColumn(),
+            ),
           Expanded(
             child: _buildDataColumns(),
           ),
@@ -304,18 +308,24 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (title.isNotEmpty)
-          Text(
-            title,
-            style: titleStyle,
-            maxLines: row.showAsId ? 2 : 1, // Allow 2 lines for IDs
-            overflow: TextOverflow.ellipsis,
+          Tooltip(
+            message: title,
+            child: Text(
+              title,
+              style: titleStyle,
+              maxLines: row.showAsId ? 2 : 1, // Allow 2 lines for IDs
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         if (subtitle != null && subtitle.isNotEmpty)
-          Text(
-            subtitle,
-            style: subtitleStyle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Tooltip(
+            message: subtitle,
+            child: Text(
+              subtitle,
+              style: subtitleStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
       ],
     );

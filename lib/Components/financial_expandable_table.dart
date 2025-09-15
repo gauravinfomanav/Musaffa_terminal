@@ -271,7 +271,11 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       ),
       child: Row(
         children: [
-          if (widget.showNameColumn) _buildNameColumn(),
+          if (widget.showNameColumn) 
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.10, // 10% of screen width - consistent across all tables
+              child: _buildNameColumn(),
+            ),
           Expanded(
             child: _buildDataColumns(),
           ),
@@ -390,18 +394,24 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (title.isNotEmpty)
-          Text(
-            title,
-            style: titleStyle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Tooltip(
+            message: title,
+            child: Text(
+              title,
+              style: titleStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         if (subtitle != null && subtitle.isNotEmpty)
-          Text(
-            subtitle,
-            style: subtitleStyle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Tooltip(
+            message: subtitle,
+            child: Text(
+              subtitle,
+              style: subtitleStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
       ],
     );
@@ -428,6 +438,19 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
             dataRowMinHeight: widget.rowHeight,
             dataRowMaxHeight: widget.rowHeight,
             columns: _buildAllColumns().map((column) {
+              // If showNameColumn is false and this is the first column (metric), give it fixed width
+              if (!widget.showNameColumn && column.key == 'metric') {
+                return DataColumn(
+                  label: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.16, // 10% of screen width
+                    child: Text(
+                      column.title,
+                      style: DashboardTextStyles.columnHeader,
+                      textAlign: column.alignment,
+                    ),
+                  ),
+                );
+              }
               return DataColumn(
                 label: Expanded(
                   child: Text(
@@ -448,7 +471,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                   // If showNameColumn is false and this is the first column (metric column), add expand/collapse functionality
                   if (!widget.showNameColumn && column.key == 'metric') {
                     return DataCell(
-                      _buildExpandableCellContent(row, column),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.16, // 10% of screen width
+                        child: _buildExpandableCellContent(row, column),
+                      ),
                     );
                   }
                   return DataCell(
@@ -507,10 +533,15 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               children: [
                 // No spacing for any rows
                 Expanded(
-                  child: Text(
-                    value,
-                    style: DashboardTextStyles.stockName,
-                    textAlign: TextAlign.left,
+                  child: Tooltip(
+                    message: value,
+                    child: Text(
+                      value,
+                      style: DashboardTextStyles.stockName,
+                      textAlign: TextAlign.left,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 if (row.isExpandable) ...[
