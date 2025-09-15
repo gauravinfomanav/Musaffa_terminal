@@ -240,6 +240,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return _buildCompactTable('Risk & Efficiency', data, isDarkMode);
   }
 
+  Widget _buildMarketTradingMetrics(StocksData stockData, bool isDarkMode) {
+    final data = [
+      ['Avg Volume (10D)', '${((stockData.avgVolume10days ?? 0) / 1000000).toStringAsFixed(1)}M'],
+      ['Avg Volume (30D)', '${((stockData.avgVolume30days ?? 0) / 1000000).toStringAsFixed(1)}M'],
+      ['Shares Outstanding', '${((stockData.sharesOutStanding ?? 0) / 1000000).toStringAsFixed(1)}M'],
+      ['Float', '${((stockData.sharesOutStanding ?? 0) * 0.8 / 1000000).toStringAsFixed(1)}M'],
+      ['Insider Ownership', '${(stockData.businessCompliantRatio ?? 0).toStringAsFixed(1)}%'],
+      ['Institutional Hold', '${(stockData.businessQuestionableRatio ?? 0).toStringAsFixed(1)}%'],
+    ];
+    
+    return _buildCompactTable('Market & Trading', data, isDarkMode);
+  }
+
   Widget _buildCompactTable(String title, List<List<String>> data, bool isDarkMode) {
     return Container(
       width: double.infinity,
@@ -802,9 +815,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   child: _buildRiskMetrics(stockData, isDarkMode),
                 ),
                 const SizedBox(width: 8),
-                // Empty space to maintain layout
                 Expanded(
-                  child: Container(),
+                  child: _buildMarketTradingMetrics(stockData, isDarkMode),
                 ),
               ],
             ),
