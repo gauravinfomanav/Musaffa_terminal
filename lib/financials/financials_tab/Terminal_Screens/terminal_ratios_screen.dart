@@ -175,7 +175,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     List<FinancialExpandableColumn> columns = [
       FinancialExpandableColumn(
         key: 'metric',
-        title: 'Name',
+        title: 'Metric',
         width: 200,
         alignment: TextAlign.left,
       ),

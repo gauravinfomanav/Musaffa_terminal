@@ -164,17 +164,6 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ),
         ShimmerWidgets.perShareTableShimmer(),
       ],
     );
@@ -185,24 +174,15 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       child: Column(
         children: [
           _buildStatementTable(
-            'INCOME STATEMENT',
             annualIncomeData,
             annualYears,
-            'Income Statement',
+            'Metric',
           ),
           const SizedBox(height: 20),
-          _buildStatementTable(
-            'BALANCE SHEET',
+          _buildCombinedBalanceSheetAndCashFlowTable(
             annualBalanceData,
-            annualYears,
-            'Balance Sheet',
-          ),
-          const SizedBox(height: 20),
-          _buildStatementTable(
-            'CASH FLOW',
             annualCashflowData,
             annualYears,
-            'Cash Flow',
           ),
         ],
       ),
@@ -214,49 +194,81 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       child: Column(
         children: [
           _buildStatementTable(
-            'INCOME STATEMENT',
             quarterlyIncomeData,
             quarterlyQuarters,
-            'Income Statement',
+            'Metric',
           ),
           const SizedBox(height: 20),
-          _buildStatementTable(
-            'BALANCE SHEET',
+          _buildCombinedBalanceSheetAndCashFlowTable(
             quarterlyBalanceData,
-            quarterlyQuarters,
-            'Balance Sheet',
-          ),
-          const SizedBox(height: 20),
-          _buildStatementTable(
-            'CASH FLOW',
             quarterlyCashflowData,
             quarterlyQuarters,
-            'Cash Flow',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatementTable(String title, RxList data, RxList<String> periods, String columnTitle) {
+  Widget _buildCombinedBalanceSheetAndCashFlowTable(RxList balanceData, RxList cashflowData, RxList<String> periods) {
+    if (balanceData.isEmpty && cashflowData.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Text('No data available'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Combine balance sheet and cash flow data
+    List<dynamic> combinedData = [];
+    combinedData.addAll(balanceData);
+    combinedData.addAll(cashflowData);
+
+    final transformedData = FinancialDataTransformer.transformFinancialStatements(
+      combinedData,
+      periods,
+    );
+
+    final columns = _buildFinancialColumns(periods, 'Metric');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+          child: FinancialExpandableTable(
+            columns: columns,
+            data: transformedData,
+            showNameColumn: false,
+            rowHeight: 40,
+            headerHeight: 32,
+            indentSize: 20,
+            expandIconSize: 14,
+            considerPadding: false,
+            showYoYGrowth: true, // Enable YoY Growth column
+            showThreeYearAvg: true, // Enable 3-Year Average column
+            showTwoYearCAGR: true, // Enable 2-Year CAGR column
+            showFiveYearCAGR: true, // Enable 5-Year CAGR column
+            showStandardDeviation: true, // Enable Standard Deviation column
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatementTable(RxList data, RxList<String> periods, String columnTitle) {
     if (data.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
           Container(
             padding: const EdgeInsets.all(20),
-            child: Center(child: Text('No $title data available')),
+            child: Center(child: Text('No data available')),
           ),
         ],
       );
@@ -271,17 +283,6 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
           child: FinancialExpandableTable(
