@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
+import 'package:musaffa_terminal/Components/simple_news_widget.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
@@ -805,6 +806,23 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   child: Container(),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            
+            // News Section
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+              child: SimpleNewsWidget(
+                symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+              ),
             ),
           ],
         ),
