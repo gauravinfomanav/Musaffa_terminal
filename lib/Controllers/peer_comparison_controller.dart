@@ -83,23 +83,29 @@ class PeerComparisonController extends GetxController {
         var hits = (data['hits'] as List?) ?? [];
         
        
-        // Parse the response - only get tickers
-        List<String> peerTickers = [];
+        // Parse the response - only get unique tickers
+        Set<String> uniqueTickers = {};
         for (var hit in hits) {
           var document = hit['document'];
           
           if (document != null && document['ticker'] != null) {
             String ticker = document['ticker'];
-            // Skip the current stock
+            // Skip the current stock and add to set for deduplication
             if (ticker != currentStockTicker) {
-              peerTickers.add(ticker);
+              uniqueTickers.add(ticker);
             }
           }
         }
         
+        // Convert set to list to maintain order
+        List<String> peerTickers = uniqueTickers.toList();
+        
        
         
         _peerTickers.value = peerTickers;
+        
+        // Debug: Show unique peer tickers
+        print("Unique peers: ${peerTickers.take(3).join(', ')}");
       } else {
         errorMessage.value = 'API Error: ${response.statusCode}';
       }
