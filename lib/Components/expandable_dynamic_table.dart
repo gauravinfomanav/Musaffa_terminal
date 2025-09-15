@@ -147,7 +147,10 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     List<ExpandableTableRowData> flattened = [];
     
     void addRowAndChildren(ExpandableTableRowData row) {
-      flattened.add(row);
+      // Only add row if it has at least one non-empty value
+      if (_hasAnyValue(row)) {
+        flattened.add(row);
+      }
       
       if (row.isExpandable && 
           row.children != null && 
@@ -163,6 +166,16 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     }
     
     return flattened;
+  }
+
+  // Check if a row has any non-empty values
+  bool _hasAnyValue(ExpandableTableRowData row) {
+    for (dynamic value in row.data.values) {
+      if (value != null && value != '--' && value != '-' && value != '') {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override

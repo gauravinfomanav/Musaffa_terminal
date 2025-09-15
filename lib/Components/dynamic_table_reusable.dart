@@ -231,11 +231,24 @@ class _DynamicTableState extends State<DynamicTable> {
     );
   }
 
+  // Check if a row has any non-empty values
+  bool _hasAnyValue(SimpleRowModel row) {
+    for (dynamic value in row.fields.values) {
+      if (value != null && value != '--' && value != '-' && value != '') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   generateDataRows() {
     List<DataRow> dataRowLst = [];
     List<DataRow> fixedRowLst = [];
 
-    widget.rows.forEach((rowModel) {
+    // Filter rows that have at least one non-empty value
+    List<SimpleRowModel> filteredRows = widget.rows.where((row) => _hasAnyValue(row)).toList();
+
+    filteredRows.forEach((rowModel) {
       List<DataCell> cellArr = [];
       List<DataCell> fixedRowCellArr = [];
 

@@ -76,6 +76,21 @@ class _DynamicTableState extends State<DynamicTable> {
     super.dispose();
   }
 
+  // Get filtered rows that have at least one non-empty value
+  List<TableRowData> _getFilteredRows() {
+    return widget.data.where((row) => _hasAnyValue(row)).toList();
+  }
+
+  // Check if a row has any non-empty values
+  bool _hasAnyValue(TableRowData row) {
+    for (dynamic value in row.data.values) {
+      if (value != null && value != '--' && value != '-' && value != '') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -193,7 +208,7 @@ class _DynamicTableState extends State<DynamicTable> {
                 ),
               );
             }).toList(),
-            rows: widget.data.map((row) {
+            rows: _getFilteredRows().map((row) {
               return DataRow(
                 onSelectChanged: (_) => widget.onRowSelect?.call(row),
                 cells: widget.columns.map((column) {

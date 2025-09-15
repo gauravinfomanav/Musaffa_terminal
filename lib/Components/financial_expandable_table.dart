@@ -189,7 +189,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     List<FinancialExpandableRowData> flattened = [];
     
     void addRowAndChildren(FinancialExpandableRowData row) {
-      flattened.add(row);
+      // Only add row if it has at least one non-empty value
+      if (_hasAnyValue(row)) {
+        flattened.add(row);
+      }
       
       if (row.isExpandable && 
           row.children != null && 
@@ -207,14 +210,32 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     return flattened;
   }
 
+  // Check if a row has any non-empty values
+  bool _hasAnyValue(FinancialExpandableRowData row) {
+    // Skip the 'metric' key as it's the row name, not data
+    for (String key in row.data.keys) {
+      if (key == 'metric') continue;
+      
+      dynamic value = row.data[key];
+      if (value != null && value != '--' && value != '-' && value != '') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   List<FinancialExpandableColumn> _buildAllColumns() {
     List<FinancialExpandableColumn> allColumns = List.from(widget.columns);
     
+    // Get available years from the data to determine dynamic column titles
+    int availableYears = _getAvailableYearsCount();
+    
     // Add 3-Year Average column first if enabled
     if (widget.showThreeYearAvg) {
+      String avgTitle = availableYears >= 3 ? '3Y Avg' : '${availableYears}Y Avg';
       allColumns.add(FinancialExpandableColumn(
         key: 'three_year_avg',
-        title: '3Y Avg',
+        title: avgTitle,
         isNumeric: false,
         alignment: TextAlign.center,
       ));
@@ -232,9 +253,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     
     // Add 2-Year CAGR column if enabled
     if (widget.showTwoYearCAGR) {
+      String cagrTitle = availableYears >= 2 ? '2Y CAGR' : '${availableYears}Y CAGR';
       allColumns.add(FinancialExpandableColumn(
         key: 'two_year_cagr',
-        title: '2Y CAGR',
+        title: cagrTitle,
         isNumeric: false,
         alignment: TextAlign.center,
       ));
@@ -242,9 +264,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     
     // Add 5-Year CAGR column if enabled
     if (widget.showFiveYearCAGR) {
+      String cagrTitle = availableYears >= 5 ? '5Y CAGR' : '${availableYears}Y CAGR';
       allColumns.add(FinancialExpandableColumn(
         key: 'five_year_cagr',
-        title: '5Y CAGR',
+        title: cagrTitle,
         isNumeric: false,
         alignment: TextAlign.center,
       ));
@@ -261,6 +284,32 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     }
     
     return allColumns;
+  }
+
+  // Get the count of available years from the data
+  int _getAvailableYearsCount() {
+    if (widget.data.isEmpty) return 0;
+    
+    // Get the first row's data to count available years
+    var firstRow = widget.data.first;
+    int yearCount = 0;
+    
+    // Count non-metric keys that have values
+    for (String key in firstRow.data.keys) {
+      if (key != 'metric' && 
+          key != 'yoy_growth' && 
+          key != 'three_year_avg' && 
+          key != 'two_year_cagr' && 
+          key != 'five_year_cagr' && 
+          key != 'standard_deviation') {
+        dynamic value = firstRow.data[key];
+        if (value != null && value != '--' && value != '-' && value != '') {
+          yearCount++;
+        }
+      }
+    }
+    
+    return yearCount;
   }
 
   @override
@@ -924,14 +973,14 @@ class FinancialDataTransformer {
     }
   }
   
-  // Calculate 2-Year CAGR (Compound Annual Growth Rate)
+  // Calculate 2-Year CAGR (Compound Annual Growth Rate) - flexible for available years
   static String _calculateTwoYearCAGR(Map<String, String> periodData, List<String> periods) {
     if (periods.length < 2) return '-';
     
-    // Get the last 2 years
-    List<String> lastTwoYears = periods.skip(periods.length - 2).toList();
-    String oldestYear = lastTwoYears.first;
-    String latestYear = lastTwoYears.last;
+    // Use all available years for CAGR calculation
+    String oldestYear = periods.first;
+    String latestYear = periods.last;
+    int yearsDiff = periods.length - 1;
     
     String? oldestValueStr = periodData[oldestYear];
     String? latestValueStr = periodData[latestYear];
@@ -948,8 +997,8 @@ class FinancialDataTransformer {
       return '-';
     }
     
-    // Calculate CAGR: (Latest Year / Oldest Year)^(1/2) - 1
-    double cagr = pow(latestValue / oldestValue, 1.0 / 2.0) - 1.0;
+    // Calculate CAGR: (Latest Year / Oldest Year)^(1/yearsDiff) - 1
+    double cagr = pow(latestValue / oldestValue, 1.0 / yearsDiff) - 1.0;
     
     // Format as percentage with + or - sign
     if (cagr > 0) {
@@ -1009,14 +1058,14 @@ class FinancialDataTransformer {
     return '${(standardDeviation * 100).toStringAsFixed(1)}%';
   }
   
-  // Calculate 5-Year CAGR (Compound Annual Growth Rate)
+  // Calculate 5-Year CAGR (Compound Annual Growth Rate) - flexible for available years
   static String _calculateFiveYearCAGR(Map<String, String> periodData, List<String> periods) {
-    if (periods.length < 5) return '-';
+    if (periods.length < 2) return '-';
     
-    // Get the first and last 5 years
-    List<String> lastFiveYears = periods.skip(periods.length - 5).toList();
-    String oldestYear = lastFiveYears.first;
-    String latestYear = lastFiveYears.last;
+    // Use all available years for CAGR calculation
+    String oldestYear = periods.first;
+    String latestYear = periods.last;
+    int yearsDiff = periods.length - 1;
     
     String? oldestValueStr = periodData[oldestYear];
     String? latestValueStr = periodData[latestYear];
@@ -1033,8 +1082,8 @@ class FinancialDataTransformer {
       return '-';
     }
     
-    // Calculate CAGR: (Latest Year / Oldest Year)^(1/5) - 1
-    double cagr = pow(latestValue / oldestValue, 1.0 / 5.0) - 1.0;
+    // Calculate CAGR: (Latest Year / Oldest Year)^(1/yearsDiff) - 1
+    double cagr = pow(latestValue / oldestValue, 1.0 / yearsDiff) - 1.0;
     
     // Format as percentage with + or - sign
     if (cagr > 0) {
