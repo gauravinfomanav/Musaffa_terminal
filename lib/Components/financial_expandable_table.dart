@@ -86,7 +86,9 @@ class FinancialExpandableTable extends StatefulWidget {
     this.headerBackgroundColor = const Color(0xFFEFF4FF),
     this.showYoYGrowth = false,
     this.showThreeYearAvg = false,
+    this.showTwoYearCAGR = false,
     this.showFiveYearCAGR = false,
+    this.showStandardDeviation = false,
   }) : super(key: key);
 
   final List<FinancialExpandableColumn> columns;
@@ -101,7 +103,9 @@ class FinancialExpandableTable extends StatefulWidget {
   final Color headerBackgroundColor;
   final bool showYoYGrowth;
   final bool showThreeYearAvg;
+  final bool showTwoYearCAGR;
   final bool showFiveYearCAGR;
+  final bool showStandardDeviation;
 
   @override
   State<FinancialExpandableTable> createState() => _FinancialExpandableTableState();
@@ -226,11 +230,31 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       ));
     }
     
-    // Add 5-Year CAGR column third if enabled
+    // Add 2-Year CAGR column if enabled
+    if (widget.showTwoYearCAGR) {
+      allColumns.add(FinancialExpandableColumn(
+        key: 'two_year_cagr',
+        title: '2Y CAGR',
+        isNumeric: false,
+        alignment: TextAlign.center,
+      ));
+    }
+    
+    // Add 5-Year CAGR column if enabled
     if (widget.showFiveYearCAGR) {
       allColumns.add(FinancialExpandableColumn(
         key: 'five_year_cagr',
         title: '5Y CAGR',
+        isNumeric: false,
+        alignment: TextAlign.center,
+      ));
+    }
+    
+    // Add Standard Deviation column if enabled (last column)
+    if (widget.showStandardDeviation) {
+      allColumns.add(FinancialExpandableColumn(
+        key: 'standard_deviation',
+        title: 'Volatility',
         isNumeric: false,
         alignment: TextAlign.center,
       ));
@@ -632,8 +656,14 @@ class FinancialDataTransformer {
       // Calculate 3-Year Average
       data['three_year_avg'] = _calculateThreeYearAverage(periodData, periods);
       
+      // Calculate 2-Year CAGR
+      data['two_year_cagr'] = _calculateTwoYearCAGR(periodData, periods);
+      
       // Calculate 5-Year CAGR
       data['five_year_cagr'] = _calculateFiveYearCAGR(periodData, periods);
+      
+      // Calculate Standard Deviation of Growth Rates
+      data['standard_deviation'] = _calculateStandardDeviation(periodData, periods);
       
       bool hasChildren = childrenMap.containsKey(name);
       List<FinancialExpandableRowData>? children = hasChildren 
@@ -697,8 +727,14 @@ class FinancialDataTransformer {
       // Calculate 3-Year Average for sub-items
       data['three_year_avg'] = _calculateThreeYearAverage(periodData, periods);
       
+      // Calculate 2-Year CAGR for sub-items
+      data['two_year_cagr'] = _calculateTwoYearCAGR(periodData, periods);
+      
       // Calculate 5-Year CAGR for sub-items
       data['five_year_cagr'] = _calculateFiveYearCAGR(periodData, periods);
+      
+      // Calculate Standard Deviation of Growth Rates for sub-items
+      data['standard_deviation'] = _calculateStandardDeviation(periodData, periods);
       
       return FinancialExpandableRowData(
         id: name,
@@ -835,6 +871,91 @@ class FinancialDataTransformer {
       // Regular numbers
       return average.toStringAsFixed(2);
     }
+  }
+  
+  // Calculate 2-Year CAGR (Compound Annual Growth Rate)
+  static String _calculateTwoYearCAGR(Map<String, String> periodData, List<String> periods) {
+    if (periods.length < 2) return '-';
+    
+    // Get the last 2 years
+    List<String> lastTwoYears = periods.skip(periods.length - 2).toList();
+    String oldestYear = lastTwoYears.first;
+    String latestYear = lastTwoYears.last;
+    
+    String? oldestValueStr = periodData[oldestYear];
+    String? latestValueStr = periodData[latestYear];
+    
+    if (oldestValueStr == null || latestValueStr == null || 
+        oldestValueStr == '-' || latestValueStr == '-') {
+      return '-';
+    }
+    
+    double? oldestValue = _parseFinancialValue(oldestValueStr);
+    double? latestValue = _parseFinancialValue(latestValueStr);
+    
+    if (oldestValue == null || latestValue == null || oldestValue <= 0) {
+      return '-';
+    }
+    
+    // Calculate CAGR: (Latest Year / Oldest Year)^(1/2) - 1
+    double cagr = pow(latestValue / oldestValue, 1.0 / 2.0) - 1.0;
+    
+    // Format as percentage with + or - sign
+    if (cagr > 0) {
+      return '+${(cagr * 100).toStringAsFixed(1)}%';
+    } else if (cagr < 0) {
+      return '${(cagr * 100).toStringAsFixed(1)}%';
+    } else {
+      return '0.0%';
+    }
+  }
+  
+  // Calculate Standard Deviation of Growth Rates
+  static String _calculateStandardDeviation(Map<String, String> periodData, List<String> periods) {
+    if (periods.length < 2) return '-';
+    
+    List<double> growthRates = [];
+    
+    // Calculate year-over-year growth rates
+    for (int i = 1; i < periods.length; i++) {
+      String currentPeriod = periods[i];
+      String previousPeriod = periods[i - 1];
+      
+      String? currentValueStr = periodData[currentPeriod];
+      String? previousValueStr = periodData[previousPeriod];
+      
+      if (currentValueStr == null || previousValueStr == null || 
+          currentValueStr == '-' || previousValueStr == '-') {
+        continue;
+      }
+      
+      double? currentValue = _parseFinancialValue(currentValueStr);
+      double? previousValue = _parseFinancialValue(previousValueStr);
+      
+      if (currentValue == null || previousValue == null || previousValue == 0) {
+        continue;
+      }
+      
+      // Calculate growth rate: (Current - Previous) / Previous
+      double growthRate = (currentValue - previousValue) / previousValue;
+      growthRates.add(growthRate);
+    }
+    
+    if (growthRates.length < 2) return '-';
+    
+    // Calculate mean
+    double mean = growthRates.reduce((a, b) => a + b) / growthRates.length;
+    
+    // Calculate variance
+    double variance = growthRates
+        .map((rate) => pow(rate - mean, 2))
+        .reduce((a, b) => a + b) / growthRates.length;
+    
+    // Calculate standard deviation
+    double standardDeviation = sqrt(variance);
+    
+    // Format as percentage
+    return '${(standardDeviation * 100).toStringAsFixed(1)}%';
   }
   
   // Calculate 5-Year CAGR (Compound Annual Growth Rate)

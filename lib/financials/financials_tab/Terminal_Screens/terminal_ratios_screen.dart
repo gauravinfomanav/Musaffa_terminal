@@ -11,10 +11,12 @@ import 'package:musaffa_terminal/utils/constants.dart';
 
 class TerminalRatiosScreen extends StatefulWidget {
   final String symbol;
+  final bool isQuarterly;
 
   const TerminalRatiosScreen({
     Key? key,
     required this.symbol,
+    this.isQuarterly = false,
   }) : super(key: key);
 
   @override
@@ -22,7 +24,6 @@ class TerminalRatiosScreen extends StatefulWidget {
 }
 
 class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
-  bool isQuarterly = false;
   late RatiosController annualRatiosController;
   late QuarterlyRatiosController quarterlyRatiosController;
 
@@ -72,7 +73,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Obx(() {
-      if (isQuarterly) {
+      if (widget.isQuarterly) {
         // Show Quarterly Ratios
         if (quarterlyRatiosController.isLoading.value) {
           return Padding(
@@ -116,7 +117,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
             showThreeYearAvg: true, // Enable 3-Year Average column
+            showTwoYearCAGR: true, // Enable 2-Year CAGR column
             showFiveYearCAGR: true, // Enable 5-Year CAGR column
+            showStandardDeviation: true, // Enable Standard Deviation column
           ),
         );
       } else {
@@ -159,7 +162,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
             showThreeYearAvg: true, // Enable 3-Year Average column
+            showTwoYearCAGR: true, // Enable 2-Year CAGR column
             showFiveYearCAGR: true, // Enable 5-Year CAGR column
+            showStandardDeviation: true, // Enable Standard Deviation column
           ),
         );
       }
@@ -258,8 +263,14 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       // Calculate 3-Year Average
       data['three_year_avg'] = _calculateThreeYearAverage(annualData[metric], years);
       
+      // Calculate 2-Year CAGR
+      data['two_year_cagr'] = _calculateTwoYearCAGR(annualData[metric], years);
+      
       // Calculate 5-Year CAGR
       data['five_year_cagr'] = _calculateFiveYearCAGR(annualData[metric], years);
+      
+      // Calculate Standard Deviation of Growth Rates
+      data['standard_deviation'] = _calculateStandardDeviation(annualData[metric], years);
 
       return FinancialExpandableRowData(
         id: metric,
@@ -318,6 +329,75 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     
     double average = values.reduce((a, b) => a + b) / values.length;
     return average.toStringAsFixed(2);
+  }
+
+  // Calculate 2-Year CAGR for ratios
+  String _calculateTwoYearCAGR(Map<String, double?>? metricData, List<String> years) {
+    if (metricData == null || years.length < 2) return '-';
+    
+    // Get the last 2 years
+    List<String> lastTwoYears = years.skip(years.length - 2).toList();
+    String oldestYear = lastTwoYears.first;
+    String latestYear = lastTwoYears.last;
+    
+    double? oldestValue = metricData[oldestYear];
+    double? latestValue = metricData[latestYear];
+    
+    if (oldestValue == null || latestValue == null || oldestValue <= 0) {
+      return '-';
+    }
+    
+    // Calculate CAGR: (Latest Year / Oldest Year)^(1/2) - 1
+    double cagr = pow(latestValue / oldestValue, 1.0 / 2.0) - 1.0;
+    
+    // Format as percentage with + or - sign
+    if (cagr > 0) {
+      return '+${(cagr * 100).toStringAsFixed(1)}%';
+    } else if (cagr < 0) {
+      return '${(cagr * 100).toStringAsFixed(1)}%';
+    } else {
+      return '0.0%';
+    }
+  }
+
+  // Calculate Standard Deviation of Growth Rates for ratios
+  String _calculateStandardDeviation(Map<String, double?>? metricData, List<String> years) {
+    if (metricData == null || years.length < 2) return '-';
+    
+    List<double> growthRates = [];
+    
+    // Calculate year-over-year growth rates
+    for (int i = 1; i < years.length; i++) {
+      String currentYear = years[i];
+      String previousYear = years[i - 1];
+      
+      double? currentValue = metricData[currentYear];
+      double? previousValue = metricData[previousYear];
+      
+      if (currentValue == null || previousValue == null || previousValue == 0) {
+        continue;
+      }
+      
+      // Calculate growth rate: (Current - Previous) / Previous
+      double growthRate = (currentValue - previousValue) / previousValue;
+      growthRates.add(growthRate);
+    }
+    
+    if (growthRates.length < 2) return '-';
+    
+    // Calculate mean
+    double mean = growthRates.reduce((a, b) => a + b) / growthRates.length;
+    
+    // Calculate variance
+    double variance = growthRates
+        .map((rate) => pow(rate - mean, 2))
+        .reduce((a, b) => a + b) / growthRates.length;
+    
+    // Calculate standard deviation
+    double standardDeviation = sqrt(variance);
+    
+    // Format as percentage
+    return '${(standardDeviation * 100).toStringAsFixed(1)}%';
   }
 
   // Calculate 5-Year CAGR for ratios

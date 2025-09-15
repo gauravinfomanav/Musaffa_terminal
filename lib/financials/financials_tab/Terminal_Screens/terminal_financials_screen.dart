@@ -12,19 +12,20 @@ import 'package:get/get.dart';
 class TerminalFinancialsScreen extends StatefulWidget {
   final String symbol;
   final String currency;
+  final bool isQuarterly;
 
   const TerminalFinancialsScreen({
     Key? key,
     required this.symbol,
     required this.currency,
+    this.isQuarterly = false,
   }) : super(key: key);
 
   @override
   State<TerminalFinancialsScreen> createState() => _TerminalFinancialsScreenState();
 }
 
-class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
-  bool isQuarterly = false; 
+class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> { 
   String selectedMetric = 'Revenue per Share (TTM)'; 
   late FinancialFundamentalsController controller;
   late PeerComparisonController peerController;
@@ -93,7 +94,7 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTerminalTitleWithToggle(isDarkMode, title: 'PER SHARE DATA', showAnnualToggle: false),
+            _buildTerminalTitle(isDarkMode, title: 'PER SHARE DATA'),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -117,10 +118,10 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            _buildTerminalTitleWithToggle(isDarkMode, title: 'COMPANY FINANCIALS', showAnnualToggle: true),
+            _buildTerminalTitle(isDarkMode, title: 'COMPANY FINANCIALS'),
             TerminalRatiosScreen(symbol: widget.symbol),
             const SizedBox(height: 12),
-            _buildTerminalTitleWithToggle(isDarkMode, title: 'FINANCIAL STATEMENTS', showAnnualToggle: true),
+            _buildTerminalTitle(isDarkMode, title: 'FINANCIAL STATEMENTS'),
             TerminalStatementsScreen(symbol: widget.symbol),
           ],
         ),
@@ -129,26 +130,18 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
   }
 
 
-  Widget _buildTerminalTitleWithToggle(bool isDarkMode, {String title = 'PER SHARE DATA', bool showAnnualToggle = false}) {
+  Widget _buildTerminalTitle(bool isDarkMode, {String title = 'PER SHARE DATA'}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-            ),
-          ),
-          if (showAnnualToggle) ...[
-            const Spacer(),
-            _buildReusableToggleButton('Annual', true, isDarkMode),
-          ],
-        ],
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
+        ),
       ),
     );
   }
@@ -310,72 +303,5 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
     }
   }
 
-  // Reusable toggle button widget - Ready for future use
-  // Usage: _buildReusableToggleButton('Annual', true, isDarkMode)
-
-  Widget _buildReusableToggleButton(String title, bool wantToggle, bool isDarkMode) {
-    if (!wantToggle) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-          ),
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: () => setState(() => isQuarterly = !isQuarterly),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isQuarterly ? 'Quarterly' : 'Annual',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.keyboard_arrow_up,
-              size: 12,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: 12,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
 }

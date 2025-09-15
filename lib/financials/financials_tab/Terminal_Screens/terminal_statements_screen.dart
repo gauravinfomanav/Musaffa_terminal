@@ -9,10 +9,12 @@ import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 
 class TerminalStatementsScreen extends StatefulWidget {
   final String symbol;
+  final bool isQuarterly;
 
   const TerminalStatementsScreen({
     Key? key,
     required this.symbol,
+    this.isQuarterly = false,
   }) : super(key: key);
 
   @override
@@ -20,7 +22,6 @@ class TerminalStatementsScreen extends StatefulWidget {
 }
 
 class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
-  bool isQuarterly = false;
   
   // Single controllers for annual and quarterly
   late annual.FinancialStatementsController annualController;
@@ -130,12 +131,6 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     }
   }
 
-  void togglePeriod() {
-    setState(() {
-      isQuarterly = !isQuarterly;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -143,7 +138,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
         return _buildLoadingShimmer();
       }
       
-      if (isQuarterly) {
+      if (widget.isQuarterly) {
         return _buildQuarterlyTables();
       } else {
         return _buildAnnualTables();
@@ -300,7 +295,9 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
             considerPadding: false,
             showYoYGrowth: true, // Enable YoY Growth column
             showThreeYearAvg: true, // Enable 3-Year Average column
+            showTwoYearCAGR: true, // Enable 2-Year CAGR column
             showFiveYearCAGR: true, // Enable 5-Year CAGR column
+            showStandardDeviation: true, // Enable Standard Deviation column
           ),
         ),
       ],
