@@ -451,8 +451,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                   ),
                 );
               }
+              // For all other columns, use consistent fixed width for Company Financials and Statements
               return DataColumn(
-                label: Expanded(
+                label: SizedBox(
+                  width: 60, // Fixed pixel width for consistent data columns
                   child: Text(
                     column.title,
                     style: DashboardTextStyles.columnHeader,
@@ -477,8 +479,12 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                       ),
                     );
                   }
+                  // For all other columns, use consistent fixed width for Company Financials and Statements
                   return DataCell(
-                    _buildCellContent(row, column),
+                    SizedBox(
+                      width: 60, // Fixed pixel width for consistent data columns
+                      child: _buildCellContent(row, column),
+                    ),
                   );
                 }).toList(),
               );
@@ -506,6 +512,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         "--",
         style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
@@ -519,6 +527,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         formattedValue,
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
@@ -574,6 +584,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         value,
         style: DashboardTextStyles.dataCell.copyWith(color: textColor),
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
@@ -581,6 +593,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       "--",
       style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
       textAlign: column.alignment,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -592,6 +606,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         "--",
         style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
@@ -605,6 +621,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         formattedValue,
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
@@ -626,6 +644,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         value,
         style: textStyle.copyWith(color: textColor),
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
