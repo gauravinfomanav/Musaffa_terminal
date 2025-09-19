@@ -279,13 +279,13 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.monitor,
-                    size: 32,
+                    Icons.add_circle_outline,
+                    size: 48,
                     color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
-                    'MONITOR PANEL',
+                    'NO WATCHLISTS',
                     style: DashboardTextStyles.columnHeader.copyWith(
                       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                       fontSize: 14,
@@ -293,12 +293,58 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
-                    'Track your positions',
+                    'Create your first watchlist to\ntrack stocks and monitor positions',
+                    textAlign: TextAlign.center,
                     style: DashboardTextStyles.tickerSymbol.copyWith(
                       color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                       fontSize: 11,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Implement create watchlist functionality
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Create watchlist functionality coming soon...'),
+                          duration: const Duration(seconds: 2),
+                          backgroundColor: isDarkMode ? const Color(0xFF374151) : const Color(0xFF6B7280),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add,
+                            size: 14,
+                            color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'CREATE WATCHLIST',
+                            style: DashboardTextStyles.columnHeader.copyWith(
+                              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
