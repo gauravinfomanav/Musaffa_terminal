@@ -14,14 +14,18 @@ class HomeTabBar extends StatelessWidget {
   final ValueChanged<String>? onSearch;
   final VoidCallback? onSearchSubmit;
   final VoidCallback? onThemeToggle;
+  final VoidCallback? onWatchlistToggle;
   final bool showBackButton;
+  final bool isWatchlistOpen;
 
   const HomeTabBar({
     super.key, 
     this.onSearch, 
     this.onSearchSubmit,
     this.onThemeToggle,
+    this.onWatchlistToggle,
     this.showBackButton = false,
+    this.isWatchlistOpen = false,
   });
 
   @override
@@ -94,6 +98,13 @@ class HomeTabBar extends StatelessWidget {
               isDarkMode: isDarkMode,
             ),
           ),
+          const SizedBox(width: 16),
+          // Watchlist toggle button
+          _WatchlistToggleButton(
+            isOpen: isWatchlistOpen,
+            onToggle: onWatchlistToggle,
+            isDarkMode: isDarkMode,
+          ),
         ],
       ),
     );
@@ -118,7 +129,6 @@ class _SearchField extends StatefulWidget {
 class _SearchFieldState extends State<_SearchField> {
   final TextEditingController _searchController = TextEditingController();
   List<TickerModel> _searchResults = [];
-  bool _showResults = false;
   OverlayEntry? _overlayEntry;
   final GlobalKey _searchFieldKey = GlobalKey();
   late FocusNode _focusNode;
@@ -203,15 +213,11 @@ class _SearchFieldState extends State<_SearchField> {
     if (query.trim().isEmpty) {
       setState(() {
         _searchResults = [];
-        _showResults = false;
       });
       _removeOverlay();
       return;
     }
 
-    setState(() {
-      _showResults = true;
-    });
 
     try {
       final results = await SearchService.searchStocks(query.trim());
@@ -235,9 +241,6 @@ class _SearchFieldState extends State<_SearchField> {
   void _onTickerSelected(TickerModel ticker) {
     // Remove overlay and reset state first
     _removeOverlay();
-    setState(() {
-      _showResults = false;
-    });
     _searchController.clear();
     _focusNode.unfocus();
     
@@ -352,9 +355,12 @@ class _SearchFieldState extends State<_SearchField> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final fieldHeight = (screenHeight * 0.055).clamp(40.0, 48.0);
+    
     return SizedBox(
       key: _searchFieldKey,
-      height: 44,
+      height: fieldHeight,
       child: TextField(
           controller: _searchController,
           focusNode: _focusNode,
@@ -364,14 +370,12 @@ class _SearchFieldState extends State<_SearchField> {
           } else if (value.isEmpty) {
             setState(() {
               _searchResults = [];
-              _showResults = false;
             });
             _removeOverlay();
           } else {
             // Clear results when text is less than 2 characters but not empty
             setState(() {
               _searchResults = [];
-              _showResults = false;
             });
             _removeOverlay();
           }
@@ -539,4 +543,131 @@ class _IndexItem extends StatelessWidget {
   }
 }
 
+class _WatchlistToggleButton extends StatefulWidget {
+  final bool isOpen;
+  final VoidCallback? onToggle;
+  final bool isDarkMode;
+
+  const _WatchlistToggleButton({
+    required this.isOpen,
+    this.onToggle,
+    required this.isDarkMode,
+  });
+
+  @override
+  State<_WatchlistToggleButton> createState() => _WatchlistToggleButtonState();
+}
+
+class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onTap() {
+    _animationController.forward().then((_) {
+      _animationController.reverse();
+    });
+    widget.onToggle?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: _onTap,
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                constraints: const BoxConstraints(
+                  minWidth: 40,
+                  maxWidth: 48,
+                  minHeight: 40,
+                  maxHeight: 48,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.isOpen 
+                      ? (widget.isDarkMode 
+                          ? const Color(0xFF2D2D2D)
+                          : const Color(0xFFF9FAFB))
+                      : (_isHovered 
+                          ? (widget.isDarkMode 
+                              ? const Color(0xFF2D2D2D).withOpacity(0.5)
+                              : const Color(0xFFF9FAFB).withOpacity(0.8))
+                          : Colors.transparent),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Active indicator line
+                    if (widget.isOpen)
+                      Positioned(
+                        left: 2,
+                        child: Container(
+                          width: 2,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: widget.isDarkMode 
+                                ? const Color(0xFF81AACE)
+                                : const Color(0xFF81AACE),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                      ),
+                    
+                    // Icon
+                    Icon(
+                      widget.isOpen 
+                          ? Icons.format_list_bulleted 
+                          : Icons.format_list_bulleted_outlined,
+                      size: 18,
+                      color: widget.isOpen
+                          ? (widget.isDarkMode 
+                              ? const Color(0xFFE0E0E0)
+                              : const Color(0xFF374151))
+                          : (widget.isDarkMode 
+                              ? const Color(0xFF9CA3AF)
+                              : const Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
 

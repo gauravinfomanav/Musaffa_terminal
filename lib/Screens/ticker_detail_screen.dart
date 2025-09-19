@@ -29,6 +29,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late FinancialFundamentalsController financialFundamentalsController;
   late TradingViewController tradingViewController;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
+  bool _isWatchlistOpen = false;
 
   @override
   void initState() {
@@ -52,6 +53,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     super.dispose();
   }
 
+  void _toggleWatchlist() {
+    setState(() {
+      _isWatchlistOpen = !_isWatchlistOpen;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -60,89 +67,203 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       backgroundColor: Theme.of(context).brightness == Brightness.dark 
           ? const Color(0xFF0F0F0F) 
           : const Color(0xFFFAFAFA),
-      body: Column(
+      body: Stack(
         children: [
-          HomeTabBar(
-            showBackButton: true,
-            onThemeToggle: () {
-              final currentTheme = Theme.of(context).brightness;
-              Get.changeThemeMode(
-                currentTheme == Brightness.dark 
-                    ? ThemeMode.light 
-                    : ThemeMode.dark,
-              );
-            },
+          Column(
+            children: [
+              HomeTabBar(
+                showBackButton: true,
+                isWatchlistOpen: _isWatchlistOpen,
+                onWatchlistToggle: _toggleWatchlist,
+                onThemeToggle: () {
+                  final currentTheme = Theme.of(context).brightness;
+                  Get.changeThemeMode(
+                    currentTheme == Brightness.dark 
+                        ? ThemeMode.light 
+                        : ThemeMode.dark,
+                  );
+                },
+              ),
+              
+              // Action Buttons
+              Container(
+                margin: const EdgeInsets.only(left: 12,right: 12,top: 8,bottom: 2),
+                child: Row(
+                  children: [
+                    OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedTabIndex = 0;
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                        side: BorderSide(
+                          color: _selectedTabIndex == 0 
+                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                              : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                          width: _selectedTabIndex == 0 ? 2 : 1,
+                        ),
+                        backgroundColor: _selectedTabIndex == 0 
+                            ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
+                            : Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      child: Text(
+                        'Overview',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          color: _selectedTabIndex == 0 
+                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                              : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedTabIndex = 1;
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                        side: BorderSide(
+                          color: _selectedTabIndex == 1 
+                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                              : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                          width: _selectedTabIndex == 1 ? 2 : 1,
+                        ),
+                        backgroundColor: _selectedTabIndex == 1 
+                            ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
+                            : Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      child: Text(
+                        'Financial',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          color: _selectedTabIndex == 1 
+                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                              : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              Expanded(
+                child: _selectedTabIndex == 0
+                    ? _buildOverviewTab(isDarkMode)
+                    : _buildFinancialTab(isDarkMode),
+              ),
+            ],
           ),
           
-          // Action Buttons
+          // Watchlist sidebar overlay - positioned relative to entire screen
+          if (_isWatchlistOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _toggleWatchlist, // Close when tapping outside
+                child: Container(
+                  color: Colors.black.withOpacity(0.3), // Semi-transparent overlay
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(), // Empty space that closes sidebar when tapped
+                      ),
+                      GestureDetector(
+                        onTap: () {}, // Prevent closing when tapping on sidebar itself
+                        child: _buildWatchlistSidebar(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWatchlistSidebar() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final sidebarWidth = screenWidth > 1200 
+        ? screenWidth * 0.35  // 35% of screen width on larger screens
+        : screenWidth > 800 
+            ? screenWidth * 0.4  // 40% on medium screens
+            : screenWidth * 0.5; // 50% on smaller screens
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      width: sidebarWidth.clamp(320.0, 600.0), // Min 320px, max 600px
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        border: Border(
+          left: BorderSide(
+            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+            blurRadius: 10,
+            offset: const Offset(-2, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
           Container(
-            margin: const EdgeInsets.only(left: 12,right: 12,top: 8,bottom: 2),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+              border: Border(
+                bottom: BorderSide(
+                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+            ),
             child: Row(
               children: [
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedTabIndex = 0;
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                    side: BorderSide(
-                      color: _selectedTabIndex == 0 
-                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                          : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                      width: _selectedTabIndex == 0 ? 2 : 1,
-                    ),
-                    backgroundColor: _selectedTabIndex == 0 
-                        ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
-                        : Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
+                Icon(
+                  Icons.bookmark_border,
+                  size: 20,
+                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
                   child: Text(
-                    'Overview',
+                    'Watchlist',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      color: _selectedTabIndex == 0 
-                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                          : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedTabIndex = 1;
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                    side: BorderSide(
-                      color: _selectedTabIndex == 1 
-                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                          : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                      width: _selectedTabIndex == 1 ? 2 : 1,
-                    ),
-                    backgroundColor: _selectedTabIndex == 1 
-                        ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
-                        : Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  child: Text(
-                    'Financial',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      color: _selectedTabIndex == 1 
-                          ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                          : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE)),
+                GestureDetector(
+                  onTap: _toggleWatchlist,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                     ),
                   ),
                 ),
@@ -150,17 +271,42 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ),
           ),
           
+          // Content
           Expanded(
-            child: _selectedTabIndex == 0
-                ? _buildOverviewTab(isDarkMode)
-                : _buildFinancialTab(isDarkMode),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.list_alt,
+                    size: 48,
+                    color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'This is a Watchlist',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Coming Soon...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-
-    
 
   Widget _buildPriceMetrics(StocksData stockData, bool isDarkMode) {
     final data = [
