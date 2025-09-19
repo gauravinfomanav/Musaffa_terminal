@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
 import 'package:musaffa_terminal/Components/top_movers_widget.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -139,18 +140,19 @@ class _MainScreenState extends State<MainScreen> {
             child: Row(
               children: [
                 Icon(
-                  Icons.bookmark_border,
-                  size: 20,
+                  Icons.monitor,
+                  size: 16,
                   color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Watchlist',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    'MONITOR',
+                    style: DashboardTextStyles.columnHeader.copyWith(
                       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -160,7 +162,7 @@ class _MainScreenState extends State<MainScreen> {
                     padding: const EdgeInsets.all(4),
                     child: Icon(
                       Icons.close,
-                      size: 18,
+                      size: 14,
                       color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                     ),
                   ),
@@ -176,25 +178,26 @@ class _MainScreenState extends State<MainScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.list_alt,
-                    size: 48,
+                    Icons.monitor,
+                    size: 32,
                     color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
-                    'This is a Watchlist',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                    'MONITOR PANEL',
+                    style: DashboardTextStyles.columnHeader.copyWith(
                       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
-                    'Coming Soon...',
-                    style: TextStyle(
-                      fontSize: 14,
+                    'Track your positions',
+                    style: DashboardTextStyles.tickerSymbol.copyWith(
                       color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                      fontSize: 11,
                     ),
                   ),
                 ],
