@@ -7,6 +7,7 @@ import 'package:musaffa_terminal/watchlist/widgets/create_watchlist_dialog.dart'
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_stocks_table.dart';
 import 'package:musaffa_terminal/watchlist/widgets/add_stocks_modal.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_news_widget.dart';
 
 class WatchlistDropdown extends StatelessWidget {
   final bool isDarkMode;
@@ -523,8 +524,9 @@ class WatchlistDropdown extends StatelessWidget {
   Widget _buildStocksListState(WatchlistController controller) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
           // Header with count and add button
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -588,19 +590,32 @@ class WatchlistDropdown extends StatelessWidget {
           ),
           
           // Dynamic table for stocks
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                WatchlistStocksTable(
-                  stocks: controller.watchlistStocks,
-                  isLoading: false, // Already handled by parent
-                  errorMessage: null, // Already handled by parent
-                ),
-              ],
+          WatchlistStocksTable(
+            stocks: controller.watchlistStocks,
+            isLoading: false, // Already handled by parent
+            errorMessage: null, // Already handled by parent
+            isDarkMode: isDarkMode,
+          ),
+          
+          // News section
+          Container(
+            margin: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                width: 1,
+              ),
+            ),
+            child: WatchlistNewsWidget(
+              stocks: controller.watchlistStocks,
+              isDarkMode: isDarkMode,
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

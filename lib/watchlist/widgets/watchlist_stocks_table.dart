@@ -9,12 +9,14 @@ class WatchlistStocksTable extends StatefulWidget {
   final List<WatchlistStock> stocks;
   final bool isLoading;
   final String? errorMessage;
+  final bool isDarkMode;
 
   const WatchlistStocksTable({
     Key? key,
     required this.stocks,
     required this.isLoading,
     this.errorMessage,
+    required this.isDarkMode,
   }) : super(key: key);
 
   @override
@@ -245,11 +247,11 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
   Widget _buildLoadingState() {
     return Column(
       children: [
-        WatchlistShimmer.listItem(isDarkMode: true),
+        WatchlistShimmer.listItem(isDarkMode: widget.isDarkMode),
         SizedBox(height: 8),
-        WatchlistShimmer.listItem(isDarkMode: true),
+        WatchlistShimmer.listItem(isDarkMode: widget.isDarkMode),
         SizedBox(height: 8),
-        WatchlistShimmer.listItem(isDarkMode: true),
+        WatchlistShimmer.listItem(isDarkMode: widget.isDarkMode),
       ],
     );
   }
