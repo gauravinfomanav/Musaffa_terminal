@@ -4,6 +4,8 @@ import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
 import 'package:musaffa_terminal/Components/top_movers_widget.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -14,6 +16,12 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   bool _isWatchlistOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Get.put(WatchlistController());
+  }
 
   void _toggleWatchlist() {
     setState(() {
@@ -171,84 +179,9 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           
-          // Content
+          // Content - Watchlist Dropdown
           Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_circle_outline,
-                    size: 48,
-                    color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'NO WATCHLISTS',
-                    style: DashboardTextStyles.columnHeader.copyWith(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Create your first watchlist to\ntrack stocks and monitor positions',
-                    textAlign: TextAlign.center,
-                    style: DashboardTextStyles.tickerSymbol.copyWith(
-                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 11,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Implement create watchlist functionality
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Create watchlist functionality coming soon...'),
-                          duration: const Duration(seconds: 2),
-                          backgroundColor: isDarkMode ? const Color(0xFF374151) : const Color(0xFF6B7280),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.add,
-                            size: 14,
-                            color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'CREATE WATCHLIST',
-                            style: DashboardTextStyles.columnHeader.copyWith(
-                              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: WatchlistDropdown(isDarkMode: isDarkMode),
           ),
         ],
       ),

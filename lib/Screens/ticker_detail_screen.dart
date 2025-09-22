@@ -13,6 +13,8 @@ import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
+import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
 
 class TickerDetailScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -28,6 +30,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late RecommendationController recommendationController;
   late FinancialFundamentalsController financialFundamentalsController;
   late TradingViewController tradingViewController;
+  late WatchlistController watchlistController;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
   bool _isWatchlistOpen = false;
 
@@ -38,6 +41,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     recommendationController = RecommendationController();
     financialFundamentalsController = FinancialFundamentalsController();
     tradingViewController = TradingViewController();
+    watchlistController = Get.put(WatchlistController());
     
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -272,84 +276,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ),
           ),
           
-          // Content
+          // Content - Watchlist Dropdown
           Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_circle_outline,
-                    size: 48,
-                    color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'NO WATCHLISTS',
-                    style: DashboardTextStyles.columnHeader.copyWith(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Create your first watchlist to\ntrack stocks and monitor positions',
-                    textAlign: TextAlign.center,
-                    style: DashboardTextStyles.tickerSymbol.copyWith(
-                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 11,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Implement create watchlist functionality
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Create watchlist functionality coming soon...'),
-                          duration: const Duration(seconds: 2),
-                          backgroundColor: isDarkMode ? const Color(0xFF374151) : const Color(0xFF6B7280),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.add,
-                            size: 14,
-                            color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'CREATE WATCHLIST',
-                            style: DashboardTextStyles.columnHeader.copyWith(
-                              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: WatchlistDropdown(isDarkMode: isDarkMode),
           ),
         ],
       ),
@@ -395,18 +324,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return _buildCompactTable('Financial Ratios', data, isDarkMode);
   }
 
-  Widget _buildPerformanceMetrics(StocksData stockData, bool isDarkMode) {
-    final data = [
-      ['1 Week', '${stockData.priceChange1WPercent?.toStringAsFixed(2) ?? '--'}%'],
-      ['1 Month', '${stockData.priceChange1MPercent?.toStringAsFixed(2) ?? '--'}%'],
-      ['3 Months', '${stockData.priceChange3MPercent?.toStringAsFixed(2) ?? '--'}%'],
-      ['6 Months', '${stockData.priceChange6MPercent?.toStringAsFixed(2) ?? '--'}%'],
-      ['1 Year', '${stockData.priceChange1YPercent?.toStringAsFixed(2) ?? '--'}%'],
-      ['YTD', '${stockData.priceChangeYTDPercent?.toStringAsFixed(2) ?? '--'}%'],
-    ];
-    
-    return _buildCompactTable('Performance', data, isDarkMode);
-  }
 
   Widget _buildGrowthMetrics(StocksData stockData, bool isDarkMode) {
     final data = [

@@ -2,11 +2,32 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
+enum HttpMethod { GET, POST, PUT, DELETE }
+
+enum ApiStatus { SUCCESS, FAIL, EXCEPTION }
+
+class ApiResponse {
+  final ApiStatus status;
+  final String? data;
+  final String? errorMessage;
+  final String? exceptionMessage;
+
+  ApiResponse({
+    required this.status,
+    this.data,
+    this.errorMessage,
+    this.exceptionMessage,
+  });
+}
+
 class WebService {
   static const String _typesenseUrl =
       'https://0bs2hegi5nmtad4op.a1.typesense.net';
   static const String _typesenseKey =
       'GRhZdTOnzVKId4Ln9G1PIvuIgn1TK0fH';
+      
+  // Musaffa Terminal API base URL
+  static const String _musaffaBaseUrl = 'http://localhost:3000';
       
   // New Typesense instance for infomanav
   static const String _typesenseInfomanavUrl =
@@ -72,6 +93,69 @@ class WebService {
       return Future(() {
         return http.Response('', 404);
       });
+    }
+  }
+
+  // Simplified API call method for Musaffa Terminal
+  static Future<ApiResponse> callApi({
+    required HttpMethod method,
+    required List<String> path,
+    Map<String, dynamic>? params,
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      final headers = {
+        HttpHeaders.contentTypeHeader: 'application/json',
+        HttpHeaders.acceptHeader: 'application/json',
+      };
+
+      final uri = Uri.parse(_musaffaBaseUrl)
+          .replace(pathSegments: path, queryParameters: params);
+      print("url will be this: $uri");
+      late http.Response response;
+      
+      switch (method) {
+        case HttpMethod.GET:
+          response = await http.get(uri, headers: headers);
+          break;
+        case HttpMethod.POST:
+          response = await http.post(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          );
+          break;
+        case HttpMethod.PUT:
+          response = await http.put(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          );
+          break;
+        case HttpMethod.DELETE:
+          response = await http.delete(uri, headers: headers);
+          break;
+      }
+
+      // Handle response based on status code
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse(
+          status: ApiStatus.SUCCESS,
+          data: response.body,
+        );
+      } else {
+        return ApiResponse(
+          status: ApiStatus.FAIL,
+          data: response.body,
+          errorMessage: 'API call failed with status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      return ApiResponse(
+        status: ApiStatus.EXCEPTION,
+        errorMessage: 'Network error occurred',
+        exceptionMessage: e.toString(),
+      );
     }
   }
 }
