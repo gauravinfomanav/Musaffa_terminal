@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_stock_model.dart';
+import 'package:musaffa_terminal/watchlist/models/user_preferences_model.dart';
 
 class WatchlistController extends GetxController {
   // Observable variables
@@ -10,6 +11,10 @@ class WatchlistController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
   final Rx<WatchlistModel?> selectedWatchlist = Rx<WatchlistModel?>(null);
+  
+  // User preferences
+  final Rx<UserPreferencesModel?> userPreferences = Rx<UserPreferencesModel?>(null);
+  final RxBool isLoadingPreferences = false.obs;
   
   // Stocks for selected watchlist
   final RxList<WatchlistStock> watchlistStocks = <WatchlistStock>[].obs;
@@ -19,7 +24,61 @@ class WatchlistController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchWatchlists();
+    fetchUserPreferences();
+  }
+
+  /// Fetch user preferences
+  Future<void> fetchUserPreferences() async {
+    try {
+      isLoadingPreferences.value = true;
+
+      final response = await WebService.getUserPreferences();
+
+      if (response.status == ApiStatus.SUCCESS) {
+        final responseData = jsonDecode(response.data!);
+        if (responseData['status'] == 'success') {
+          userPreferences.value = UserPreferencesModel.fromJson(responseData['data']);
+          print('User preferences loaded: ${userPreferences.value?.defaultWatchlistId}');
+        }
+      }
+    } catch (e) {
+      print('Error fetching user preferences: $e');
+    } finally {
+      isLoadingPreferences.value = false;
+      // After preferences are loaded, fetch watchlists
+      fetchWatchlists();
+    }
+  }
+
+  /// Set default watchlist
+  Future<bool> setDefaultWatchlist(String watchlistId) async {
+    try {
+      isLoadingPreferences.value = true;
+
+      final response = await WebService.setDefaultWatchlist(watchlistId);
+
+      if (response.status == ApiStatus.SUCCESS) {
+        // Update local preferences
+        if (userPreferences.value != null) {
+          userPreferences.value = UserPreferencesModel(
+            userId: userPreferences.value!.userId,
+            defaultWatchlistId: watchlistId,
+            dateSet: DateTime.now(),
+            lastUpdated: DateTime.now(),
+          );
+        }
+        print('Default watchlist set to: $watchlistId');
+        return true;
+      } else {
+        print('Failed to set default watchlist: ${response.errorMessage}');
+        return false;
+      }
+    } catch (e) {
+      print('Error setting default watchlist: $e');
+      return false;
+    } finally {
+      isLoadingPreferences.value = false;
+    }
   }
 
   /// Fetch all watchlists from API
@@ -40,19 +99,35 @@ class WatchlistController extends GetxController {
           final previousSelectedId = selectedWatchlist.value?.id;
           watchlists.value = watchlistResponse.data;
           
-          // Try to maintain the same selected watchlist after refresh
-          if (previousSelectedId != null) {
-            final matchingWatchlists = watchlists.where((w) => w.id == previousSelectedId);
-            if (matchingWatchlists.isNotEmpty) {
-              selectedWatchlist.value = matchingWatchlists.first;
-              fetchWatchlistStocks(selectedWatchlist.value!.id);
-            } else if (watchlists.isNotEmpty) {
-              selectedWatchlist.value = watchlists.first;
-              fetchWatchlistStocks(selectedWatchlist.value!.id);
+          // Select watchlist based on user preferences or fallback logic
+          if (watchlists.isNotEmpty) {
+            WatchlistModel? watchlistToSelect;
+            
+            // First priority: user's default watchlist
+            if (userPreferences.value?.defaultWatchlistId != null) {
+              final defaultWatchlist = watchlists.where((w) => w.id == userPreferences.value!.defaultWatchlistId);
+              if (defaultWatchlist.isNotEmpty) {
+                watchlistToSelect = defaultWatchlist.first;
+                print('Selected default watchlist: ${watchlistToSelect.name}');
+              }
             }
-          } else if (watchlists.isNotEmpty && selectedWatchlist.value == null) {
-            // Auto-select first watchlist if available and nothing was selected
-            selectedWatchlist.value = watchlists.first;
+            
+            // Second priority: previously selected watchlist (for refresh scenarios)
+            if (watchlistToSelect == null && previousSelectedId != null) {
+              final matchingWatchlists = watchlists.where((w) => w.id == previousSelectedId);
+              if (matchingWatchlists.isNotEmpty) {
+                watchlistToSelect = matchingWatchlists.first;
+                print('Selected previous watchlist: ${watchlistToSelect.name}');
+              }
+            }
+            
+            // Third priority: first watchlist (fallback)
+            if (watchlistToSelect == null) {
+              watchlistToSelect = watchlists.first;
+              print('Selected first watchlist (fallback): ${watchlistToSelect.name}');
+            }
+            
+            selectedWatchlist.value = watchlistToSelect;
             fetchWatchlistStocks(selectedWatchlist.value!.id);
           }
         } else {
@@ -127,6 +202,12 @@ class WatchlistController extends GetxController {
               selectedWatchlist.value = newWatchlists.first;
               fetchWatchlistStocks(selectedWatchlist.value!.id);
               print('Auto-selected new watchlist: ${selectedWatchlist.value?.name}');
+              
+              // If no default watchlist is set, set this new one as default
+              if (userPreferences.value?.defaultWatchlistId == null) {
+                await setDefaultWatchlist(newWatchlistId);
+                print('Set new watchlist as default: ${selectedWatchlist.value?.name}');
+              }
             }
           } else {
             // Fallback: select the last watchlist (likely the newest)
@@ -134,6 +215,12 @@ class WatchlistController extends GetxController {
               selectedWatchlist.value = watchlists.last;
               fetchWatchlistStocks(selectedWatchlist.value!.id);
               print('Auto-selected last watchlist: ${selectedWatchlist.value?.name}');
+              
+              // If no default watchlist is set, set this one as default
+              if (userPreferences.value?.defaultWatchlistId == null) {
+                await setDefaultWatchlist(selectedWatchlist.value!.id);
+                print('Set last watchlist as default: ${selectedWatchlist.value?.name}');
+              }
             }
           }
         } catch (parseError) {
@@ -203,6 +290,14 @@ class WatchlistController extends GetxController {
 
   /// Get stocks count
   int get stocksCount => watchlistStocks.length;
+
+  /// Check if a watchlist is the default watchlist
+  bool isDefaultWatchlist(String watchlistId) {
+    return userPreferences.value?.defaultWatchlistId == watchlistId;
+  }
+
+  /// Get the default watchlist ID
+  String? get defaultWatchlistId => userPreferences.value?.defaultWatchlistId;
 
   /// Clear error message
   void clearError() {

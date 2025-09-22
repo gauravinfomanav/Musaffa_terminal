@@ -176,19 +176,35 @@ class WatchlistDropdown extends StatelessWidget {
                       fontSize: 12,
                     ),
                     items: controller.watchlists.map((watchlist) {
+                      final isDefault = controller.isDefaultWatchlist(watchlist.id);
                       return DropdownMenuItem<WatchlistModel>(
                         value: watchlist,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              watchlist.name,
-                              style: DashboardTextStyles.stockName.copyWith(
-                                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                                fontSize: 12,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    watchlist.name,
+                                    style: DashboardTextStyles.stockName.copyWith(
+                                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                                      fontSize: 12,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isDefault) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.star,
+                                    size: 12,
+                                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                                  ),
+                                ],
+                              ],
                             ),
                             Text(
                               '${watchlist.stockCount} stocks',
@@ -210,6 +226,8 @@ class WatchlistDropdown extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              _buildSetDefaultButton(controller),
+              const SizedBox(width: 4),
               _buildCreateButton(isInactive: false),
             ],
           ),
@@ -220,6 +238,76 @@ class WatchlistDropdown extends StatelessWidget {
           child: _buildStocksList(controller),
         ),
       ],
+    );
+  }
+
+  Widget _buildSetDefaultButton(WatchlistController controller) {
+    final selectedWatchlist = controller.selectedWatchlist.value;
+    final isDefault = selectedWatchlist != null && controller.isDefaultWatchlist(selectedWatchlist.id);
+    
+    return GestureDetector(
+      onTap: selectedWatchlist != null && !isDefault ? () async {
+        final success = await controller.setDefaultWatchlist(selectedWatchlist.id);
+        if (success) {
+          // Show success message
+          ScaffoldMessenger.of(Get.context!).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Set "${selectedWatchlist.name}" as default watchlist',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+              backgroundColor: isDarkMode ? const Color(0xFF374151) : const Color(0xFF6B7280),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          );
+        }
+      } : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: isDefault 
+              ? (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB))
+              : (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB)),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isDefault 
+                ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
+                : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isDefault ? Icons.star : Icons.star_border,
+              size: 10,
+              color: isDefault 
+                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
+                  : (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
+            ),
+            const SizedBox(width: 2),
+            Text(
+              isDefault ? 'DEFAULT' : 'SET DEFAULT',
+              style: DashboardTextStyles.columnHeader.copyWith(
+                color: isDefault 
+                    ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
+                    : (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
+                fontSize: 8,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

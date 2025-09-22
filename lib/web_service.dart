@@ -158,4 +158,20 @@ class WebService {
       );
     }
   }
+
+  // User Preferences API methods
+  static Future<ApiResponse> getUserPreferences() async {
+    return await callApi(
+      method: HttpMethod.GET,
+      path: ['user', 'preferences'],
+    );
+  }
+
+  static Future<ApiResponse> setDefaultWatchlist(String watchlistId) async {
+    return await callApi(
+      method: HttpMethod.PUT,
+      path: ['user', 'preferences', 'default-watchlist'],
+      body: {'watchlist_id': watchlistId},
+    );
+  }
 }
