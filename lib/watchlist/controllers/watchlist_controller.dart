@@ -209,4 +209,44 @@ class WatchlistController extends GetxController {
     errorMessage.value = '';
     stocksErrorMessage.value = '';
   }
+
+  /// Add stocks to the selected watchlist
+  Future<bool> addStocksToWatchlist(List<Map<String, dynamic>> stocks) async {
+    if (selectedWatchlist.value == null) {
+      stocksErrorMessage.value = 'No watchlist selected';
+      return false;
+    }
+
+    try {
+      isLoadingStocks.value = true;
+      stocksErrorMessage.value = '';
+
+      print('DEBUG: Adding stocks to watchlist ${selectedWatchlist.value!.id}');
+      print('DEBUG: Stocks data: $stocks');
+
+      final response = await WebService.callApi(
+        method: HttpMethod.POST,
+        path: ['watchlists', selectedWatchlist.value!.id, 'stocks'],
+        body: {'stocks': stocks},
+      );
+
+      print('DEBUG: API Response status: ${response.status}');
+      print('DEBUG: API Response data: ${response.data}');
+
+      if (response.status == ApiStatus.SUCCESS) {
+        // Refresh the stocks list to show newly added stocks
+        await fetchWatchlistStocks(selectedWatchlist.value!.id);
+        return true;
+      } else {
+        stocksErrorMessage.value = 'Failed to add stocks to watchlist';
+        return false;
+      }
+    } catch (e) {
+      print('DEBUG: Error adding stocks: $e');
+      stocksErrorMessage.value = 'Error adding stocks: $e';
+      return false;
+    } finally {
+      isLoadingStocks.value = false;
+    }
+  }
 }

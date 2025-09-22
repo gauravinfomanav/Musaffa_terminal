@@ -6,6 +6,7 @@ import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
 import 'package:musaffa_terminal/watchlist/widgets/create_watchlist_dialog.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_stocks_table.dart';
+import 'package:musaffa_terminal/watchlist/widgets/add_stocks_modal.dart';
 
 class WatchlistDropdown extends StatelessWidget {
   final bool isDarkMode;
@@ -278,7 +279,7 @@ class WatchlistDropdown extends StatelessWidget {
       }
 
       if (controller.isStocksEmpty) {
-        return _buildEmptyStocksState();
+        return _buildEmptyStocksState(controller);
       }
 
       return _buildStocksListState(controller);
@@ -350,7 +351,7 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyStocksState() {
+  Widget _buildEmptyStocksState(WatchlistController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -384,7 +385,15 @@ class WatchlistDropdown extends StatelessWidget {
           const SizedBox(height: 16),
           GestureDetector(
             onTap: () {
-              // TODO: Implement add stock functionality
+              final selectedWatchlist = controller.selectedWatchlist.value!;
+              showDialog(
+                context: Get.context!,
+                barrierDismissible: true,
+                builder: (context) => AddStocksModal(
+                  watchlistName: selectedWatchlist.name,
+                  watchlistId: selectedWatchlist.id,
+                ),
+              );
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -444,7 +453,15 @@ class WatchlistDropdown extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () {
-                    // TODO: Implement add stock functionality
+                    final selectedWatchlist = controller.selectedWatchlist.value!;
+                    showDialog(
+                      context: Get.context!,
+                      barrierDismissible: true,
+                      builder: (context) => AddStocksModal(
+                        watchlistName: selectedWatchlist.name,
+                        watchlistId: selectedWatchlist.id,
+                      ),
+                    );
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
