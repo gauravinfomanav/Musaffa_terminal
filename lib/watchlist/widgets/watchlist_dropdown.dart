@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart
 import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
 import 'package:musaffa_terminal/watchlist/widgets/create_watchlist_dialog.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_stocks_table.dart';
 
 class WatchlistDropdown extends StatelessWidget {
   final bool isDarkMode;
@@ -481,63 +482,17 @@ class WatchlistDropdown extends StatelessWidget {
             ),
           ),
           
-          // Stocks list
-          Expanded(
-            child: ListView.builder(
-              itemCount: controller.watchlistStocks.length,
-              itemBuilder: (context, index) {
-                final stock = controller.watchlistStocks[index];
-                return _buildStockItem(stock);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStockItem(stock) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
+          // Dynamic table for stocks
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  stock.ticker,
-                  style: DashboardTextStyles.stockName.copyWith(
-                    color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  'Added: ${_formatStockDate(stock.dateAdded)}',
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
-                    color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                    fontSize: 9,
-                  ),
+                WatchlistStocksTable(
+                  stocks: controller.watchlistStocks,
+                  isLoading: false, // Already handled by parent
+                  errorMessage: null, // Already handled by parent
                 ),
               ],
-            ),
-          ),
-          Text(
-            '\$${stock.currentPrice.toStringAsFixed(2)}',
-            style: DashboardTextStyles.dataCell.copyWith(
-              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -545,10 +500,6 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  String _formatStockDate(stockDate) {
-    final dateTime = stockDate.toDateTime();
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-  }
 
   void _showCreateWatchlistDialog() {
     showDialog(

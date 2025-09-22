@@ -1,6 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/Components/ticker_cell.dart';
 import 'package:musaffa_terminal/models/ticker_cell_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -68,12 +67,18 @@ class DynamicTable extends StatefulWidget {
     required this.rows,
     this.showFixedColumn = true,
     this.considerPadding = true,
+    this.columnSpacing = 6,
+    this.horizontalMargin = 0,
+    this.fixedColumnWidth,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
   final List<SimpleRowModel> rows;
   final bool showFixedColumn;
   final bool considerPadding;
+  final double columnSpacing;
+  final double horizontalMargin;
+  final double? fixedColumnWidth;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -153,8 +158,10 @@ class _DynamicTableState extends State<DynamicTable> {
       child: Row(
         children: [
           if (widget.showFixedColumn)
-            Container(
-              decoration: BoxDecoration(
+            Expanded(
+              flex: widget.fixedColumnWidth?.toInt() ?? 3,
+              child: Container(
+                decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.grey.shade800
                     : Colors.grey.shade50,
@@ -189,6 +196,7 @@ class _DynamicTableState extends State<DynamicTable> {
                   horizontalInside: BorderSide.none,
                 ),
               ),
+              ),
             ),
           Expanded(
             child: Scrollbar(
@@ -205,8 +213,8 @@ class _DynamicTableState extends State<DynamicTable> {
                   child: DataTable(
                     showCheckboxColumn: false,
                     headingRowHeight: 24,
-                    horizontalMargin: 0,
-                    columnSpacing: 6,
+                    horizontalMargin: widget.horizontalMargin,
+                    columnSpacing: widget.columnSpacing,
                     dataRowMinHeight: 48,
                     dataRowMaxHeight: 48,
                     columns: dataCols.isNotEmpty ? dataCols : [DataColumn(label: SizedBox.shrink())],
