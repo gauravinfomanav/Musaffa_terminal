@@ -33,6 +33,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late WatchlistController watchlistController;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
   bool _isWatchlistOpen = false;
+  bool _isAddingToWatchlist = false;
+  bool _isInWatchlist = false;
 
   @override
   void initState() {
@@ -42,6 +44,14 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     financialFundamentalsController = FinancialFundamentalsController();
     tradingViewController = TradingViewController();
     watchlistController = Get.put(WatchlistController());
+    
+    // Listen to watchlist changes to update button state
+    watchlistController.watchlistStocks.listen((_) {
+      _checkIfStockInWatchlist();
+    });
+    
+    // Check if stock is already in watchlist
+    _checkIfStockInWatchlist();
     
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,6 +71,122 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     setState(() {
       _isWatchlistOpen = !_isWatchlistOpen;
     });
+  }
+
+  void _checkIfStockInWatchlist() {
+    final currentTicker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+    
+    // Check if stock is in the current watchlist's stocks
+    final isInCurrentWatchlist = watchlistController.watchlistStocks
+        .any((stock) => stock.ticker == currentTicker);
+    
+    // Also check if it's in any of the user's watchlists
+    bool isInAnyWatchlist = false;
+    for (final watchlist in watchlistController.watchlists) {
+      // This is a simplified check - in a real implementation, you might want to
+      // check each watchlist's stocks individually
+      if (watchlist.stockCount > 0) {
+        // For now, we'll rely on the current watchlist check
+        // In a more robust implementation, you'd check each watchlist
+        isInAnyWatchlist = isInCurrentWatchlist;
+        break;
+      }
+    }
+    
+    if (mounted) {
+      setState(() {
+        _isInWatchlist = isInCurrentWatchlist || isInAnyWatchlist;
+      });
+    }
+  }
+
+  Future<void> _addToWatchlist() async {
+    if (_isAddingToWatchlist) return;
+
+    setState(() {
+      _isAddingToWatchlist = true;
+    });
+
+    try {
+      // Check if we have a default watchlist
+      if (watchlistController.defaultWatchlistId == null) {
+        // If no default watchlist, use the first available watchlist
+        if (watchlistController.watchlists.isNotEmpty) {
+          watchlistController.selectedWatchlist.value = watchlistController.watchlists.first;
+        } else {
+          // Show error if no watchlists exist
+          _showErrorSnackBar('No watchlists available. Please create a watchlist first.');
+          return;
+        }
+      }
+
+      // Prepare stock data for API
+      final stockToAdd = {
+        'ticker': widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+        'currentPrice': controller.stockData.value?.currentPrice ?? 0.0,
+        'addedAt': DateTime.now().toIso8601String(),
+      };
+
+      // Add stock to the default/selected watchlist
+      final success = await watchlistController.addStocksToWatchlist([stockToAdd]);
+      
+      if (success) {
+        // The _checkIfStockInWatchlist will be called automatically via the listener
+        // so we don't need to manually set _isInWatchlist = true
+        _showSuccessSnackBar('${widget.ticker.symbol ?? widget.ticker.ticker} added to watchlist');
+      } else {
+        _showErrorSnackBar('Failed to add ${widget.ticker.symbol ?? widget.ticker.ticker} to watchlist');
+      }
+    } catch (e) {
+      print('Error adding stock to watchlist: $e');
+      _showErrorSnackBar('Error adding stock to watchlist');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAddingToWatchlist = false;
+        });
+      }
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            color: Colors.white,
+            fontSize: 12,
+          ),
+        ),
+        backgroundColor: const Color(0xFF81AACE),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
+        ),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            color: Colors.white,
+            fontSize: 12,
+          ),
+        ),
+        backgroundColor: Colors.red.shade600,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
+        ),
+      ),
+    );
   }
 
   @override
@@ -430,6 +556,90 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     );
   }
 
+  Widget _buildAddToWatchlistButton(bool isDarkMode) {
+    return GestureDetector(
+      onTap: (_isAddingToWatchlist || _isInWatchlist) ? null : _addToWatchlist,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _isInWatchlist
+              ? const Color(0xFF81AACE).withOpacity(0.1)
+              : isDarkMode 
+                  ? const Color(0xFF2D2D2D) 
+                  : const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: _isInWatchlist
+                ? const Color(0xFF81AACE)
+                : isDarkMode 
+                    ? const Color(0xFF404040) 
+                    : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isAddingToWatchlist) ...[
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Adding...',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ] else if (_isInWatchlist) ...[
+              Icon(
+                Icons.check_circle,
+                size: 14,
+                color: const Color(0xFF81AACE),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'IN WATCHLIST',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  color: const Color(0xFF81AACE),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ] else ...[
+              Icon(
+                Icons.add,
+                size: 14,
+                color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'ADD TO WATCHLIST',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStockHeader(StocksData stockData, bool isDarkMode) {
     return IntrinsicHeight(
       child: Row(
@@ -477,6 +687,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      // Add to Watchlist Button
+                      _buildAddToWatchlistButton(isDarkMode),
                     ],
                   ),
                   const SizedBox(height: 8),
