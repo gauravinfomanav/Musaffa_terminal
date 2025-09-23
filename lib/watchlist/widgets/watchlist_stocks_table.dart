@@ -10,6 +10,7 @@ class WatchlistStocksTable extends StatefulWidget {
   final bool isLoading;
   final String? errorMessage;
   final bool isDarkMode;
+  final Function(List<SimpleRowModel>)? onDataReady;
 
   const WatchlistStocksTable({
     Key? key,
@@ -17,6 +18,7 @@ class WatchlistStocksTable extends StatefulWidget {
     required this.isLoading,
     this.errorMessage,
     required this.isDarkMode,
+    this.onDataReady,
   }) : super(key: key);
 
   @override
@@ -38,17 +40,35 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
   @override
   void didUpdateWidget(WatchlistStocksTable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.stocks != oldWidget.stocks && widget.stocks.isNotEmpty) {
-      _enrichStocksData();
+    
+    // Check if the stocks list has changed (different watchlist selected)
+    if (oldWidget.stocks.length != widget.stocks.length || 
+        (oldWidget.stocks.isNotEmpty && widget.stocks.isNotEmpty && 
+         oldWidget.stocks.first.ticker != widget.stocks.first.ticker)) {
+      
+      // Clear previous data immediately when watchlist changes
+      setState(() {
+        _tableData = [];
+        _isEnrichingData = false;
+      });
+      
+      // If new watchlist has stocks, enrich the data
+      if (widget.stocks.isNotEmpty) {
+        _enrichStocksData();
+      }
     }
   }
 
   Future<void> _enrichStocksData() async {
-    if (widget.stocks.isEmpty) return;
+    if (widget.stocks.isEmpty || _isEnrichingData) return;
 
-    setState(() {
-      _isEnrichingData = true;
-    });
+    print('WatchlistStocksTable: Starting data enrichment for ${widget.stocks.length} stocks');
+    
+    if (mounted) {
+      setState(() {
+        _isEnrichingData = true;
+      });
+    }
 
     try {
       // Extract ticker IDs for Typesense query
@@ -168,10 +188,16 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
           }
         }
         
-        setState(() {
-          _tableData = tableData;
-          _isEnrichingData = false;
-        });
+        if (mounted) {
+          setState(() {
+            _tableData = tableData;
+            _isEnrichingData = false;
+          });
+          
+          print('WatchlistStocksTable: Data enrichment completed, ${_tableData.length} items ready');
+          // Notify parent widget that data is ready
+          widget.onDataReady?.call(_tableData);
+        }
       } else {
         _buildFallbackTableData();
       }
@@ -203,10 +229,15 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       ));
     }
     
-    setState(() {
-      _tableData = tableData;
-      _isEnrichingData = false;
-    });
+    if (mounted) {
+      setState(() {
+        _tableData = tableData;
+        _isEnrichingData = false;
+      });
+      
+      // Notify parent widget that data is ready
+      widget.onDataReady?.call(_tableData);
+    }
   }
 
   String _formatMarketCap(double marketCap) {
@@ -225,22 +256,31 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
 
   @override
   Widget build(BuildContext context) {
+    print('WatchlistStocksTable: build called - isLoading: ${widget.isLoading}, _isEnrichingData: $_isEnrichingData, stocks: ${widget.stocks.length}, _tableData: ${_tableData.length}');
+    
     if (widget.isLoading || _isEnrichingData) {
+      print('WatchlistStocksTable: showing loading state');
       return _buildLoadingState();
     }
 
     if (widget.errorMessage != null) {
+      print('WatchlistStocksTable: showing error state: ${widget.errorMessage}');
       return _buildErrorState();
     }
 
+    // Show empty state if no stocks in current watchlist
     if (widget.stocks.isEmpty) {
+      print('WatchlistStocksTable: showing empty state');
       return _buildEmptyState();
     }
 
-    if (_tableData.isEmpty) {
+    // Show loading state if we have stocks but no table data yet (data enrichment in progress)
+    if (_tableData.isEmpty && widget.stocks.isNotEmpty) {
+      print('WatchlistStocksTable: showing loading state (no table data)');
       return _buildLoadingState();
     }
 
+    print('WatchlistStocksTable: showing table with ${_tableData.length} items');
     return _buildTable();
   }
 

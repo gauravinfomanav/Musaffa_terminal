@@ -8,8 +8,10 @@ import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_stocks_table.dart';
 import 'package:musaffa_terminal/watchlist/widgets/add_stocks_modal.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_news_widget.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_performance_summary.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 
-class WatchlistDropdown extends StatelessWidget {
+class WatchlistDropdown extends StatefulWidget {
   final bool isDarkMode;
 
   const WatchlistDropdown({
@@ -18,27 +20,49 @@ class WatchlistDropdown extends StatelessWidget {
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<WatchlistController>();
+  State<WatchlistDropdown> createState() => _WatchlistDropdownState();
+}
 
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return _buildLoadingState();
-      }
+class _WatchlistDropdownState extends State<WatchlistDropdown> {
+  List<SimpleRowModel> _tableData = [];
 
-      if (controller.errorMessage.isNotEmpty) {
-        return _buildErrorState(controller);
-      }
+  @override
+  void didUpdateWidget(WatchlistDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Clear table data when watchlist changes (different dark mode doesn't matter)
+    // This will be handled by the controller's watchlist selection
+  }
 
-      if (controller.isEmpty) {
-        return _buildEmptyState();
-      }
-
-      return _buildDropdownState(controller);
+  void _clearTableData() {
+    setState(() {
+      _tableData = [];
     });
   }
 
-  Widget _buildLoadingState() {
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.find<WatchlistController>();
+    final isDarkMode = widget.isDarkMode;
+
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return _buildLoadingState(isDarkMode);
+      }
+
+      if (controller.errorMessage.isNotEmpty) {
+        return _buildErrorState(controller, isDarkMode);
+      }
+
+      if (controller.isEmpty) {
+        return _buildEmptyState(isDarkMode);
+      }
+
+      return _buildDropdownState(controller, isDarkMode);
+    });
+  }
+
+  Widget _buildLoadingState(bool isDarkMode) {
     return Column(
       children: [
         WatchlistShimmer.loadingState(isDarkMode: isDarkMode),
@@ -55,7 +79,7 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState(WatchlistController controller) {
+  Widget _buildErrorState(WatchlistController controller, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -108,7 +132,7 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDarkMode) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -139,13 +163,13 @@ class WatchlistDropdown extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _buildCreateButton(isInactive: false),
+          _buildCreateButton(isInactive: false, isDarkMode: isDarkMode),
         ],
       ),
     );
   }
 
-  Widget _buildDropdownState(WatchlistController controller) {
+  Widget _buildDropdownState(WatchlistController controller, bool isDarkMode) {
     return Column(
       children: [
         // Dropdown container
@@ -227,22 +251,22 @@ class WatchlistDropdown extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              _buildSetDefaultButton(controller),
+              _buildSetDefaultButton(controller, isDarkMode),
               const SizedBox(width: 4),
-              _buildCreateButton(isInactive: false),
+              _buildCreateButton(isInactive: false, isDarkMode: isDarkMode),
             ],
           ),
         ),
         
         // Stocks list
         Expanded(
-          child: _buildStocksList(controller),
+          child: _buildStocksList(controller, isDarkMode),
         ),
       ],
     );
   }
 
-  Widget _buildSetDefaultButton(WatchlistController controller) {
+  Widget _buildSetDefaultButton(WatchlistController controller, bool isDarkMode) {
     final selectedWatchlist = controller.selectedWatchlist.value;
     final isDefault = selectedWatchlist != null && controller.isDefaultWatchlist(selectedWatchlist.id);
     
@@ -312,10 +336,10 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildCreateButton({required bool isInactive}) {
+  Widget _buildCreateButton({required bool isInactive, required bool isDarkMode}) {
     return GestureDetector(
       onTap: isInactive ? null : () {
-        _showCreateWatchlistDialog();
+        _showCreateWatchlistDialog(isDarkMode);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -357,25 +381,25 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildStocksList(WatchlistController controller) {
+  Widget _buildStocksList(WatchlistController controller, bool isDarkMode) {
     return Obx(() {
       if (controller.isLoadingStocks.value) {
-        return _buildStocksLoadingState();
+        return _buildStocksLoadingState(isDarkMode);
       }
 
       if (controller.stocksErrorMessage.isNotEmpty) {
-        return _buildStocksErrorState(controller);
+        return _buildStocksErrorState(controller, isDarkMode);
       }
 
       if (controller.isStocksEmpty) {
-        return _buildEmptyStocksState(controller);
+        return _buildEmptyStocksState(controller, isDarkMode);
       }
 
-      return _buildStocksListState(controller);
+      return _buildStocksListState(controller, isDarkMode);
     });
   }
 
-  Widget _buildStocksLoadingState() {
+  Widget _buildStocksLoadingState(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -390,7 +414,7 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildStocksErrorState(WatchlistController controller) {
+  Widget _buildStocksErrorState(WatchlistController controller, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -440,7 +464,7 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyStocksState(WatchlistController controller) {
+  Widget _buildEmptyStocksState(WatchlistController controller, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -521,7 +545,14 @@ class WatchlistDropdown extends StatelessWidget {
     );
   }
 
-  Widget _buildStocksListState(WatchlistController controller) {
+  Widget _buildStocksListState(WatchlistController controller, bool isDarkMode) {
+    // Clear table data if current watchlist has no stocks
+    if (controller.isStocksEmpty && _tableData.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _clearTableData();
+      });
+    }
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SingleChildScrollView(
@@ -595,7 +626,23 @@ class WatchlistDropdown extends StatelessWidget {
             isLoading: false, // Already handled by parent
             errorMessage: null, // Already handled by parent
             isDarkMode: isDarkMode,
+            onDataReady: (data) {
+              print('WatchlistDropdown: Received ${data.length} items from table');
+              setState(() {
+                _tableData = data;
+              });
+            },
           ),
+          
+          // Performance Summary - only show if we have data
+          if (_tableData.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 16),
+              child: WatchlistPerformanceSummary(
+                tableData: _tableData,
+                isDarkMode: isDarkMode,
+              ),
+            ),
           
           // News section
           Container(
@@ -621,7 +668,7 @@ class WatchlistDropdown extends StatelessWidget {
   }
 
 
-  void _showCreateWatchlistDialog() {
+  void _showCreateWatchlistDialog(bool isDarkMode) {
     showDialog(
       context: Get.context!,
       barrierDismissible: true,
