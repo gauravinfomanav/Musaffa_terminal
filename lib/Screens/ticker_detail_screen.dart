@@ -123,7 +123,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       // Prepare stock data for API
       final stockToAdd = {
         'ticker': widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-        'currentPrice': controller.stockData.value?.currentPrice ?? 0.0,
+        'current_price': controller.stockData.value?.currentPrice ?? 0.0,  // Backend expects underscore, not camelCase
         'addedAt': DateTime.now().toIso8601String(),
       };
 

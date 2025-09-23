@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
@@ -10,6 +11,7 @@ import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/web_service.dart';
 
 
 class HomeTabBar extends StatelessWidget {
@@ -614,10 +616,39 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
         }
       }
 
+      // Extract current price from multiple sources
+      double currentPrice = 0.0;
+      
+      // First try to get price from the price field
+      if (stockData.price != null) {
+        currentPrice = stockData.price!.toDouble();
+      } else {
+        // Try to extract price from the fields map (formatted string)
+        final priceField = stockData.fields['price'];
+        if (priceField is String && priceField != '-') {
+          // Remove $ and parse the number
+          final cleanPrice = priceField.replaceAll('\$', '').replaceAll(',', '');
+          currentPrice = double.tryParse(cleanPrice) ?? 0.0;
+        }
+      }
+
+      // If still no price, try to fetch it from the API
+      if (currentPrice == 0.0) {
+        try {
+          // Try to fetch current price from the stock details API
+          final stockDetails = await _fetchStockPrice(stockData.symbol);
+          if (stockDetails != null) {
+            currentPrice = stockDetails;
+          }
+        } catch (e) {
+          print('Failed to fetch price for ${stockData.symbol}: $e');
+        }
+      }
+
       // Prepare stock data for API
       final stockToAdd = {
         'ticker': stockData.symbol,
-        'currentPrice': stockData.price ?? 0.0,
+        'current_price': currentPrice,  // Backend expects underscore, not camelCase
         'addedAt': DateTime.now().toIso8601String(),
       };
 
@@ -673,6 +704,42 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
         ),
       ),
     );
+  }
+
+  Future<double?> _fetchStockPrice(String symbol) async {
+    try {
+      // Use the same API endpoint that the stock details controller uses
+      final response = await WebService.getTypesense([
+        'collections',
+        'stocks_data',
+        'documents',
+        'search'
+      ], {
+        'q': symbol,
+        'query_by': 'id',
+        'per_page': 1,
+      });
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final hits = (data['hits'] as List?) ?? [];
+        
+        if (hits.isNotEmpty) {
+          final doc = (hits.first['document'] as Map?)?.cast<String, dynamic>() ?? {};
+          Map<String, dynamic>? sd;
+          final v = doc['\$stocks_data'] ?? doc['stocks_data'];
+          if (v is Map) sd = v.cast<String, dynamic>();
+          if (v is List && v.isNotEmpty) sd = (v.first as Map).cast<String, dynamic>();
+          
+          if (sd != null && sd['currentPrice'] != null) {
+            return double.tryParse(sd['currentPrice'].toString());
+          }
+        }
+      }
+    } catch (e) {
+      print('Error fetching stock price for $symbol: $e');
+    }
+    return null;
   }
 
   @override
