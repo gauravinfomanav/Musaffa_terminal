@@ -1,0 +1,93 @@
+{
+  "Technology Services": [
+    "Information Technology",
+    "Technology"
+  ],
+  "Electronic Technology": [
+    "Information Technology",
+    "Technology"
+  ],
+  "Finance": [
+    "Financials"
+  ],
+  "Retail Trade": [
+    "Consumer Discretionary",
+    "Retail/Wholesale",
+    "Consumer Cyclicals"
+  ],
+  "Health Technology": [
+    "Health Care",
+    "Healthcare"
+  ],
+  "Consumer Non-Durables": [
+    "Consumer Staples",
+    "Consumer Non-Cyclicals",
+    "Food and beverage",
+    "Consumers",
+    "Consumer"
+  ],
+  "Producer Manufacturing": [
+    "Industrials",
+    "Construction Materials",
+    "Constructions",
+    "Basic Materials"
+  ],
+  "Consumer Durables": [
+    "Consumer Discretionary",
+    "Consumer Cyclicals",
+    "Consumers",
+    "Consumer"
+  ],
+  "Energy Minerals": [
+    "Energy"
+  ],
+  "Consumer Services": [
+    "Consumer Discretionary",
+    "Consumer Cyclicals",
+    "Consumers",
+    "Consumer"
+  ],
+  "Utilities": [
+    "Utilities",
+    "Utility"
+  ],
+  "Non-Energy Minerals": [
+    "Materials",
+    "Basic Materials"
+  ],
+  "Industrial Services": [
+    "Industrials"
+  ],
+  "Transportation": [
+    "Industrials"
+  ],
+  "Commercial Services": [
+    "Industrials",
+    "Real Estate",
+    "Real estate investment trust"
+  ],
+  "Process Industries": [
+    "Materials",
+    "Basic Materials",
+    "Chemicals",
+    "Sugar & allied industries",
+    "Textiles & Apparel",
+    "Textiles",
+    "Textile spinning",
+    "Textile"
+  ],
+  "Communications": [
+    "Communication Services"
+  ],
+  "Health Services": [
+    "Health Care",
+    "Healthcare"
+  ],
+  "Distribution Services": [
+    "Consumer Discretionary",
+    "Retail/Wholesale"
+  ],
+  "Miscellaneous": [
+    "Industrials"
+  ]
+}
