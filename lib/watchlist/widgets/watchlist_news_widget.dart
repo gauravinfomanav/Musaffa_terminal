@@ -145,7 +145,7 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
             height: 20,
             borderRadius: BorderRadius.circular(4),
             baseColor: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            highlightColor: widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+            highlightColor: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF3F4F6),
           ),
         ),
       ),

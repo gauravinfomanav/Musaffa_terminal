@@ -85,7 +85,7 @@ class WatchlistDropdown extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -153,7 +153,7 @@ class WatchlistDropdown extends StatelessWidget {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -419,7 +419,7 @@ class WatchlistDropdown extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -602,7 +602,7 @@ class WatchlistDropdown extends StatelessWidget {
             margin: const EdgeInsets.only(top: 16),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+              color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
                 color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
