@@ -110,6 +110,13 @@ class _TopMoversWidgetState extends State<TopMoversWidget> {
               rows: _buildRows(items),
               showFixedColumn: true,
               considerPadding: false,
+              enableDragging: true,
+              onDragStarted: () {
+                print('Drag started on top mover');
+              },
+              onDragEnd: () {
+                print('Drag ended on top mover');
+              },
             );
           }),
         ],

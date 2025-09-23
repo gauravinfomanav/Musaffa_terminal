@@ -8,6 +8,8 @@ import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 
 
 class HomeTabBar extends StatelessWidget {
@@ -563,6 +565,7 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   bool _isHovered = false;
+  bool _isDragOver = false;
 
   @override
   void initState() {
@@ -595,78 +598,194 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
     widget.onToggle?.call();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: _onTap,
-        child: AnimatedBuilder(
-          animation: _scaleAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _scaleAnimation.value,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  maxWidth: 48,
-                  minHeight: 40,
-                  maxHeight: 48,
-                ),
-                decoration: BoxDecoration(
-                  color: widget.isOpen 
-                      ? (widget.isDarkMode 
-                          ? const Color(0xFF2D2D2D)
-                          : const Color(0xFFF9FAFB))
-                      : (_isHovered 
-                          ? (widget.isDarkMode 
-                              ? const Color(0xFF2D2D2D).withOpacity(0.5)
-                              : const Color(0xFFF9FAFB).withOpacity(0.8))
-                          : Colors.transparent),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Active indicator line
-                    if (widget.isOpen)
-                      Positioned(
-                        left: 2,
-                        child: Container(
-                          width: 2,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: widget.isDarkMode 
-                                ? const Color(0xFF81AACE)
-                                : const Color(0xFF81AACE),
-                            borderRadius: BorderRadius.circular(1),
-                          ),
-                        ),
-                      ),
-                    
-                    // Icon
-                    Icon(
-                      widget.isOpen 
-                          ? Icons.format_list_bulleted 
-                          : Icons.format_list_bulleted_outlined,
-                      size: 18,
-                      color: widget.isOpen
-                          ? (widget.isDarkMode 
-                              ? const Color(0xFFE0E0E0)
-                              : const Color(0xFF374151))
-                          : (widget.isDarkMode 
-                              ? const Color(0xFF9CA3AF)
-                              : const Color(0xFF6B7280)),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+  Future<void> _handleStockDrop(SimpleRowModel stockData) async {
+    try {
+      final watchlistController = Get.find<WatchlistController>();
+      
+      // Check if we have a default watchlist
+      if (watchlistController.defaultWatchlistId == null) {
+        // If no default watchlist, use the first available watchlist
+        if (watchlistController.watchlists.isNotEmpty) {
+          watchlistController.selectedWatchlist.value = watchlistController.watchlists.first;
+        } else {
+          // Show error if no watchlists exist
+          _showErrorSnackBar('No watchlists available. Please create a watchlist first.');
+          return;
+        }
+      }
+
+      // Prepare stock data for API
+      final stockToAdd = {
+        'ticker': stockData.symbol,
+        'currentPrice': stockData.price ?? 0.0,
+        'addedAt': DateTime.now().toIso8601String(),
+      };
+
+      // Add stock to the default/selected watchlist
+      final success = await watchlistController.addStocksToWatchlist([stockToAdd]);
+      
+      if (success) {
+        _showSuccessSnackBar('${stockData.symbol} added to watchlist');
+      } else {
+        _showErrorSnackBar('Failed to add ${stockData.symbol} to watchlist');
+      }
+    } catch (e) {
+      print('Error adding stock to watchlist: $e');
+      _showErrorSnackBar('Error adding stock to watchlist');
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            color: Colors.white,
+            fontSize: 12,
+          ),
+        ),
+        backgroundColor: const Color(0xFF81AACE),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
         ),
       ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            color: Colors.white,
+            fontSize: 12,
+          ),
+        ),
+        backgroundColor: Colors.red.shade600,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<SimpleRowModel>(
+      onWillAccept: (data) {
+        setState(() {
+          _isDragOver = true;
+        });
+        return true;
+      },
+      onAccept: (stockData) {
+        setState(() {
+          _isDragOver = false;
+        });
+        _handleStockDrop(stockData);
+      },
+      onLeave: (data) {
+        setState(() {
+          _isDragOver = false;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        return MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: GestureDetector(
+            onTap: _onTap,
+            child: AnimatedBuilder(
+              animation: _scaleAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _scaleAnimation.value,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      maxWidth: 48,
+                      minHeight: 40,
+                      maxHeight: 48,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _isDragOver
+                          ? (widget.isDarkMode 
+                              ? const Color(0xFF81AACE).withOpacity(0.2)
+                              : const Color(0xFF81AACE).withOpacity(0.1))
+                          : widget.isOpen 
+                              ? (widget.isDarkMode 
+                                  ? const Color(0xFF2D2D2D)
+                                  : const Color(0xFFF9FAFB))
+                              : (_isHovered 
+                                  ? (widget.isDarkMode 
+                                      ? const Color(0xFF2D2D2D).withOpacity(0.5)
+                                      : const Color(0xFFF9FAFB).withOpacity(0.8))
+                                  : Colors.transparent),
+                      borderRadius: BorderRadius.circular(6),
+                      border: _isDragOver
+                          ? Border.all(
+                              color: widget.isDarkMode 
+                                  ? const Color(0xFF81AACE)
+                                  : const Color(0xFF81AACE),
+                              width: 2,
+                            )
+                          : null,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Active indicator line
+                        if (widget.isOpen)
+                          Positioned(
+                            left: 2,
+                            child: Container(
+                              width: 2,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: widget.isDarkMode 
+                                    ? const Color(0xFF81AACE)
+                                    : const Color(0xFF81AACE),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ),
+                        
+                        // Icon
+                        Icon(
+                          _isDragOver
+                              ? Icons.add_circle_outline
+                              : widget.isOpen 
+                                  ? Icons.format_list_bulleted 
+                                  : Icons.format_list_bulleted_outlined,
+                          size: 18,
+                          color: _isDragOver
+                              ? (widget.isDarkMode 
+                                  ? const Color(0xFF81AACE)
+                                  : const Color(0xFF81AACE))
+                              : widget.isOpen
+                                  ? (widget.isDarkMode 
+                                      ? const Color(0xFFE0E0E0)
+                                      : const Color(0xFF374151))
+                                  : (widget.isDarkMode 
+                                      ? const Color(0xFF9CA3AF)
+                                      : const Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

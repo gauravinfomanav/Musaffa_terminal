@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/ticker_cell.dart';
 import 'package:musaffa_terminal/models/ticker_cell_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/utils.dart';
 
 var holdingItemTitleGroup = AutoSizeGroup();
 
@@ -70,6 +71,9 @@ class DynamicTable extends StatefulWidget {
     this.columnSpacing = 6,
     this.horizontalMargin = 0,
     this.fixedColumnWidth,
+    this.enableDragging = false,
+    this.onDragStarted,
+    this.onDragEnd,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -79,6 +83,9 @@ class DynamicTable extends StatefulWidget {
   final double columnSpacing;
   final double horizontalMargin;
   final double? fixedColumnWidth;
+  final bool enableDragging;
+  final VoidCallback? onDragStarted;
+  final VoidCallback? onDragEnd;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -262,29 +269,101 @@ class _DynamicTableState extends State<DynamicTable> {
 
       // Fixed column cell (Company info)
       if (widget.showFixedColumn) {
+        Widget tickerCell = MainTickerCell(
+          model: TickerCellModel(
+            currency: 'USD',
+            tickerName: rowModel.symbol,
+            companyName: rowModel.name,
+            currentPrice: rowModel.price,
+            percentchange: rowModel.changePercent,
+            logoUrl: rowModel.logo,
+            halalRate: null,
+            ranking: null,
+            hideBadge: true, // Hide the halal badge for top movers
+            country: 'US',
+            isStock: true,
+            mainTicker: rowModel.symbol,
+            showLockOnStars: false,
+          ),
+          showBottomBorder: false,
+          horizontalSpacing: 6,
+          verticalSpacing: 4,
+        );
+
+        // Wrap with Draggable if dragging is enabled
+        if (widget.enableDragging) {
+          tickerCell = Draggable<SimpleRowModel>(
+            data: rowModel,
+            feedback: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 200,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF2D2D2D) 
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF404040) 
+                        : const Color(0xFFE5E7EB),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    showLogo(rowModel.symbol, rowModel.logo ?? "",
+                        sideWidth: 20,
+                        circular: true,
+                        name: rowModel.name),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            rowModel.name,
+                            style: DashboardTextStyles.stockName.copyWith(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            rowModel.symbol,
+                            style: DashboardTextStyles.tickerSymbol.copyWith(fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (rowModel.price != null)
+                      Text(
+                        '\$${rowModel.price!.toStringAsFixed(2)}',
+                        style: DashboardTextStyles.dataCell.copyWith(fontSize: 12),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            childWhenDragging: Opacity(
+              opacity: 0.5,
+              child: tickerCell,
+            ),
+            onDragStarted: () {
+              widget.onDragStarted?.call();
+            },
+            onDragEnd: (details) {
+              widget.onDragEnd?.call();
+            },
+            child: tickerCell,
+          );
+        }
+
         var basicCell = DataCell(
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
-            child: MainTickerCell(
-              model: TickerCellModel(
-                currency: 'USD',
-                tickerName: rowModel.symbol,
-                companyName: rowModel.name,
-                currentPrice: rowModel.price,
-                percentchange: rowModel.changePercent,
-                logoUrl: rowModel.logo,
-                halalRate: null,
-                ranking: null,
-                hideBadge: true, // Hide the halal badge for top movers
-                country: 'US',
-                isStock: true,
-                mainTicker: rowModel.symbol,
-                showLockOnStars: false,
-              ),
-              showBottomBorder: false,
-              horizontalSpacing: 6,
-              verticalSpacing: 4,
-            ),
+            child: tickerCell,
           ),
         );
         fixedRowCellArr.add(basicCell);
