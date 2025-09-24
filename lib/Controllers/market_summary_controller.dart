@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/web_service.dart';
+import 'package:musaffa_terminal/Screens/sector_details_screen.dart';
 
 class MarketSummaryDefaults {
   String? displayName;
@@ -80,7 +81,7 @@ class MarketSummaryController extends GetxController {
         errorMessage.value = 'API failed with status: ${marketSummaryResponse.statusCode}';
         isLoading.value = false;
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       data.value = {"hits": []};
       dataFieldsToDisplay.value = [];
       errorMessage.value = 'Error: $e';
@@ -149,14 +150,20 @@ class MarketSummaryController extends GetxController {
         var sector = document['Sector']?.toString() ?? 'Unknown';
 
         var sectorCell = DataCell(
-          Container(
-            padding: EdgeInsets.only(right: 12),
-            child: Text(
-              sector,
-              style: TextStyle(
-                fontSize: 14,
-                color: rowTextColor,
-                fontWeight: FontWeight.w400,
+          GestureDetector(
+            onTap: () {
+              // Navigate to sector details screen
+              Get.to(() => SectorDetailsScreen(sectorName: sector));
+            },
+            child: Container(
+              padding: EdgeInsets.only(right: 12),
+              child: Text(
+                sector,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: rowTextColor,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ),
           ),

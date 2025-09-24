@@ -11,34 +11,17 @@ class PeerComparisonController extends GetxController {
 
   // Map sector to database format using existing service
   String _mapSectorToDatabase(String sector, String industry) {
-    // Use the existing SectorMappingService
-    String bucketKey = SectorMappingService.mapSectorToBucket(sector, industry);
-    
-    // Map bucket keys to database sector names
-    switch (bucketKey.toLowerCase()) {
-      case 'technology':
-        return 'Information Technology';
-      case 'financials':
-        return 'Financials';
-      case 'energy':
-        return 'Energy';
-      case 'communications':
-        return 'Communication Services';
-      case 'consumer_goods':
-        return 'Consumer Discretionary';
-      case 'health_care':
-        return 'Health Care';
-      case 'industrials':
-        return 'Industrials';
-      case 'building_materials':
-        return 'Materials';
-      case 'real_estate':
-        return 'Real Estate';
-      case 'utilities':
-        return 'Utilities';
-      default:
-        return sector; // Return original if no mapping found
+    // Check if sector has direct mapping in the new service
+    if (SectorMappingService.hasSectorMapping(sector)) {
+      List<String>? mappedSectors = SectorMappingService.getMappedSectors(sector);
+      if (mappedSectors != null && mappedSectors.isNotEmpty) {
+        // Return the first mapped sector as the primary one
+        return mappedSectors.first;
+      }
     }
+    
+    // Fallback: return original sector name
+    return sector;
   }
 
   // Getters

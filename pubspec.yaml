@@ -74,6 +74,7 @@ flutter:
   assets:
     - web/
     - lib/utils/sector_defaults.json
+    - lib/utils/sector_api_mapping.json
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
