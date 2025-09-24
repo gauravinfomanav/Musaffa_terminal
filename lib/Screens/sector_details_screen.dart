@@ -632,6 +632,130 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     );
   }
 
+  Widget _buildTopGainersLosersTables() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Get top 5 gainers and losers from all sector stocks
+    final allStocks = sectorStocksController.allSectorStocks;
+    final topGainers = allStocks
+        .where((stock) => stock.priceChange1DPercent != null)
+        .toList()
+        ..sort((a, b) => (b.priceChange1DPercent ?? 0).compareTo(a.priceChange1DPercent ?? 0));
+    
+    final topLosers = allStocks
+        .where((stock) => stock.priceChange1DPercent != null)
+        .toList()
+        ..sort((a, b) => (a.priceChange1DPercent ?? 0).compareTo(b.priceChange1DPercent ?? 0));
+
+    return Row(
+      children: [
+        // Top 5 Gainers Table
+        Expanded(
+          child: _buildGainersLosersTable(
+            title: 'Top 5 Gainers',
+            stocks: topGainers.take(5).toList(),
+            isDarkMode: isDarkMode,
+          ),
+        ),
+        const SizedBox(width: 16),
+        // Top 5 Losers Table
+        Expanded(
+          child: _buildGainersLosersTable(
+            title: 'Top 5 Losers',
+            stocks: topLosers.take(5).toList(),
+            isDarkMode: isDarkMode,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGainersLosersTable({
+    required String title,
+    required List<StocksData> stocks,
+    required bool isDarkMode,
+  }) {
+    // Convert to SimpleRowModel
+    List<SimpleRowModel> rows = stocks.map((stock) {
+      final isPositive = (stock.priceChange1DPercent ?? 0) >= 0;
+      final changeColor = isPositive ? Colors.green.shade600 : Colors.red.shade600;
+      
+      return SimpleRowModel(
+        symbol: stock.ticker ?? '',
+        name: sectorStocksController.companyNamesMap[stock.ticker] ?? stock.companySymbol ?? stock.ticker ?? '',
+        logo: sectorStocksController.logoMap[stock.ticker],
+        price: stock.currentPrice,
+        changePercent: stock.priceChange1DPercent,
+        fields: {
+          'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
+          'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+          'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
+          'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
+          'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
+          'avgVol10d': stock.avgVolume10days != null ? getShortenedT(stock.avgVolume10days!) : '--',
+          'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
+        },
+        changeColor: changeColor,
+        isPositive: isPositive,
+      );
+    }).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(6),
+                topRight: Radius.circular(6),
+              ),
+            ),
+            child: Text(
+              title,
+              style: DashboardTextStyles.columnHeader.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Table
+          DynamicTable(
+            columns: const [
+              SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
+              SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+              SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+              SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+              SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+              SimpleColumn(label: '10D AVG', fieldName: 'avgVol10d', isNumeric: true),
+              SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+            ],
+            rows: rows,
+            showFixedColumn: true,
+            considerPadding: false,
+            columnSpacing: 20,
+            fixedColumnWidth: 0,
+            enableDragging: false,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -696,32 +820,39 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                           );
                         }
                         
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              return Column(
                                 children: [
-                                  // Main table - takes most of the space
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      children: [
-                                        _buildStocksTable(),
-                                        const SizedBox(height: 16),
-                                        _buildPaginationControls(),
-                                      ],
-                                    ),
+                                  // Main content row
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Dynamic table - takes remaining space
+                                      Expanded(
+                                        child: Column(
+                                          children: [
+                                            _buildStocksTable(),
+                                            const SizedBox(height: 16),
+                                            _buildPaginationControls(),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      // Performance widgets - fixed width
+                                      SizedBox(
+                                        width: 300,
+                                        child: Column(
+                                          children: [
+                                            _buildCombinedMetricsContainer(),
+                                            const SizedBox(height: 16),
+                                            _buildPerformanceChangesContainer(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 16),
-            // Performance widgets - fixed width
-            SizedBox(
-              width: 300,
-              child: Column(
-                children: [
-                  _buildCombinedMetricsContainer(),
-                  const SizedBox(height: 16),
-                  _buildPerformanceChangesContainer(),
-                ],
-              ),
-            ),
+                                  const SizedBox(height: 24),
+                                  // Top 5 Gainers and Losers - full width
+                                  _buildTopGainersLosersTables(),
                                 ],
                               );
                       }),
