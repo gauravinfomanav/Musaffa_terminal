@@ -39,7 +39,6 @@ class SectorStocksController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       
-      print('🔍 Fetching stocks for sector: $sectorName (volume > 0)');
 
       // Filter by country, sector, and volume > 0 using stocks_data collection
       var params = {
@@ -51,12 +50,6 @@ class SectorStocksController extends GetxController {
         "per_page": "$limit",
       };
 
-      // Log the complete Typesense query
-      print('📡 Typesense Query Parameters:');
-      print('   Collection: stocks_data');
-      print('   Endpoint: /collections/stocks_data/documents/search');
-      print('   Params: $params');
-      print('   Full URL will be: /collections/stocks_data/documents/search?${Uri(queryParameters: params.map((k, v) => MapEntry(k, v.toString()))).query}');
 
       // Use stocks_data collection like peer comparison controller
       final response = await WebService.getTypesense([
@@ -67,7 +60,6 @@ class SectorStocksController extends GetxController {
         var data = jsonDecode(response.body) as Map<String, dynamic>;
         var hits = (data['hits'] as List?) ?? [];
         
-        print('Found ${hits.length} stocks for sector: $sectorName');
         
         // Parse the response and create StocksData objects
         List<StocksData> stocks = [];
@@ -86,10 +78,8 @@ class SectorStocksController extends GetxController {
                 stocks.add(stock);
                 tickers.add(document['ticker']);
               } else {
-                print('🚫 Excluded stock ${document['ticker']} - volume: ${stock.volume}');
               }
             } catch (e) {
-              print('Error parsing stock data: $e');
               // Continue with next stock
             }
           }
@@ -104,18 +94,11 @@ class SectorStocksController extends GetxController {
         _currentPage.value = 0;
         _updatePaginatedStocks();
         
-        print('Successfully loaded ${stocks.length} stocks for sector: $sectorName');
-        print('Market cap debug - First 3 stocks:');
-        for (int i = 0; i < 3 && i < stocks.length; i++) {
-          print('  ${stocks[i].ticker}: usdMarketCap = ${stocks[i].usdMarketCap}');
-        }
-      } else {
+n      } else {
         errorMessage.value = 'API Error: ${response.statusCode}';
-        print('API Error: ${response.statusCode}');
       }
     } catch (e) {
       errorMessage.value = 'Error fetching sector stocks: $e';
-      print('Error fetching sector stocks: $e');
     } finally {
       isLoading.value = false;
     }
@@ -131,7 +114,6 @@ class SectorStocksController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       
-      print('🔍 Fetching stocks for mapped sectors: ${sectorNames.join(', ')} (volume > 0)');
 
       List<StocksData> allStocks = [];
       
@@ -147,12 +129,6 @@ class SectorStocksController extends GetxController {
             "per_page": "$limitPerSector",
           };
 
-          // Log the complete Typesense query for each sector
-          print('📡 Typesense Query for sector "$sectorName":');
-          print('   Collection: stocks_data');
-          print('   Endpoint: /collections/stocks_data/documents/search');
-          print('   Params: $params');
-          print('   Full URL will be: /collections/stocks_data/documents/search?${Uri(queryParameters: params.map((k, v) => MapEntry(k, v.toString()))).query}');
 
           final response = await WebService.getTypesense([
             'collections', 'stocks_data', 'documents', 'search'
@@ -162,7 +138,6 @@ class SectorStocksController extends GetxController {
             var data = jsonDecode(response.body) as Map<String, dynamic>;
             var hits = (data['hits'] as List?) ?? [];
             
-            print('Found ${hits.length} stocks for sector: $sectorName');
             
             // Parse the response
             for (var hit in hits) {
@@ -176,16 +151,13 @@ class SectorStocksController extends GetxController {
                   if (stock.volume != null && stock.volume! > 0) {
                     allStocks.add(stock);
                   } else {
-                    print('🚫 Excluded stock ${document['ticker']} - volume: ${stock.volume}');
                   }
                 } catch (e) {
-                  print('Error parsing stock data for $sectorName: $e');
                 }
               }
             }
           }
         } catch (e) {
-          print('Error fetching stocks for sector $sectorName: $e');
           // Continue with next sector
         }
       }
@@ -209,15 +181,9 @@ class SectorStocksController extends GetxController {
       _currentPage.value = 0;
       _updatePaginatedStocks();
       
-      print('Successfully loaded ${_allSectorStocks.length} unique stocks for mapped sectors');
-      print('Market cap debug - First 3 stocks:');
-      for (int i = 0; i < 3 && i < _allSectorStocks.length; i++) {
-        print('  ${_allSectorStocks[i].ticker}: usdMarketCap = ${_allSectorStocks[i].usdMarketCap}');
-      }
       
     } catch (e) {
       errorMessage.value = 'Error fetching mapped sector stocks: $e';
-      print('Error fetching mapped sector stocks: $e');
     } finally {
       isLoading.value = false;
     }
@@ -240,7 +206,6 @@ class SectorStocksController extends GetxController {
         "per_page": "50", // Smaller batch size for better performance
       };
 
-      print('📸 Logo query for ${tickers.length} tickers: ${tickers.take(3).join(', ')}...');
 
       final response = await WebService.getTypesense([
         'collections', 'company_profile_collection_new', 'documents', 'search'
@@ -250,7 +215,6 @@ class SectorStocksController extends GetxController {
         var data = jsonDecode(response.body) as Map<String, dynamic>;
         var hits = (data['hits'] as List?) ?? [];
         
-        print('📸 Logo API returned ${hits.length} results');
         
         for (var hit in hits) {
           var document = hit['document'];
@@ -259,12 +223,9 @@ class SectorStocksController extends GetxController {
           }
         }
         
-        print('📸 Successfully mapped ${logoMap.length} logos');
       } else {
-        print('📸 Logo API error: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching company logos: $e');
     }
     
     return logoMap;
@@ -292,7 +253,6 @@ class SectorStocksController extends GetxController {
     
     if (currentPageTickers.isEmpty) return;
     
-    print('📸 Loading logos for current page: ${currentPageTickers.length} tickers');
     
     // Fetch logos for current page only
     Map<String, String> pageLogos = await _fetchCompanyLogos(currentPageTickers);
@@ -300,7 +260,6 @@ class SectorStocksController extends GetxController {
     // Update logo map with current page logos
     _logoMap.value = {..._logoMap, ...pageLogos};
     
-    print('📸 Updated logo map with ${pageLogos.length} new logos');
   }
   
   /// Go to next page
