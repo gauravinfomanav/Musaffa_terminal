@@ -517,9 +517,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           ),
           
           // Navigation buttons on the right
-          Padding(
-            padding: const EdgeInsets.only(right: 30),
-            child: Row(
+          Row(
               children: [
                 // Previous button - only show if not on first page
                 if (sectorStocksController.hasPreviousPage) ...[
@@ -570,7 +568,6 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   ),
               ],
             ),
-          ),
         ],
       );
     });
@@ -584,7 +581,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       
       return SimpleRowModel(
         symbol: stock.ticker ?? '',
-        name: stock.companySymbol ?? stock.ticker ?? '',
+        name: sectorStocksController.companyNamesMap[stock.ticker] ?? stock.companySymbol ?? stock.ticker ?? '',
         logo: sectorStocksController.logoMap[stock.ticker],
         price: stock.currentPrice,
         changePercent: stock.priceChange1DPercent,
@@ -592,10 +589,15 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           'ticker': stock.ticker ?? '--',
           'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
           'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+          'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
           'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
           'sector': stock.sector ?? '--',
           'industry': stock.industry ?? '--',
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
+          'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
+          'week52High': stock.d52WeekHigh != null ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}' : '--',
+          'week52Low': stock.d52WeekLow != null ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}' : '--',
+          'avgVol10d': stock.avgVolume10days != null ? getShortenedT(stock.avgVolume10days!) : '--',
         },
         changeColor: changeColor,
         isPositive: isPositive,
@@ -605,19 +607,27 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return DynamicTable(
       columns: const [
         SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-        SimpleColumn(label: 'CHANGE', fieldName: 'change', isNumeric: true),
+        SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+        SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
         SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
         SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+        SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
+        SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+        SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
+        SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
+        SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
       ],
       rows: rows,
       showFixedColumn: true,
       considerPadding: false,
+      columnSpacing: 16, 
+      fixedColumnWidth: 0, 
       enableDragging: true,
       onDragStarted: () {
-        print('Drag started on sector stock');
+        // Drag started
       },
       onDragEnd: () {
-        print('Drag ended on sector stock');
+        // Drag ended
       },
     );
   }

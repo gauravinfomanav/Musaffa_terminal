@@ -9,6 +9,7 @@ class SectorStocksController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
   final RxMap<String, String> _logoMap = <String, String>{}.obs;
+  final RxMap<String, String> _companyNamesMap = <String, String>{}.obs;
   
   // Pagination
   final RxInt _currentPage = 0.obs;
@@ -20,6 +21,7 @@ class SectorStocksController extends GetxController {
   List<StocksData> get allSectorStocks => _allSectorStocks;
   int get stocksCount => _sectorStocks.length;
   Map<String, String> get logoMap => _logoMap;
+  Map<String, String> get companyNamesMap => _companyNamesMap;
   
   // Pagination getters
   int get currentPage => _currentPage.value;
@@ -43,7 +45,7 @@ class SectorStocksController extends GetxController {
       // Filter by country, sector, and volume > 0 using stocks_data collection
       var params = {
         "q": "*",
-        "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume",
+        "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume,beta,peTTM,pbAnnual,psTTM,currentDividendYieldTTM,avgVolume10days,avgVolume30days,52WeekHigh,52WeekLow,change1D",
         "filter_by": "country:=$country&&sector:=$sectorName&&volume:>0",
         "sort_by": "usdMarketCap:desc", // Sort by descending market cap
         "page": "1",
@@ -94,7 +96,7 @@ class SectorStocksController extends GetxController {
         _currentPage.value = 0;
         _updatePaginatedStocks();
         
-n      } else {
+     } else {
         errorMessage.value = 'API Error: ${response.statusCode}';
       }
     } catch (e) {
@@ -122,7 +124,7 @@ n      } else {
         try {
           var params = {
             "q": "*",
-            "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume",
+            "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume,beta,peTTM,pbAnnual,psTTM,currentDividendYieldTTM,avgVolume10days,avgVolume30days,52WeekHigh,52WeekLow,change1D",
             "filter_by": "country:=$country&&sector:=$sectorName&&volume:>0",
             "sort_by": "usdMarketCap:desc",
             "page": "1",
@@ -189,6 +191,45 @@ n      } else {
     }
   }
 
+  /// Fetch company names for a list of tickers
+  Future<Map<String, String>> _fetchCompanyNames(List<String> tickers) async {
+    Map<String, String> namesMap = {};
+    
+    if (tickers.isEmpty) return namesMap;
+    
+    try {
+      // Create filter for tickers
+      final tickerFilter = tickers.map((ticker) => 'id:=`$ticker`').join('||');
+      
+      var params = {
+        "q": "*",
+        "include_fields": "id,name",
+        "filter_by": tickerFilter,
+        "per_page": "50",
+      };
+
+      final response = await WebService.getTypesense([
+        'collections', 'company_profile_collection_new', 'documents', 'search'
+      ], params);
+      
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body) as Map<String, dynamic>;
+        var hits = (data['hits'] as List?) ?? [];
+        
+        for (var hit in hits) {
+          var document = hit['document'];
+          if (document != null && document['id'] != null && document['name'] != null) {
+            namesMap[document['id']] = document['name'];
+          }
+        }
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+    
+    return namesMap;
+  }
+
   /// Fetch company logos from company profile collection
   Future<Map<String, String>> _fetchCompanyLogos(List<String> tickers) async {
     Map<String, String> logoMap = {};
@@ -241,7 +282,7 @@ n      } else {
     _loadLogosForCurrentPage();
   }
   
-  /// Load logos only for stocks on the current page
+  /// Load logos and company names only for stocks on the current page
   Future<void> _loadLogosForCurrentPage() async {
     if (_sectorStocks.isEmpty) return;
     
@@ -253,13 +294,13 @@ n      } else {
     
     if (currentPageTickers.isEmpty) return;
     
-    
-    // Fetch logos for current page only
+    // Fetch logos and names for current page only
     Map<String, String> pageLogos = await _fetchCompanyLogos(currentPageTickers);
+    Map<String, String> pageNames = await _fetchCompanyNames(currentPageTickers);
     
-    // Update logo map with current page logos
+    // Update maps with current page data
     _logoMap.value = {..._logoMap, ...pageLogos};
-    
+    _companyNamesMap.value = {..._companyNamesMap, ...pageNames};
   }
   
   /// Go to next page
