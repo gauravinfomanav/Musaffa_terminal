@@ -17,6 +17,7 @@ class SectorStocksController extends GetxController {
 
   // Getters
   List<StocksData> get sectorStocks => _sectorStocks;
+  List<StocksData> get allSectorStocks => _allSectorStocks;
   int get stocksCount => _sectorStocks.length;
   Map<String, String> get logoMap => _logoMap;
   
