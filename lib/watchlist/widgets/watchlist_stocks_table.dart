@@ -41,12 +41,14 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
   void didUpdateWidget(WatchlistStocksTable oldWidget) {
     super.didUpdateWidget(oldWidget);
     
-    // Check if the stocks list has changed (different watchlist selected)
+    // Only clear data if stocks list actually changed (different watchlist)
     if (oldWidget.stocks.length != widget.stocks.length || 
         (oldWidget.stocks.isNotEmpty && widget.stocks.isNotEmpty && 
-         oldWidget.stocks.first.ticker != widget.stocks.first.ticker)) {
+         oldWidget.stocks.first.ticker != widget.stocks.first.ticker) ||
+        (oldWidget.stocks.isEmpty && widget.stocks.isNotEmpty) ||
+        (oldWidget.stocks.isNotEmpty && widget.stocks.isEmpty)) {
       
-      // Clear previous data immediately when watchlist changes
+      // Clear previous data when watchlist changes
       setState(() {
         _tableData = [];
         _isEnrichingData = false;
