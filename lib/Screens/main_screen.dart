@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
-import 'package:musaffa_terminal/Components/top_movers_widget.dart';
+// import 'package:musaffa_terminal/Components/top_movers_widget.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
@@ -35,86 +35,143 @@ class _MainScreenState extends State<MainScreen> {
       backgroundColor: Theme.of(context).brightness == Brightness.dark 
           ? const Color(0xFF0F0F0F) 
           : const Color(0xFFFAFAFA),
-      body: Stack(
-        children: [
-          Column(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
             children: [
-              // Tabbar at the top
-              HomeTabBar(
-                isWatchlistOpen: _isWatchlistOpen,
-                onWatchlistToggle: _toggleWatchlist,
-                onThemeToggle: () {
-                  final currentTheme = Theme.of(context).brightness;
-                  Get.changeThemeMode(
-                    currentTheme == Brightness.dark 
-                        ? ThemeMode.light 
-                        : ThemeMode.dark,
-                  );
-                },
+              Column(
+                children: [
+                  HomeTabBar(
+                    isWatchlistOpen: _isWatchlistOpen,
+                    onWatchlistToggle: _toggleWatchlist,
+                    onThemeToggle: () {
+                      final currentTheme = Theme.of(context).brightness;
+                      Get.changeThemeMode(
+                        currentTheme == Brightness.dark 
+                            ? ThemeMode.light 
+                            : ThemeMode.dark,
+                      );
+                    },
+                  ),
+                  Expanded(
+                    child: _buildResponsiveMainContent(constraints),
+                  ),
+                ],
               ),
-              
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    IntrinsicWidth(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(8.0),
-                        child: MarketSummaryDynamicTable(),
+              if (_isWatchlistOpen)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: _toggleWatchlist,
+                    child: Container(
+                      color: Colors.black.withOpacity(0.3),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(),
+                          ),
+                          GestureDetector(
+                            onTap: () {},
+                            child: _buildWatchlistSidebar(constraints),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TopMoversWidget(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          // Watchlist sidebar overlay - positioned relative to entire screen
-          if (_isWatchlistOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleWatchlist, // Close when tapping outside
-                child: Container(
-                  color: Colors.black.withOpacity(0.3), // Semi-transparent overlay
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(), // Empty space that closes sidebar when tapped
-                      ),
-                      GestureDetector(
-                        onTap: () {}, // Prevent closing when tapping on sidebar itself
-                        child: _buildWatchlistSidebar(),
-                      ),
-                    ],
                   ),
                 ),
-              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildResponsiveMainContent(BoxConstraints constraints) {
+    final screenWidth = constraints.maxWidth;
+    final padding = _calculateResponsivePadding(screenWidth);
+    
+    if (screenWidth < 1000) {
+      return _buildVerticalLayout(padding);
+    } else {
+      return _buildHorizontalLayout(padding, screenWidth);
+    }
+  }
+
+  Widget _buildVerticalLayout(EdgeInsets padding) {
+    return Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: SingleChildScrollView(
+              child: MarketSummaryDynamicTable(),
             ),
+          ),
+          // Expanded(
+          //   flex: 2,
+          //   child: TopMoversWidget(),
+          // ),
         ],
       ),
     );
   }
 
-  Widget _buildWatchlistSidebar() {
+  Widget _buildHorizontalLayout(EdgeInsets padding, double screenWidth) {
+    return Padding(
+      padding: padding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: _calculateMarketSummaryFlex(screenWidth),
+            child: SingleChildScrollView(
+              child: MarketSummaryDynamicTable(),
+            ),
+          ),
+          // Expanded(
+          //   flex: _calculateTopMoversFlex(screenWidth),
+          //   child: TopMoversWidget(),
+          // ),
+        ],
+      ),
+    );
+  }
+
+  EdgeInsets _calculateResponsivePadding(double screenWidth) {
+    final padding = (screenWidth * 0.01).clamp(8.0, 24.0);
+    return EdgeInsets.all(padding);
+  }
+
+  int _calculateMarketSummaryFlex(double screenWidth) {
+    if (screenWidth < 1200) return 2;
+    if (screenWidth < 1600) return 3;
+    if (screenWidth < 2000) return 4;
+    return 5;
+  }
+
+  // int _calculateTopMoversFlex(double screenWidth) {
+  //   if (screenWidth < 1200) return 3;
+  //   if (screenWidth < 1600) return 2;
+  //   if (screenWidth < 2000) return 1;
+  //   return 1;
+  // }
+
+  double _calculateResponsiveSidebarWidth(double screenWidth) {
+    if (screenWidth < 800) return screenWidth * 0.5;
+    if (screenWidth < 1200) return screenWidth * 0.4;
+    return screenWidth * 0.35;
+  }
+
+  Widget _buildWatchlistSidebar(BoxConstraints constraints) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final sidebarWidth = screenWidth > 1200 
-        ? screenWidth * 0.35  // 35% of screen width on larger screens
-        : screenWidth > 800 
-            ? screenWidth * 0.4  // 40% on medium screens
-            : screenWidth * 0.5; // 50% on smaller screens
+    final screenWidth = constraints.maxWidth;
+    final sidebarWidth = _calculateResponsiveSidebarWidth(screenWidth);
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      width: sidebarWidth.clamp(320.0, 600.0), // Min 320px, max 600px
+      width: sidebarWidth.clamp(320.0, 600.0),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         border: Border(
