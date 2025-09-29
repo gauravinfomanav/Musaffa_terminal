@@ -585,6 +585,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         logo: sectorStocksController.logoMap[stock.ticker],
         price: stock.currentPrice,
         changePercent: stock.priceChange1DPercent,
+        currency: stock.currency ?? 'USD',
         fields: {
           'ticker': stock.ticker ?? '--',
           'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
@@ -623,6 +624,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       columnSpacing: 16, 
       fixedColumnWidth: 0, 
       enableDragging: true,
+      enableLivePrices: true,
       onDragStarted: () {
         // Drag started
       },
@@ -686,6 +688,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         logo: sectorStocksController.logoMap[stock.ticker],
         price: stock.currentPrice,
         changePercent: stock.priceChange1DPercent,
+        currency: stock.currency ?? 'USD',
         fields: {
           'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
           'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
@@ -750,6 +753,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             columnSpacing: 20,
             fixedColumnWidth: 0,
             enableDragging: false,
+            enableLivePrices: true,
           ),
         ],
       ),

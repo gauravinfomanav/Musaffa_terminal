@@ -44,11 +44,13 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
   Future<void> _fetchAllNews() async {
     if (widget.stocks.isEmpty) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _allNews.clear();
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+        _allNews.clear();
+      });
+    }
 
     try {
       // Fetch news for each stock in the watchlist
@@ -81,13 +83,17 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
       });
 
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error fetching news: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error fetching news: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

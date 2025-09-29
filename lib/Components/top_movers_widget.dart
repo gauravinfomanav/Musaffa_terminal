@@ -49,6 +49,7 @@ class _TopMoversWidgetState extends State<TopMoversWidget> {
         logo: item.logo,
         price: item.currentPrice,
         changePercent: item.change1DPercent,
+        currency: item.currency,
         fields: {
           'price': item.currentPrice != null ? '\$${item.currentPrice!.toStringAsFixed(2)}' : '-',
           'change': item.change1DPercent != null ? '${item.change1DPercent!.toStringAsFixed(2)}%' : '-',
@@ -111,6 +112,7 @@ class _TopMoversWidgetState extends State<TopMoversWidget> {
               showFixedColumn: true,
               considerPadding: false,
               enableDragging: true,
+              enableLivePrices: true,
               onDragStarted: () {
                 print('Drag started on top mover');
               },

@@ -159,11 +159,12 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
               logo: logo.isEmpty ? null : logo,
               price: currentPrice,
               changePercent: gainLossPercent,
+              currency: 'USD', // Default currency for watchlist
               isPositive: isGain,
               changeColor: isGain ? Colors.green.shade600 : Colors.red.shade600,
               fields: {
                 'addedPrice': addedPrice,
-                'currentPrice': currentPrice,
+                'currentPrice': '\$${currentPrice.toStringAsFixed(2)}',
                 'gainLoss': formattedGainLoss,
                 'marketCap': marketCapFormatted,
                 'volume': volume,
@@ -177,11 +178,12 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
               logo: null,
               price: watchlistStock.currentPrice,
               changePercent: 0.0,
+              currency: 'USD', // Default currency for watchlist
               isPositive: true,
               changeColor: Colors.grey,
               fields: {
                 'addedPrice': watchlistStock.currentPrice,
-                'currentPrice': watchlistStock.currentPrice,
+                'currentPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
                 'gainLoss': 0.0,
                 'marketCap': '--',
                 'volume': 0.0,
@@ -219,6 +221,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         logo: null,
         price: watchlistStock.currentPrice,
         changePercent: 0.0,
+        currency: 'USD', // Default currency for watchlist
         isPositive: true,
         changeColor: Colors.grey,
         fields: {
@@ -383,6 +386,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         columnSpacing: 15,
         horizontalMargin: 8,
         fixedColumnWidth: 1.5, // Flex value for fixed column (smaller = less space)
+        enableLivePrices: true,
       ),
     );
   }

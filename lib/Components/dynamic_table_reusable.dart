@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/ticker_cell.dart';
 import 'package:musaffa_terminal/models/ticker_cell_model.dart';
+import 'package:musaffa_terminal/models/live_price_model.dart';
+import 'package:musaffa_terminal/services/live_price_service.dart';
+import 'package:musaffa_terminal/services/websocket_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
@@ -45,9 +50,11 @@ class SimpleRowModel {
   final String? logo;
   final num? price;
   final num? changePercent;
+  final String? currency;
   final Map<String, dynamic> fields;
   final Color? changeColor;
   final bool? isPositive;
+  final String? priceSource; // 'typesense' or 'websocket'
 
   const SimpleRowModel({
     required this.symbol,
@@ -55,10 +62,38 @@ class SimpleRowModel {
     this.logo,
     this.price,
     this.changePercent,
+    this.currency,
     required this.fields,
     this.changeColor,
     this.isPositive,
+    this.priceSource,
   });
+
+  SimpleRowModel copyWith({
+    String? symbol,
+    String? name,
+    String? logo,
+    num? price,
+    num? changePercent,
+    String? currency,
+    Map<String, dynamic>? fields,
+    Color? changeColor,
+    bool? isPositive,
+    String? priceSource,
+  }) {
+    return SimpleRowModel(
+      symbol: symbol ?? this.symbol,
+      name: name ?? this.name,
+      logo: logo ?? this.logo,
+      price: price ?? this.price,
+      changePercent: changePercent ?? this.changePercent,
+      currency: currency ?? this.currency,
+      fields: fields ?? this.fields,
+      changeColor: changeColor ?? this.changeColor,
+      isPositive: isPositive ?? this.isPositive,
+      priceSource: priceSource ?? this.priceSource,
+    );
+  }
 }
 
 class DynamicTable extends StatefulWidget {
@@ -72,6 +107,7 @@ class DynamicTable extends StatefulWidget {
     this.horizontalMargin = 0,
     this.fixedColumnWidth,
     this.enableDragging = false,
+    this.enableLivePrices = false,
     this.onDragStarted,
     this.onDragEnd,
   }) : super(key: key);
@@ -84,6 +120,7 @@ class DynamicTable extends StatefulWidget {
   final double horizontalMargin;
   final double? fixedColumnWidth;
   final bool enableDragging;
+  final bool enableLivePrices;
   final VoidCallback? onDragStarted;
   final VoidCallback? onDragEnd;
 
@@ -98,6 +135,13 @@ class _DynamicTableState extends State<DynamicTable> {
   List<DataRow> fixedDataRows = [];
   var sController = ScrollController();
   var increaseShadow = false;
+  
+  // Live price services
+  late LivePriceService _livePriceService;
+  late WebSocketService _webSocketService;
+  List<SimpleRowModel> _enrichedRows = [];
+  StreamSubscription<Map<String, dynamic>>? _priceStreamSubscription;
+  int _updateCounter = 0;
 
   @override
   void initState() {
@@ -107,6 +151,14 @@ class _DynamicTableState extends State<DynamicTable> {
         increaseShadow = sController.offset > 0.1;
       });
     });
+    
+    // Initialize live price services
+    if (widget.enableLivePrices) {
+      _livePriceService = Get.find<LivePriceService>();
+      _webSocketService = Get.find<WebSocketService>();
+      _setupLivePrices();
+    }
+    
     super.initState();
   }
 
@@ -117,7 +169,125 @@ class _DynamicTableState extends State<DynamicTable> {
   @override
   void didUpdateWidget(DynamicTable oldWidget) {
     init();
+    
+    // Update live prices if enabled and rows changed
+    if (widget.enableLivePrices && oldWidget.rows != widget.rows) {
+      _setupLivePrices();
+    }
+    
     super.didUpdateWidget(oldWidget);
+  }
+
+  void _setupLivePrices() {
+    if (!widget.enableLivePrices) return;
+    
+    // Extract tickers from rows
+    List<String> tickers = widget.rows.map((row) => row.symbol).toList();
+    
+    // Store Typesense prices for comparison
+    Map<String, double> typesensePrices = {};
+    for (var row in widget.rows) {
+      if (row.price != null) {
+        typesensePrices[row.symbol] = row.price!.toDouble();
+      }
+    }
+    _webSocketService.setTypesensePrices(typesensePrices);
+    
+    // Add tickers to visible list
+    _livePriceService.addVisibleTickers(tickers);
+    
+    // Cancel previous subscription if exists
+    _priceStreamSubscription?.cancel();
+    
+    // Listen to live price updates
+    _priceStreamSubscription = _webSocketService.priceStream.listen(
+      (livePrices) {
+        if (mounted) {
+          setState(() {
+            _enrichedRows = _updateRowsWithLivePrices(widget.rows, livePrices);
+            _updateCounter++;
+            // Regenerate table data with updated prices
+            generateDataRows();
+          });
+        }
+      },
+      onError: (error) {
+        // Handle error silently
+      },
+    );
+  }
+
+  List<SimpleRowModel> _updateRowsWithLivePrices(List<SimpleRowModel> originalRows, Map<String, LivePriceData> livePrices) {
+    return originalRows.map((row) {
+      final livePriceData = livePrices[row.symbol];
+      if (livePriceData != null) {
+        // Update the fields map with the new live price
+        Map<String, dynamic> updatedFields = Map.from(row.fields);
+        // Update both 'price' and 'currentPrice' fields to cover different table configurations
+        updatedFields['price'] = '\$${livePriceData.price.toStringAsFixed(2)}';
+        updatedFields['currentPrice'] = '\$${livePriceData.price.toStringAsFixed(2)}';
+        
+        // For watchlist: Recalculate gain/loss dynamically based on live price
+        if (updatedFields.containsKey('addedPrice') && updatedFields.containsKey('gainLoss')) {
+          final addedPrice = updatedFields['addedPrice'];
+          if (addedPrice is num) {
+            final priceDiff = livePriceData.price - addedPrice;
+            final gainLossPercent = addedPrice > 0 ? (priceDiff / addedPrice) * 100 : 0.0;
+            
+            // Update gain/loss with new calculation
+            updatedFields['gainLoss'] = double.parse(priceDiff.toStringAsFixed(1));
+            updatedFields['gainLossPercent'] = double.parse(gainLossPercent.toStringAsFixed(2));
+          }
+        }
+        
+        // Determine color based on price comparison
+        Color? priceColor;
+        Color? gainLossColor;
+        
+        if (livePriceData.typesensePrice != null) {
+          if (livePriceData.price > livePriceData.typesensePrice!) {
+            priceColor = Colors.green.shade600; // Live price higher than Typesense
+          } else if (livePriceData.price < livePriceData.typesensePrice!) {
+            priceColor = Colors.red.shade600; // Live price lower than Typesense
+          }
+          // If equal, keep original color (null)
+        }
+        
+        // For watchlist: Set gain/loss color based on dynamic calculation
+        if (updatedFields.containsKey('addedPrice')) {
+          final addedPrice = updatedFields['addedPrice'];
+          if (addedPrice is num) {
+            final priceDiff = livePriceData.price - addedPrice;
+            gainLossColor = priceDiff >= 0 ? Colors.green.shade600 : Colors.red.shade600;
+          }
+        }
+        
+        return row.copyWith(
+          price: livePriceData.price,
+          priceSource: 'websocket',
+          fields: updatedFields,
+          changeColor: priceColor ?? gainLossColor,
+          isPositive: updatedFields.containsKey('addedPrice') ? 
+            (livePriceData.price - (updatedFields['addedPrice'] as num)) >= 0 : 
+            row.isPositive,
+        );
+      } else {
+        return row.copyWith(priceSource: 'typesense');
+      }
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    if (widget.enableLivePrices) {
+      // Cancel stream subscription
+      _priceStreamSubscription?.cancel();
+      
+      // Remove tickers from visible list when widget is disposed
+      List<String> tickers = widget.rows.map((row) => row.symbol).toList();
+      _livePriceService.removeVisibleTickers(tickers);
+    }
+    super.dispose();
   }
 
   generateCols() {
@@ -185,6 +355,7 @@ class _DynamicTableState extends State<DynamicTable> {
                 ],
               ),
                               child: DataTable(
+                  key: ValueKey('fixed_$_updateCounter'),
                   showCheckboxColumn: false,
                   headingRowHeight: 24,
                   horizontalMargin: 0,
@@ -218,6 +389,7 @@ class _DynamicTableState extends State<DynamicTable> {
                     dividerColor: Colors.transparent,
                   ),
                   child: DataTable(
+                    key: ValueKey('table_$_updateCounter'),
                     showCheckboxColumn: false,
                     headingRowHeight: 24,
                     horizontalMargin: widget.horizontalMargin,
@@ -260,8 +432,14 @@ class _DynamicTableState extends State<DynamicTable> {
     List<DataRow> dataRowLst = [];
     List<DataRow> fixedRowLst = [];
 
+    // Use enriched rows if live prices are enabled, otherwise use original rows
+    List<SimpleRowModel> rowsToUse = widget.enableLivePrices && _enrichedRows.isNotEmpty 
+        ? _enrichedRows 
+        : widget.rows;
+
+
     // Filter rows that have at least one non-empty value
-    List<SimpleRowModel> filteredRows = widget.rows.where((row) => _hasAnyValue(row)).toList();
+    List<SimpleRowModel> filteredRows = rowsToUse.where((row) => _hasAnyValue(row)).toList();
 
     filteredRows.forEach((rowModel) {
       List<DataCell> cellArr = [];
@@ -269,9 +447,10 @@ class _DynamicTableState extends State<DynamicTable> {
 
       // Fixed column cell (Company info)
       if (widget.showFixedColumn) {
+
         Widget tickerCell = MainTickerCell(
           model: TickerCellModel(
-            currency: 'USD',
+            currency: rowModel.currency ?? 'USD',
             tickerName: rowModel.symbol,
             companyName: rowModel.name,
             currentPrice: rowModel.price,
@@ -374,15 +553,19 @@ class _DynamicTableState extends State<DynamicTable> {
       if (widget.columns.isNotEmpty) {
         widget.columns.forEach((column) {
           String cellData = rowModel.fields[column.fieldName]?.toString() ?? "-";
+          
+          
           Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
           
-          // Apply special styling for change column
-          if (column.fieldName == 'change' && rowModel.changeColor != null) {
+          // Apply special styling for change column, price column, currentPrice column, and gainLoss column
+          if ((column.fieldName == 'change' || column.fieldName == 'price' || 
+               column.fieldName == 'currentPrice' || column.fieldName == 'gainLoss') && 
+              rowModel.changeColor != null) {
             textColor = rowModel.changeColor!;
           }
           
           DataCell cell = DataCell(
-            column.fieldName == 'change' && rowModel.isPositive != null
+            (column.fieldName == 'change' || column.fieldName == 'gainLoss') && rowModel.isPositive != null
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

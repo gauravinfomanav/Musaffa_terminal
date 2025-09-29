@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
@@ -11,6 +12,9 @@ import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
+import 'package:musaffa_terminal/models/live_price_model.dart';
+import 'package:musaffa_terminal/services/live_price_service.dart';
+import 'package:musaffa_terminal/services/websocket_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
@@ -35,6 +39,14 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   bool _isWatchlistOpen = false;
   bool _isAddingToWatchlist = false;
   bool _isInWatchlist = false;
+  
+  // Live price services
+  late LivePriceService _livePriceService;
+  late WebSocketService _webSocketService;
+  StreamSubscription<Map<String, LivePriceData>>? _priceStreamSubscription;
+  double? _livePrice;
+  double? _initialTypesensePrice;
+  Color? _priceColor;
 
   @override
   void initState() {
@@ -44,6 +56,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     financialFundamentalsController = FinancialFundamentalsController();
     tradingViewController = TradingViewController();
     watchlistController = Get.put(WatchlistController());
+    
+    // Initialize live price services
+    _livePriceService = Get.find<LivePriceService>();
+    _webSocketService = Get.find<WebSocketService>();
     
     // Listen to watchlist changes to update button state
     watchlistController.watchlistStocks.listen((_) {
@@ -57,10 +73,91 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.fetchStockDetails(widget.ticker.symbol ?? widget.ticker.ticker ?? '');
     });
+    
+    // Set up live price subscription after stock data is loaded
+    controller.stockData.listen((stockData) {
+      if (stockData != null) {
+        _setupLivePrices();
+      }
+    });
+  }
+
+  void _setupLivePrices() {
+    final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+    if (ticker.isEmpty) return;
+    
+    // Store initial Typesense price for comparison
+    final stockData = controller.stockData.value;
+    if (stockData?.currentPrice != null) {
+      _initialTypesensePrice = stockData!.currentPrice!.toDouble();
+      _webSocketService.setTypesensePrices({ticker: _initialTypesensePrice!});
+    }
+    
+    // Add ticker to visible list
+    _livePriceService.addVisibleTickers([ticker]);
+    
+    // Cancel previous subscription if exists
+    _priceStreamSubscription?.cancel();
+    
+    // Listen to live price updates
+    _priceStreamSubscription = _webSocketService.priceStream.listen(
+      (livePrices) {
+        if (mounted) {
+          final livePriceData = livePrices[ticker];
+          if (livePriceData != null) {
+            setState(() {
+              _livePrice = livePriceData.price;
+              
+              // Determine color based on price comparison
+              if (_initialTypesensePrice != null) {
+                if (livePriceData.price > _initialTypesensePrice!) {
+                  _priceColor = Colors.green.shade600; // Live price higher than Typesense
+                } else if (livePriceData.price < _initialTypesensePrice!) {
+                  _priceColor = Colors.red.shade600; // Live price lower than Typesense
+                } else {
+                  _priceColor = null; // Same price, use default color
+                }
+              }
+            });
+          }
+        }
+      },
+      onError: (error) {
+        // Handle error silently
+      },
+    );
+  }
+
+  double? _getChangePercentage(StocksData stockData) {
+    // If we have live price, calculate change from previous close
+    if (_livePrice != null && stockData.previousClose != null) {
+      final change = _livePrice! - stockData.previousClose!;
+      return stockData.previousClose! > 0 ? (change / stockData.previousClose!) * 100 : 0.0;
+    }
+    
+    // Fallback to Typesense change percentage
+    return stockData.change1DPercent?.toDouble();
+  }
+
+  Color? _getChangeColor(StocksData stockData) {
+    final changePercent = _getChangePercentage(stockData);
+    if (changePercent != null) {
+      return changePercent >= 0 ? Colors.green : Colors.red;
+    }
+    return DashboardTextStyles.headerChange.color;
   }
 
   @override
   void dispose() {
+    // Cancel live price subscription
+    _priceStreamSubscription?.cancel();
+    
+    // Remove ticker from visible list
+    final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+    if (ticker.isNotEmpty) {
+      _livePriceService.removeVisibleTickers([ticker]);
+    }
+    
     recommendationController.dispose();
     financialFundamentalsController.dispose();
     tradingViewController.dispose();
@@ -696,16 +793,40 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Current Price: \$${stockData.currentPrice?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerPrice,
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Current Price: ',
+                              style: DashboardTextStyles.headerPrice.copyWith(
+                                color: null, // Use theme default color
+                              ),
+                            ),
+                            TextSpan(
+                              text: '\$${(_livePrice ?? stockData.currentPrice)?.toStringAsFixed(2) ?? '--'}',
+                              style: DashboardTextStyles.headerPrice.copyWith(
+                                color: _priceColor ?? DashboardTextStyles.headerPrice.color,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      Text(
-                        'Change: ${stockData.change1DPercent?.toStringAsFixed(2) ?? '--'}%',
-                        style: DashboardTextStyles.headerChange.copyWith(
-                          color: stockData.change1DPercent != null
-                              ? (stockData.change1DPercent! >= 0 ? Colors.green : Colors.red)
-                              : DashboardTextStyles.headerChange.color,
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Change: ',
+                              style: DashboardTextStyles.headerChange.copyWith(
+                                color: null, // Use theme default color
+                              ),
+                            ),
+                            TextSpan(
+                              text: '${_getChangePercentage(stockData)?.toStringAsFixed(2) ?? '--'}%',
+                              style: DashboardTextStyles.headerChange.copyWith(
+                                color: _getChangeColor(stockData),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
