@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
 import 'package:musaffa_terminal/Components/market_indices.dart';
 import 'package:musaffa_terminal/Components/market_quotes.dart';
+import 'package:musaffa_terminal/Components/mini_widgets_row.dart';
 // import 'package:musaffa_terminal/Components/top_movers_widget.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
@@ -105,6 +106,9 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Mini Widgets Row (Top)
+            MiniWidgetsRow(),
+            const SizedBox(height: 32),
             // Top Row: Market Summary + Market Indices
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,40 +126,40 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // Bottom Row: Market Quotes (half width)
-            Row(
-              children: [
-                Expanded(
-                  child: DynamicHeightMarketQuotes(
-                    initialHeight: 600,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? const Color(0xFF2D2D2D) 
-                          : const Color(0xFFF9FAFB),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Additional Widget Placeholder',
-                        style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark 
-                              ? Colors.white 
-                              : Colors.black87,
-                          fontSize: 16,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // const SizedBox(height: 16),
+            // // Bottom Row: Market Quotes (half width)
+            // Row(
+            //   children: [
+            //     Expanded(
+            //       child: DynamicHeightMarketQuotes(
+            //         initialHeight: 600,
+            //       ),
+            //     ),
+            //     const SizedBox(width: 16),
+            //     Expanded(
+            //       child: Container(
+            //         decoration: BoxDecoration(
+            //           color: Theme.of(context).brightness == Brightness.dark 
+            //               ? const Color(0xFF2D2D2D) 
+            //               : const Color(0xFFF9FAFB),
+            //           borderRadius: BorderRadius.circular(8),
+            //         ),
+            //         child: Center(
+            //           child: Text(
+            //             'Additional Widget Placeholder',
+            //             style: TextStyle(
+            //               color: Theme.of(context).brightness == Brightness.dark 
+            //                   ? Colors.white 
+            //                   : Colors.black87,
+            //               fontSize: 16,
+            //               fontFamily: Constants.FONT_DEFAULT_NEW,
+            //             ),
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),
@@ -169,6 +173,9 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Mini Widgets Row (Top)
+            MiniWidgetsRow(),
+            const SizedBox(height: 16),
             // Top Row: Market Summary + Market Indices
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,40 +193,40 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // Bottom Row: Market Quotes (half width)
-            Row(
-              children: [
-                Expanded(
-                  child: DynamicHeightMarketQuotes(
-                    initialHeight: 600,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? const Color(0xFF2D2D2D) 
-                          : const Color(0xFFF9FAFB),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Additional Widget Placeholder',
-                        style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark 
-                              ? Colors.white 
-                              : Colors.black87,
-                          fontSize: 16,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // const SizedBox(height: 16),
+            // // Bottom Row: Market Quotes (half width)
+            // Row(
+            //   children: [
+            //     Expanded(
+            //       child: DynamicHeightMarketQuotes(
+            //         initialHeight: 600,
+            //       ),
+            //     ),
+            //     const SizedBox(width: 16),
+            //     Expanded(
+            //       child: Container(
+            //         decoration: BoxDecoration(
+            //           color: Theme.of(context).brightness == Brightness.dark 
+            //               ? const Color(0xFF2D2D2D) 
+            //               : const Color(0xFFF9FAFB),
+            //           borderRadius: BorderRadius.circular(8),
+            //         ),
+            //         child: Center(
+            //           child: Text(
+            //             'Additional Widget Placeholder',
+            //             style: TextStyle(
+            //               color: Theme.of(context).brightness == Brightness.dark 
+            //                   ? Colors.white 
+            //                   : Colors.black87,
+            //               fontSize: 16,
+            //               fontFamily: Constants.FONT_DEFAULT_NEW,
+            //             ),
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),

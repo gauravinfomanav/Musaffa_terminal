@@ -14,7 +14,7 @@ class DynamicHeightTradingView extends StatefulWidget {
 
   const DynamicHeightTradingView({
     super.key,
-    this.initialHeight = 500, // Provide a reasonable default initial height
+    this.initialHeight = 700, // Provide a reasonable default initial height
     this.width,
   });
 
@@ -82,7 +82,13 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
             {
               "s": "FOREXCOM:DJI",
               "d": "Dow 30"
-            }
+            },
+            {
+          "s": "CAPITALCOM:GOLD",
+          "d": "GOLD",
+          "logoid": "metal/gold",
+          "currency-logoid": "country/US"
+        }
           ]
         },
         {
@@ -310,7 +316,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
               style: DashboardTextStyles.titleSmall,
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 26),
           AnimatedSize(
             duration: const Duration(milliseconds: 250), // Animation duration
             curve: Curves.easeInOut, // Animation curve
