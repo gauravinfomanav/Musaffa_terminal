@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
-import 'package:musaffa_terminal/Components/trading_view_market_overview_widget.dart';
-import 'package:musaffa_terminal/Controllers/trading_view_market_overview_controller.dart';
+import 'package:musaffa_terminal/Components/market_indices.dart';
 // import 'package:musaffa_terminal/Components/top_movers_widget.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
@@ -18,19 +17,11 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   bool _isWatchlistOpen = false;
-  late TradingViewMarketOverviewController _marketOverviewController;
 
   @override
   void initState() {
     super.initState();
     Get.put(WatchlistController());
-    _marketOverviewController = TradingViewMarketOverviewController();
-  }
-
-  @override
-  void dispose() {
-    _marketOverviewController.dispose();
-    super.dispose();
   }
 
   void _toggleWatchlist() {
@@ -118,16 +109,11 @@ class _MainScreenState extends State<MainScreen> {
               child: MarketSummaryDynamicTable(),
             ),
           ),
+          const SizedBox(height: 16),
           Expanded(
             flex: 2,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return TradingViewMarketOverviewWidget(
-                  key: const ValueKey('market_overview_widget'),
-                  controller: _marketOverviewController,
-                  height: constraints.maxHeight,
-                );
-              },
+            child: DynamicHeightTradingView(
+              initialHeight: 500,
             ),
           ),
         ],
@@ -147,16 +133,11 @@ class _MainScreenState extends State<MainScreen> {
               child: MarketSummaryDynamicTable(),
             ),
           ),
+          const SizedBox(width: 16),
           Expanded(
-            flex: _calculateTopMoversFlex(screenWidth),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return TradingViewMarketOverviewWidget(
-                  key: const ValueKey('market_overview_widget'),
-                  controller: _marketOverviewController,
-                  height: constraints.maxHeight,
-                );
-              },
+            flex: _calculateMarketIndicesFlex(screenWidth),
+            child: DynamicHeightTradingView(
+              initialHeight: 600,
             ),
           ),
         ],
@@ -181,6 +162,13 @@ class _MainScreenState extends State<MainScreen> {
     if (screenWidth < 1600) return 2;
     if (screenWidth < 2000) return 1;
     return 1;
+  }
+
+  int _calculateMarketIndicesFlex(double screenWidth) {
+    if (screenWidth < 1200) return 3;
+    if (screenWidth < 1600) return 3;
+    if (screenWidth < 2000) return 3;
+    return 3;
   }
 
   double _calculateResponsiveSidebarWidth(double screenWidth) {

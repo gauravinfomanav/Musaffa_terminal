@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingView Widget</title>
+</head>
+<body>
+<!-- TradingView Widget BEGIN -->
+<div class="tradingview-widget-container">
+    <div class="tradingview-widget-container__widget"></div>
+
+    <script
+            type="text/javascript"
+            src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js"
+            async
+    >
+        {
+      "title": "Indices",
+      "tabs": [
+        {
+          "title": "US & Canada",
+          "title_raw": "US & Canada",
+          "symbols": [
+            {
+              "s": "FOREXCOM:SPXUSD",
+              "d": "S&P 500"
+            },
+            {
+              "s": "FOREXCOM:NSXUSD",
+              "d": "US 100"
+            },
+            {
+              "s": "BMFBOVESPA:ISP1!",
+              "d": "S&P 500"
+            },
+            {
+              "s": "INDEX:DXY",
+              "d": "U.S. Dollar Currency Index"
+            },
+            {
+              "s": "FOREXCOM:DJI",
+              "d": "Dow 30"
+            }
+          ]
+        },
+        {
+          "title": "Europe",
+          "title_raw": "Europe",
+          "symbols": [
+            {
+              "s": "INDEX:SX5E",
+              "d": "Euro Stoxx 50"
+            },
+            {
+              "s": "FOREXCOM:UKXGBP",
+              "d": "UK 100"
+            },
+            {
+              "s": "INDEX:DEU40",
+              "d": "DAX Index"
+            },
+            {
+              "s": "INDEX:CAC40",
+              "d": "CAC 40 Index"
+            },
+            {
+              "s": "INDEX:SMI",
+              "d": "SWISS MARKET INDEX SMI® PRICE"
+            }
+          ]
+        },
+        {
+          "title": "Asia/Pacific",
+          "title_raw": "Asia/Pacific",
+          "symbols": [
+            {
+              "s": "INDEX:NKY",
+              "d": "Nikkei 225"
+            },
+            {
+              "s": "INDEX:HSI",
+              "d": "Hang Seng"
+            },
+            {
+              "s": "BSE:SENSEX",
+              "d": "Sensex"
+            },
+            {
+              "s": "BSE:BSE500",
+              "d": "S&P BSE 500 INDEX"
+            },
+            {
+              "s": "INDEX:KSIC",
+              "d": "Kospi Composite"
+            }
+          ]
+        }
+      ],
+      "width": "100%",
+      "height": "100%",
+      "showChart": true,
+      "showFloatingTooltip": false,
+      "locale": "en",
+      "plotLineColorGrowing": "#2962FF",
+      "plotLineColorFalling": "#2962FF",
+      "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+      "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+      "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+      "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+      "gridLineColor": "rgba(240, 243, 250, 0)",
+      "scaleFontColor": "rgba(120, 123, 134, 1)",
+      "showSymbolLogo": true,
+      "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+      "colorTheme": "light"
+    }
+    </script>
+</div>
+<!-- TradingView Widget END -->
+
+<!-- !!! JavaScript to send height back to Flutter !!! -->
+<script type="text/javascript">
+    // Ensure this channel name matches the one in Flutter
+    const channelName = 'ResizeObserver';
+
+    // Function to send height
+    function sendHeight() {
+      // Use scrollHeight for the full content height
+      const height = document.body.scrollHeight;
+      if (window[channelName] && typeof window[channelName].postMessage === 'function') {
+        // Send the height as a string
+        window[channelName].postMessage(height.toString());
+        console.log('Sent height: ' + height);
+      } else {
+         console.error('Flutter JavaScript channel not found: ' + channelName);
+      }
+    }
+
+    // --- Method 1: Send height on initial load (and maybe after a delay) ---
+    // window.onload = () => {
+    //    console.log('window.onload triggered');
+    //    // Send initial height
+    //    sendHeight();
+    //    // TradingView might resize things after onload, send again after a delay
+    //    setTimeout(sendHeight, 1500); // Adjust delay as needed
+    //    setTimeout(sendHeight, 3000); // And maybe again
+    // };
+
+    // --- Method 2: Use ResizeObserver (More robust if available) ---
+    // Check if ResizeObserver is supported
+    if (false && typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(entries => {
+         console.log('ResizeObserver detected change');
+         sendHeight(); // Send height whenever the body size changes
+      });
+
+      // Observe the body element for size changes
+      observer.observe(document.body);
+       console.log('ResizeObserver attached to body');
+       // Send initial height as well
+       // Use requestAnimationFrame to wait for initial layout calculation
+       window.requestAnimationFrame(sendHeight);
+
+    } else {
+      // Fallback for older browsers: Send on load and periodically
+      console.warn('ResizeObserver not supported. Falling back to onload/setTimeout.');
+      window.onload = () => {
+        console.log('Fallback: window.onload triggered');
+        sendHeight();
+        // Optionally, send periodically if content might change size later
+        // setInterval(sendHeight, 2000); // Be cautious with intervals
+        setTimeout(sendHeight, 1500);
+        setTimeout(sendHeight, 3500);
+      };
+       // Ensure sendHeight is called even if onload already fired
+       if (document.readyState === 'complete') {
+          console.log('Fallback: Document already complete, calling sendHeight');
+          sendHeight();
+          setTimeout(sendHeight, 1500);
+          setTimeout(sendHeight, 3500);
+       }
+    }
+
+     // Also try sending height when the TradingView script itself loads, though tricky to hook into
+     // Might need to observe DOM changes specifically related to the widget container
+
+
+</script>
+</body>
+</html>

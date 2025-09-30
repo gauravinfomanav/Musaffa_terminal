@@ -2,13 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
-import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Components/simple_news_widget.dart';
 import 'package:musaffa_terminal/Components/recommendation_widget.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
-import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
@@ -33,7 +31,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late StockDetailsController controller;
   late RecommendationController recommendationController;
   late FinancialFundamentalsController financialFundamentalsController;
-  late TradingViewController tradingViewController;
   late WatchlistController watchlistController;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
   bool _isWatchlistOpen = false;
@@ -54,7 +51,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     controller = Get.put(StockDetailsController());
     recommendationController = RecommendationController();
     financialFundamentalsController = FinancialFundamentalsController();
-    tradingViewController = TradingViewController();
     watchlistController = Get.put(WatchlistController());
     
     // Initialize live price services
@@ -160,7 +156,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     
     recommendationController.dispose();
     financialFundamentalsController.dispose();
-    tradingViewController.dispose();
     super.dispose();
   }
 
@@ -1200,16 +1195,31 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             _buildStockHeader(stockData, isDarkMode),
             const SizedBox(height: 16),
 
-            // TradingView Chart and Analytics Row
+            // Chart and Analytics Row
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Half screen width for chart
+                // Half screen width for chart placeholder
                 Expanded(
-                  child: TradingViewWidget(
-                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: tradingViewController,
-                    height: 400,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? const Color(0xFF2D2D2D) 
+                          : const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Chart Placeholder',
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.white 
+                              : Colors.black87,
+                          fontSize: 16,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
