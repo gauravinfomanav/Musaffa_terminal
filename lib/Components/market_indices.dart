@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'dart:async'; // Import for Timer
@@ -73,9 +74,11 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
               "d": "S&P 500"
             },
             {
-              "s": "INDEX:DXY",
-              "d": "U.S. Dollar Currency Index"
-            },
+          "s": "CAPITALCOM:US500",
+          "d": "US 500",
+          "logoid": "indices/s-and-p-500",
+          "currency-logoid": "country/US"
+        },
             {
               "s": "FOREXCOM:DJI",
               "d": "Dow 30"
@@ -301,16 +304,10 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: MusaffaAutoSizeText(
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              text: "Market Indices",
-              style: AppTextStyles.displaySmall.copyWith(
-                // Use your specific text style
-                fontWeight: FontWeight.w400,
-                height: 1,
-              ),
-              minFontSize: 16,
+            child: Text(
+              "Market Indices",
+              textAlign: TextAlign.start,
+              style: DashboardTextStyles.titleSmall,
             ),
           ),
           const SizedBox(height: 30),
