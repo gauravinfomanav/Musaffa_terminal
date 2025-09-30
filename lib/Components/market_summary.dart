@@ -104,7 +104,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                         ),
                         child: DataTable(
                           headingRowHeight: 20,
-                          horizontalMargin: 0,
+                          horizontalMargin: 6,
                           dataRowMinHeight: 20,
                           dataRowMaxHeight: 32,
                           columns: controller.fixedDataCols,
@@ -129,7 +129,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                             child: DataTable(
                               headingRowHeight: 20,
                               horizontalMargin: 0,
-                              columnSpacing: 0,
+                              columnSpacing: 10,
                               dataRowMinHeight: 20,
                               dataRowMaxHeight: 32,
                               columns: controller.dataCols,
