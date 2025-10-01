@@ -816,7 +816,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                               ),
                             ),
                             TextSpan(
-                              text: '${_getChangePercentage(stockData)?.toStringAsFixed(2) ?? '--'}%',
+                              text: '${(_getChangePercentage(stockData) ?? 0) >= 0 ? '+' : ''}${_getChangePercentage(stockData)?.toStringAsFixed(2) ?? '--'}%',
                               style: DashboardTextStyles.headerChange.copyWith(
                                 color: _getChangeColor(stockData),
                               ),

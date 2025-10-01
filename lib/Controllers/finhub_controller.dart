@@ -221,8 +221,8 @@ class MarketIndex {
   }
 
   bool get isPositive => changePercent >= 0;
-  String get formattedChangePercent => '${changePercent.abs().toStringAsFixed(2)}%';
-  String get formattedChange => change.abs().toStringAsFixed(2);
+  String get formattedChangePercent => '${changePercent >= 0 ? '+' : ''}${changePercent.toStringAsFixed(2)}%';
+  String get formattedChange => '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}';
 
   MarketIndex copyWith({double? overrideChangePercent}) {
     return MarketIndex(

@@ -52,7 +52,7 @@ class _TopMoversWidgetState extends State<TopMoversWidget> {
         currency: item.currency,
         fields: {
           'price': item.currentPrice != null ? '\$${item.currentPrice!.toStringAsFixed(2)}' : '-',
-          'change': item.change1DPercent != null ? '${item.change1DPercent!.toStringAsFixed(2)}%' : '-',
+          'change': item.change1DPercent != null ? '${item.change1DPercent! >= 0 ? '+' : ''}${item.change1DPercent!.toStringAsFixed(2)}%' : '-',
         },
         // Store color info for the change column
         changeColor: changeColor,

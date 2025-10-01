@@ -133,7 +133,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return _buildPerformanceRow(
       'Top Gainer',
       topPerformer.companySymbol ?? topPerformer.ticker ?? '--',
-      '${(topPerformer.priceChange1DPercent ?? 0).toStringAsFixed(2)}%',
+      '${(topPerformer.priceChange1DPercent ?? 0) >= 0 ? '+' : ''}${(topPerformer.priceChange1DPercent ?? 0).toStringAsFixed(2)}%',
       isDarkMode,
     );
   }
@@ -158,7 +158,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return _buildPerformanceRow(
       'Top Loser',
       worstPerformer.companySymbol ?? worstPerformer.ticker ?? '--',
-      '${(worstPerformer.priceChange1DPercent ?? 0).toStringAsFixed(2)}%',
+      '${(worstPerformer.priceChange1DPercent ?? 0) >= 0 ? '+' : ''}${(worstPerformer.priceChange1DPercent ?? 0).toStringAsFixed(2)}%',
       isDarkMode,
     );
   }
@@ -589,7 +589,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         fields: {
           'ticker': stock.ticker ?? '--',
           'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
-          'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+          'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
           'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
           'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
           'sector': stock.sector ?? '--',
@@ -691,7 +691,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         currency: stock.currency ?? 'USD',
         fields: {
           'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
-          'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+          'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
           'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
           'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',

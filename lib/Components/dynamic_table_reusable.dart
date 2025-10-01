@@ -564,27 +564,31 @@ class _DynamicTableState extends State<DynamicTable> {
             textColor = rowModel.changeColor!;
           }
           
+          // Determine if we should show +/- prefix for change/gainLoss columns
+          String displayValue = cellData;
+          if (column.fieldName == 'change' || column.fieldName == 'gainLoss') {
+            // Parse the numeric value to determine sign
+            final numValue = double.tryParse(cellData.replaceAll(RegExp(r'[^\d.-]'), ''));
+            if (numValue != null) {
+              if (numValue > 0 && !cellData.startsWith('+')) {
+                displayValue = '+$cellData';
+              } else if (numValue == 0 && !cellData.startsWith('+') && !cellData.startsWith('-')) {
+                displayValue = '+$cellData';
+              }
+              // Update color based on actual value
+              if (numValue >= 0) {
+                textColor = Colors.green.shade600;
+              } else {
+                textColor = Colors.red.shade600;
+              }
+            }
+          }
+          
           DataCell cell = DataCell(
-            (column.fieldName == 'change' || column.fieldName == 'gainLoss') && rowModel.isPositive != null
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        rowModel.isPositive! ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                        color: textColor,
-                        size: 14,
-                      ),
-                      SizedBox(width: 2),
-                      Text(
-                        cellData,
-                        style: DashboardTextStyles.dataCell.copyWith(color: textColor),
-                      ),
-                    ],
-                  )
-                : Text(
-                    cellData,
-                    style: DashboardTextStyles.dataCell.copyWith(color: textColor),
-                  ),
+            Text(
+              displayValue,
+              style: DashboardTextStyles.dataCell.copyWith(color: textColor),
+            ),
           );
           cellArr.add(cell);
         });
