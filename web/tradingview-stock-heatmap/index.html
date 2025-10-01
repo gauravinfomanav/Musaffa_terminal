@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Heatmap</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #FFFFFF; border: none !important; outline: none !important; }
+        .tradingview-widget-container { 
+            height: 100%; 
+            width: 100%; 
+            background: #FFFFFF !important; 
+            border: none !important;
+            outline: none !important;
+        }
+        .tradingview-widget-container__widget { 
+            background: #FFFFFF !important; 
+            border: none !important;
+            outline: none !important;
+        }
+        iframe { 
+            background: #FFFFFF !important; 
+            border: none !important;
+            outline: none !important;
+        }
+        [class*="tradingview"] { 
+            background: #FFFFFF !important; 
+            border: none !important;
+            outline: none !important;
+        }
+        div[style*="background"] { 
+            background: #FFFFFF !important; 
+            border: none !important;
+            outline: none !important;
+        }
+        * { border: none !important; outline: none !important; }
+        
+        /* Remove WebView borders and shadows */
+        body, html, div, iframe, * { 
+            border: none !important; 
+            outline: none !important; 
+            box-shadow: none !important;
+            -webkit-box-shadow: none !important;
+            -moz-box-shadow: none !important;
+        }
+        
+        /* Force remove any default WebView styling */
+        .tradingview-widget-container {
+            border: 0 !important;
+            outline: 0 !important;
+            box-shadow: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+        }
+        
+        /* Remove blue highlight on scroll */
+        * { -webkit-tap-highlight-color: transparent !important; }
+        * { -webkit-touch-callout: none !important; }
+        * { -webkit-user-select: none !important; }
+        * { -moz-user-select: none !important; }
+        * { -ms-user-select: none !important; }
+        * { user-select: none !important; }
+        
+        /* Remove scroll bounce and blue header */
+        body { -webkit-overflow-scrolling: touch !important; }
+        * { -webkit-overflow-scrolling: touch !important; }
+        
+        /* Hide scrollbars and prevent scrolling */
+        ::-webkit-scrollbar { display: none !important; }
+        * { scrollbar-width: none !important; }
+        
+        /* Prevent any scrolling within the widget */
+        * { overflow: hidden !important; }
+        body { overflow: hidden !important; }
+        html { overflow: hidden !important; }
+        
+        /* Enable zoom/pan but disable clicks */
+        .tradingview-widget-container { 
+            pointer-events: auto !important;
+            cursor: grab !important;
+        }
+        .tradingview-widget-container__widget { 
+            pointer-events: auto !important;
+            cursor: grab !important;
+        }
+        iframe { 
+            pointer-events: auto !important;
+            cursor: grab !important;
+        }
+        
+        /* Disable click events on links and buttons */
+        a { pointer-events: none !important; }
+        button { pointer-events: none !important; }
+        [onclick] { pointer-events: none !important; }
+        
+        /* Keep other elements non-interactive */
+        body { pointer-events: none !important; }
+        html { pointer-events: none !important; }
+    </style>
+</head>
+<body>
+    <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+        {
+            "dataSource": "SPX500",
+            "blockSize": "market_cap_basic",
+            "blockColor": "change",
+            "grouping": "sector",
+            "locale": "en",
+            "symbolUrl": "",
+            "colorTheme": "light",
+            "exchanges": [],
+            "hasTopBar": false,
+            "isDataSetEnabled": false,
+            "isZoomEnabled": true,
+            "hasSymbolTooltip": true,
+            "isMonoSize": false,
+            "width": "100%",
+            "height": "100%"
+        }
+        </script>
+    </div>
+    
+    <script>
+        // Prevent all clicks and navigation while allowing zoom/pan
+        document.addEventListener('DOMContentLoaded', function() {
+            // Prevent all click events
+            document.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                return false;
+            }, true);
+            
+            // Prevent context menu
+            document.addEventListener('contextmenu', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }, true);
+            
+            // Override window.open to prevent popups
+            window.open = function() {
+                return null;
+            };
+            
+            // Prevent all link clicks
+            document.addEventListener('click', function(event) {
+                const target = event.target;
+                if (target.tagName === 'A' || target.closest('a')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    return false;
+                }
+            }, true);
+            
+            // Prevent all button clicks
+            document.addEventListener('click', function(event) {
+                const target = event.target;
+                if (target.tagName === 'BUTTON' || target.closest('button')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
+                    return false;
+                }
+            }, true);
+            
+            // Disable all links after they load
+            setTimeout(function() {
+                const links = document.querySelectorAll('a');
+                links.forEach(link => {
+                    link.style.pointerEvents = 'none';
+                    link.onclick = function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return false;
+                    };
+                });
+            }, 1000);
+        });
+        
+        const channelName = 'ResizeObserver';
+        
+        function sendHeight() {
+            setTimeout(() => {
+                const widgetContainer = document.querySelector('.tradingview-widget-container');
+                const widget = document.querySelector('.tradingview-widget-container__widget');
+
+                let height = 0;
+
+                if (widget && widget.offsetHeight > 0) {
+                    height = widget.offsetHeight;
+                } else if (widgetContainer && widgetContainer.offsetHeight > 0) {
+                    height = widgetContainer.offsetHeight;
+                } else {
+                    height = document.body.scrollHeight;
+                }
+
+                height = Math.max(height + 20, 400); // Minimum 400px
+
+                if (window[channelName] && typeof window[channelName].postMessage === 'function') {
+                    window[channelName].postMessage(height.toString());
+                    console.log('Sent dynamic height: ' + height);
+                } else {
+                     console.error('Flutter JavaScript channel not found: ' + channelName);
+                }
+            }, 1000); // Wait 1 second for widget to fully load
+        }
+
+        // Send height when page loads
+        window.addEventListener('load', sendHeight);
+        
+        // Send height when widget loads
+        if (typeof TradingView !== 'undefined') {
+            sendHeight();
+        } else {
+            // Wait for TradingView to load
+            const checkTradingView = setInterval(() => {
+                if (typeof TradingView !== 'undefined') {
+                    clearInterval(checkTradingView);
+                    sendHeight();
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>
