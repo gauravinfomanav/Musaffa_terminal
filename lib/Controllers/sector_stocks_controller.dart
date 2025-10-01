@@ -89,12 +89,13 @@ class SectorStocksController extends GetxController {
         
         // Clear existing logos - will be loaded per page
         _logoMap.value = {};
+        _companyNamesMap.value = {};
         
         // Store all stocks and update pagination
         _allSectorStocks.value = stocks;
         _totalStocks.value = stocks.length;
         _currentPage.value = 0;
-        _updatePaginatedStocks();
+        await _updatePaginatedStocks();
         
      } else {
         errorMessage.value = 'API Error: ${response.statusCode}';
@@ -176,12 +177,13 @@ class SectorStocksController extends GetxController {
       
       // Clear existing logos - will be loaded per page
       _logoMap.value = {};
+      _companyNamesMap.value = {};
       
       // Store all stocks and update pagination
       _allSectorStocks.value = uniqueStocks.values.toList();
       _totalStocks.value = _allSectorStocks.length;
       _currentPage.value = 0;
-      _updatePaginatedStocks();
+      await _updatePaginatedStocks();
       
       
     } catch (e) {
@@ -273,13 +275,77 @@ class SectorStocksController extends GetxController {
   }
 
   /// Update paginated stocks based on current page
-  void _updatePaginatedStocks() {
+  Future<void> _updatePaginatedStocks() async {
     final startIndex = _currentPage.value * _pageSize.value;
     final endIndex = (startIndex + _pageSize.value).clamp(0, _allSectorStocks.length);
-    _sectorStocks.value = _allSectorStocks.sublist(startIndex, endIndex);
     
-    // Load logos for current page stocks only
-    _loadLogosForCurrentPage();
+    final pageStocks = _allSectorStocks.sublist(startIndex, endIndex);
+    List<String> currentPageTickers = pageStocks
+        .where((stock) => stock.ticker != null)
+        .map((stock) => stock.ticker!)
+        .toList();
+    
+    // Update visible stocks IMMEDIATELY for instant pagination
+    _sectorStocks.value = pageStocks;
+    
+    // THEN fetch logos and names in background (if not already cached)
+    if (currentPageTickers.isNotEmpty) {
+      // Check which tickers need data
+      List<String> tickersNeedingData = currentPageTickers
+          .where((ticker) => 
+              !_companyNamesMap.containsKey(ticker) || 
+              !_logoMap.containsKey(ticker))
+          .toList();
+      
+      if (tickersNeedingData.isNotEmpty) {
+        // Fetch only for tickers that don't have data yet
+        Map<String, String> pageLogos = await _fetchCompanyLogos(tickersNeedingData);
+        Map<String, String> pageNames = await _fetchCompanyNames(tickersNeedingData);
+        
+        // Update maps with new data
+        _logoMap.value = {..._logoMap, ...pageLogos};
+        _companyNamesMap.value = {..._companyNamesMap, ...pageNames};
+      }
+    }
+    
+    // Pre-load next page data in background for instant next page
+    _preloadNextPageData();
+  }
+  
+  /// Pre-load logos and names for next page to make pagination instant
+  Future<void> _preloadNextPageData() async {
+    if (!hasNextPage) return;
+    
+    final nextPageIndex = _currentPage.value + 1;
+    final startIndex = nextPageIndex * _pageSize.value;
+    final endIndex = (startIndex + _pageSize.value).clamp(0, _allSectorStocks.length);
+    
+    if (startIndex >= _allSectorStocks.length) return;
+    
+    final nextPageStocks = _allSectorStocks.sublist(startIndex, endIndex);
+    List<String> nextPageTickers = nextPageStocks
+        .where((stock) => stock.ticker != null)
+        .map((stock) => stock.ticker!)
+        .toList();
+    
+    if (nextPageTickers.isEmpty) return;
+    
+    // Check which tickers need data
+    List<String> tickersNeedingData = nextPageTickers
+        .where((ticker) => 
+            !_companyNamesMap.containsKey(ticker) || 
+            !_logoMap.containsKey(ticker))
+        .toList();
+    
+    if (tickersNeedingData.isNotEmpty) {
+      // Fetch in background
+      Map<String, String> pageLogos = await _fetchCompanyLogos(tickersNeedingData);
+      Map<String, String> pageNames = await _fetchCompanyNames(tickersNeedingData);
+      
+      // Update maps silently (no UI rebuild)
+      _logoMap.value = {..._logoMap, ...pageLogos};
+      _companyNamesMap.value = {..._companyNamesMap, ...pageNames};
+    }
   }
   
   /// Load logos and company names only for stocks on the current page
@@ -304,26 +370,26 @@ class SectorStocksController extends GetxController {
   }
   
   /// Go to next page
-  void nextPage() {
+  Future<void> nextPage() async {
     if (hasNextPage) {
       _currentPage.value++;
-      _updatePaginatedStocks();
+      await _updatePaginatedStocks();
     }
   }
   
   /// Go to previous page
-  void previousPage() {
+  Future<void> previousPage() async {
     if (hasPreviousPage) {
       _currentPage.value--;
-      _updatePaginatedStocks();
+      await _updatePaginatedStocks();
     }
   }
   
   /// Go to specific page
-  void goToPage(int page) {
+  Future<void> goToPage(int page) async {
     if (page >= 0 && page < totalPages) {
       _currentPage.value = page;
-      _updatePaginatedStocks();
+      await _updatePaginatedStocks();
     }
   }
 
