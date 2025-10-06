@@ -17,8 +17,8 @@ class SearchService {
         "include_fields": "*,\$stocks_data(id,sharia_compliance,ranking,ranking_v2)",
         "query_by_weights": "1,2",
         "prioritize_token_position": true,
-        "per_page": 20,
-        "filter_by": '\$stocks_data(status:=PUBLISH&&country:=[PH,US,SE,PK,NZ,KW,NO,TR,TH,SG,MX,SA,ZA,TW,PT,BE,CA,BR,DE,AE,CL,BD,ES,AT,CH,DK,EG,CZ,BH,FR,CN,ID,CO,FI,HU,IS,GB,KR,GR,NL,PL,MY,HK,IE,IN,IT,JP,QA,RU,AU,AR])',
+        "per_page": 250,
+        "filter_by": '\$stocks_data(status:=PUBLISH&&country:=[US])',
       };
 
       final etfProfileQuery = {
@@ -29,8 +29,8 @@ class SearchService {
         "include_fields": "*,\$etfs_data(id,aum,domicile,shariahCompliantStatus,ranking_v2)",
         "query_by_weights": "1,2",
         "prioritize_token_position": true,
-        "per_page": 20,
-        "filter_by": '\$etfs_data(domicile:=[US,CA,DE,GB,IN])',
+        "per_page": 250,
+        "filter_by": '\$etfs_data(domicile:=[US])',
       };
 
       final searchesArr = [companyProfileQuery, etfProfileQuery];

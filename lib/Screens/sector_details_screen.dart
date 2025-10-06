@@ -589,8 +589,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         fields: {
           'ticker': stock.ticker ?? '--',
           'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
-          'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
-          'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
+          // 'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+          // 'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
           'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
           'sector': stock.sector ?? '--',
           'industry': stock.industry ?? '--',
@@ -608,8 +608,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return DynamicTable(
       columns: const [
         SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-        SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-        SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+        // SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+        // SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
         SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
         SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
         SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
