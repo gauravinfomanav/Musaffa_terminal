@@ -182,13 +182,13 @@ class _SearchFieldState extends State<_SearchField> {
         left: position.dx,
         width: size.width,
         child: Material(
-          elevation: 8,
-          borderRadius: BorderRadius.circular(8),
+          elevation: 4,
+          borderRadius: BorderRadius.circular(6),
           child: Container(
             constraints: const BoxConstraints(maxHeight: 300),
             decoration: BoxDecoration(
-              color: widget.isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              color: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
                 width: 1,
@@ -390,47 +390,48 @@ class _SearchFieldState extends State<_SearchField> {
         ),
         decoration: InputDecoration(
           prefixIcon: Icon(
-            Icons.search,
-            size: 20,
-            color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+            Icons.search_rounded,
+            size: 18,
+            color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
           ),
           hintText: 'Search symbols, ETFs, or stocks...',
           hintStyle: DashboardTextStyles.tickerSymbol.copyWith(
-            color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+            color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            fontSize: 13,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           filled: true,
-          fillColor: widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+          fillColor: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFFAFAFA),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             borderSide: BorderSide(
               color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
               width: 1,
             ),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             borderSide: BorderSide(
               color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
               width: 1,
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(
-              color: Color(0xFF4F46E5),
-              width: 1.5,
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide(
+              color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              width: 1,
             ),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             borderSide: BorderSide(
               color: Color(0xFFDC2626),
               width: 1,
             ),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             borderSide: BorderSide(
               color: Color(0xFFDC2626),
               width: 1.5,
