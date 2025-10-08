@@ -124,7 +124,13 @@
         }
 
         function formatSymbol(symbol) {
-            // Common exchanges mapping
+            // If symbol already has exchange prefix (contains ':'), return as-is
+            if (symbol.includes(':')) {
+                console.log('Symbol already has exchange prefix:', symbol);
+                return symbol;
+            }
+            
+            // Common exchanges mapping for stocks without prefix
             const exchanges = {
                 'AAPL': 'NASDAQ',
                 'MSFT': 'NASDAQ',
@@ -149,7 +155,9 @@
             };
             
             const exchange = exchanges[symbol] || 'NASDAQ';
-            return `${exchange}:${symbol}`;
+            const formatted = `${exchange}:${symbol}`;
+            console.log('Formatted symbol:', symbol, '->', formatted);
+            return formatted;
         }
 
         function updateSymbol(newSymbol) {

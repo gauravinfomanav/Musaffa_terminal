@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Components/simple_news_widget.dart';
 import 'package:musaffa_terminal/Components/recommendation_widget.dart';
+import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
@@ -14,7 +15,6 @@ import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
-import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
 
 class TickerDetailScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -313,99 +313,16 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                       ),
                       GestureDetector(
                         onTap: () {}, // Prevent closing when tapping on sidebar itself
-                        child: _buildWatchlistSidebar(),
+                        child: WatchlistSidebar(
+                          isDarkMode: isDarkMode,
+                          onClose: _toggleWatchlist,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWatchlistSidebar() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final sidebarWidth = screenWidth > 1200 
-        ? screenWidth * 0.35  // 35% of screen width on larger screens
-        : screenWidth > 800 
-            ? screenWidth * 0.4  // 40% on medium screens
-            : screenWidth * 0.5; // 50% on smaller screens
-    
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      width: sidebarWidth.clamp(320.0, 600.0), // Min 320px, max 600px
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        border: Border(
-          left: BorderSide(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
-            blurRadius: 10,
-            offset: const Offset(-2, 0),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-              border: Border(
-                bottom: BorderSide(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.monitor,
-                  size: 16,
-                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'MONITOR',
-                    style: DashboardTextStyles.columnHeader.copyWith(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _toggleWatchlist,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.close,
-                      size: 14,
-                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Content - Watchlist Dropdown
-          Expanded(
-            child: WatchlistDropdown(isDarkMode: isDarkMode),
-          ),
         ],
       ),
     );
