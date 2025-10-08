@@ -21,20 +21,20 @@ class SearchService {
         "filter_by": '\$stocks_data(status:=PUBLISH&&country:=[US])',
       };
 
-      // final etfProfileQuery = {
-      //   "collection": FirestoreConstants.ETF_PROFILE_COLLECTION,
-      //   "q": query,
-      //   "query_by": "name,symbol",
-      //   "sort_by": "_text_match:desc,\$etfs_data(aum:desc)",
-      //   "include_fields": "*,\$etfs_data(id,aum,domicile,shariahCompliantStatus,ranking_v2)",
-      //   "query_by_weights": "1,2",
-      //   "prioritize_token_position": true,
-      //   "per_page": 250,
-      //   "filter_by": '\$etfs_data(domicile:=[US])',
-      // };
+      final etfProfileQuery = {
+        "collection": FirestoreConstants.ETF_PROFILE_COLLECTION,
+        "q": query,
+        "query_by": "name,symbol",
+        "sort_by": "_text_match:desc,\$etfs_data(aum:desc)",
+        "include_fields": "*,\$etfs_data(id,aum,domicile,shariahCompliantStatus,ranking_v2)",
+        "query_by_weights": "1,2",
+        "prioritize_token_position": true,
+        "per_page": 250,
+        "filter_by": '\$etfs_data(domicile:=[US])',
+      };
 
-      // final searchesArr = [companyProfileQuery, etfProfileQuery];
-      final searchesArr = [companyProfileQuery];
+      final searchesArr = [companyProfileQuery, etfProfileQuery];
+      // final searchesArr = [companyProfileQuery];
       final req = {"searches": searchesArr};
 
       final response = await _webService.postTypeSense(['multi_search'], jsonEncode(req), {});

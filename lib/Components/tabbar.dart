@@ -9,6 +9,7 @@ import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
+import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/web_service.dart';
@@ -248,13 +249,22 @@ class _SearchFieldState extends State<_SearchField> {
     _searchController.clear();
     _focusNode.unfocus();
     
-    // Navigate to ticker detail screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TickerDetailScreen(ticker: ticker),
-      ),
-    );
+    // Navigate to appropriate screen based on isStock flag
+    if (ticker.isStock) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TickerDetailScreen(ticker: ticker),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EtfDetailsScreen(ticker: ticker),
+        ),
+      );
+    }
   }
 
 
