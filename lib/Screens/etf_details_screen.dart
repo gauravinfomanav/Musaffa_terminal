@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Controllers/etf_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
@@ -40,6 +41,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.fetchEtfDetails(widget.ticker.symbol ?? '');
+      controller.fetchEtfHoldings(widget.ticker.symbol ?? '');
     });
   }
 
@@ -227,9 +229,10 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           ),
           const SizedBox(height: 16),
           
-          // Description Section
-          if (etfData.etfProfile?.description != null)
-            _buildDescriptionSection(etfData, isDarkMode),
+        // Holdings Table
+        _buildHoldingsTable(isDarkMode),
+        const SizedBox(height: 16),
+        _buildHoldingsPaginationControls(),
         ],
       ),
     );
@@ -598,7 +601,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
       );
     }
 
-    // Convert sector exposure to Map<String, num>
+    // Convert sector exposure to Map<String, num> and sort by value (descending)
     final sectorData = <String, num>{};
     etfData.sectorExposure!.forEach((key, value) {
       if (value is num && value > 0) {
@@ -606,9 +609,18 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
       }
     });
 
+    // Sort by value in descending order (highest first)
+    final sortedEntries = sectorData.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    
+    final sortedSectorData = <String, num>{};
+    for (final entry in sortedEntries) {
+      sortedSectorData[entry.key] = entry.value;
+    }
+
     return _buildPieChartContainer(
       title: 'Sector Exposure',
-      data: sectorData,
+      data: sortedSectorData,
       isDarkMode: isDarkMode,
     );
   }
@@ -836,6 +848,257 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     });
   }
 
+  Widget _buildHoldingsTable(bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Top Holdings',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
+                      ),
+                    ),
+                    Obx(() {
+                      final totalHoldings = controller.holdingsData.value?.holdings.length ?? 0;
+                      return Text(
+                        '$totalHoldings Holdings',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 12),
+          
+          Obx(() {
+            if (controller.isLoadingHoldings.value) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            
+            if (controller.holdingsErrorMessage.value.isNotEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Text(
+                    'Error: ${controller.holdingsErrorMessage.value}',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 12,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
+                  ),
+                ),
+              );
+            }
+            
+            final enrichedHoldings = controller.enrichedHoldings;
+            if (enrichedHoldings.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Text(
+                    'No holdings data available',
+                    style: TextStyle(
+                      color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                      fontSize: 12,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
+                  ),
+                ),
+              );
+            }
+            
+            // Convert to SimpleRowModel for DynamicTable (already sorted by controller)
+            final tableRows = enrichedHoldings.map((enrichedHolding) {
+              final holding = enrichedHolding.holding;
+              final stockData = enrichedHolding.stockData;
+              final companyProfile = enrichedHolding.companyProfile;
+              
+              return SimpleRowModel(
+                symbol: holding.symbol,
+                name: companyProfile?.name ?? holding.name,
+                logo: companyProfile?.logo,
+                price: stockData?.currentPrice,
+                changePercent: stockData?.priceChange1DPercent,
+                currency: 'USD',
+                fields: {
+                  'weight': '${holding.percent.toStringAsFixed(2)}%',
+                  'value': Constants.getShortenedMarketCapV2(holding.value),
+                  'currentPrice': stockData?.currentPrice != null ? '\$${stockData!.currentPrice!.toStringAsFixed(2)}' : '--',
+                  'change': stockData?.priceChange1D != null ? '${stockData!.priceChange1D!.toStringAsFixed(2)}' : '--',
+                  'changePercent': stockData?.priceChange1DPercent != null ? '${stockData!.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+                  'volume': stockData?.volume != null ? '${((stockData!.volume! / 1000000).toStringAsFixed(1))}M' : '--',
+                  'marketCap': stockData?.usdMarketCap != null ? Constants.getShortenedMarketCapV2(stockData!.usdMarketCap!) : '--',
+                  'pe': stockData?.peTTM != null ? '${stockData!.peTTM!.toStringAsFixed(1)}' : '--',
+                  'pb': stockData?.pbAnnual != null ? '${stockData!.pbAnnual!.toStringAsFixed(2)}' : '--',
+                  'ps': stockData?.psTTM != null ? '${stockData!.psTTM!.toStringAsFixed(1)}' : '--',
+                  'eps': stockData?.epsTTM != null ? '\$${stockData!.epsTTM!.toStringAsFixed(2)}' : '--',
+                  'dividend': stockData?.currentDividendYieldTTM != null ? '${stockData!.currentDividendYieldTTM!.toStringAsFixed(2)}%' : '--',
+                  'beta': stockData?.beta != null ? '${stockData!.beta!.toStringAsFixed(2)}' : '--',
+                  'roe': stockData?.rOE != null ? '${stockData!.rOE!.toStringAsFixed(1)}%' : '--',
+                  'margin': stockData?.netProfitMarginTTM != null ? '${stockData!.netProfitMarginTTM!.toStringAsFixed(1)}%' : '--',
+                  'debt': stockData?.longTermDebtEquityAnnual != null ? '${stockData!.longTermDebtEquityAnnual!.toStringAsFixed(1)}%' : '--',
+                  '52wHigh': stockData?.d52WeekHigh != null ? '\$${stockData!.d52WeekHigh!.toStringAsFixed(2)}' : '--',
+                  '52wLow': stockData?.d52WeekLow != null ? '\$${stockData!.d52WeekLow!.toStringAsFixed(2)}' : '--',
+                  'return1Y': stockData?.priceChange1YPercent != null ? '${stockData!.priceChange1YPercent!.toStringAsFixed(1)}%' : '--',
+                  'return3Y': stockData?.priceChange3YPercent != null ? '${stockData!.priceChange3YPercent!.toStringAsFixed(1)}%' : '--',
+                },
+                changeColor: stockData?.priceChange1D != null 
+                    ? (stockData!.priceChange1D! >= 0 ? Colors.green : Colors.red)
+                    : null,
+              );
+            }).toList();
+            
+            return DynamicTable(
+              columns: const [
+                SimpleColumn(label: 'WEIGHT', fieldName: 'weight', isNumeric: true),
+                SimpleColumn(label: 'VALUE', fieldName: 'value', isNumeric: true),
+                SimpleColumn(label: 'PRICE', fieldName: 'currentPrice', isNumeric: true),
+                SimpleColumn(label: 'CHANGE', fieldName: 'change', isNumeric: true),
+                SimpleColumn(label: 'CHANGE %', fieldName: 'changePercent', isNumeric: true),
+                SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+                SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+                SimpleColumn(label: 'P/E', fieldName: 'pe', isNumeric: true),
+                SimpleColumn(label: 'P/B', fieldName: 'pb', isNumeric: true),
+                SimpleColumn(label: 'P/S', fieldName: 'ps', isNumeric: true),
+                SimpleColumn(label: 'EPS', fieldName: 'eps', isNumeric: true),
+                SimpleColumn(label: 'DIV YIELD', fieldName: 'dividend', isNumeric: true),
+                SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+                SimpleColumn(label: 'ROE', fieldName: 'roe', isNumeric: true),
+                SimpleColumn(label: 'MARGIN', fieldName: 'margin', isNumeric: true),
+                SimpleColumn(label: 'DEBT/EQUITY', fieldName: 'debt', isNumeric: true),
+                SimpleColumn(label: '52W HIGH', fieldName: '52wHigh', isNumeric: true),
+                SimpleColumn(label: '52W LOW', fieldName: '52wLow', isNumeric: true),
+                SimpleColumn(label: '1Y RETURN', fieldName: 'return1Y', isNumeric: true),
+                SimpleColumn(label: '3Y RETURN', fieldName: 'return3Y', isNumeric: true),
+              ],
+              rows: tableRows,
+              showFixedColumn: true,
+              considerPadding: false,
+              columnSpacing: 16,
+              fixedColumnWidth: 0,
+              enableDragging: true,
+              enableLivePrices: true,
+              onDragStarted: () {
+                // Drag started
+              },
+              onDragEnd: () {
+                // Drag ended
+              },
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHoldingsPaginationControls() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Obx(() {
+      if (controller.totalHoldingsPages.value <= 1) return const SizedBox.shrink();
+      
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Page info in the center-left
+          Text(
+            'Page ${controller.currentHoldingsPage.value + 1} of ${controller.totalHoldingsPages.value} (${controller.holdingsData.value?.holdings.length ?? 0} holdings)',
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ),
+          
+          // Navigation buttons on the right
+          Row(
+            children: [
+              // Previous button - only show if not on first page
+              if (controller.hasPreviousHoldingsPage) ...[
+                GestureDetector(
+                  onTap: () => controller.previousHoldingsPage(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      'Previous',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              
+              // Next button - only show if there are more pages
+              if (controller.hasNextHoldingsPage)
+                GestureDetector(
+                  onTap: () => controller.nextHoldingsPage(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      'Next',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      );
+    });
+  }
+
+
+
   List<Color> _getChartColors() {
     return [
       const Color(0xFF60A5FA), // Blue
@@ -1038,44 +1301,6 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     );
   }
 
-  Widget _buildDescriptionSection(EtfsData etfData, bool isDarkMode) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'About',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            etfData.etfProfile!.description!,
-            style: TextStyle(
-              fontSize: 12,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // Custom Pie Chart Painter
