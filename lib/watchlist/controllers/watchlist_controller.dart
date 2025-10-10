@@ -78,7 +78,8 @@ class WatchlistController extends GetxController {
   }
 
   /// Fetch all watchlists from API
-  Future<void> fetchWatchlists() async {
+  /// skipAutoSelect: if true, won't auto-select a watchlist (used when creating new watchlist)
+  Future<void> fetchWatchlists({bool skipAutoSelect = false}) async {
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -94,25 +95,28 @@ class WatchlistController extends GetxController {
         if (watchlistResponse.status == 'success') {
           watchlists.value = watchlistResponse.data;
           
-          // Select watchlist based on user preferences or fallback logic
-          if (watchlists.isNotEmpty) {
-            WatchlistModel? watchlistToSelect;
-            
-            // First priority: user's default watchlist (ALWAYS use if set)
-            if (userPreferences.value?.defaultWatchlistId != null) {
-              final defaultWatchlist = watchlists.where((w) => w.id == userPreferences.value!.defaultWatchlistId);
-              if (defaultWatchlist.isNotEmpty) {
-                watchlistToSelect = defaultWatchlist.first;
+          // Only auto-select if not skipped
+          if (!skipAutoSelect) {
+            // Select watchlist based on user preferences or fallback logic
+            if (watchlists.isNotEmpty) {
+              WatchlistModel? watchlistToSelect;
+              
+              // First priority: user's default watchlist (ALWAYS use if set)
+              if (userPreferences.value?.defaultWatchlistId != null) {
+                final defaultWatchlist = watchlists.where((w) => w.id == userPreferences.value!.defaultWatchlistId);
+                if (defaultWatchlist.isNotEmpty) {
+                  watchlistToSelect = defaultWatchlist.first;
+                }
               }
+              
+              // Second priority: first watchlist (fallback if no default)
+              if (watchlistToSelect == null) {
+                watchlistToSelect = watchlists.first;
+              }
+              
+              selectedWatchlist.value = watchlistToSelect;
+              fetchWatchlistStocks(selectedWatchlist.value!.id);
             }
-            
-            // Second priority: first watchlist (fallback if no default)
-            if (watchlistToSelect == null) {
-              watchlistToSelect = watchlists.first;
-            }
-            
-            selectedWatchlist.value = watchlistToSelect;
-            fetchWatchlistStocks(selectedWatchlist.value!.id);
           }
         } else {
           errorMessage.value = 'Failed to fetch watchlists';
@@ -200,15 +204,18 @@ class WatchlistController extends GetxController {
             newWatchlistId = responseData['data']['id'];
           }
           
-          // Refresh the watchlists to get the updated list
-          await fetchWatchlists();
+          // Clear current stocks to show empty state immediately
+          watchlistStocks.clear();
+          
+          // Refresh the watchlists to get the updated list (skip auto-select)
+          await fetchWatchlists(skipAutoSelect: true);
           
           // Auto-select the newly created watchlist
           if (newWatchlistId != null) {
             final newWatchlists = watchlists.where((w) => w.id == newWatchlistId);
             if (newWatchlists.isNotEmpty) {
               selectedWatchlist.value = newWatchlists.first;
-              fetchWatchlistStocks(selectedWatchlist.value!.id);
+              await fetchWatchlistStocks(selectedWatchlist.value!.id);
               
               // If no default watchlist is set, set this new one as default
               if (userPreferences.value?.defaultWatchlistId == null) {
@@ -219,7 +226,7 @@ class WatchlistController extends GetxController {
             // Fallback: select the last watchlist (likely the newest)
             if (watchlists.isNotEmpty) {
               selectedWatchlist.value = watchlists.last;
-              fetchWatchlistStocks(selectedWatchlist.value!.id);
+              await fetchWatchlistStocks(selectedWatchlist.value!.id);
               
               // If no default watchlist is set, set this one as default
               if (userPreferences.value?.defaultWatchlistId == null) {
@@ -229,10 +236,10 @@ class WatchlistController extends GetxController {
           }
         } catch (parseError) {
           // Still refresh and try to select the newest
-          await fetchWatchlists();
+          await fetchWatchlists(skipAutoSelect: true);
           if (watchlists.isNotEmpty) {
             selectedWatchlist.value = watchlists.last;
-            fetchWatchlistStocks(selectedWatchlist.value!.id);
+            await fetchWatchlistStocks(selectedWatchlist.value!.id);
           }
         }
         
