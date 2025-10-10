@@ -70,6 +70,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   void _toggleWatchlist() {
     setState(() {
       _isWatchlistOpen = !_isWatchlistOpen;
+      
+      // When opening the watchlist, reset to default watchlist
+      if (_isWatchlistOpen) {
+        watchlistController.resetToDefaultWatchlist();
+      }
     });
   }
 

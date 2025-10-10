@@ -40,8 +40,6 @@ class EtfDetailsController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       
-      print('Fetching ETF details for symbol: $symbol');
-      
       // Set current ETF symbol and clear previous cache
       _currentEtfSymbol = symbol;
       enrichedHoldings.clear();
@@ -60,14 +58,11 @@ class EtfDetailsController extends GetxController {
         "filter_by": "\$etf_profile_collection_4(id:*)&&id:=[`$symbol`]"
       });
 
-      print('ETF details API response status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
         // Check if data is the expected structure
         if (data is! Map<String, dynamic>) {
-          print('Unexpected data type for ETF $symbol: ${data.runtimeType}');
           errorMessage.value = 'Unexpected data format from API';
           return;
         }
@@ -77,19 +72,14 @@ class EtfDetailsController extends GetxController {
         if (hits != null && hits.isNotEmpty) {
           final document = hits[0]['document'] as Map<String, dynamic>;
           etfData.value = EtfsData.fromJson(document);
-          print('Successfully fetched ETF details for $symbol');
         } else {
-          print('No hits found for ETF $symbol');
           errorMessage.value = 'No ETF data found for $symbol';
         }
       } else {
-        print('ETF details API failed for $symbol with status: ${response.statusCode}');
         errorMessage.value = 'API failed with status: ${response.statusCode}';
       }
     } catch (e, stackTrace) {
       errorMessage.value = 'Error: $e';
-      print('Error fetching ETF details for $symbol: $e');
-      print('Stack trace: $stackTrace');
     } finally {
       isLoading.value = false;
     }
@@ -101,8 +91,6 @@ class EtfDetailsController extends GetxController {
       holdingsErrorMessage.value = '';
       enrichedHoldings.clear();
 
-      print('Fetching ETF holdings for symbol: $symbol');
-
       // Fetch ETF holdings data
       final response = await WebService.getTypesense([
         'collections',
@@ -110,8 +98,6 @@ class EtfDetailsController extends GetxController {
         'documents',
         symbol
       ], {});
-
-      print('ETF holdings API response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -126,18 +112,14 @@ class EtfDetailsController extends GetxController {
           allHoldings.sort((a, b) => b.percent.compareTo(a.percent));
           totalHoldingsPages.value = (allHoldings.length / holdingsPerPage.value).ceil();
           
-          print('Successfully fetched ${allHoldings.length} holdings for $symbol');
-          
           // Load first page
           await loadHoldingsPage(0);
         } else if (data is List) {
           // Handle case where API returns a list directly
-          print('ETF holdings API returned a List for $symbol, no holdings available');
           holdingsErrorMessage.value = 'No holdings data available for this ETF';
           holdingsData.value = null;
           totalHoldingsPages.value = 0;
         } else {
-          print('Unexpected data type from holdings API for $symbol: ${data.runtimeType}');
           holdingsErrorMessage.value = 'Unexpected data format from holdings API';
         }
       } else if (response.statusCode == 404) {
@@ -191,7 +173,7 @@ class EtfDetailsController extends GetxController {
       // Pre-load multiple pages in background for instant navigation
       _preloadMultiplePages();
     } catch (e) {
-      print('Error loading holdings page: $e');
+      holdingsErrorMessage.value = 'Error loading page: $e';
     } finally {
       isLoadingHoldings.value = false;
     }
@@ -223,7 +205,7 @@ class EtfDetailsController extends GetxController {
           _preloadedPagesCache[_currentEtfSymbol!]![pageIndex] = preloadedData;
         }
       }).catchError((e) {
-        print('Error preloading page $pageIndex: $e');
+        // Silently handle preload errors
       });
     }
   }
@@ -307,8 +289,7 @@ class EtfDetailsController extends GetxController {
           companyProfile: companyProfile,
         ));
       } catch (e) {
-        print('Error fetching stock data for ${holding.symbol}: $e');
-        // Add holding without stock data
+        // Add holding without stock data if fetch fails
         enrichedList.add(EtfHoldingWithStockData(
           holding: holding,
           stockData: null,

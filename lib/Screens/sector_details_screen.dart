@@ -63,6 +63,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   void _toggleWatchlist() {
     setState(() {
       _isWatchlistOpen = !_isWatchlistOpen;
+      
+      // When opening the watchlist, reset to default watchlist
+      if (_isWatchlistOpen) {
+        watchlistController.resetToDefaultWatchlist();
+      }
     });
   }
 

@@ -54,6 +54,12 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   void _toggleWatchlist() {
     setState(() {
       _isWatchlistOpen = !_isWatchlistOpen;
+      
+      // When opening the watchlist, reset to default watchlist
+      if (_isWatchlistOpen) {
+        final watchlistController = Get.find<WatchlistController>();
+        watchlistController.resetToDefaultWatchlist();
+      }
     });
   }
 
