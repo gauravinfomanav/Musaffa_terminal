@@ -244,10 +244,10 @@ class EtfsData {
     previousClose = json['previous_close'];
     isInverse = json['is_inverse'];
     isLeveraged = json['is_leveraged'];
-    sectorExposure = json['sector_exposure'] != null 
+    sectorExposure = json['sector_exposure'] != null && json['sector_exposure'] is Map
         ? Map<String, dynamic>.from(json['sector_exposure']) 
         : null;
-    countryExposure = json['country_exposure'] != null 
+    countryExposure = json['country_exposure'] != null && json['country_exposure'] is Map
         ? Map<String, dynamic>.from(json['country_exposure']) 
         : null;
     totalReturn1M = json['totalReturn1M'];

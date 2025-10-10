@@ -65,9 +65,14 @@
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script type="text/javascript">
+        
+        
         function initChart(symbolStr, colorTheme, height) {
-            // Format symbol for TradingView (e.g., "AAPL" -> "NASDAQ:AAPL")
+            
+            // Format symbol for TradingView
             const formattedSymbol = formatSymbol(symbolStr);
+            
+           
             
             const options = {
                 "symbols": [
@@ -130,34 +135,13 @@
                 return symbol;
             }
             
-            // Common exchanges mapping for stocks without prefix
-            const exchanges = {
-                'AAPL': 'NASDAQ',
-                'MSFT': 'NASDAQ',
-                'GOOGL': 'NASDAQ',
-                'AMZN': 'NASDAQ',
-                'TSLA': 'NASDAQ',
-                'META': 'NASDAQ',
-                'NVDA': 'NASDAQ',
-                'NFLX': 'NASDAQ',
-                'JPM': 'NYSE',
-                'JNJ': 'NYSE',
-                'V': 'NYSE',
-                'PG': 'NYSE',
-                'UNH': 'NYSE',
-                'HD': 'NYSE',
-                'MA': 'NYSE',
-                'DIS': 'NYSE',
-                'PYPL': 'NASDAQ',
-                'ADBE': 'NASDAQ',
-                'CRM': 'NYSE',
-                'ABT': 'NYSE'
-            };
+            // Extract just the ticker symbol if it contains exchange info in parentheses
+            const cleanSymbol = symbol.split('(')[0].trim();
             
-            const exchange = exchanges[symbol] || 'NASDAQ';
-            const formatted = `${exchange}:${symbol}`;
-            console.log('Formatted symbol:', symbol, '->', formatted);
-            return formatted;
+            // For US symbols without exchange, don't add a prefix
+            // Let TradingView auto-resolve it
+            console.log('Symbol without exchange, will auto-resolve:', cleanSymbol);
+            return cleanSymbol;
         }
 
         function updateSymbol(newSymbol) {

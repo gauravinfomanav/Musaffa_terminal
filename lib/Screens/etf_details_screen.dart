@@ -59,32 +59,15 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
 
   String _formatSymbolForTradingView(EtfsData etfData) {
     final symbol = widget.ticker.symbol ?? etfData.symbol ?? '';
-    final exchange = etfData.exchange ?? widget.ticker.exchange ?? '';
     
-    
+    // If symbol already has exchange prefix, return as-is
     if (symbol.contains(':')) {
       return symbol;
     }
     
-    
-    if (exchange.isNotEmpty && symbol.isNotEmpty) {
-      String tvExchange = exchange.toUpperCase();
-      
-    
-      if (tvExchange.contains('NYSE') || tvExchange.contains('ARCA')) {
-        tvExchange = 'AMEX'; // TradingView format for NYSE Arca ETFs
-      } else if (tvExchange.contains('NASDAQ')) {
-        tvExchange = 'NASDAQ';
-      }
-      
-      return '$tvExchange:$symbol';
-    }
-    
-    
-    if (symbol.isNotEmpty) {
-      return 'AMEX:$symbol';
-    }
-    
+    // Return just the symbol without exchange prefix
+    // TradingView will automatically resolve the correct exchange
+    // This works for most US stocks and ETFs
     return symbol;
   }
 
@@ -905,9 +888,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(40),
                   child: Text(
-                    'Error: ${controller.holdingsErrorMessage.value}',
+                    controller.holdingsErrorMessage.value,
                     style: TextStyle(
-                      color: Colors.red,
+                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                       fontSize: 12,
                       fontFamily: Constants.FONT_DEFAULT_NEW,
                     ),

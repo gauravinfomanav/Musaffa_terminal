@@ -40,6 +40,8 @@ class EtfDetailsController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       
+      print('Fetching ETF details for symbol: $symbol');
+      
       // Set current ETF symbol and clear previous cache
       _currentEtfSymbol = symbol;
       enrichedHoldings.clear();
@@ -58,22 +60,36 @@ class EtfDetailsController extends GetxController {
         "filter_by": "\$etf_profile_collection_4(id:*)&&id:=[`$symbol`]"
       });
 
+      print('ETF details API response status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Check if data is the expected structure
+        if (data is! Map<String, dynamic>) {
+          print('Unexpected data type for ETF $symbol: ${data.runtimeType}');
+          errorMessage.value = 'Unexpected data format from API';
+          return;
+        }
+        
         final hits = data['hits'] as List<dynamic>?;
         
         if (hits != null && hits.isNotEmpty) {
           final document = hits[0]['document'] as Map<String, dynamic>;
           etfData.value = EtfsData.fromJson(document);
+          print('Successfully fetched ETF details for $symbol');
         } else {
+          print('No hits found for ETF $symbol');
           errorMessage.value = 'No ETF data found for $symbol';
         }
       } else {
+        print('ETF details API failed for $symbol with status: ${response.statusCode}');
         errorMessage.value = 'API failed with status: ${response.statusCode}';
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       errorMessage.value = 'Error: $e';
-      print('Error fetching ETF details: $e');
+      print('Error fetching ETF details for $symbol: $e');
+      print('Stack trace: $stackTrace');
     } finally {
       isLoading.value = false;
     }
@@ -85,6 +101,8 @@ class EtfDetailsController extends GetxController {
       holdingsErrorMessage.value = '';
       enrichedHoldings.clear();
 
+      print('Fetching ETF holdings for symbol: $symbol');
+
       // Fetch ETF holdings data
       final response = await WebService.getTypesense([
         'collections',
@@ -93,26 +111,48 @@ class EtfDetailsController extends GetxController {
         symbol
       ], {});
 
+      print('ETF holdings API response status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        holdingsData.value = EtfHoldingsData.fromJson(data);
         
-        // Calculate pagination
-        final allHoldings = holdingsData.value?.holdings ?? [];
-        // Sort all holdings by weight (highest first) BEFORE pagination
-        allHoldings.sort((a, b) => b.percent.compareTo(a.percent));
-        totalHoldingsPages.value = (allHoldings.length / holdingsPerPage.value).ceil();
-        
-        // Load first page
-        await loadHoldingsPage(0);
+        // Check if data is a Map (expected) or something else
+        if (data is Map<String, dynamic>) {
+          holdingsData.value = EtfHoldingsData.fromJson(data);
+          
+          // Calculate pagination
+          final allHoldings = holdingsData.value?.holdings ?? [];
+          // Sort all holdings by weight (highest first) BEFORE pagination
+          allHoldings.sort((a, b) => b.percent.compareTo(a.percent));
+          totalHoldingsPages.value = (allHoldings.length / holdingsPerPage.value).ceil();
+          
+          print('Successfully fetched ${allHoldings.length} holdings for $symbol');
+          
+          // Load first page
+          await loadHoldingsPage(0);
+        } else if (data is List) {
+          // Handle case where API returns a list directly
+          print('ETF holdings API returned a List for $symbol, no holdings available');
+          holdingsErrorMessage.value = 'No holdings data available for this ETF';
+          holdingsData.value = null;
+          totalHoldingsPages.value = 0;
+        } else {
+          print('Unexpected data type from holdings API for $symbol: ${data.runtimeType}');
+          holdingsErrorMessage.value = 'Unexpected data format from holdings API';
+        }
+      } else if (response.statusCode == 404) {
+        // ETF exists but has no holdings data
+        holdingsErrorMessage.value = 'No holdings data available for this ETF';
+        holdingsData.value = null;
+        totalHoldingsPages.value = 0;
       } else {
         holdingsErrorMessage.value = 'Holdings API failed with status: ${response.statusCode}';
       }
     } catch (e) {
       holdingsErrorMessage.value = 'Error fetching holdings: $e';
-      print('Error fetching ETF holdings: $e');
-    } finally {
-      // Don't set loading to false here - let loadHoldingsPage handle it
+      holdingsData.value = null;
+      totalHoldingsPages.value = 0;
+      isLoadingHoldings.value = false;
     }
   }
 
