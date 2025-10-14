@@ -3,13 +3,13 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
 import 'package:musaffa_terminal/Components/market_indices.dart';
-import 'package:musaffa_terminal/Components/market_quotes.dart';
 import 'package:musaffa_terminal/Components/mini_widgets_row.dart';
 import 'package:musaffa_terminal/Components/stock_heatmap.dart';
 // import 'package:musaffa_terminal/Components/top_movers_widget.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
+import 'package:musaffa_terminal/Screens/screener_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -115,7 +115,10 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             // Mini Widgets Row (Top)
             MiniWidgetsRow(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            // Screener Button
+            _buildScreenerButton(),
+            const SizedBox(height: 16),
             // Top Row: Market Summary + Market Indices
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,6 +159,9 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             // Mini Widgets Row (Top)
             MiniWidgetsRow(),
+            const SizedBox(height: 16),
+            // Screener Button
+            _buildScreenerButton(),
             const SizedBox(height: 16),
             // Top Row: Market Summary + Market Indices
             Row(
@@ -298,6 +304,86 @@ class _MainScreenState extends State<MainScreen> {
             child: WatchlistDropdown(isDarkMode: isDarkMode),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildScreenerButton() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ScreenerScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.1 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.filter_list,
+                size: 24,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'STOCK SCREENER',
+                    style: DashboardTextStyles.tickerSymbol.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Filter stocks by market cap, P/E ratio, sector, and more',
+                    style: DashboardTextStyles.tickerSymbol.copyWith(
+                      fontSize: 12,
+                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ],
+        ),
       ),
     );
   }

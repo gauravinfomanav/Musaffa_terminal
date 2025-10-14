@@ -1,0 +1,1060 @@
+{
+  "descriptive": [
+    {
+      "id": "exchange",
+      "label": "Exchange",
+      "type": "dropdown",
+      "field": "exchange",
+      "options": [
+        {"value": "NYSE", "label": "NYSE"},
+        {"value": "NASDAQ", "label": "NASDAQ"},
+        {"value": "AMEX", "label": "AMEX"}
+      ]
+    },
+    {
+      "id": "sector",
+      "label": "Sector",
+      "type": "dropdown",
+      "field": "sector",
+      "options": [
+        {"value": "Technology", "label": "Technology"},
+        {"value": "Healthcare", "label": "Healthcare"},
+        {"value": "Financial Services", "label": "Financial Services"},
+        {"value": "Consumer Cyclical", "label": "Consumer Cyclical"},
+        {"value": "Industrials", "label": "Industrials"},
+        {"value": "Consumer Defensive", "label": "Consumer Defensive"},
+        {"value": "Energy", "label": "Energy"},
+        {"value": "Utilities", "label": "Utilities"},
+        {"value": "Real Estate", "label": "Real Estate"},
+        {"value": "Communication Services", "label": "Communication Services"},
+        {"value": "Basic Materials", "label": "Basic Materials"}
+      ]
+    },
+    {
+      "id": "industry",
+      "label": "Industry",
+      "type": "dropdown",
+      "field": "industry",
+      "options": [
+        {"value": "Software", "label": "Software"},
+        {"value": "Semiconductors", "label": "Semiconductors"},
+        {"value": "Banks", "label": "Banks"},
+        {"value": "Pharmaceuticals", "label": "Pharmaceuticals"},
+        {"value": "Oil & Gas", "label": "Oil & Gas"},
+        {"value": "Biotechnology", "label": "Biotechnology"},
+        {"value": "Auto Manufacturers", "label": "Auto Manufacturers"},
+        {"value": "Retail", "label": "Retail"}
+      ]
+    },
+    {
+      "id": "country",
+      "label": "Country",
+      "type": "dropdown",
+      "field": "country",
+      "options": [
+        {"value": "United States", "label": "United States"},
+        {"value": "China", "label": "China"},
+        {"value": "United Kingdom", "label": "United Kingdom"},
+        {"value": "Canada", "label": "Canada"},
+        {"value": "Germany", "label": "Germany"},
+        {"value": "Japan", "label": "Japan"},
+        {"value": "France", "label": "France"},
+        {"value": "India", "label": "India"}
+      ]
+    },
+    {
+      "id": "marketCap",
+      "label": "Market Cap",
+      "type": "dropdown",
+      "field": "marketcap",
+      "options": [
+        {"value": "under_50m", "label": "Nano (Under $50M)"},
+        {"value": "50m_300m", "label": "Micro ($50M - $300M)"},
+        {"value": "300m_2b", "label": "Small ($300M - $2B)"},
+        {"value": "2b_10b", "label": "Mid ($2B - $10B)"},
+        {"value": "10b_200b", "label": "Large ($10B - $200B)"},
+        {"value": "over_200b", "label": "Mega (Over $200B)"}
+      ]
+    },
+    {
+      "id": "sharesOutstanding",
+      "label": "Shares Outstanding",
+      "type": "dropdown",
+      "field": "sharesOutStanding",
+      "options": [
+        {"value": "under_10m", "label": "Under 10M"},
+        {"value": "10m_50m", "label": "10M - 50M"},
+        {"value": "50m_100m", "label": "50M - 100M"},
+        {"value": "100m_500m", "label": "100M - 500M"},
+        {"value": "500m_1b", "label": "500M - 1B"},
+        {"value": "over_1b", "label": "Over 1B"}
+      ]
+    },
+    {
+      "id": "price",
+      "label": "Price",
+      "type": "dropdown",
+      "field": "currentPrice",
+      "options": [
+        {"value": "under_1", "label": "Under $1"},
+        {"value": "1_5", "label": "$1 - $5"},
+        {"value": "5_10", "label": "$5 - $10"},
+        {"value": "10_20", "label": "$10 - $20"},
+        {"value": "20_50", "label": "$20 - $50"},
+        {"value": "50_100", "label": "$50 - $100"},
+        {"value": "over_100", "label": "Over $100"}
+      ]
+    },
+    {
+      "id": "volume",
+      "label": "Volume",
+      "type": "dropdown",
+      "field": "volume",
+      "options": [
+        {"value": "under_50k", "label": "Under 50K"},
+        {"value": "50k_100k", "label": "50K - 100K"},
+        {"value": "100k_500k", "label": "100K - 500K"},
+        {"value": "500k_1m", "label": "500K - 1M"},
+        {"value": "1m_5m", "label": "1M - 5M"},
+        {"value": "over_5m", "label": "Over 5M"}
+      ]
+    },
+    {
+      "id": "volume10Days",
+      "label": "Avg Volume 10D",
+      "type": "dropdown",
+      "field": "avgVolume10days",
+      "options": [
+        {"value": "under_50k", "label": "Under 50K"},
+        {"value": "50k_100k", "label": "50K - 100K"},
+        {"value": "100k_500k", "label": "100K - 500K"},
+        {"value": "500k_1m", "label": "500K - 1M"},
+        {"value": "1m_5m", "label": "1M - 5M"},
+        {"value": "over_5m", "label": "Over 5M"}
+      ]
+    },
+    {
+      "id": "volume30Days",
+      "label": "Avg Volume 30D",
+      "type": "dropdown",
+      "field": "avgVolume30days",
+      "options": [
+        {"value": "under_50k", "label": "Under 50K"},
+        {"value": "50k_100k", "label": "50K - 100K"},
+        {"value": "100k_500k", "label": "100K - 500K"},
+        {"value": "500k_1m", "label": "500K - 1M"},
+        {"value": "1m_5m", "label": "1M - 5M"},
+        {"value": "over_5m", "label": "Over 5M"}
+      ]
+    },
+    {
+      "id": "priceChangeYTD",
+      "label": "YTD Performance",
+      "type": "dropdown",
+      "field": "priceChangeYTD",
+      "options": [
+        {"value": "under_minus30", "label": "Down >30%"},
+        {"value": "minus30_minus20", "label": "Down 20-30%"},
+        {"value": "minus20_minus10", "label": "Down 10-20%"},
+        {"value": "minus10_0", "label": "Down 0-10%"},
+        {"value": "0_10", "label": "Up 0-10%"},
+        {"value": "10_20", "label": "Up 10-20%"},
+        {"value": "20_30", "label": "Up 20-30%"},
+        {"value": "over_30", "label": "Up >30%"}
+      ]
+    },
+    {
+      "id": "ipoDate",
+      "label": "IPO Date",
+      "type": "dropdown",
+      "field": "ipoDate",
+      "options": [
+        {"value": "within_1y", "label": "Within 1 Year"},
+        {"value": "1y_3y", "label": "1-3 Years Ago"},
+        {"value": "3y_5y", "label": "3-5 Years Ago"},
+        {"value": "5y_10y", "label": "5-10 Years Ago"},
+        {"value": "over_10y", "label": "Over 10 Years Ago"}
+      ]
+    },
+    {
+      "id": "marketCapClassification",
+      "label": "Market Cap Class",
+      "type": "dropdown",
+      "field": "marketCapClassification",
+      "options": [
+        {"value": "Mega Cap", "label": "Mega Cap"},
+        {"value": "Large Cap", "label": "Large Cap"},
+        {"value": "Mid Cap", "label": "Mid Cap"},
+        {"value": "Small Cap", "label": "Small Cap"},
+        {"value": "Micro Cap", "label": "Micro Cap"},
+        {"value": "Nano Cap", "label": "Nano Cap"}
+      ]
+    },
+    {
+      "id": "exchangeCountry",
+      "label": "Exchange Country",
+      "type": "dropdown",
+      "field": "exchangeCountry",
+      "options": [
+        {"value": "US", "label": "United States"},
+        {"value": "GB", "label": "United Kingdom"},
+        {"value": "CA", "label": "Canada"},
+        {"value": "CN", "label": "China"},
+        {"value": "JP", "label": "Japan"},
+        {"value": "DE", "label": "Germany"},
+        {"value": "FR", "label": "France"},
+        {"value": "HK", "label": "Hong Kong"}
+      ]
+    }
+  ],
+  "fundamental": [
+    {
+      "id": "peAnnual",
+      "label": "P/E Annual",
+      "type": "dropdown",
+      "field": "peAnnual",
+      "options": [
+        {"value": "under_5", "label": "Under 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "10_15", "label": "10 - 15"},
+        {"value": "15_20", "label": "15 - 20"},
+        {"value": "20_25", "label": "20 - 25"},
+        {"value": "25_30", "label": "25 - 30"},
+        {"value": "over_30", "label": "Over 30"}
+      ]
+    },
+    {
+      "id": "peTTM",
+      "label": "P/E TTM",
+      "type": "dropdown",
+      "field": "peTTM",
+      "options": [
+        {"value": "under_5", "label": "Under 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "10_15", "label": "10 - 15"},
+        {"value": "15_20", "label": "15 - 20"},
+        {"value": "20_25", "label": "20 - 25"},
+        {"value": "25_30", "label": "25 - 30"},
+        {"value": "over_30", "label": "Over 30"}
+      ]
+    },
+    {
+      "id": "pbAnnual",
+      "label": "P/B Annual",
+      "type": "dropdown",
+      "field": "pbAnnual",
+      "options": [
+        {"value": "under_1", "label": "Under 1"},
+        {"value": "1_2", "label": "1 - 2"},
+        {"value": "2_3", "label": "2 - 3"},
+        {"value": "3_5", "label": "3 - 5"},
+        {"value": "over_5", "label": "Over 5"}
+      ]
+    },
+    {
+      "id": "psAnnual",
+      "label": "P/S Annual",
+      "type": "dropdown",
+      "field": "psAnnual",
+      "options": [
+        {"value": "under_1", "label": "Under 1"},
+        {"value": "1_2", "label": "1 - 2"},
+        {"value": "2_3", "label": "2 - 3"},
+        {"value": "3_5", "label": "3 - 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "over_10", "label": "Over 10"}
+      ]
+    },
+    {
+      "id": "psTTM",
+      "label": "P/S TTM",
+      "type": "dropdown",
+      "field": "psTTM",
+      "options": [
+        {"value": "under_1", "label": "Under 1"},
+        {"value": "1_2", "label": "1 - 2"},
+        {"value": "2_3", "label": "2 - 3"},
+        {"value": "3_5", "label": "3 - 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "over_10", "label": "Over 10"}
+      ]
+    },
+    {
+      "id": "analystRecommendation",
+      "label": "Analyst Recommendation",
+      "type": "dropdown",
+      "field": "analystRecommendationWeightedAvg",
+      "options": [
+        {"value": "1_1.5", "label": "Strong Buy (1-1.5)"},
+        {"value": "1.5_2.5", "label": "Buy (1.5-2.5)"},
+        {"value": "2.5_3.5", "label": "Hold (2.5-3.5)"},
+        {"value": "3.5_4.5", "label": "Sell (3.5-4.5)"},
+        {"value": "4.5_5", "label": "Strong Sell (4.5-5)"}
+      ]
+    },
+    {
+      "id": "currentRatio",
+      "label": "Current Ratio",
+      "type": "dropdown",
+      "field": "currentRatioAnnual",
+      "options": [
+        {"value": "under_1", "label": "Under 1"},
+        {"value": "1_2", "label": "1 - 2"},
+        {"value": "2_3", "label": "2 - 3"},
+        {"value": "over_3", "label": "Over 3"}
+      ]
+    },
+    {
+      "id": "debtEquity",
+      "label": "Debt/Equity",
+      "type": "dropdown",
+      "field": "totalDebtTotalEquityAnnual",
+      "options": [
+        {"value": "under_0.5", "label": "Under 0.5"},
+        {"value": "0.5_1", "label": "0.5 - 1"},
+        {"value": "1_2", "label": "1 - 2"},
+        {"value": "over_2", "label": "Over 2"}
+      ]
+    },
+    {
+      "id": "netMargin",
+      "label": "Net Margin",
+      "type": "dropdown",
+      "field": "netProfitMarginAnnual",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "roi",
+      "label": "ROI",
+      "type": "dropdown",
+      "field": "roiAnnual",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "dividendYield",
+      "label": "Dividend Yield",
+      "type": "dropdown",
+      "field": "currentDividendYieldTTM",
+      "options": [
+        {"value": "0", "label": "0%"},
+        {"value": "1_2", "label": "1% - 2%"},
+        {"value": "2_3", "label": "2% - 3%"},
+        {"value": "3_5", "label": "3% - 5%"},
+        {"value": "over_5", "label": "Over 5%"}
+      ]
+    },
+    {
+      "id": "roe",
+      "label": "ROE",
+      "type": "dropdown",
+      "field": "rOE",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_15", "label": "10% - 15%"},
+        {"value": "15_20", "label": "15% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "roa",
+      "label": "ROA",
+      "type": "dropdown",
+      "field": "roaTTM",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_2", "label": "0% - 2%"},
+        {"value": "2_5", "label": "2% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_15", "label": "10% - 15%"},
+        {"value": "over_15", "label": "Over 15%"}
+      ]
+    },
+    {
+      "id": "grossMargin",
+      "label": "Gross Margin",
+      "type": "dropdown",
+      "field": "grossMarginAnnual",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "20_30", "label": "20% - 30%"},
+        {"value": "30_50", "label": "30% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "operatingMargin",
+      "label": "Operating Margin",
+      "type": "dropdown",
+      "field": "operatingMarginAnnual",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_15", "label": "10% - 15%"},
+        {"value": "15_25", "label": "15% - 25%"},
+        {"value": "over_25", "label": "Over 25%"}
+      ]
+    },
+    {
+      "id": "quickRatio",
+      "label": "Quick Ratio",
+      "type": "dropdown",
+      "field": "quickRatioAnnual",
+      "options": [
+        {"value": "under_0.5", "label": "Under 0.5"},
+        {"value": "0.5_1", "label": "0.5 - 1"},
+        {"value": "1_1.5", "label": "1 - 1.5"},
+        {"value": "1.5_2", "label": "1.5 - 2"},
+        {"value": "over_2", "label": "Over 2"}
+      ]
+    },
+    {
+      "id": "cashToDebt",
+      "label": "Cash to Debt",
+      "type": "dropdown",
+      "field": "cashToDebt",
+      "options": [
+        {"value": "under_0.1", "label": "Under 0.1"},
+        {"value": "0.1_0.3", "label": "0.1 - 0.3"},
+        {"value": "0.3_0.5", "label": "0.3 - 0.5"},
+        {"value": "0.5_1", "label": "0.5 - 1"},
+        {"value": "over_1", "label": "Over 1"}
+      ]
+    },
+    {
+      "id": "assetTurnover",
+      "label": "Asset Turnover",
+      "type": "dropdown",
+      "field": "assetTurnoverAnnual",
+      "options": [
+        {"value": "under_0.5", "label": "Under 0.5"},
+        {"value": "0.5_1", "label": "0.5 - 1"},
+        {"value": "1_1.5", "label": "1 - 1.5"},
+        {"value": "1.5_2", "label": "1.5 - 2"},
+        {"value": "over_2", "label": "Over 2"}
+      ]
+    },
+    {
+      "id": "inventoryTurnover",
+      "label": "Inventory Turnover",
+      "type": "dropdown",
+      "field": "inventoryTurnoverAnnual",
+      "options": [
+        {"value": "under_2", "label": "Under 2"},
+        {"value": "2_5", "label": "2 - 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "10_20", "label": "10 - 20"},
+        {"value": "over_20", "label": "Over 20"}
+      ]
+    },
+    {
+      "id": "receivablesTurnover",
+      "label": "Receivables Turnover",
+      "type": "dropdown",
+      "field": "receivablesTurnoverTTM",
+      "options": [
+        {"value": "under_5", "label": "Under 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "10_15", "label": "10 - 15"},
+        {"value": "15_25", "label": "15 - 25"},
+        {"value": "over_25", "label": "Over 25"}
+      ]
+    },
+    {
+      "id": "payoutRatio",
+      "label": "Payout Ratio",
+      "type": "dropdown",
+      "field": "payoutRatioTTM",
+      "options": [
+        {"value": "0", "label": "0%"},
+        {"value": "0_25", "label": "0% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "50_75", "label": "50% - 75%"},
+        {"value": "over_75", "label": "Over 75%"}
+      ]
+    },
+    {
+      "id": "epsGrowth",
+      "label": "EPS Growth",
+      "type": "dropdown",
+      "field": "epsGrowth1y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "20_50", "label": "20% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "revenueGrowth",
+      "label": "Revenue Growth",
+      "type": "dropdown",
+      "field": "revenueGrowth1Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "20_50", "label": "20% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "epsTTM",
+      "label": "EPS (TTM)",
+      "type": "dropdown",
+      "field": "epsTTM",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "under_1", "label": "Under $1"},
+        {"value": "1_2", "label": "$1 - $2"},
+        {"value": "2_5", "label": "$2 - $5"},
+        {"value": "5_10", "label": "$5 - $10"},
+        {"value": "over_10", "label": "Over $10"}
+      ]
+    },
+    {
+      "id": "evEbit",
+      "label": "EV/EBIT",
+      "type": "dropdown",
+      "field": "evEbit",
+      "options": [
+        {"value": "under_5", "label": "Under 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "10_15", "label": "10 - 15"},
+        {"value": "15_20", "label": "15 - 20"},
+        {"value": "over_20", "label": "Over 20"}
+      ]
+    },
+    {
+      "id": "evFcf",
+      "label": "EV/FCF",
+      "type": "dropdown",
+      "field": "evFcf",
+      "options": [
+        {"value": "under_10", "label": "Under 10"},
+        {"value": "10_15", "label": "10 - 15"},
+        {"value": "15_20", "label": "15 - 20"},
+        {"value": "20_30", "label": "20 - 30"},
+        {"value": "over_30", "label": "Over 30"}
+      ]
+    },
+    {
+      "id": "evRevenue",
+      "label": "EV/Revenue",
+      "type": "dropdown",
+      "field": "evRevenue",
+      "options": [
+        {"value": "under_1", "label": "Under 1"},
+        {"value": "1_2", "label": "1 - 2"},
+        {"value": "2_3", "label": "2 - 3"},
+        {"value": "3_5", "label": "3 - 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "over_10", "label": "Over 10"}
+      ]
+    },
+    {
+      "id": "enterpriseValue",
+      "label": "Enterprise Value",
+      "type": "dropdown",
+      "field": "enterpriseValue",
+      "options": [
+        {"value": "under_100m", "label": "Under $100M"},
+        {"value": "100m_1b", "label": "$100M - $1B"},
+        {"value": "1b_10b", "label": "$1B - $10B"},
+        {"value": "10b_50b", "label": "$10B - $50B"},
+        {"value": "over_50b", "label": "Over $50B"}
+      ]
+    },
+    {
+      "id": "longTermDebtEquity",
+      "label": "Long-term Debt/Equity",
+      "type": "dropdown",
+      "field": "longTermDebtEquityAnnual",
+      "options": [
+        {"value": "under_0.3", "label": "Under 0.3"},
+        {"value": "0.3_0.5", "label": "0.3 - 0.5"},
+        {"value": "0.5_1", "label": "0.5 - 1"},
+        {"value": "1_2", "label": "1 - 2"},
+        {"value": "over_2", "label": "Over 2"}
+      ]
+    },
+    {
+      "id": "interestCoverage",
+      "label": "Interest Coverage",
+      "type": "dropdown",
+      "field": "netInterestCoverageAnnual",
+      "options": [
+        {"value": "under_1", "label": "Under 1"},
+        {"value": "1_3", "label": "1 - 3"},
+        {"value": "3_5", "label": "3 - 5"},
+        {"value": "5_10", "label": "5 - 10"},
+        {"value": "over_10", "label": "Over 10"}
+      ]
+    },
+    {
+      "id": "equityToAssets",
+      "label": "Equity to Assets",
+      "type": "dropdown",
+      "field": "equityToAssetsAnnual",
+      "options": [
+        {"value": "under_20", "label": "Under 20%"},
+        {"value": "20_40", "label": "20% - 40%"},
+        {"value": "40_60", "label": "40% - 60%"},
+        {"value": "60_80", "label": "60% - 80%"},
+        {"value": "over_80", "label": "Over 80%"}
+      ]
+    },
+    {
+      "id": "pretaxMargin",
+      "label": "Pretax Margin",
+      "type": "dropdown",
+      "field": "pretaxMarginAnnual",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "epsAnnual",
+      "label": "EPS (Annual)",
+      "type": "dropdown",
+      "field": "epsAnnual",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "under_1", "label": "Under $1"},
+        {"value": "1_2", "label": "$1 - $2"},
+        {"value": "2_5", "label": "$2 - $5"},
+        {"value": "5_10", "label": "$5 - $10"},
+        {"value": "over_10", "label": "Over $10"}
+      ]
+    },
+    {
+      "id": "bookValuePerShare",
+      "label": "Book Value/Share",
+      "type": "dropdown",
+      "field": "bookValuePerShareAnnual",
+      "options": [
+        {"value": "under_5", "label": "Under $5"},
+        {"value": "5_10", "label": "$5 - $10"},
+        {"value": "10_20", "label": "$10 - $20"},
+        {"value": "20_50", "label": "$20 - $50"},
+        {"value": "over_50", "label": "Over $50"}
+      ]
+    }
+  ],
+  "technical": [
+    {
+      "id": "priceChange1D",
+      "label": "Price Change 1D",
+      "type": "dropdown",
+      "field": "priceChange1D",
+      "options": [
+        {"value": "under_minus10", "label": "Under -10%"},
+        {"value": "minus10_minus5", "label": "-10% to -5%"},
+        {"value": "minus5_0", "label": "-5% to 0%"},
+        {"value": "0_5", "label": "0% to 5%"},
+        {"value": "5_10", "label": "5% to 10%"},
+        {"value": "over_10", "label": "Over 10%"}
+      ]
+    },
+    {
+      "id": "priceChange1M",
+      "label": "Price Change 1M",
+      "type": "dropdown",
+      "field": "priceChange1M",
+      "options": [
+        {"value": "under_minus20", "label": "Under -20%"},
+        {"value": "minus20_minus10", "label": "-20% to -10%"},
+        {"value": "minus10_0", "label": "-10% to 0%"},
+        {"value": "0_10", "label": "0% to 10%"},
+        {"value": "10_20", "label": "10% to 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "priceChange1Y",
+      "label": "Price Change 1Y",
+      "type": "dropdown",
+      "field": "priceChange1Y",
+      "options": [
+        {"value": "under_minus50", "label": "Under -50%"},
+        {"value": "minus50_minus20", "label": "-50% to -20%"},
+        {"value": "minus20_0", "label": "-20% to 0%"},
+        {"value": "0_20", "label": "0% to 20%"},
+        {"value": "20_50", "label": "20% to 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "beta",
+      "label": "Beta",
+      "type": "dropdown",
+      "field": "beta",
+      "options": [
+        {"value": "under_0.5", "label": "Under 0.5"},
+        {"value": "0.5_1", "label": "0.5 - 1"},
+        {"value": "1_1.5", "label": "1 - 1.5"},
+        {"value": "over_1.5", "label": "Over 1.5"}
+      ]
+    },
+    {
+      "id": "52WeekHigh",
+      "label": "52W High",
+      "type": "dropdown",
+      "field": "d52WeekHigh",
+      "options": [
+        {"value": "under_10", "label": "Under $10"},
+        {"value": "10_50", "label": "$10 - $50"},
+        {"value": "50_100", "label": "$50 - $100"},
+        {"value": "over_100", "label": "Over $100"}
+      ]
+    },
+    {
+      "id": "52WeekLow",
+      "label": "52W Low",
+      "type": "dropdown",
+      "field": "d52WeekLow",
+      "options": [
+        {"value": "under_10", "label": "Under $10"},
+        {"value": "10_50", "label": "$10 - $50"},
+        {"value": "50_100", "label": "$50 - $100"},
+        {"value": "over_100", "label": "Over $100"}
+      ]
+    },
+    {
+      "id": "priceChange1W",
+      "label": "Price Change 1W",
+      "type": "dropdown",
+      "field": "priceChange1W",
+      "options": [
+        {"value": "under_minus10", "label": "Under -10%"},
+        {"value": "minus10_minus5", "label": "-10% to -5%"},
+        {"value": "minus5_0", "label": "-5% to 0%"},
+        {"value": "0_5", "label": "0% to 5%"},
+        {"value": "5_10", "label": "5% to 10%"},
+        {"value": "over_10", "label": "Over 10%"}
+      ]
+    },
+    {
+      "id": "priceChange3M",
+      "label": "Price Change 3M",
+      "type": "dropdown",
+      "field": "priceChange3M",
+      "options": [
+        {"value": "under_minus30", "label": "Under -30%"},
+        {"value": "minus30_minus15", "label": "-30% to -15%"},
+        {"value": "minus15_0", "label": "-15% to 0%"},
+        {"value": "0_15", "label": "0% to 15%"},
+        {"value": "15_30", "label": "15% to 30%"},
+        {"value": "over_30", "label": "Over 30%"}
+      ]
+    },
+    {
+      "id": "priceChange6M",
+      "label": "Price Change 6M",
+      "type": "dropdown",
+      "field": "priceChange6M",
+      "options": [
+        {"value": "under_minus40", "label": "Under -40%"},
+        {"value": "minus40_minus20", "label": "-40% to -20%"},
+        {"value": "minus20_0", "label": "-20% to 0%"},
+        {"value": "0_20", "label": "0% to 20%"},
+        {"value": "20_40", "label": "20% to 40%"},
+        {"value": "over_40", "label": "Over 40%"}
+      ]
+    },
+    {
+      "id": "priceChange3Y",
+      "label": "Price Change 3Y",
+      "type": "dropdown",
+      "field": "priceChange3Y",
+      "options": [
+        {"value": "under_minus50", "label": "Under -50%"},
+        {"value": "minus50_0", "label": "-50% to 0%"},
+        {"value": "0_50", "label": "0% to 50%"},
+        {"value": "50_100", "label": "50% to 100%"},
+        {"value": "100_200", "label": "100% to 200%"},
+        {"value": "over_200", "label": "Over 200%"}
+      ]
+    },
+    {
+      "id": "priceChange5Y",
+      "label": "Price Change 5Y",
+      "type": "dropdown",
+      "field": "priceChange5Y",
+      "options": [
+        {"value": "under_minus50", "label": "Under -50%"},
+        {"value": "minus50_0", "label": "-50% to 0%"},
+        {"value": "0_100", "label": "0% to 100%"},
+        {"value": "100_200", "label": "100% to 200%"},
+        {"value": "200_500", "label": "200% to 500%"},
+        {"value": "over_500", "label": "Over 500%"}
+      ]
+    },
+    {
+      "id": "marketCapChange3Y",
+      "label": "Market Cap Change 3Y",
+      "type": "dropdown",
+      "field": "marketCapChange3y",
+      "options": [
+        {"value": "under_minus50", "label": "Under -50%"},
+        {"value": "minus50_0", "label": "-50% to 0%"},
+        {"value": "0_50", "label": "0% to 50%"},
+        {"value": "50_100", "label": "50% to 100%"},
+        {"value": "100_200", "label": "100% to 200%"},
+        {"value": "over_200", "label": "Over 200%"}
+      ]
+    },
+    {
+      "id": "dailyRange",
+      "label": "Day's Range (High-Low)",
+      "type": "dropdown",
+      "field": "high",
+      "options": [
+        {"value": "under_1", "label": "Under 1%"},
+        {"value": "1_2", "label": "1% - 2%"},
+        {"value": "2_3", "label": "2% - 3%"},
+        {"value": "3_5", "label": "3% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "over_10", "label": "Over 10%"}
+      ]
+    },
+    {
+      "id": "priceVsPreviousClose",
+      "label": "Price vs Prev Close",
+      "type": "dropdown",
+      "field": "change1DPercent",
+      "options": [
+        {"value": "gap_down_5", "label": "Gap Down >5%"},
+        {"value": "gap_down_2", "label": "Gap Down 2-5%"},
+        {"value": "near", "label": "Near (±2%)"},
+        {"value": "gap_up_2", "label": "Gap Up 2-5%"},
+        {"value": "gap_up_5", "label": "Gap Up >5%"}
+      ]
+    },
+    {
+      "id": "previousClose",
+      "label": "Previous Close",
+      "type": "dropdown",
+      "field": "previousClose",
+      "options": [
+        {"value": "under_5", "label": "Under $5"},
+        {"value": "5_10", "label": "$5 - $10"},
+        {"value": "10_20", "label": "$10 - $20"},
+        {"value": "20_50", "label": "$20 - $50"},
+        {"value": "50_100", "label": "$50 - $100"},
+        {"value": "over_100", "label": "Over $100"}
+      ]
+    },
+    {
+      "id": "openPrice",
+      "label": "Open Price",
+      "type": "dropdown",
+      "field": "open",
+      "options": [
+        {"value": "under_5", "label": "Under $5"},
+        {"value": "5_10", "label": "$5 - $10"},
+        {"value": "10_20", "label": "$10 - $20"},
+        {"value": "20_50", "label": "$20 - $50"},
+        {"value": "50_100", "label": "$50 - $100"},
+        {"value": "over_100", "label": "Over $100"}
+      ]
+    }
+  ],
+  "growth": [
+    {
+      "id": "revenueGrowth3Y",
+      "label": "Revenue Growth 3Y",
+      "type": "dropdown",
+      "field": "revenueGrowth3Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "revenueGrowth5Y",
+      "label": "Revenue Growth 5Y",
+      "type": "dropdown",
+      "field": "revenueGrowth5Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "earningsGrowth3Y",
+      "label": "Earnings Growth 3Y",
+      "type": "dropdown",
+      "field": "epsGrowth3Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "earningsGrowth5Y",
+      "label": "Earnings Growth 5Y",
+      "type": "dropdown",
+      "field": "epsGrowth5Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "epsGrowthQuarterlyYoY",
+      "label": "EPS Growth QoQ YoY",
+      "type": "dropdown",
+      "field": "epsGrowthQuarterlyYoy",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "epsGrowthTTMYoY",
+      "label": "EPS Growth TTM YoY",
+      "type": "dropdown",
+      "field": "epsGrowthTTMYoy",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "revenueGrowthQuarterlyYoY",
+      "label": "Revenue Growth QoQ YoY",
+      "type": "dropdown",
+      "field": "revenueGrowthQuarterlyYoy",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "revenueGrowthTTMYoY",
+      "label": "Revenue Growth TTM YoY",
+      "type": "dropdown",
+      "field": "revenueGrowthTTMYoy",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "revenuePerShareGrowth5Y",
+      "label": "Revenue/Share Growth 5Y",
+      "type": "dropdown",
+      "field": "revenueShareGrowth5Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "roe5Y",
+      "label": "ROE 5Y",
+      "type": "dropdown",
+      "field": "roe5Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_15", "label": "10% - 15%"},
+        {"value": "15_20", "label": "15% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
+      ]
+    },
+    {
+      "id": "roa5Y",
+      "label": "ROA 5Y",
+      "type": "dropdown",
+      "field": "roa5Y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_2", "label": "0% - 2%"},
+        {"value": "2_5", "label": "2% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_15", "label": "10% - 15%"},
+        {"value": "over_15", "label": "Over 15%"}
+      ]
+    }
+  ],
+  "etf": [
+    {
+      "id": "aum",
+      "label": "AUM",
+      "type": "dropdown",
+      "field": "aum",
+      "options": [
+        {"value": "under_100m", "label": "Under $100M"},
+        {"value": "100m_1b", "label": "$100M - $1B"},
+        {"value": "1b_10b", "label": "$1B - $10B"},
+        {"value": "over_10b", "label": "Over $10B"}
+      ]
+    },
+    {
+      "id": "holdingsCount",
+      "label": "Holdings Count",
+      "type": "dropdown",
+      "field": "holdingsCount",
+      "options": [
+        {"value": "under_50", "label": "Under 50"},
+        {"value": "50_100", "label": "50 - 100"},
+        {"value": "100_500", "label": "100 - 500"},
+        {"value": "over_500", "label": "Over 500"}
+      ]
+    }
+  ]
+}
+

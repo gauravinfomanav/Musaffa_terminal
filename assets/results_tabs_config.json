@@ -1,0 +1,422 @@
+{
+  "tabs": [
+    {
+      "id": "overview",
+      "label": "Overview",
+      "isDefault": true,
+      "columns": [
+        {
+          "id": "ticker",
+          "label": "Ticker",
+          "field": "ticker",
+          "type": "text",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "name",
+          "label": "Name",
+          "field": "name",
+          "type": "text",
+          "width": 200,
+          "sortable": true
+        },
+        {
+          "id": "price",
+          "label": "Price",
+          "field": "price",
+          "type": "currency",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "change1D",
+          "label": "Change",
+          "field": "change1DPercent",
+          "type": "percentage",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "marketCap",
+          "label": "Market Cap",
+          "field": "marketCap",
+          "type": "currency",
+          "width": 120,
+          "sortable": true
+        },
+        {
+          "id": "volume",
+          "label": "Volume",
+          "field": "volume",
+          "type": "number",
+          "width": 100,
+          "sortable": true
+        },
+        {
+          "id": "sector",
+          "label": "Sector",
+          "field": "sector",
+          "type": "text",
+          "width": 120,
+          "sortable": true
+        }
+      ]
+    },
+    {
+      "id": "valuation",
+      "label": "Valuation",
+      "isDefault": false,
+      "columns": [
+        {
+          "id": "ticker",
+          "label": "Ticker",
+          "field": "ticker",
+          "type": "text",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "peTTM",
+          "label": "P/E (TTM)",
+          "field": "peTTM",
+          "type": "number",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "peAnnual",
+          "label": "P/E (Annual)",
+          "field": "peAnnual",
+          "type": "number",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "pbAnnual",
+          "label": "P/B",
+          "field": "pbAnnual",
+          "type": "number",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "psTTM",
+          "label": "P/S (TTM)",
+          "field": "psTTM",
+          "type": "number",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "evEbit",
+          "label": "EV/EBIT",
+          "field": "evEbit",
+          "type": "number",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "evFcf",
+          "label": "EV/FCF",
+          "field": "evFcf",
+          "type": "number",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "pegRatio",
+          "label": "PEG Ratio",
+          "field": "pegRatio",
+          "type": "number",
+          "width": 80,
+          "sortable": true
+        }
+      ]
+    },
+    {
+      "id": "financial",
+      "label": "Financial",
+      "isDefault": false,
+      "columns": [
+        {
+          "id": "ticker",
+          "label": "Ticker",
+          "field": "ticker",
+          "type": "text",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "revenueTTM",
+          "label": "Revenue (TTM)",
+          "field": "revenueTTM",
+          "type": "currency",
+          "width": 120,
+          "sortable": true
+        },
+        {
+          "id": "grossMargin",
+          "label": "Gross Margin",
+          "field": "grossMarginAnnual",
+          "type": "percentage",
+          "width": 100,
+          "sortable": true
+        },
+        {
+          "id": "operatingMargin",
+          "label": "Oper Margin",
+          "field": "operatingMarginAnnual",
+          "type": "percentage",
+          "width": 100,
+          "sortable": true
+        },
+        {
+          "id": "netProfitMargin",
+          "label": "Net Margin",
+          "field": "netProfitMarginAnnual",
+          "type": "percentage",
+          "width": 100,
+          "sortable": true
+        },
+        {
+          "id": "roe",
+          "label": "ROE",
+          "field": "roeAnnual",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "roa",
+          "label": "ROA",
+          "field": "roaAnnual",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "debtEquity",
+          "label": "Debt/Equity",
+          "field": "debtEquityAnnual",
+          "type": "number",
+          "width": 100,
+          "sortable": true
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "label": "Performance",
+      "isDefault": false,
+      "columns": [
+        {
+          "id": "ticker",
+          "label": "Ticker",
+          "field": "ticker",
+          "type": "text",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "change1D",
+          "label": "1D",
+          "field": "change1DPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "change1W",
+          "label": "1W",
+          "field": "change1WPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "change1M",
+          "label": "1M",
+          "field": "change1MPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "change3M",
+          "label": "3M",
+          "field": "change3MPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "change6M",
+          "label": "6M",
+          "field": "change6MPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "change1Y",
+          "label": "1Y",
+          "field": "change1YPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "change3Y",
+          "label": "3Y",
+          "field": "change3YPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "change5Y",
+          "label": "5Y",
+          "field": "change5YPercent",
+          "type": "percentage",
+          "width": 60,
+          "sortable": true
+        }
+      ]
+    },
+    {
+      "id": "technical",
+      "label": "Technical",
+      "isDefault": false,
+      "columns": [
+        {
+          "id": "ticker",
+          "label": "Ticker",
+          "field": "ticker",
+          "type": "text",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "beta",
+          "label": "Beta",
+          "field": "beta",
+          "type": "number",
+          "width": 60,
+          "sortable": true
+        },
+        {
+          "id": "high52W",
+          "label": "52W High",
+          "field": "high52W",
+          "type": "currency",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "low52W",
+          "label": "52W Low",
+          "field": "low52W",
+          "type": "currency",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "volatility",
+          "label": "Volatility",
+          "field": "volatility",
+          "type": "percentage",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "avgVolume10D",
+          "label": "Avg Vol 10D",
+          "field": "avgVolume10days",
+          "type": "number",
+          "width": 100,
+          "sortable": true
+        },
+        {
+          "id": "avgVolume30D",
+          "label": "Avg Vol 30D",
+          "field": "avgVolume30days",
+          "type": "number",
+          "width": 100,
+          "sortable": true
+        },
+        {
+          "id": "daysRange",
+          "label": "Day's Range",
+          "field": "daysRange",
+          "type": "text",
+          "width": 120,
+          "sortable": false
+        }
+      ]
+    },
+    {
+      "id": "etf",
+      "label": "ETF",
+      "isDefault": false,
+      "columns": [
+        {
+          "id": "ticker",
+          "label": "Ticker",
+          "field": "ticker",
+          "type": "text",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "name",
+          "label": "Name",
+          "field": "name",
+          "type": "text",
+          "width": 200,
+          "sortable": true
+        },
+        {
+          "id": "aum",
+          "label": "AUM",
+          "field": "aum",
+          "type": "currency",
+          "width": 120,
+          "sortable": true
+        },
+        {
+          "id": "expenseRatio",
+          "label": "Expense Ratio",
+          "field": "expenseRatio",
+          "type": "percentage",
+          "width": 100,
+          "sortable": true
+        },
+        {
+          "id": "holdingsCount",
+          "label": "Holdings",
+          "field": "holdingsCount",
+          "type": "number",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "price",
+          "label": "Price",
+          "field": "price",
+          "type": "currency",
+          "width": 80,
+          "sortable": true
+        },
+        {
+          "id": "change1D",
+          "label": "Change",
+          "field": "change1DPercent",
+          "type": "percentage",
+          "width": 80,
+          "sortable": true
+        }
+      ]
+    }
+  ]
+}

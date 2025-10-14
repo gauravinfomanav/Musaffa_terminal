@@ -77,7 +77,9 @@ flutter:
     - resources/
     - lib/utils/sector_defaults.json
     - lib/utils/sector_api_mapping.json
-  #   - images/a_dot_ham.jpeg
+    - assets/screener_filters.json
+    - assets/results_tabs_config.json
+  # - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
