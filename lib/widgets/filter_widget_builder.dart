@@ -9,6 +9,7 @@ class FilterWidgetBuilder {
     required Function(String?) onChanged,
     required bool isDarkMode,
     bool isApplied = false,
+    VoidCallback? onReset,
   }) {
     switch (config.type) {
       case 'dropdown':
@@ -21,6 +22,7 @@ class FilterWidgetBuilder {
           onChanged: onChanged,
           isDarkMode: isDarkMode,
           isApplied: isApplied,
+          onReset: onReset,
         );
       
       case 'range':
@@ -35,6 +37,7 @@ class FilterWidgetBuilder {
           onChanged: onChanged,
           isDarkMode: isDarkMode,
           isApplied: isApplied,
+          onReset: onReset,
         );
       
       case 'multi-select':
@@ -49,6 +52,7 @@ class FilterWidgetBuilder {
           onChanged: onChanged,
           isDarkMode: isDarkMode,
           isApplied: isApplied,
+          onReset: onReset,
         );
       
       default:

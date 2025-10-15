@@ -10,6 +10,7 @@ class ScreenerDropdown extends StatelessWidget {
   final bool isDarkMode;
   final String? description;
   final bool isApplied;
+  final VoidCallback? onReset;
 
   const ScreenerDropdown({
     Key? key,
@@ -20,6 +21,7 @@ class ScreenerDropdown extends StatelessWidget {
     required this.isDarkMode,
     this.description,
     this.isApplied = false,
+    this.onReset,
   }) : super(key: key);
 
   @override
@@ -52,7 +54,6 @@ class ScreenerDropdown extends StatelessWidget {
           // Dropdown
           Container(
             height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
               color: isApplied 
                   ? (isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5)) // Very subtle tint for applied filters
@@ -65,34 +66,64 @@ class ScreenerDropdown extends StatelessWidget {
                 width: 1, // Same width for both
               ),
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedValue,
-                isExpanded: true,
-                icon: Icon(
-                  Icons.arrow_drop_down,
-                  size: 20,
-                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                ),
-                style: DashboardTextStyles.tickerSymbol.copyWith(
-                  fontSize: 12,
-                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                ),
-                dropdownColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                onChanged: onChanged,
-                items: allOptions.map<DropdownMenuItem<String>>((option) {
-                  return DropdownMenuItem<String>(
-                    value: option['value'],
-                    child: Text(
-                      option['label'] ?? '',
-                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                        fontSize: 12,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+            child: Row(
+              children: [
+                // Dropdown
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedValue,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.arrow_drop_down,
+                          size: 20,
+                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        ),
+                        style: DashboardTextStyles.tickerSymbol.copyWith(
+                          fontSize: 12,
+                          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                        ),
+                        dropdownColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                        onChanged: onChanged,
+                        items: allOptions.map<DropdownMenuItem<String>>((option) {
+                          return DropdownMenuItem<String>(
+                            value: option['value'],
+                            child: Text(
+                              option['label'] ?? '',
+                              style: DashboardTextStyles.tickerSymbol.copyWith(
+                                fontSize: 12,
+                                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                ),
+                
+                // Reset button (only show when filter is applied)
+                if (isApplied && onReset != null)
+                  GestureDetector(
+                    onTap: onReset,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      margin: const EdgeInsets.only(right: 6),
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: 14,
+                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/Controllers/filter_controller.dart';
 import 'package:musaffa_terminal/models/filter_config.dart';
 import 'package:musaffa_terminal/models/results_tab_config.dart';
 import 'package:musaffa_terminal/services/filter_loader.dart';
@@ -17,10 +20,18 @@ class ScreenerScreen extends StatefulWidget {
   State<ScreenerScreen> createState() => _ScreenerScreenState();
 }
 
-class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStateMixin {
+class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   bool _isWatchlistOpen = false;
   late TabController _tabController;
   String _selectedCategory = "Descriptive";
+  late FilterController filterController;
+  late ScrollController _scrollController;
+  
+  // GlobalKey to maintain scroll position
+  final GlobalKey _resultsSectionKey = GlobalKey();
+  
+  // Keep scroll position
+  double _scrollOffset = 0.0;
   
   ScreenerFiltersConfig? _filtersConfig;
   bool _isLoadingFilters = true;
@@ -43,6 +54,17 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   @override
   void initState() {
     super.initState();
+    print('🚀 [ScreenerScreen] initState called');
+    
+    // Initialize FilterController
+    filterController = Get.put(FilterController());
+    
+    // Initialize ScrollController with listener to track position
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      _scrollOffset = _scrollController.offset;
+    });
+    
     _tabController = TabController(length: _filterCategories.length, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
@@ -53,6 +75,14 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     });
     _loadFilters();
     _loadResultsTabs();
+    
+    // Load default stocks on screen load
+    _loadDefaultStocks();
+  }
+  
+  Future<void> _loadDefaultStocks() async {
+    print('🔄 [ScreenerScreen] Loading default stocks...');
+    await filterController.fetchStocks();
   }
 
   Future<void> _loadFilters() async {
@@ -85,8 +115,12 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
+  
+  @override
+  bool get wantKeepAlive => true;
 
   void _toggleWatchlist() {
     setState(() {
@@ -100,7 +134,22 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   }
 
   void _applyFilters() {
-    // TODO: Implement actual filtering logic
+    print('🔍 [ScreenerScreen] Applying filters: $_filterValues');
+    
+    // Convert _filterValues to the format expected by FilterController
+    Map<String, dynamic> filters = {};
+    
+    _filterValues.forEach((key, value) {
+      if (value != null && value != "any") {
+        // Map filter IDs to API field names
+        // This is a simplified mapping - adjust based on your actual filter IDs
+        filters[key] = value;
+      }
+    });
+    
+    // Fetch stocks with filters
+    filterController.fetchStocks(filters: filters);
+    
     setState(() {
       // This will trigger a rebuild and show updated results
     });
@@ -111,21 +160,8 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   }
 
   int _getResultsCount() {
-    int appliedFilters = _getAppliedFiltersCount();
-    
-    // Mock results based on applied filters
-    if (appliedFilters == 0) return 0;
-    if (appliedFilters <= 2) return 1250;
-    if (appliedFilters <= 4) return 850;
-    if (appliedFilters <= 6) return 420;
-    if (appliedFilters <= 8) return 180;
-    if (appliedFilters <= 10) return 75;
-    if (appliedFilters <= 12) return 23;
-    if (appliedFilters <= 15) return 8;
-    if (appliedFilters <= 18) return 3;
-    if (appliedFilters <= 20) return 1;
-    
-    return 0;
+    // Return actual results count from controller
+    return filterController.totalFound;
   }
 
   bool _isFilterApplied(String filterId) {
@@ -133,8 +169,23 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     return value != null && value != "any";
   }
 
+  void _resetFilter(String filterId) {
+    setState(() {
+      _filterValues[filterId] = "any";
+    });
+    _applyFilters();
+  }
+
+  void _resetAllFilters() {
+    setState(() {
+      _filterValues.clear();
+    });
+    _applyFilters();
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
@@ -153,6 +204,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   
                   Expanded(
                     child: SingleChildScrollView(
+                      controller: _scrollController,
                       child: Container(
                         padding: const EdgeInsets.all(12), // Reduced padding
                         child: Column(
@@ -169,7 +221,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                                 : _buildFilterContent(isDarkMode),
                             
                             const SizedBox(height: 16), // Reduced spacing
-                            _buildResultsSection(isDarkMode),
+                            _buildResultsSection(isDarkMode, key: _resultsSectionKey),
                           ],
                         ),
                       ),
@@ -302,7 +354,47 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildFilterTabs(isDarkMode),
+          Row(
+            children: [
+              Expanded(child: _buildFilterTabs(isDarkMode)),
+              if (_getAppliedFiltersCount() > 0) ...[
+                const SizedBox(width: 16),
+                GestureDetector(
+                  onTap: _resetAllFilters,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.refresh,
+                          size: 14,
+                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Reset All',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
           const SizedBox(height: 12), // Reduced spacing
           
           Text(
@@ -379,6 +471,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       },
                       isDarkMode: isDarkMode,
                       isApplied: _isFilterApplied(filterConfig.id),
+                      onReset: () => _resetFilter(filterConfig.id),
                     ),
                   ),
                 );
@@ -445,10 +538,10 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildResultsSection(bool isDarkMode) {
+  Widget _buildResultsSection(bool isDarkMode, {Key? key}) {
     return Container(
-      height: 350, // Reduced height
-      padding: const EdgeInsets.all(12), // Reduced padding
+      key: key,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(6),
@@ -458,6 +551,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
@@ -466,7 +560,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   Text(
                     'Results',
                     style: DashboardTextStyles.tickerSymbol.copyWith(
-                      fontSize: 14, // Reduced font size
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                     ),
@@ -499,124 +593,226 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
               _buildResultsTabs(isDarkMode),
             ],
           ),
-          const SizedBox(height: 12), // Reduced spacing
-          Expanded(
-            child: _buildResultsTable(isDarkMode),
-          ),
+          const SizedBox(height: 12),
+          _buildResultsTable(isDarkMode),
         ],
       ),
     );
   }
 
   Widget _buildResultsTable(bool isDarkMode) {
-    if (_resultsTabsConfig == null) {
-      return Center(
-        child: Text(
-          'Loading results configuration...',
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            fontSize: 14,
-            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+    return Obx(() {
+      // Show loading indicator
+      if (filterController.isLoading.value) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      }
+      
+      // Show error message
+      if (filterController.errorMessage.value.isNotEmpty) {
+        return Center(
+          child: Text(
+            filterController.errorMessage.value,
+            style: DashboardTextStyles.tickerSymbol.copyWith(
+              fontSize: 14,
+              color: Colors.red.shade400,
+            ),
+            textAlign: TextAlign.center,
           ),
-        ),
-      );
-    }
-
-    final selectedTab = _resultsTabsConfig!.getTabById(_selectedResultsTab);
-    
-    if (_getResultsCount() == 0) {
-      return Center(
-        child: Text(
-          'No filters applied yet. Use the filters above to screen stocks.',
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            fontSize: 14,
-            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+        );
+      }
+      
+      // Show empty state
+      if (filterController.stocks.isEmpty) {
+        return Center(
+          child: Text(
+            'No stocks found. Try adjusting your filters.',
+            style: DashboardTextStyles.tickerSymbol.copyWith(
+              fontSize: 14,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-
-    // For now, show a placeholder table structure
-    return Column(
-      children: [
-        // Table header
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8), // Reduced padding
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF1F3F4),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: selectedTab.columns.map((column) {
-              return Expanded(
-                flex: column.width ?? 1,
-                child: Text(
-                  column.label,
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
-                    fontSize: 11, // Reduced font size
-                    fontWeight: FontWeight.w600,
-                    color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 6), // Reduced spacing
+        );
+      }
+      
+      // Convert StocksData to SimpleRowModel for DynamicTable
+      List<SimpleRowModel> rows = filterController.stocks.map((stock) {
+        final isPositive = (stock.priceChange1DPercent ?? 0) >= 0;
+        final changeColor = isPositive ? Colors.green.shade600 : Colors.red.shade600;
         
-        // Placeholder rows
-        Expanded(
-          child: ListView.builder(
-            itemCount: 10, // Show 10 placeholder rows
-            itemBuilder: (context, index) {
-              return Container(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8), // Reduced padding
-                margin: const EdgeInsets.only(bottom: 2), // Reduced margin
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(
-                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                    width: 0.5,
+        return SimpleRowModel(
+          symbol: stock.ticker ?? '',
+          name: filterController.companyNamesMap[stock.ticker] ?? stock.companySymbol ?? stock.ticker ?? '',
+          logo: filterController.logoMap[stock.ticker],
+          price: stock.currentPrice,
+          changePercent: stock.priceChange1DPercent,
+          currency: stock.currency ?? 'USD',
+          fields: {
+            'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
+            'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+            'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
+            'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
+            'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
+            'sector': stock.sector ?? '--',
+            'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
+            'peRatio': stock.peTTM != null ? stock.peTTM!.toStringAsFixed(2) : '--',
+          },
+          changeColor: changeColor,
+          isPositive: isPositive,
+        );
+      }).toList();
+      
+      // Build table with pagination
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // DynamicTable - no fixed height, takes natural height
+          DynamicTable(
+            columns: const [
+              SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
+              SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+              SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+              SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+              SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+              SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
+              SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+              SimpleColumn(label: 'P/E', fieldName: 'peRatio', isNumeric: true),
+            ],
+            rows: rows,
+            showFixedColumn: true,
+            considerPadding: false,
+            columnSpacing: 16,
+            fixedColumnWidth: 0,
+            enableDragging: false,
+            enableLivePrices: true,
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Pagination controls
+          _buildPaginationControls(isDarkMode),
+        ],
+      );
+    });
+  }
+  
+  Widget _buildPaginationControls(bool isDarkMode) {
+    return Obx(() {
+      if (filterController.totalPages <= 1) return const SizedBox.shrink();
+      
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Page info
+          Text(
+            'Page ${filterController.currentPage + 1} of ${filterController.totalPages} (${filterController.totalFound} stocks)',
+            style: DashboardTextStyles.dataCell.copyWith(
+              fontSize: 12,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ),
+          
+          // Navigation buttons
+          Row(
+            children: [
+              // Previous button
+              if (filterController.hasPreviousPage) ...[
+                GestureDetector(
+                  onTap: () async {
+                    // Save current scroll position
+                    _scrollOffset = _scrollController.offset;
+                    
+                    await filterController.previousPage(
+                      filters: _convertFiltersForController(),
+                    );
+                    
+                    // Restore scroll position after rebuild
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.jumpTo(_scrollOffset);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      'Previous',
+                      style: DashboardTextStyles.dataCell.copyWith(
+                        fontSize: 12,
+                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                      ),
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: selectedTab.columns.map((column) {
-                    return Expanded(
-                      flex: column.width ?? 1,
-                      child: Text(
-                        _getPlaceholderValue(column),
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 10, // Reduced font size
-                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                        ),
-                      ),
+                const SizedBox(width: 12),
+              ],
+              
+              // Next button
+              if (filterController.hasNextPage)
+                GestureDetector(
+                  onTap: () async {
+                    // Save current scroll position
+                    _scrollOffset = _scrollController.offset;
+                    
+                    await filterController.nextPage(
+                      filters: _convertFiltersForController(),
                     );
-                  }).toList(),
+                    
+                    // Restore scroll position after rebuild
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.jumpTo(_scrollOffset);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      'Next',
+                      style: DashboardTextStyles.dataCell.copyWith(
+                        fontSize: 12,
+                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                      ),
+                    ),
+                  ),
                 ),
-              );
-            },
+            ],
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
-
-  String _getPlaceholderValue(ResultsTabColumn column) {
-    switch (column.type) {
-      case 'text':
-        return column.id == 'ticker' ? 'AAPL' : 'Sample Data';
-      case 'currency':
-        return '\$123.45';
-      case 'percentage':
-        return '+2.34%';
-      case 'number':
-        return '1,234.56';
-      case 'date':
-        return '2024-01-15';
-      default:
-        return '--';
-    }
+  
+  Map<String, dynamic> _convertFiltersForController() {
+    Map<String, dynamic> filters = {};
+    
+    _filterValues.forEach((key, value) {
+      if (value != null && value != "any") {
+        filters[key] = value;
+      }
+    });
+    
+    return filters;
   }
+  
+  // Removed _scrollToResults() - no longer needed
 }
 
