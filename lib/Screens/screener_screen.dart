@@ -47,8 +47,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     "Descriptive",
     "Fundamental", 
     "Technical",
-    "Growth",
-    "ETF"
+    "Growth"
   ];
 
   @override
