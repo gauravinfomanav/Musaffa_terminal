@@ -117,6 +117,9 @@ class FilterController extends GetxController {
       // Default sort if not provided
       String sortQuery = sortBy ?? 'usdMarketCap:desc';
       
+      print('Filter selected: $filters');
+      print('Query passed: $filterQuery');
+      
       var params = {
         "q": "*",
         "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume,beta,peTTM,pbAnnual,psTTM,currentDividendYieldTTM,avgVolume10days,avgVolume30days,52WeekHigh,52WeekLow,change1D,sharia_compliance,marketCapClassification,exchange",
@@ -137,9 +140,6 @@ class FilterController extends GetxController {
         var hits = (data['hits'] as List?) ?? [];
         var found = data['found'] ?? 0;
         
-        print('✅ [FilterController] API Success');
-        print('   Found: $found results');
-        print('   Hits returned: ${hits.length}');
         
         // Update total found
         _totalFound.value = found;
@@ -158,13 +158,11 @@ class FilterController extends GetxController {
               stocks.add(stock);
               tickers.add(document['ticker']);
             } catch (e) {
-              print('⚠️ [FilterController] Error parsing stock: ${document['ticker']} - $e');
+              // Skip invalid stock data
             }
           }
         }
         
-        print('   Successfully parsed ${stocks.length} stocks');
-        print('   Tickers: ${tickers.take(5).join(", ")}${tickers.length > 5 ? "..." : ""}');
         
         // Clear existing logos - will be loaded per page
         _logoMap.value = {};
@@ -178,30 +176,21 @@ class FilterController extends GetxController {
         
         // Load logos and company names for current page
         if (tickers.isNotEmpty) {
-          print('   Fetching logos and names for ${tickers.length} tickers...');
           Map<String, String> pageLogos = await _fetchCompanyLogos(tickers);
           Map<String, String> pageNames = await _fetchCompanyNames(tickers);
-          
-          print('   Fetched ${pageLogos.length} logos and ${pageNames.length} names');
           
           _logoMap.value = pageLogos;
           _companyNamesMap.value = pageNames;
         }
         
-        print('🎉 [FilterController] fetchStocks completed successfully');
         
       } else {
-        print('❌ [FilterController] API Error: ${response.statusCode}');
-        print('   Response body: ${response.body}');
         errorMessage.value = 'API Error: ${response.statusCode}';
       }
     } catch (e, stackTrace) {
-      print('❌ [FilterController] Exception: $e');
-      print('   Stack trace: $stackTrace');
       errorMessage.value = 'Error fetching stocks: $e';
     } finally {
       isLoading.value = false;
-      print('   Loading state: ${isLoading.value}');
     }
   }
 
@@ -592,22 +581,22 @@ class FilterController extends GetxController {
       // Handle different ROE ranges
       switch (roeValue) {
         case 'negative':
-          filterParts.add('rOE:<0');
+          filterParts.add('ROE:<0');
           break;
         case '0_5':
-          filterParts.add('rOE:>=0&&rOE:<=5');
+          filterParts.add('ROE:>=0&&ROE:<=5');
           break;
         case '5_10':
-          filterParts.add('rOE:>=5&&rOE:<=10');
+          filterParts.add('ROE:>=5&&ROE:<=10');
           break;
         case '10_15':
-          filterParts.add('rOE:>=10&&rOE:<=15');
+          filterParts.add('ROE:>=10&&ROE:<=15');
           break;
         case '15_20':
-          filterParts.add('rOE:>=15&&rOE:<=20');
+          filterParts.add('ROE:>=15&&ROE:<=20');
           break;
         case 'over_20':
-          filterParts.add('rOE:>20');
+          filterParts.add('ROE:>20');
           break;
         default:
           // Try to parse as direct value
@@ -617,10 +606,652 @@ class FilterController extends GetxController {
               var min = parts[0];
               var max = parts[1];
               if (min.isNotEmpty && max.isNotEmpty) {
-                filterParts.add('rOE:>=$min&&rOE:<=$max');
+                filterParts.add('ROE:>=$min&&ROE:<=$max');
               }
             }
           }
+          break;
+      }
+    }
+    
+    // P/E Annual filter
+    if (filters.containsKey('peAnnual') && filters['peAnnual'] != null && filters['peAnnual'] != "any") {
+      String peValue = filters['peAnnual'].toString();
+      
+      switch (peValue) {
+        case 'under_5':
+          filterParts.add('peAnnual:<5');
+          break;
+        case '5_10':
+          filterParts.add('peAnnual:>=5&&peAnnual:<=10');
+          break;
+        case '10_15':
+          filterParts.add('peAnnual:>=10&&peAnnual:<=15');
+          break;
+        case '15_20':
+          filterParts.add('peAnnual:>=15&&peAnnual:<=20');
+          break;
+        case '20_25':
+          filterParts.add('peAnnual:>=20&&peAnnual:<=25');
+          break;
+        case '25_30':
+          filterParts.add('peAnnual:>=25&&peAnnual:<=30');
+          break;
+        case 'over_30':
+          filterParts.add('peAnnual:>30');
+          break;
+      }
+    }
+    
+    // P/E TTM filter
+    if (filters.containsKey('peTTM') && filters['peTTM'] != null && filters['peTTM'] != "any") {
+      String peValue = filters['peTTM'].toString();
+      
+      switch (peValue) {
+        case 'under_5':
+          filterParts.add('peTTM:<5');
+          break;
+        case '5_10':
+          filterParts.add('peTTM:>=5&&peTTM:<=10');
+          break;
+        case '10_15':
+          filterParts.add('peTTM:>=10&&peTTM:<=15');
+          break;
+        case '15_20':
+          filterParts.add('peTTM:>=15&&peTTM:<=20');
+          break;
+        case '20_25':
+          filterParts.add('peTTM:>=20&&peTTM:<=25');
+          break;
+        case '25_30':
+          filterParts.add('peTTM:>=25&&peTTM:<=30');
+          break;
+        case 'over_30':
+          filterParts.add('peTTM:>30');
+          break;
+      }
+    }
+    
+    // P/B Annual filter
+    if (filters.containsKey('pbAnnual') && filters['pbAnnual'] != null && filters['pbAnnual'] != "any") {
+      String pbValue = filters['pbAnnual'].toString();
+      
+      switch (pbValue) {
+        case 'under_1':
+          filterParts.add('pbAnnual:<1');
+          break;
+        case '1_2':
+          filterParts.add('pbAnnual:>=1&&pbAnnual:<=2');
+          break;
+        case '2_3':
+          filterParts.add('pbAnnual:>=2&&pbAnnual:<=3');
+          break;
+        case '3_5':
+          filterParts.add('pbAnnual:>=3&&pbAnnual:<=5');
+          break;
+        case 'over_5':
+          filterParts.add('pbAnnual:>5');
+          break;
+      }
+    }
+    
+    // P/S Annual filter
+    if (filters.containsKey('psAnnual') && filters['psAnnual'] != null && filters['psAnnual'] != "any") {
+      String psValue = filters['psAnnual'].toString();
+      
+      switch (psValue) {
+        case 'under_1':
+          filterParts.add('psAnnual:<1');
+          break;
+        case '1_2':
+          filterParts.add('psAnnual:>=1&&psAnnual:<=2');
+          break;
+        case '2_3':
+          filterParts.add('psAnnual:>=2&&psAnnual:<=3');
+          break;
+        case '3_5':
+          filterParts.add('psAnnual:>=3&&psAnnual:<=5');
+          break;
+        case '5_10':
+          filterParts.add('psAnnual:>=5&&psAnnual:<=10');
+          break;
+        case 'over_10':
+          filterParts.add('psAnnual:>10');
+          break;
+      }
+    }
+    
+    // P/S TTM filter
+    if (filters.containsKey('psTTM') && filters['psTTM'] != null && filters['psTTM'] != "any") {
+      String psValue = filters['psTTM'].toString();
+      
+      switch (psValue) {
+        case 'under_1':
+          filterParts.add('psTTM:<1');
+          break;
+        case '1_2':
+          filterParts.add('psTTM:>=1&&psTTM:<=2');
+          break;
+        case '2_3':
+          filterParts.add('psTTM:>=2&&psTTM:<=3');
+          break;
+        case '3_5':
+          filterParts.add('psTTM:>=3&&psTTM:<=5');
+          break;
+        case '5_10':
+          filterParts.add('psTTM:>=5&&psTTM:<=10');
+          break;
+        case 'over_10':
+          filterParts.add('psTTM:>10');
+          break;
+      }
+    }
+    
+    // Current Ratio filter
+    if (filters.containsKey('currentRatio') && filters['currentRatio'] != null && filters['currentRatio'] != "any") {
+      String ratioValue = filters['currentRatio'].toString();
+      
+      switch (ratioValue) {
+        case 'under_1':
+          filterParts.add('currentRatioAnnual:<1');
+          break;
+        case '1_2':
+          filterParts.add('currentRatioAnnual:>=1&&currentRatioAnnual:<=2');
+          break;
+        case '2_3':
+          filterParts.add('currentRatioAnnual:>=2&&currentRatioAnnual:<=3');
+          break;
+        case 'over_3':
+          filterParts.add('currentRatioAnnual:>3');
+          break;
+      }
+    }
+    
+    // Debt/Equity filter
+    if (filters.containsKey('debtEquity') && filters['debtEquity'] != null && filters['debtEquity'] != "any") {
+      String debtValue = filters['debtEquity'].toString();
+      
+      switch (debtValue) {
+        case 'under_0.5':
+          filterParts.add('totalDebt_totalEquityAnnual:<0.5');
+          break;
+        case '0.5_1':
+          filterParts.add('totalDebt_totalEquityAnnual:>=0.5&&totalDebt_totalEquityAnnual:<=1');
+          break;
+        case '1_2':
+          filterParts.add('totalDebt_totalEquityAnnual:>=1&&totalDebt_totalEquityAnnual:<=2');
+          break;
+        case 'over_2':
+          filterParts.add('totalDebt_totalEquityAnnual:>2');
+          break;
+      }
+    }
+    
+    // Net Margin filter
+    if (filters.containsKey('netMargin') && filters['netMargin'] != null && filters['netMargin'] != "any") {
+      String marginValue = filters['netMargin'].toString();
+      
+      switch (marginValue) {
+        case 'negative':
+          filterParts.add('netProfitMarginAnnual:<0');
+          break;
+        case '0_5':
+          filterParts.add('netProfitMarginAnnual:>=0&&netProfitMarginAnnual:<=5');
+          break;
+        case '5_10':
+          filterParts.add('netProfitMarginAnnual:>=5&&netProfitMarginAnnual:<=10');
+          break;
+        case '10_20':
+          filterParts.add('netProfitMarginAnnual:>=10&&netProfitMarginAnnual:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('netProfitMarginAnnual:>20');
+          break;
+      }
+    }
+    
+    // ROI filter
+    if (filters.containsKey('roi') && filters['roi'] != null && filters['roi'] != "any") {
+      String roiValue = filters['roi'].toString();
+      
+      switch (roiValue) {
+        case 'negative':
+          filterParts.add('roiAnnual:<0');
+          break;
+        case '0_5':
+          filterParts.add('roiAnnual:>=0&&roiAnnual:<=5');
+          break;
+        case '5_10':
+          filterParts.add('roiAnnual:>=5&&roiAnnual:<=10');
+          break;
+        case '10_20':
+          filterParts.add('roiAnnual:>=10&&roiAnnual:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('roiAnnual:>20');
+          break;
+      }
+    }
+    
+    // Dividend Yield filter
+    if (filters.containsKey('dividendYield') && filters['dividendYield'] != null && filters['dividendYield'] != "any") {
+      String yieldValue = filters['dividendYield'].toString();
+      
+      switch (yieldValue) {
+        case '0':
+          filterParts.add('currentDividendYieldTTM:=0');
+          break;
+        case '0_2':
+          filterParts.add('currentDividendYieldTTM:>0&&currentDividendYieldTTM:<=2');
+          break;
+        case '2_4':
+          filterParts.add('currentDividendYieldTTM:>=2&&currentDividendYieldTTM:<=4');
+          break;
+        case '4_6':
+          filterParts.add('currentDividendYieldTTM:>=4&&currentDividendYieldTTM:<=6');
+          break;
+        case 'over_6':
+          filterParts.add('currentDividendYieldTTM:>6');
+          break;
+      }
+    }
+    
+    // Analyst Recommendation filter (string values: "Buy", "Hold", "Sell", etc.)
+    if (filters.containsKey('analystRecommendation') && filters['analystRecommendation'] != null && filters['analystRecommendation'] != "any") {
+      String recommendationValue = filters['analystRecommendation'].toString();
+      
+      switch (recommendationValue) {
+        case '1_1.5':
+          filterParts.add('analyst_recommendation_weighted_avg:=Strong Buy');
+          break;
+        case '1.5_2.5':
+          filterParts.add('analyst_recommendation_weighted_avg:=Buy');
+          break;
+        case '2.5_3.5':
+          filterParts.add('analyst_recommendation_weighted_avg:=Hold');
+          break;
+        case '3.5_4.5':
+          filterParts.add('analyst_recommendation_weighted_avg:=Sell');
+          break;
+        case '4.5_5':
+          filterParts.add('analyst_recommendation_weighted_avg:=Strong Sell');
+          break;
+      }
+    }
+    
+    // Gross Margin filter
+    if (filters.containsKey('grossMargin') && filters['grossMargin'] != null && filters['grossMargin'] != "any") {
+      String marginValue = filters['grossMargin'].toString();
+      
+      switch (marginValue) {
+        case 'negative':
+          filterParts.add('grossMarginAnnual:<0');
+          break;
+        case '0_10':
+          filterParts.add('grossMarginAnnual:>=0&&grossMarginAnnual:<=10');
+          break;
+        case '10_20':
+          filterParts.add('grossMarginAnnual:>=10&&grossMarginAnnual:<=20');
+          break;
+        case '20_30':
+          filterParts.add('grossMarginAnnual:>=20&&grossMarginAnnual:<=30');
+          break;
+        case '30_50':
+          filterParts.add('grossMarginAnnual:>=30&&grossMarginAnnual:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('grossMarginAnnual:>50');
+          break;
+      }
+    }
+    
+    // Operating Margin filter
+    if (filters.containsKey('operatingMargin') && filters['operatingMargin'] != null && filters['operatingMargin'] != "any") {
+      String marginValue = filters['operatingMargin'].toString();
+      
+      switch (marginValue) {
+        case 'negative':
+          filterParts.add('operatingMarginAnnual:<0');
+          break;
+        case '0_5':
+          filterParts.add('operatingMarginAnnual:>=0&&operatingMarginAnnual:<=5');
+          break;
+        case '5_10':
+          filterParts.add('operatingMarginAnnual:>=5&&operatingMarginAnnual:<=10');
+          break;
+        case '10_15':
+          filterParts.add('operatingMarginAnnual:>=10&&operatingMarginAnnual:<=15');
+          break;
+        case '15_20':
+          filterParts.add('operatingMarginAnnual:>=15&&operatingMarginAnnual:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('operatingMarginAnnual:>20');
+          break;
+      }
+    }
+    
+    // Quick Ratio filter
+    if (filters.containsKey('quickRatio') && filters['quickRatio'] != null && filters['quickRatio'] != "any") {
+      String ratioValue = filters['quickRatio'].toString();
+      
+      switch (ratioValue) {
+        case 'under_0.5':
+          filterParts.add('quickRatioAnnual:<0.5');
+          break;
+        case '0.5_1':
+          filterParts.add('quickRatioAnnual:>=0.5&&quickRatioAnnual:<=1');
+          break;
+        case '1_1.5':
+          filterParts.add('quickRatioAnnual:>=1&&quickRatioAnnual:<=1.5');
+          break;
+        case '1.5_2':
+          filterParts.add('quickRatioAnnual:>=1.5&&quickRatioAnnual:<=2');
+          break;
+        case 'over_2':
+          filterParts.add('quickRatioAnnual:>2');
+          break;
+      }
+    }
+    
+    // Asset Turnover filter
+    if (filters.containsKey('assetTurnover') && filters['assetTurnover'] != null && filters['assetTurnover'] != "any") {
+      String turnoverValue = filters['assetTurnover'].toString();
+      
+      switch (turnoverValue) {
+        case 'under_0.5':
+          filterParts.add('assetTurnoverAnnual:<0.5');
+          break;
+        case '0.5_1':
+          filterParts.add('assetTurnoverAnnual:>=0.5&&assetTurnoverAnnual:<=1');
+          break;
+        case '1_1.5':
+          filterParts.add('assetTurnoverAnnual:>=1&&assetTurnoverAnnual:<=1.5');
+          break;
+        case '1.5_2':
+          filterParts.add('assetTurnoverAnnual:>=1.5&&assetTurnoverAnnual:<=2');
+          break;
+        case 'over_2':
+          filterParts.add('assetTurnoverAnnual:>2');
+          break;
+      }
+    }
+    
+    // Inventory Turnover filter
+    if (filters.containsKey('inventoryTurnover') && filters['inventoryTurnover'] != null && filters['inventoryTurnover'] != "any") {
+      String turnoverValue = filters['inventoryTurnover'].toString();
+      
+      switch (turnoverValue) {
+        case 'under_2':
+          filterParts.add('inventoryTurnoverAnnual:<2');
+          break;
+        case '2_5':
+          filterParts.add('inventoryTurnoverAnnual:>=2&&inventoryTurnoverAnnual:<=5');
+          break;
+        case '5_10':
+          filterParts.add('inventoryTurnoverAnnual:>=5&&inventoryTurnoverAnnual:<=10');
+          break;
+        case '10_20':
+          filterParts.add('inventoryTurnoverAnnual:>=10&&inventoryTurnoverAnnual:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('inventoryTurnoverAnnual:>20');
+          break;
+      }
+    }
+    
+    // Receivables Turnover filter
+    if (filters.containsKey('receivablesTurnover') && filters['receivablesTurnover'] != null && filters['receivablesTurnover'] != "any") {
+      String turnoverValue = filters['receivablesTurnover'].toString();
+      
+      switch (turnoverValue) {
+        case 'under_2':
+          filterParts.add('receivablesTurnoverTTM:<2');
+          break;
+        case '2_5':
+          filterParts.add('receivablesTurnoverTTM:>=2&&receivablesTurnoverTTM:<=5');
+          break;
+        case '5_10':
+          filterParts.add('receivablesTurnoverTTM:>=5&&receivablesTurnoverTTM:<=10');
+          break;
+        case '10_20':
+          filterParts.add('receivablesTurnoverTTM:>=10&&receivablesTurnoverTTM:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('receivablesTurnoverTTM:>20');
+          break;
+      }
+    }
+    
+    // Payout Ratio filter
+    if (filters.containsKey('payoutRatio') && filters['payoutRatio'] != null && filters['payoutRatio'] != "any") {
+      String ratioValue = filters['payoutRatio'].toString();
+      
+      switch (ratioValue) {
+        case '0':
+          filterParts.add('payoutRatioTTM:=0');
+          break;
+        case '0_20':
+          filterParts.add('payoutRatioTTM:>0&&payoutRatioTTM:<=20');
+          break;
+        case '20_40':
+          filterParts.add('payoutRatioTTM:>=20&&payoutRatioTTM:<=40');
+          break;
+        case '40_60':
+          filterParts.add('payoutRatioTTM:>=40&&payoutRatioTTM:<=60');
+          break;
+        case 'over_60':
+          filterParts.add('payoutRatioTTM:>60');
+          break;
+      }
+    }
+    
+    // EPS Growth filter
+    if (filters.containsKey('epsGrowth') && filters['epsGrowth'] != null && filters['epsGrowth'] != "any") {
+      String growthValue = filters['epsGrowth'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('eps_growth_1y:<0');
+          break;
+        case '0_5':
+          filterParts.add('eps_growth_1y:>=0&&eps_growth_1y:<=5');
+          break;
+        case '5_10':
+          filterParts.add('eps_growth_1y:>=5&&eps_growth_1y:<=10');
+          break;
+        case '10_20':
+          filterParts.add('eps_growth_1y:>=10&&eps_growth_1y:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('eps_growth_1y:>20');
+          break;
+      }
+    }
+    
+    // Revenue Growth filter
+    if (filters.containsKey('revenueGrowth') && filters['revenueGrowth'] != null && filters['revenueGrowth'] != "any") {
+      String growthValue = filters['revenueGrowth'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('revenueGrowth1Y:<0');
+          break;
+        case '0_5':
+          filterParts.add('revenueGrowth1Y:>=0&&revenueGrowth1Y:<=5');
+          break;
+        case '5_10':
+          filterParts.add('revenueGrowth1Y:>=5&&revenueGrowth1Y:<=10');
+          break;
+        case '10_20':
+          filterParts.add('revenueGrowth1Y:>=10&&revenueGrowth1Y:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('revenueGrowth1Y:>20');
+          break;
+      }
+    }
+    
+    // EV/EBIT filter
+    if (filters.containsKey('evEbit') && filters['evEbit'] != null && filters['evEbit'] != "any") {
+      String evValue = filters['evEbit'].toString();
+      
+      switch (evValue) {
+        case 'under_5':
+          filterParts.add('ev_ebit:<5');
+          break;
+        case '5_10':
+          filterParts.add('ev_ebit:>=5&&ev_ebit:<=10');
+          break;
+        case '10_15':
+          filterParts.add('ev_ebit:>=10&&ev_ebit:<=15');
+          break;
+        case '15_25':
+          filterParts.add('ev_ebit:>=15&&ev_ebit:<=25');
+          break;
+        case 'over_25':
+          filterParts.add('ev_ebit:>25');
+          break;
+      }
+    }
+    
+    // EV/FCF filter
+    if (filters.containsKey('evFcf') && filters['evFcf'] != null && filters['evFcf'] != "any") {
+      String evValue = filters['evFcf'].toString();
+      
+      switch (evValue) {
+        case 'under_10':
+          filterParts.add('ev_fcf:<10');
+          break;
+        case '10_20':
+          filterParts.add('ev_fcf:>=10&&ev_fcf:<=20');
+          break;
+        case '20_30':
+          filterParts.add('ev_fcf:>=20&&ev_fcf:<=30');
+          break;
+        case '30_50':
+          filterParts.add('ev_fcf:>=30&&ev_fcf:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('ev_fcf:>50');
+          break;
+      }
+    }
+    
+    // Long-term Debt/Equity filter
+    if (filters.containsKey('longTermDebtEquity') && filters['longTermDebtEquity'] != null && filters['longTermDebtEquity'] != "any") {
+      String debtValue = filters['longTermDebtEquity'].toString();
+      
+      switch (debtValue) {
+        case 'under_0.5':
+          filterParts.add('longTermDebt_equityAnnual:<0.5');
+          break;
+        case '0.5_1':
+          filterParts.add('longTermDebt_equityAnnual:>=0.5&&longTermDebt_equityAnnual:<=1');
+          break;
+        case '1_2':
+          filterParts.add('longTermDebt_equityAnnual:>=1&&longTermDebt_equityAnnual:<=2');
+          break;
+        case '2_5':
+          filterParts.add('longTermDebt_equityAnnual:>=2&&longTermDebt_equityAnnual:<=5');
+          break;
+        case 'over_5':
+          filterParts.add('longTermDebt_equityAnnual:>5');
+          break;
+      }
+    }
+    
+    // Interest Coverage filter
+    if (filters.containsKey('interestCoverage') && filters['interestCoverage'] != null && filters['interestCoverage'] != "any") {
+      String coverageValue = filters['interestCoverage'].toString();
+      
+      switch (coverageValue) {
+        case 'under_1':
+          filterParts.add('netInterestCoverageAnnual:<1');
+          break;
+        case '1_2':
+          filterParts.add('netInterestCoverageAnnual:>=1&&netInterestCoverageAnnual:<=2');
+          break;
+        case '2_5':
+          filterParts.add('netInterestCoverageAnnual:>=2&&netInterestCoverageAnnual:<=5');
+          break;
+        case '5_10':
+          filterParts.add('netInterestCoverageAnnual:>=5&&netInterestCoverageAnnual:<=10');
+          break;
+        case 'over_10':
+          filterParts.add('netInterestCoverageAnnual:>10');
+          break;
+      }
+    }
+    
+    // Pretax Margin filter
+    if (filters.containsKey('pretaxMargin') && filters['pretaxMargin'] != null && filters['pretaxMargin'] != "any") {
+      String marginValue = filters['pretaxMargin'].toString();
+      
+      switch (marginValue) {
+        case 'negative':
+          filterParts.add('pretaxMarginAnnual:<0');
+          break;
+        case '0_5':
+          filterParts.add('pretaxMarginAnnual:>=0&&pretaxMarginAnnual:<=5');
+          break;
+        case '5_10':
+          filterParts.add('pretaxMarginAnnual:>=5&&pretaxMarginAnnual:<=10');
+          break;
+        case '10_20':
+          filterParts.add('pretaxMarginAnnual:>=10&&pretaxMarginAnnual:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('pretaxMarginAnnual:>20');
+          break;
+      }
+    }
+    
+    // EPS Annual filter
+    if (filters.containsKey('epsAnnual') && filters['epsAnnual'] != null && filters['epsAnnual'] != "any") {
+      String epsValue = filters['epsAnnual'].toString();
+      
+      switch (epsValue) {
+        case 'negative':
+          filterParts.add('epsAnnual:<0');
+          break;
+        case 'under_1':
+          filterParts.add('epsAnnual:>=0&&epsAnnual:<1');
+          break;
+        case '1_2':
+          filterParts.add('epsAnnual:>=1&&epsAnnual:<2');
+          break;
+        case '2_5':
+          filterParts.add('epsAnnual:>=2&&epsAnnual:<5');
+          break;
+        case '5_10':
+          filterParts.add('epsAnnual:>=5&&epsAnnual:<10');
+          break;
+        case 'over_10':
+          filterParts.add('epsAnnual:>=10');
+          break;
+      }
+    }
+    
+    // Book Value Per Share filter
+    if (filters.containsKey('bookValuePerShare') && filters['bookValuePerShare'] != null && filters['bookValuePerShare'] != "any") {
+      String bookValue = filters['bookValuePerShare'].toString();
+      
+      switch (bookValue) {
+        case 'under_5':
+          filterParts.add('bookValuePerShareAnnual:<5');
+          break;
+        case '5_10':
+          filterParts.add('bookValuePerShareAnnual:>=5&&bookValuePerShareAnnual:<10');
+          break;
+        case '10_20':
+          filterParts.add('bookValuePerShareAnnual:>=10&&bookValuePerShareAnnual:<20');
+          break;
+        case '20_50':
+          filterParts.add('bookValuePerShareAnnual:>=20&&bookValuePerShareAnnual:<50');
+          break;
+        case 'over_50':
+          filterParts.add('bookValuePerShareAnnual:>=50');
           break;
       }
     }
@@ -685,7 +1316,6 @@ class FilterController extends GetxController {
     // Equity to Assets filter (from UI)
     if (filters.containsKey('equityToAssets') && filters['equityToAssets'] != null && filters['equityToAssets'] != "any") {
       String equityToAssetsValue = filters['equityToAssets'].toString();
-      print('   Processing equity to assets filter: $equityToAssetsValue');
       
       // Handle different equity to assets ranges
       switch (equityToAssetsValue) {
@@ -731,12 +1361,10 @@ class FilterController extends GetxController {
     if (tickers.isEmpty) return namesMap;
     
     try {
-      print('   📝 Fetching company names for ${tickers.length} tickers');
       // Create filter for tickers (batch by 50)
       for (int i = 0; i < tickers.length; i += 50) {
         List<String> batchTickers = tickers.skip(i).take(50).toList();
         final tickerFilter = batchTickers.map((ticker) => 'id:=`$ticker`').join('||');
-        print('      Batch ${(i ~/ 50) + 1}: ${batchTickers.length} tickers');
         
         var params = {
           "q": "*",
@@ -761,9 +1389,7 @@ class FilterController extends GetxController {
           }
         }
       }
-      print('   ✅ Fetched ${namesMap.length} company names');
     } catch (e) {
-      print('   ⚠️ Error fetching company names: $e');
     }
     
     return namesMap;
@@ -776,12 +1402,10 @@ class FilterController extends GetxController {
     if (tickers.isEmpty) return logoMap;
     
     try {
-      print('   🖼️  Fetching company logos for ${tickers.length} tickers');
       // Create filter for multiple tickers (batch by 50)
       for (int i = 0; i < tickers.length; i += 50) {
         List<String> batchTickers = tickers.skip(i).take(50).toList();
         String tickerFilter = batchTickers.map((ticker) => 'ticker:=$ticker').join('||');
-        print('      Batch ${(i ~/ 50) + 1}: ${batchTickers.length} tickers');
         
         var params = {
           "q": "*",
@@ -806,9 +1430,7 @@ class FilterController extends GetxController {
           }
         }
       }
-      print('   ✅ Fetched ${logoMap.length} company logos');
     } catch (e) {
-      print('   ⚠️ Error fetching company logos: $e');
     }
     
     return logoMap;
@@ -816,7 +1438,6 @@ class FilterController extends GetxController {
 
   /// Go to next page
   Future<void> nextPage({Map<String, dynamic>? filters, String? sortBy}) async {
-    print('➡️ [FilterController] nextPage called');
     if (hasNextPage) {
       await fetchStocks(
         filters: filters,
@@ -825,13 +1446,11 @@ class FilterController extends GetxController {
         perPage: _pageSize.value,
       );
     } else {
-      print('   ⚠️ No next page available');
     }
   }
   
   /// Go to previous page
   Future<void> previousPage({Map<String, dynamic>? filters, String? sortBy}) async {
-    print('⬅️ [FilterController] previousPage called');
     if (hasPreviousPage) {
       await fetchStocks(
         filters: filters,
@@ -840,7 +1459,6 @@ class FilterController extends GetxController {
         perPage: _pageSize.value,
       );
     } else {
-      print('   ⚠️ No previous page available');
     }
   }
   
@@ -868,7 +1486,6 @@ class FilterController extends GetxController {
 
   /// Clear the current stocks
   void clearStocks() {
-    print('🧹 [FilterController] Clearing all stocks');
     _allStocks.clear();
     _stocks.clear();
     _logoMap.clear();
@@ -877,7 +1494,6 @@ class FilterController extends GetxController {
     _totalStocks.value = 0;
     _totalFound.value = 0;
     errorMessage.value = '';
-    print('   ✅ Cleared');
   }
 
   /// Change page size
@@ -901,7 +1517,6 @@ class FilterController extends GetxController {
       _sectorMapping = jsonData.map((key, value) => 
         MapEntry(key, List<String>.from(value)));
     } catch (e) {
-      print('Error loading sector mapping: $e');
     }
   }
 

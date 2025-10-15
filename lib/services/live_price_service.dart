@@ -34,7 +34,7 @@ class LivePriceService extends GetxService {
     _visibleTickers.addAll(tickers);
     _webSocketService.subscribeToTickers(tickers);
     
-    print('Added visible tickers: $tickers');
+    
   }
 
   /// Remove tickers from visible list and unsubscribe
@@ -42,7 +42,7 @@ class LivePriceService extends GetxService {
     _visibleTickers.removeAll(tickers);
     _webSocketService.unsubscribeFromTickers(tickers);
     
-    print('Removed visible tickers: $tickers');
+ 
   }
 
   /// Update visible tickers (useful when user navigates between screens)

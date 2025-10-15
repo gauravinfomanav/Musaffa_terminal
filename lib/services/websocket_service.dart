@@ -58,7 +58,7 @@ class WebSocketService extends GetxService {
       _connectionStatus.value = 'connected';
       _reconnectAttempts = 0;
       
-      print('WebSocket connected successfully');
+      
       
       // Resubscribe to previously subscribed tickers
       if (_subscribedTickers.isNotEmpty) {
@@ -116,7 +116,7 @@ class WebSocketService extends GetxService {
       _reconnectAttempts++;
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(WebSocketConfig.reconnectInterval, () {
-        print('Attempting to reconnect... (${_reconnectAttempts}/${WebSocketConfig.maxReconnectAttempts})');
+       
         _connect();
       });
     } else {
@@ -155,7 +155,7 @@ class WebSocketService extends GetxService {
       try {
         final message = jsonEncode(tickers);
         _channel!.sink.add(message);
-        print('Subscribed to tickers: $tickers');
+      
       } catch (e) {
         print('Error sending subscription message: $e');
       }

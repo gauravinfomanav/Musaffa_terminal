@@ -164,7 +164,7 @@
       "id": "roe",
       "label": "ROE",
       "type": "dropdown",
-      "field": "rOE",
+      "field": "ROE",
       "options": [
         {"value": "negative", "label": "Negative"},
         {"value": "0_5", "label": "0% - 5%"},
@@ -338,20 +338,6 @@
       ]
     },
     {
-      "id": "roa",
-      "label": "ROA",
-      "type": "dropdown",
-      "field": "roaTTM",
-      "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_2", "label": "0% - 2%"},
-        {"value": "2_5", "label": "2% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_15", "label": "10% - 15%"},
-        {"value": "over_15", "label": "Over 15%"}
-      ]
-    },
-    {
       "id": "grossMargin",
       "label": "Gross Margin",
       "type": "dropdown",
@@ -390,19 +376,6 @@
         {"value": "1_1.5", "label": "1 - 1.5"},
         {"value": "1.5_2", "label": "1.5 - 2"},
         {"value": "over_2", "label": "Over 2"}
-      ]
-    },
-    {
-      "id": "cashToDebt",
-      "label": "Cash to Debt",
-      "type": "dropdown",
-      "field": "cashToDebt",
-      "options": [
-        {"value": "under_0.1", "label": "Under 0.1"},
-        {"value": "0.1_0.3", "label": "0.1 - 0.3"},
-        {"value": "0.3_0.5", "label": "0.3 - 0.5"},
-        {"value": "0.5_1", "label": "0.5 - 1"},
-        {"value": "over_1", "label": "Over 1"}
       ]
     },
     {
