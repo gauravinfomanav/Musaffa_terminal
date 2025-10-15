@@ -1605,6 +1605,343 @@ class FilterController extends GetxController {
       }
     }
     
+    // Revenue Growth 3Y filter
+    if (filters.containsKey('revenueGrowth3Y') && filters['revenueGrowth3Y'] != null && filters['revenueGrowth3Y'] != "any") {
+      String growthValue = filters['revenueGrowth3Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('revenueGrowth3Y:<0');
+          break;
+        case '0_5':
+          filterParts.add('revenueGrowth3Y:>=0&&revenueGrowth3Y:<=5');
+          break;
+        case '5_10':
+          filterParts.add('revenueGrowth3Y:>=5&&revenueGrowth3Y:<=10');
+          break;
+        case '10_20':
+          filterParts.add('revenueGrowth3Y:>=10&&revenueGrowth3Y:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('revenueGrowth3Y:>20');
+          break;
+      }
+    }
+    
+    // Revenue Growth 5Y filter
+    if (filters.containsKey('revenueGrowth5Y') && filters['revenueGrowth5Y'] != null && filters['revenueGrowth5Y'] != "any") {
+      String growthValue = filters['revenueGrowth5Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('revenueGrowth5Y:<0');
+          break;
+        case '0_5':
+          filterParts.add('revenueGrowth5Y:>=0&&revenueGrowth5Y:<=5');
+          break;
+        case '5_10':
+          filterParts.add('revenueGrowth5Y:>=5&&revenueGrowth5Y:<=10');
+          break;
+        case '10_20':
+          filterParts.add('revenueGrowth5Y:>=10&&revenueGrowth5Y:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('revenueGrowth5Y:>20');
+          break;
+      }
+    }
+    
+    // Earnings Growth 3Y filter
+    if (filters.containsKey('earningsGrowth3Y') && filters['earningsGrowth3Y'] != null && filters['earningsGrowth3Y'] != "any") {
+      String growthValue = filters['earningsGrowth3Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('epsGrowth3Y:<0');
+          break;
+        case '0_10':
+          filterParts.add('epsGrowth3Y:>=0&&epsGrowth3Y:<=10');
+          break;
+        case '10_25':
+          filterParts.add('epsGrowth3Y:>=10&&epsGrowth3Y:<=25');
+          break;
+        case '25_50':
+          filterParts.add('epsGrowth3Y:>=25&&epsGrowth3Y:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('epsGrowth3Y:>50');
+          break;
+      }
+    }
+    
+    // Earnings Growth 5Y filter
+    if (filters.containsKey('earningsGrowth5Y') && filters['earningsGrowth5Y'] != null && filters['earningsGrowth5Y'] != "any") {
+      String growthValue = filters['earningsGrowth5Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('epsGrowth5Y:<0');
+          break;
+        case '0_10':
+          filterParts.add('epsGrowth5Y:>=0&&epsGrowth5Y:<=10');
+          break;
+        case '10_25':
+          filterParts.add('epsGrowth5Y:>=10&&epsGrowth5Y:<=25');
+          break;
+        case '25_50':
+          filterParts.add('epsGrowth5Y:>=25&&epsGrowth5Y:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('epsGrowth5Y:>50');
+          break;
+      }
+    }
+    
+    // EPS Growth Quarterly YoY filter
+    if (filters.containsKey('epsGrowthQuarterlyYoY') && filters['epsGrowthQuarterlyYoY'] != null && filters['epsGrowthQuarterlyYoY'] != "any") {
+      String growthValue = filters['epsGrowthQuarterlyYoY'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('epsGrowthQuarterlyYoy:<0');
+          break;
+        case '0_10':
+          filterParts.add('epsGrowthQuarterlyYoy:>=0&&epsGrowthQuarterlyYoy:<=10');
+          break;
+        case '10_25':
+          filterParts.add('epsGrowthQuarterlyYoy:>=10&&epsGrowthQuarterlyYoy:<=25');
+          break;
+        case '25_50':
+          filterParts.add('epsGrowthQuarterlyYoy:>=25&&epsGrowthQuarterlyYoy:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('epsGrowthQuarterlyYoy:>50');
+          break;
+      }
+    }
+    
+    // EPS Growth TTM YoY filter
+    if (filters.containsKey('epsGrowthTTMYoY') && filters['epsGrowthTTMYoY'] != null && filters['epsGrowthTTMYoY'] != "any") {
+      String growthValue = filters['epsGrowthTTMYoY'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('epsGrowthTTMYoy:<0');
+          break;
+        case '0_10':
+          filterParts.add('epsGrowthTTMYoy:>=0&&epsGrowthTTMYoy:<=10');
+          break;
+        case '10_25':
+          filterParts.add('epsGrowthTTMYoy:>=10&&epsGrowthTTMYoy:<=25');
+          break;
+        case '25_50':
+          filterParts.add('epsGrowthTTMYoy:>=25&&epsGrowthTTMYoy:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('epsGrowthTTMYoy:>50');
+          break;
+      }
+    }
+    
+    // Revenue Growth Quarterly YoY filter
+    if (filters.containsKey('revenueGrowthQuarterlyYoY') && filters['revenueGrowthQuarterlyYoY'] != null && filters['revenueGrowthQuarterlyYoY'] != "any") {
+      String growthValue = filters['revenueGrowthQuarterlyYoY'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('revenueGrowthQuarterlyYoy:<0');
+          break;
+        case '0_10':
+          filterParts.add('revenueGrowthQuarterlyYoy:>=0&&revenueGrowthQuarterlyYoy:<=10');
+          break;
+        case '10_25':
+          filterParts.add('revenueGrowthQuarterlyYoy:>=10&&revenueGrowthQuarterlyYoy:<=25');
+          break;
+        case '25_50':
+          filterParts.add('revenueGrowthQuarterlyYoy:>=25&&revenueGrowthQuarterlyYoy:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('revenueGrowthQuarterlyYoy:>50');
+          break;
+      }
+    }
+    
+    // Revenue Growth TTM YoY filter
+    if (filters.containsKey('revenueGrowthTTMYoY') && filters['revenueGrowthTTMYoY'] != null && filters['revenueGrowthTTMYoY'] != "any") {
+      String growthValue = filters['revenueGrowthTTMYoY'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('revenueGrowthTTMYoy:<0');
+          break;
+        case '0_10':
+          filterParts.add('revenueGrowthTTMYoy:>=0&&revenueGrowthTTMYoy:<=10');
+          break;
+        case '10_25':
+          filterParts.add('revenueGrowthTTMYoy:>=10&&revenueGrowthTTMYoy:<=25');
+          break;
+        case '25_50':
+          filterParts.add('revenueGrowthTTMYoy:>=25&&revenueGrowthTTMYoy:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('revenueGrowthTTMYoy:>50');
+          break;
+      }
+    }
+    
+    // Revenue Per Share Growth 5Y filter
+    if (filters.containsKey('revenuePerShareGrowth5Y') && filters['revenuePerShareGrowth5Y'] != null && filters['revenuePerShareGrowth5Y'] != "any") {
+      String growthValue = filters['revenuePerShareGrowth5Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('revenueShareGrowth5Y:<0');
+          break;
+        case '0_10':
+          filterParts.add('revenueShareGrowth5Y:>=0&&revenueShareGrowth5Y:<=10');
+          break;
+        case '10_25':
+          filterParts.add('revenueShareGrowth5Y:>=10&&revenueShareGrowth5Y:<=25');
+          break;
+        case '25_50':
+          filterParts.add('revenueShareGrowth5Y:>=25&&revenueShareGrowth5Y:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('revenueShareGrowth5Y:>50');
+          break;
+      }
+    }
+    
+    // ROE 5Y filter
+    if (filters.containsKey('roe5Y') && filters['roe5Y'] != null && filters['roe5Y'] != "any") {
+      String roeValue = filters['roe5Y'].toString();
+      
+      switch (roeValue) {
+        case 'negative':
+          filterParts.add('roe5Y:<0');
+          break;
+        case '0_5':
+          filterParts.add('roe5Y:>=0&&roe5Y:<=5');
+          break;
+        case '5_10':
+          filterParts.add('roe5Y:>=5&&roe5Y:<=10');
+          break;
+        case '10_15':
+          filterParts.add('roe5Y:>=10&&roe5Y:<=15');
+          break;
+        case '15_20':
+          filterParts.add('roe5Y:>=15&&roe5Y:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('roe5Y:>20');
+          break;
+      }
+    }
+    
+    // ROA 5Y filter
+    if (filters.containsKey('roa5Y') && filters['roa5Y'] != null && filters['roa5Y'] != "any") {
+      String roaValue = filters['roa5Y'].toString();
+      
+      switch (roaValue) {
+        case 'negative':
+          filterParts.add('roa5Y:<0');
+          break;
+        case '0_2':
+          filterParts.add('roa5Y:>=0&&roa5Y:<=2');
+          break;
+        case '2_5':
+          filterParts.add('roa5Y:>=2&&roa5Y:<=5');
+          break;
+        case '5_10':
+          filterParts.add('roa5Y:>=5&&roa5Y:<=10');
+          break;
+        case '10_15':
+          filterParts.add('roa5Y:>=10&&roa5Y:<=15');
+          break;
+        case 'over_15':
+          filterParts.add('roa5Y:>15');
+          break;
+      }
+    }
+    
+    // Assets Growth 1Y filter
+    if (filters.containsKey('assetsGrowth1Y') && filters['assetsGrowth1Y'] != null && filters['assetsGrowth1Y'] != "any") {
+      String growthValue = filters['assetsGrowth1Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('assets_growth_1y:<0');
+          break;
+        case '0_5':
+          filterParts.add('assets_growth_1y:>=0&&assets_growth_1y:<=5');
+          break;
+        case '5_10':
+          filterParts.add('assets_growth_1y:>=5&&assets_growth_1y:<=10');
+          break;
+        case '10_20':
+          filterParts.add('assets_growth_1y:>=10&&assets_growth_1y:<=20');
+          break;
+        case '20_50':
+          filterParts.add('assets_growth_1y:>=20&&assets_growth_1y:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('assets_growth_1y:>50');
+          break;
+      }
+    }
+    
+    // Assets Growth 3Y filter
+    if (filters.containsKey('assetsGrowth3Y') && filters['assetsGrowth3Y'] != null && filters['assetsGrowth3Y'] != "any") {
+      String growthValue = filters['assetsGrowth3Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('assets_growth_3y:<0');
+          break;
+        case '0_10':
+          filterParts.add('assets_growth_3y:>=0&&assets_growth_3y:<=10');
+          break;
+        case '10_25':
+          filterParts.add('assets_growth_3y:>=10&&assets_growth_3y:<=25');
+          break;
+        case '25_50':
+          filterParts.add('assets_growth_3y:>=25&&assets_growth_3y:<=50');
+          break;
+        case '50_100':
+          filterParts.add('assets_growth_3y:>=50&&assets_growth_3y:<=100');
+          break;
+        case 'over_100':
+          filterParts.add('assets_growth_3y:>100');
+          break;
+      }
+    }
+    
+    // Assets Growth 5Y filter
+    if (filters.containsKey('assetsGrowth5Y') && filters['assetsGrowth5Y'] != null && filters['assetsGrowth5Y'] != "any") {
+      String growthValue = filters['assetsGrowth5Y'].toString();
+      
+      switch (growthValue) {
+        case 'negative':
+          filterParts.add('assets_growth_5y:<0');
+          break;
+        case '0_25':
+          filterParts.add('assets_growth_5y:>=0&&assets_growth_5y:<=25');
+          break;
+        case '25_50':
+          filterParts.add('assets_growth_5y:>=25&&assets_growth_5y:<=50');
+          break;
+        case '50_100':
+          filterParts.add('assets_growth_5y:>=50&&assets_growth_5y:<=100');
+          break;
+        case '100_200':
+          filterParts.add('assets_growth_5y:>=100&&assets_growth_5y:<=200');
+          break;
+        case 'over_200':
+          filterParts.add('assets_growth_5y:>200');
+          break;
+      }
+    }
+    
     // Numeric range filters
     // Market cap range (in millions)
     if (filters.containsKey('usdMarketCapMin')) {

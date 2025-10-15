@@ -943,6 +943,48 @@
         {"value": "10_15", "label": "10% - 15%"},
         {"value": "over_15", "label": "Over 15%"}
       ]
+    },
+    {
+      "id": "assetsGrowth1Y",
+      "label": "Assets Growth 1Y",
+      "type": "dropdown",
+      "field": "assets_growth_1y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_20", "label": "10% - 20%"},
+        {"value": "20_50", "label": "20% - 50%"},
+        {"value": "over_50", "label": "Over 50%"}
+      ]
+    },
+    {
+      "id": "assetsGrowth3Y",
+      "label": "Assets Growth 3Y",
+      "type": "dropdown",
+      "field": "assets_growth_3y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_10", "label": "0% - 10%"},
+        {"value": "10_25", "label": "10% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "50_100", "label": "50% - 100%"},
+        {"value": "over_100", "label": "Over 100%"}
+      ]
+    },
+    {
+      "id": "assetsGrowth5Y",
+      "label": "Assets Growth 5Y",
+      "type": "dropdown",
+      "field": "assets_growth_5y",
+      "options": [
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_25", "label": "0% - 25%"},
+        {"value": "25_50", "label": "25% - 50%"},
+        {"value": "50_100", "label": "50% - 100%"},
+        {"value": "100_200", "label": "100% - 200%"},
+        {"value": "over_200", "label": "Over 200%"}
+      ]
     }
   ],
   "etf": [
