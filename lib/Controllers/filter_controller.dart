@@ -305,12 +305,35 @@ class FilterController extends GetxController {
     
     // Market cap classification filter
     if (filters.containsKey('marketCapClassification') && filters['marketCapClassification'] != null && filters['marketCapClassification'] != "any") {
-      if (filters['marketCapClassification'] is List) {
-        List<String> classifications = (filters['marketCapClassification'] as List).map((e) => '`$e`').toList();
-        filterParts.add('marketCapClassification:=[${classifications.join(',')}]');
-      } else {
-        filterParts.add('marketCapClassification:=${filters['marketCapClassification']}');
+      String classificationValue = filters['marketCapClassification'].toString();
+      
+      // Map UI values to API values
+      String apiValue;
+      switch (classificationValue) {
+        case 'Mega Cap':
+          apiValue = 'MEGA_CAP';
+          break;
+        case 'Large Cap':
+          apiValue = 'LARGE_CAP';
+          break;
+        case 'Mid Cap':
+          apiValue = 'MID_CAP';
+          break;
+        case 'Small Cap':
+          apiValue = 'SMALL_CAP';
+          break;
+        case 'Micro Cap':
+          apiValue = 'MICRO_CAP';
+          break;
+        case 'Nano Cap':
+          apiValue = 'NANO_CAP';
+          break;
+        default:
+          apiValue = classificationValue;
+          break;
       }
+      
+      filterParts.add('marketCapClassification:=`$apiValue`');
     }
     
     // Market Cap filter (from UI - handle ranges like "300m_2b")
@@ -515,6 +538,53 @@ class FilterController extends GetxController {
           break;
       }
     }
+    
+    // YTD Performance filter (from UI - handle ranges like "under_minus30")
+    if (filters.containsKey('priceChangeYTD') && filters['priceChangeYTD'] != null && filters['priceChangeYTD'] != "any") {
+      String ytdValue = filters['priceChangeYTD'].toString();
+      
+      // Handle different YTD performance ranges
+      switch (ytdValue) {
+        case 'under_minus30':
+          filterParts.add('priceChangeYTDPercent:<-30');
+          break;
+        case 'minus30_minus20':
+          filterParts.add('priceChangeYTDPercent:>=-30&&priceChangeYTDPercent:<=-20');
+          break;
+        case 'minus20_minus10':
+          filterParts.add('priceChangeYTDPercent:>=-20&&priceChangeYTDPercent:<=-10');
+          break;
+        case 'minus10_0':
+          filterParts.add('priceChangeYTDPercent:>=-10&&priceChangeYTDPercent:<=0');
+          break;
+        case '0_10':
+          filterParts.add('priceChangeYTDPercent:>=0&&priceChangeYTDPercent:<=10');
+          break;
+        case '10_20':
+          filterParts.add('priceChangeYTDPercent:>=10&&priceChangeYTDPercent:<=20');
+          break;
+        case '20_30':
+          filterParts.add('priceChangeYTDPercent:>=20&&priceChangeYTDPercent:<=30');
+          break;
+        case 'over_30':
+          filterParts.add('priceChangeYTDPercent:>30');
+          break;
+        default:
+          // Try to parse as direct value
+          if (ytdValue.contains('_')) {
+            var parts = ytdValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0].replaceAll('minus', '-');
+              var max = parts[1].replaceAll('minus', '-');
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('priceChangeYTDPercent:>=$min&&priceChangeYTDPercent:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
+    
     
     // Numeric range filters
     // Market cap range (in millions)

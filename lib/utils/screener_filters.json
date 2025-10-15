@@ -147,19 +147,6 @@
       ]
     },
     {
-      "id": "ipoDate",
-      "label": "IPO Date",
-      "type": "dropdown",
-      "field": "ipoDate",
-      "options": [
-        {"value": "within_1y", "label": "Within 1 Year"},
-        {"value": "1y_3y", "label": "1-3 Years Ago"},
-        {"value": "3y_5y", "label": "3-5 Years Ago"},
-        {"value": "5y_10y", "label": "5-10 Years Ago"},
-        {"value": "over_10y", "label": "Over 10 Years Ago"}
-      ]
-    },
-    {
       "id": "marketCapClassification",
       "label": "Market Cap Class",
       "type": "dropdown",
