@@ -375,7 +375,6 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         options: const [
           {"value": "NYSE", "label": "NYSE"},
           {"value": "NASDAQ", "label": "NASDAQ"},
-          {"value": "AMEX", "label": "AMEX"},
           {"value": "LSE", "label": "LSE"},
           {"value": "TSX", "label": "TSX"},
           {"value": "HKEX", "label": "HKEX"},

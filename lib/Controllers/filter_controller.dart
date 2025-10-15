@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
@@ -68,11 +70,20 @@ class FilterController extends GetxController {
   final RxMap<String, String> _logoMap = <String, String>{}.obs;
   final RxMap<String, String> _companyNamesMap = <String, String>{}.obs;
   
+  // Sector mapping data
+  Map<String, List<String>> _sectorMapping = {};
+  
   // Pagination
   final RxInt _currentPage = 0.obs;
   final RxInt _pageSize = 15.obs;
   final RxInt _totalStocks = 0.obs;
   final RxInt _totalFound = 0.obs; 
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadSectorMapping();
+  }
 
   // Getters
   List<StocksData> get stocks => _stocks;
@@ -97,18 +108,13 @@ class FilterController extends GetxController {
     int perPage = 15,
   }) async {
     try {
-      print('📊 [FilterController] fetchStocks called');
-      print('   Filters: $filters');
-      print('   Sort: ${sortBy ?? 'usdMarketCap:desc'}');
-      print('   Page: $page, PerPage: $perPage');
+      print('📊 [FilterController] fetchStocks called - Filters: $filters');
       
       isLoading.value = true;
       errorMessage.value = '';
       
       // Build filter query
       String filterQuery = _buildFilterQuery(filters);
-      print('   Built filter query: $filterQuery');
-      
       // Default sort if not provided
       String sortQuery = sortBy ?? 'usdMarketCap:desc';
       
@@ -120,8 +126,6 @@ class FilterController extends GetxController {
         "page": "$page",
         "per_page": "$perPage",
       };
-      
-      print('   API params: $params');
 
       final response = await WebService.getTypesense([
         'collections', 'stocks_data', 'documents', 'search'
@@ -207,21 +211,39 @@ class FilterController extends GetxController {
     print('🔍 [FilterController] Building filter query');
     print('   Input filters: $filters');
     
-    if (filters == null || filters.isEmpty) {
-      // Default filter when no filters are applied
-      String defaultFilter = 'status:=PUBLISH&&isMainTicker:=1&&country:=US&&exchange:=[`NYSE`,`NASDAQ`,`XASE`]&&sharia_compliance:=[`COMPLIANT`,`NON_COMPLIANT`,`QUESTIONABLE`]';
-      print('   Using default filter: $defaultFilter');
-      return defaultFilter;
-    }
-    
     List<String> filterParts = [];
     
     // Always include status and isMainTicker
     filterParts.add('status:=PUBLISH');
     filterParts.add('isMainTicker:=1');
     
+    // Check if filters are empty or all values are "any"
+    bool hasValidFilters = false;
+    if (filters != null && filters.isNotEmpty) {
+      for (var entry in filters.entries) {
+        if (entry.value != null && entry.value != "any" && entry.value.toString().isNotEmpty) {
+          hasValidFilters = true;
+          print('   Valid filter found: ${entry.key} = ${entry.value}');
+          break;
+        }
+      }
+    }
+    
+    if (!hasValidFilters) {
+      // Default filter when no valid filters are applied
+      String defaultFilter = 'status:=PUBLISH&&isMainTicker:=1&&country:=US&&exchange:=[`NYSE`,`NASDAQ`]';
+      print('   Using default filter: $defaultFilter');
+      return defaultFilter;
+    }
+    
+    // Ensure filters is not null for the rest of the method
+    if (filters == null) {
+      String defaultFilter = 'status:=PUBLISH&&isMainTicker:=1&&country:=US&&exchange:=[`NYSE`,`NASDAQ`]';
+      return defaultFilter;
+    }
+    
     // Country filter
-    if (filters.containsKey('country')) {
+    if (filters.containsKey('country') && filters['country'] != null && filters['country'] != "any") {
       if (filters['country'] is List) {
         List<String> countries = (filters['country'] as List).map((e) => '`$e`').toList();
         filterParts.add('country:=[${countries.join(',')}]');
@@ -230,6 +252,16 @@ class FilterController extends GetxController {
       }
     } else {
       filterParts.add('country:=US'); // Default country
+    }
+    
+    // Currency filter (from UI)
+    if (filters.containsKey('currency') && filters['currency'] != null && filters['currency'] != "any") {
+      if (filters['currency'] is List) {
+        List<String> currencies = (filters['currency'] as List).map((e) => '`$e`').toList();
+        filterParts.add('currency:=[${currencies.join(',')}]');
+      } else {
+        filterParts.add('currency:=${filters['currency']}');
+      }
     }
     
     // Exchange filter
@@ -241,28 +273,28 @@ class FilterController extends GetxController {
         filterParts.add('exchange:=${filters['exchange']}');
       }
     } else {
-      filterParts.add('exchange:=[`NYSE`,`NASDAQ`,`XASE`]'); // Default exchanges
+      filterParts.add('exchange:=[`NYSE`,`NASDAQ`]'); 
     }
     
-    // Sharia compliance filter
-    if (filters.containsKey('sharia_compliance')) {
-      if (filters['sharia_compliance'] is List) {
-        List<String> compliance = (filters['sharia_compliance'] as List).map((e) => '`$e`').toList();
-        filterParts.add('sharia_compliance:=[${compliance.join(',')}]');
-      } else {
-        filterParts.add('sharia_compliance:=${filters['sharia_compliance']}');
-      }
-    } else {
-      filterParts.add('sharia_compliance:=[`COMPLIANT`,`NON_COMPLIANT`,`QUESTIONABLE`]'); // Default compliance
-    }
     
-    // Sector filter
-    if (filters.containsKey('sector')) {
+    // Sector filter with mapping
+    if (filters.containsKey('sector') && filters['sector'] != null && filters['sector'] != "any") {
+      List<String> mappedSectors = [];
+      
       if (filters['sector'] is List) {
-        List<String> sectors = (filters['sector'] as List).map((e) => '`$e`').toList();
-        filterParts.add('sector:=[${sectors.join(',')}]');
+        for (String sector in filters['sector']) {
+          List<String> apiSectors = _mapSectorToApiValues(sector);
+          mappedSectors.addAll(apiSectors);
+        }
       } else {
-        filterParts.add('sector:=${filters['sector']}');
+        String sector = filters['sector'].toString();
+        List<String> apiSectors = _mapSectorToApiValues(sector);
+        mappedSectors.addAll(apiSectors);
+      }
+      
+      if (mappedSectors.isNotEmpty) {
+        List<String> quotedSectors = mappedSectors.map((e) => '`$e`').toList();
+        filterParts.add('sector:=[${quotedSectors.join(',')}]');
       }
     }
     
@@ -277,12 +309,50 @@ class FilterController extends GetxController {
     }
     
     // Market cap classification filter
-    if (filters.containsKey('marketCapClassification')) {
+    if (filters.containsKey('marketCapClassification') && filters['marketCapClassification'] != null && filters['marketCapClassification'] != "any") {
       if (filters['marketCapClassification'] is List) {
         List<String> classifications = (filters['marketCapClassification'] as List).map((e) => '`$e`').toList();
         filterParts.add('marketCapClassification:=[${classifications.join(',')}]');
       } else {
         filterParts.add('marketCapClassification:=${filters['marketCapClassification']}');
+      }
+    }
+    
+    // Market Cap filter (from UI - handle ranges like "300m_2b")
+    if (filters.containsKey('marketCap') && filters['marketCap'] != null && filters['marketCap'] != "any") {
+      String marketCapValue = filters['marketCap'].toString();
+      print('   Processing market cap filter: $marketCapValue');
+      
+      // Handle different market cap ranges
+      switch (marketCapValue) {
+        case '300m_2b':
+          filterParts.add('usdMarketCap:>=300&&usdMarketCap:<=2000');
+          break;
+        case '2b_10b':
+          filterParts.add('usdMarketCap:>=2000&&usdMarketCap:<=10000');
+          break;
+        case '10b_50b':
+          filterParts.add('usdMarketCap:>=10000&&usdMarketCap:<=50000');
+          break;
+        case '50b_plus':
+          filterParts.add('usdMarketCap:>=50000');
+          break;
+        case 'under_300m':
+          filterParts.add('usdMarketCap:<300');
+          break;
+        default:
+          // Try to parse as direct value
+          if (marketCapValue.contains('_')) {
+            var parts = marketCapValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0].replaceAll(RegExp(r'[^\d]'), '');
+              var max = parts[1].replaceAll(RegExp(r'[^\d]'), '');
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('usdMarketCap:>=$min&&usdMarketCap:<=$max');
+              }
+            }
+          }
+          break;
       }
     }
     
@@ -343,8 +413,48 @@ class FilterController extends GetxController {
       filterParts.add('currentDividendYieldTTM:<=${filters['currentDividendYieldTTMMax']}');
     }
     
+    // Equity to Assets filter (from UI)
+    if (filters.containsKey('equityToAssets') && filters['equityToAssets'] != null && filters['equityToAssets'] != "any") {
+      String equityToAssetsValue = filters['equityToAssets'].toString();
+      print('   Processing equity to assets filter: $equityToAssetsValue');
+      
+      // Handle different equity to assets ranges
+      switch (equityToAssetsValue) {
+        case '0_20':
+          filterParts.add('equity_to_assets_annual:>=0&&equity_to_assets_annual:<=20');
+          break;
+        case '20_40':
+          filterParts.add('equity_to_assets_annual:>=20&&equity_to_assets_annual:<=40');
+          break;
+        case '40_60':
+          filterParts.add('equity_to_assets_annual:>=40&&equity_to_assets_annual:<=60');
+          break;
+        case '60_80':
+          filterParts.add('equity_to_assets_annual:>=60&&equity_to_assets_annual:<=80');
+          break;
+        case '80_100':
+          filterParts.add('equity_to_assets_annual:>=80&&equity_to_assets_annual:<=100');
+          break;
+        default:
+          // Try to parse as direct value
+          if (equityToAssetsValue.contains('_')) {
+            var parts = equityToAssetsValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0];
+              var max = parts[1];
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('equity_to_assets_annual:>=$min&&equity_to_assets_annual:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
+    
     String finalFilter = filterParts.join('&&');
     print('   Final filter: $finalFilter');
+    print('   Filter parts count: ${filterParts.length}');
+    print('   Filter parts: $filterParts');
     return finalFilter;
   }
 
@@ -514,6 +624,30 @@ class FilterController extends GetxController {
       page: 1,
       perPage: newPageSize,
     );
+  }
+
+  /// Load sector mapping from JSON file
+  Future<void> _loadSectorMapping() async {
+    try {
+      final String jsonString = await rootBundle.loadString('lib/utils/sector_api_mapping.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+      
+      _sectorMapping = jsonData.map((key, value) => 
+        MapEntry(key, List<String>.from(value)));
+    } catch (e) {
+      print('Error loading sector mapping: $e');
+    }
+  }
+
+  /// Map UI sector to API sector values
+  List<String> _mapSectorToApiValues(String uiSector) {
+    // First try direct mapping
+    if (_sectorMapping.containsKey(uiSector)) {
+      return _sectorMapping[uiSector]!;
+    }
+    
+    // If no direct mapping found, return the original sector
+    return [uiSector];
   }
 }
 

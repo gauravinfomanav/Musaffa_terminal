@@ -134,15 +134,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   }
 
   void _applyFilters() {
-    print('🔍 [ScreenerScreen] Applying filters: $_filterValues');
-    
     // Convert _filterValues to the format expected by FilterController
     Map<String, dynamic> filters = {};
     
     _filterValues.forEach((key, value) {
       if (value != null && value != "any") {
-        // Map filter IDs to API field names
-        // This is a simplified mapping - adjust based on your actual filter IDs
         filters[key] = value;
       }
     });

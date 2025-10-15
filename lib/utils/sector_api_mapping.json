@@ -10,6 +10,46 @@
   "Finance": [
     "Financials"
   ],
+  "Financial Services": [
+    "Financials"
+  ],
+  "Technology": [
+    "Information Technology",
+    "Technology"
+  ],
+  "Healthcare": [
+    "Health Care",
+    "Healthcare"
+  ],
+  "Consumer Cyclical": [
+    "Consumer Discretionary",
+    "Consumer Cyclicals"
+  ],
+  "Industrials": [
+    "Industrials"
+  ],
+  "Consumer Defensive": [
+    "Consumer Staples",
+    "Consumer Non-Cyclicals"
+  ],
+  "Energy": [
+    "Energy"
+  ],
+  "Utilities": [
+    "Utilities",
+    "Utility"
+  ],
+  "Real Estate": [
+    "Real Estate",
+    "Real estate investment trust"
+  ],
+  "Communication Services": [
+    "Communication Services"
+  ],
+  "Basic Materials": [
+    "Materials",
+    "Basic Materials"
+  ],
   "Retail Trade": [
     "Consumer Discretionary",
     "Retail/Wholesale",

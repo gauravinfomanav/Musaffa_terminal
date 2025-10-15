@@ -7,8 +7,7 @@
       "field": "exchange",
       "options": [
         {"value": "NYSE", "label": "NYSE"},
-        {"value": "NASDAQ", "label": "NASDAQ"},
-        {"value": "AMEX", "label": "AMEX"}
+        {"value": "NASDAQ", "label": "NASDAQ"}
       ]
     },
     {
@@ -31,35 +30,19 @@
       ]
     },
     {
-      "id": "industry",
-      "label": "Industry",
+      "id": "currency",
+      "label": "Currency",
       "type": "dropdown",
-      "field": "industry",
+      "field": "currency",
       "options": [
-        {"value": "Software", "label": "Software"},
-        {"value": "Semiconductors", "label": "Semiconductors"},
-        {"value": "Banks", "label": "Banks"},
-        {"value": "Pharmaceuticals", "label": "Pharmaceuticals"},
-        {"value": "Oil & Gas", "label": "Oil & Gas"},
-        {"value": "Biotechnology", "label": "Biotechnology"},
-        {"value": "Auto Manufacturers", "label": "Auto Manufacturers"},
-        {"value": "Retail", "label": "Retail"}
-      ]
-    },
-    {
-      "id": "country",
-      "label": "Country",
-      "type": "dropdown",
-      "field": "country",
-      "options": [
-        {"value": "United States", "label": "United States"},
-        {"value": "China", "label": "China"},
-        {"value": "United Kingdom", "label": "United Kingdom"},
-        {"value": "Canada", "label": "Canada"},
-        {"value": "Germany", "label": "Germany"},
-        {"value": "Japan", "label": "Japan"},
-        {"value": "France", "label": "France"},
-        {"value": "India", "label": "India"}
+        {"value": "USD", "label": "USD"},
+        {"value": "EUR", "label": "EUR"},
+        {"value": "GBP", "label": "GBP"},
+        {"value": "CAD", "label": "CAD"},
+        {"value": "JPY", "label": "JPY"},
+        {"value": "CNY", "label": "CNY"},
+        {"value": "HKD", "label": "HKD"},
+        {"value": "CHF", "label": "CHF"}
       ]
     },
     {
@@ -191,19 +174,16 @@
       ]
     },
     {
-      "id": "exchangeCountry",
-      "label": "Exchange Country",
+      "id": "marketCapClassification",
+      "label": "Market Cap Classification",
       "type": "dropdown",
-      "field": "exchangeCountry",
+      "field": "marketCapClassification",
       "options": [
-        {"value": "US", "label": "United States"},
-        {"value": "GB", "label": "United Kingdom"},
-        {"value": "CA", "label": "Canada"},
-        {"value": "CN", "label": "China"},
-        {"value": "JP", "label": "Japan"},
-        {"value": "DE", "label": "Germany"},
-        {"value": "FR", "label": "France"},
-        {"value": "HK", "label": "Hong Kong"}
+        {"value": "Large Cap", "label": "Large Cap"},
+        {"value": "Mid Cap", "label": "Mid Cap"},
+        {"value": "Small Cap", "label": "Small Cap"},
+        {"value": "Micro Cap", "label": "Micro Cap"},
+        {"value": "Mega Cap", "label": "Mega Cap"}
       ]
     }
   ],
