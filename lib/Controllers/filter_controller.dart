@@ -436,6 +436,86 @@ class FilterController extends GetxController {
       }
     }
     
+    // Avg Volume 10 Days filter (from UI - handle ranges like "over_5m")
+    if (filters.containsKey('volume10Days') && filters['volume10Days'] != null && filters['volume10Days'] != "any") {
+      String volumeValue = filters['volume10Days'].toString();
+      
+      // Handle different volume ranges
+      switch (volumeValue) {
+        case 'under_50k':
+          filterParts.add('avgVolume10days:<50000');
+          break;
+        case '50k_100k':
+          filterParts.add('avgVolume10days:>=50000&&avgVolume10days:<=100000');
+          break;
+        case '100k_500k':
+          filterParts.add('avgVolume10days:>=100000&&avgVolume10days:<=500000');
+          break;
+        case '500k_1m':
+          filterParts.add('avgVolume10days:>=500000&&avgVolume10days:<=1000000');
+          break;
+        case '1m_5m':
+          filterParts.add('avgVolume10days:>=1000000&&avgVolume10days:<=5000000');
+          break;
+        case 'over_5m':
+          filterParts.add('avgVolume10days:>5000000');
+          break;
+        default:
+          // Try to parse as direct value
+          if (volumeValue.contains('_')) {
+            var parts = volumeValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0].replaceAll(RegExp(r'[^\d]'), '');
+              var max = parts[1].replaceAll(RegExp(r'[^\d]'), '');
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('avgVolume10days:>=$min&&avgVolume10days:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
+    
+    // Avg Volume 30 Days filter (from UI - handle ranges like "over_5m")
+    if (filters.containsKey('volume30Days') && filters['volume30Days'] != null && filters['volume30Days'] != "any") {
+      String volumeValue = filters['volume30Days'].toString();
+      
+      // Handle different volume ranges
+      switch (volumeValue) {
+        case 'under_50k':
+          filterParts.add('avgVolume30days:<50000');
+          break;
+        case '50k_100k':
+          filterParts.add('avgVolume30days:>=50000&&avgVolume30days:<=100000');
+          break;
+        case '100k_500k':
+          filterParts.add('avgVolume30days:>=100000&&avgVolume30days:<=500000');
+          break;
+        case '500k_1m':
+          filterParts.add('avgVolume30days:>=500000&&avgVolume30days:<=1000000');
+          break;
+        case '1m_5m':
+          filterParts.add('avgVolume30days:>=1000000&&avgVolume30days:<=5000000');
+          break;
+        case 'over_5m':
+          filterParts.add('avgVolume30days:>5000000');
+          break;
+        default:
+          // Try to parse as direct value
+          if (volumeValue.contains('_')) {
+            var parts = volumeValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0].replaceAll(RegExp(r'[^\d]'), '');
+              var max = parts[1].replaceAll(RegExp(r'[^\d]'), '');
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('avgVolume30days:>=$min&&avgVolume30days:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
+    
     // Numeric range filters
     // Market cap range (in millions)
     if (filters.containsKey('usdMarketCapMin')) {
