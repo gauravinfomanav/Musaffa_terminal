@@ -108,7 +108,6 @@ class FilterController extends GetxController {
     int perPage = 15,
   }) async {
     try {
-      print('📊 [FilterController] fetchStocks called - Filters: $filters');
       
       isLoading.value = true;
       errorMessage.value = '';
@@ -127,13 +126,11 @@ class FilterController extends GetxController {
         "per_page": "$perPage",
       };
       
-      print('   🌐 FULL API URL: https://0bs2hegi5nmtad4op.a1.typesense.net/collections/stocks_data/documents/search?${params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}').join('&')}');
 
       final response = await WebService.getTypesense([
         'collections', 'stocks_data', 'documents', 'search'
       ], params);
       
-      print('   API Response Status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -210,8 +207,6 @@ class FilterController extends GetxController {
 
   /// Build filter query from filters map
   String _buildFilterQuery(Map<String, dynamic>? filters) {
-    print('🔍 [FilterController] Building filter query');
-    print('   Input filters: $filters');
     
     List<String> filterParts = [];
     
@@ -225,7 +220,6 @@ class FilterController extends GetxController {
       for (var entry in filters.entries) {
         if (entry.value != null && entry.value != "any" && entry.value.toString().isNotEmpty) {
           hasValidFilters = true;
-          print('   Valid filter found: ${entry.key} = ${entry.value}');
           break;
         }
       }
@@ -234,7 +228,6 @@ class FilterController extends GetxController {
     if (!hasValidFilters) {
       // Default filter when no valid filters are applied
       String defaultFilter = 'status:=PUBLISH&&isMainTicker:=1&&country:=US&&exchange:=[`NYSE`,`NASDAQ`]';
-      print('   Using default filter: $defaultFilter');
       return defaultFilter;
     }
     
@@ -323,7 +316,6 @@ class FilterController extends GetxController {
     // Market Cap filter (from UI - handle ranges like "300m_2b")
     if (filters.containsKey('marketCap') && filters['marketCap'] != null && filters['marketCap'] != "any") {
       String marketCapValue = filters['marketCap'].toString();
-      print('   Processing market cap filter: $marketCapValue');
       
       // Handle different market cap ranges
       switch (marketCapValue) {
@@ -341,7 +333,6 @@ class FilterController extends GetxController {
           break;
         case 'over_200b':
           filterParts.add('usdMarketCap:>=200000');
-          print('   ✅ Added market cap filter: usdMarketCap:>=200000');
           break;
         case 'under_300m':
           filterParts.add('usdMarketCap:<300');
@@ -365,37 +356,29 @@ class FilterController extends GetxController {
     // Price filter (from UI - handle ranges like "50_100")
     if (filters.containsKey('price') && filters['price'] != null && filters['price'] != "any") {
       String priceValue = filters['price'].toString();
-      print('   Processing price filter: $priceValue');
       
       // Handle different price ranges
       switch (priceValue) {
         case 'under_1':
           filterParts.add('currentPrice:<1');
-          print('   ✅ Added price filter: currentPrice:<1');
           break;
         case '1_5':
           filterParts.add('currentPrice:>=1&&currentPrice:<=5');
-          print('   ✅ Added price filter: currentPrice:>=1&&currentPrice:<=5');
           break;
         case '5_10':
           filterParts.add('currentPrice:>=5&&currentPrice:<=10');
-          print('   ✅ Added price filter: currentPrice:>=5&&currentPrice:<=10');
           break;
         case '10_20':
           filterParts.add('currentPrice:>=10&&currentPrice:<=20');
-          print('   ✅ Added price filter: currentPrice:>=10&&currentPrice:<=20');
           break;
         case '20_50':
           filterParts.add('currentPrice:>=20&&currentPrice:<=50');
-          print('   ✅ Added price filter: currentPrice:>=20&&currentPrice:<=50');
           break;
         case '50_100':
           filterParts.add('currentPrice:>=50&&currentPrice:<=100');
-          print('   ✅ Added price filter: currentPrice:>=50&&currentPrice:<=100');
           break;
         case 'over_100':
           filterParts.add('currentPrice:>100');
-          print('   ✅ Added price filter: currentPrice:>100');
           break;
         default:
           // Try to parse as direct value
@@ -406,7 +389,46 @@ class FilterController extends GetxController {
               var max = parts[1];
               if (min.isNotEmpty && max.isNotEmpty) {
                 filterParts.add('currentPrice:>=$min&&currentPrice:<=$max');
-                print('   ✅ Added price filter: currentPrice:>=$min&&currentPrice:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
+    
+    // Volume filter (from UI - handle ranges like "over_5m")
+    if (filters.containsKey('volume') && filters['volume'] != null && filters['volume'] != "any") {
+      String volumeValue = filters['volume'].toString();
+      
+      // Handle different volume ranges
+      switch (volumeValue) {
+        case 'under_50k':
+          filterParts.add('volume:<50000');
+          break;
+        case '50k_100k':
+          filterParts.add('volume:>=50000&&volume:<=100000');
+          break;
+        case '100k_500k':
+          filterParts.add('volume:>=100000&&volume:<=500000');
+          break;
+        case '500k_1m':
+          filterParts.add('volume:>=500000&&volume:<=1000000');
+          break;
+        case '1m_5m':
+          filterParts.add('volume:>=1000000&&volume:<=5000000');
+          break;
+        case 'over_5m':
+          filterParts.add('volume:>5000000');
+          break;
+        default:
+          // Try to parse as direct value
+          if (volumeValue.contains('_')) {
+            var parts = volumeValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0].replaceAll(RegExp(r'[^\d]'), '');
+              var max = parts[1].replaceAll(RegExp(r'[^\d]'), '');
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('volume:>=$min&&volume:<=$max');
               }
             }
           }
@@ -510,9 +532,6 @@ class FilterController extends GetxController {
     }
     
     String finalFilter = filterParts.join('&&');
-    print('   🔍 FINAL FILTER QUERY: $finalFilter');
-    print('   📊 Filter parts count: ${filterParts.length}');
-    print('   📋 Filter parts: $filterParts');
     return finalFilter;
   }
 
