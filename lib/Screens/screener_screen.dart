@@ -42,6 +42,23 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   
   // Store all filter values in a map: filterId -> selectedValue
   final Map<String, String?> _filterValues = {};
+  
+  // Method to count applied filters for a specific category
+  int _getAppliedFiltersCount(String category) {
+    if (_filtersConfig == null) return 0;
+    
+    final filters = _filtersConfig!.getFiltersForCategory(category);
+    int count = 0;
+    
+    for (final filter in filters) {
+      final value = _filterValues[filter.id];
+      if (value != null && value != "any" && value.isNotEmpty) {
+        count++;
+      }
+    }
+    
+    return count;
+  }
 
   final List<String> _filterCategories = [
     "Descriptive",
@@ -302,15 +319,40 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(
-                  category,
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected 
-                        ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
-                        : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      category,
+                      style: DashboardTextStyles.tickerSymbol.copyWith(
+                        fontSize: 11,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected 
+                            ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
+                            : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                      ),
+                    ),
+                    if (_getAppliedFiltersCount(category) > 0) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '${_getAppliedFiltersCount(category)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             );
