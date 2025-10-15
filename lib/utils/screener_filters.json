@@ -161,16 +161,17 @@
       ]
     },
     {
-      "id": "marketCapClassification",
-      "label": "Market Cap Classification",
+      "id": "roe",
+      "label": "ROE",
       "type": "dropdown",
-      "field": "marketCapClassification",
+      "field": "rOE",
       "options": [
-        {"value": "Large Cap", "label": "Large Cap"},
-        {"value": "Mid Cap", "label": "Mid Cap"},
-        {"value": "Small Cap", "label": "Small Cap"},
-        {"value": "Micro Cap", "label": "Micro Cap"},
-        {"value": "Mega Cap", "label": "Mega Cap"}
+        {"value": "negative", "label": "Negative"},
+        {"value": "0_5", "label": "0% - 5%"},
+        {"value": "5_10", "label": "5% - 10%"},
+        {"value": "10_15", "label": "10% - 15%"},
+        {"value": "15_20", "label": "15% - 20%"},
+        {"value": "over_20", "label": "Over 20%"}
       ]
     }
   ],

@@ -585,6 +585,45 @@ class FilterController extends GetxController {
       }
     }
     
+    // ROE filter (from UI - handle ranges like "over_20")
+    if (filters.containsKey('roe') && filters['roe'] != null && filters['roe'] != "any") {
+      String roeValue = filters['roe'].toString();
+      
+      // Handle different ROE ranges
+      switch (roeValue) {
+        case 'negative':
+          filterParts.add('rOE:<0');
+          break;
+        case '0_5':
+          filterParts.add('rOE:>=0&&rOE:<=5');
+          break;
+        case '5_10':
+          filterParts.add('rOE:>=5&&rOE:<=10');
+          break;
+        case '10_15':
+          filterParts.add('rOE:>=10&&rOE:<=15');
+          break;
+        case '15_20':
+          filterParts.add('rOE:>=15&&rOE:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('rOE:>20');
+          break;
+        default:
+          // Try to parse as direct value
+          if (roeValue.contains('_')) {
+            var parts = roeValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0];
+              var max = parts[1];
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('rOE:>=$min&&rOE:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
     
     // Numeric range filters
     // Market cap range (in millions)
