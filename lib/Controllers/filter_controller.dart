@@ -126,6 +126,8 @@ class FilterController extends GetxController {
         "page": "$page",
         "per_page": "$perPage",
       };
+      
+      print('   🌐 FULL API URL: https://0bs2hegi5nmtad4op.a1.typesense.net/collections/stocks_data/documents/search?${params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}').join('&')}');
 
       final response = await WebService.getTypesense([
         'collections', 'stocks_data', 'documents', 'search'
@@ -337,6 +339,10 @@ class FilterController extends GetxController {
         case '50b_plus':
           filterParts.add('usdMarketCap:>=50000');
           break;
+        case 'over_200b':
+          filterParts.add('usdMarketCap:>=200000');
+          print('   ✅ Added market cap filter: usdMarketCap:>=200000');
+          break;
         case 'under_300m':
           filterParts.add('usdMarketCap:<300');
           break;
@@ -349,6 +355,58 @@ class FilterController extends GetxController {
               var max = parts[1].replaceAll(RegExp(r'[^\d]'), '');
               if (min.isNotEmpty && max.isNotEmpty) {
                 filterParts.add('usdMarketCap:>=$min&&usdMarketCap:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
+    
+    // Price filter (from UI - handle ranges like "50_100")
+    if (filters.containsKey('price') && filters['price'] != null && filters['price'] != "any") {
+      String priceValue = filters['price'].toString();
+      print('   Processing price filter: $priceValue');
+      
+      // Handle different price ranges
+      switch (priceValue) {
+        case 'under_1':
+          filterParts.add('currentPrice:<1');
+          print('   ✅ Added price filter: currentPrice:<1');
+          break;
+        case '1_5':
+          filterParts.add('currentPrice:>=1&&currentPrice:<=5');
+          print('   ✅ Added price filter: currentPrice:>=1&&currentPrice:<=5');
+          break;
+        case '5_10':
+          filterParts.add('currentPrice:>=5&&currentPrice:<=10');
+          print('   ✅ Added price filter: currentPrice:>=5&&currentPrice:<=10');
+          break;
+        case '10_20':
+          filterParts.add('currentPrice:>=10&&currentPrice:<=20');
+          print('   ✅ Added price filter: currentPrice:>=10&&currentPrice:<=20');
+          break;
+        case '20_50':
+          filterParts.add('currentPrice:>=20&&currentPrice:<=50');
+          print('   ✅ Added price filter: currentPrice:>=20&&currentPrice:<=50');
+          break;
+        case '50_100':
+          filterParts.add('currentPrice:>=50&&currentPrice:<=100');
+          print('   ✅ Added price filter: currentPrice:>=50&&currentPrice:<=100');
+          break;
+        case 'over_100':
+          filterParts.add('currentPrice:>100');
+          print('   ✅ Added price filter: currentPrice:>100');
+          break;
+        default:
+          // Try to parse as direct value
+          if (priceValue.contains('_')) {
+            var parts = priceValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0];
+              var max = parts[1];
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('currentPrice:>=$min&&currentPrice:<=$max');
+                print('   ✅ Added price filter: currentPrice:>=$min&&currentPrice:<=$max');
               }
             }
           }
@@ -452,9 +510,9 @@ class FilterController extends GetxController {
     }
     
     String finalFilter = filterParts.join('&&');
-    print('   Final filter: $finalFilter');
-    print('   Filter parts count: ${filterParts.length}');
-    print('   Filter parts: $filterParts');
+    print('   🔍 FINAL FILTER QUERY: $finalFilter');
+    print('   📊 Filter parts count: ${filterParts.length}');
+    print('   📋 Filter parts: $filterParts');
     return finalFilter;
   }
 
