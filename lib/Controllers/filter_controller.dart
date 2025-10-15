@@ -75,7 +75,7 @@ class FilterController extends GetxController {
   
   // Pagination
   final RxInt _currentPage = 0.obs;
-  final RxInt _pageSize = 15.obs;
+  final RxInt _pageSize = 14.obs;
   final RxInt _totalStocks = 0.obs;
   final RxInt _totalFound = 0.obs; 
 
@@ -105,7 +105,7 @@ class FilterController extends GetxController {
     Map<String, dynamic>? filters,
     String? sortBy,
     int page = 1,
-    int perPage = 15,
+    int perPage = 14,
   }) async {
     try {
       
