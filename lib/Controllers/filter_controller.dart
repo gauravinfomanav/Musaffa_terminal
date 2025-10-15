@@ -1256,6 +1256,355 @@ class FilterController extends GetxController {
       }
     }
     
+    // Price Change 1D filter
+    if (filters.containsKey('priceChange1D') && filters['priceChange1D'] != null && filters['priceChange1D'] != "any") {
+      String changeValue = filters['priceChange1D'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus10':
+          filterParts.add('priceChange1DPercent:<-10');
+          break;
+        case 'minus10_minus5':
+          filterParts.add('priceChange1DPercent:>=-10&&priceChange1DPercent:<-5');
+          break;
+        case 'minus5_0':
+          filterParts.add('priceChange1DPercent:>=-5&&priceChange1DPercent:<0');
+          break;
+        case '0_5':
+          filterParts.add('priceChange1DPercent:>=0&&priceChange1DPercent:<=5');
+          break;
+        case '5_10':
+          filterParts.add('priceChange1DPercent:>5&&priceChange1DPercent:<=10');
+          break;
+        case 'over_10':
+          filterParts.add('priceChange1DPercent:>10');
+          break;
+      }
+    }
+    
+    // Price Change 1M filter
+    if (filters.containsKey('priceChange1M') && filters['priceChange1M'] != null && filters['priceChange1M'] != "any") {
+      String changeValue = filters['priceChange1M'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus20':
+          filterParts.add('priceChange1MPercent:<-20');
+          break;
+        case 'minus20_minus10':
+          filterParts.add('priceChange1MPercent:>=-20&&priceChange1MPercent:<-10');
+          break;
+        case 'minus10_0':
+          filterParts.add('priceChange1MPercent:>=-10&&priceChange1MPercent:<0');
+          break;
+        case '0_10':
+          filterParts.add('priceChange1MPercent:>=0&&priceChange1MPercent:<=10');
+          break;
+        case '10_20':
+          filterParts.add('priceChange1MPercent:>10&&priceChange1MPercent:<=20');
+          break;
+        case 'over_20':
+          filterParts.add('priceChange1MPercent:>20');
+          break;
+      }
+    }
+    
+    // Price Change 1Y filter
+    if (filters.containsKey('priceChange1Y') && filters['priceChange1Y'] != null && filters['priceChange1Y'] != "any") {
+      String changeValue = filters['priceChange1Y'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus50':
+          filterParts.add('priceChange1YPercent:<-50');
+          break;
+        case 'minus50_minus20':
+          filterParts.add('priceChange1YPercent:>=-50&&priceChange1YPercent:<-20');
+          break;
+        case 'minus20_0':
+          filterParts.add('priceChange1YPercent:>=-20&&priceChange1YPercent:<0');
+          break;
+        case '0_20':
+          filterParts.add('priceChange1YPercent:>=0&&priceChange1YPercent:<=20');
+          break;
+        case '20_50':
+          filterParts.add('priceChange1YPercent:>20&&priceChange1YPercent:<=50');
+          break;
+        case 'over_50':
+          filterParts.add('priceChange1YPercent:>50');
+          break;
+      }
+    }
+    
+    // Beta filter
+    if (filters.containsKey('beta') && filters['beta'] != null && filters['beta'] != "any") {
+      String betaValue = filters['beta'].toString();
+      
+      switch (betaValue) {
+        case 'under_0.5':
+          filterParts.add('beta:<0.5');
+          break;
+        case '0.5_1':
+          filterParts.add('beta:>=0.5&&beta:<1');
+          break;
+        case '1_1.5':
+          filterParts.add('beta:>=1&&beta:<1.5');
+          break;
+        case 'over_1.5':
+          filterParts.add('beta:>=1.5');
+          break;
+      }
+    }
+    
+    // 52 Week High filter
+    if (filters.containsKey('52WeekHigh') && filters['52WeekHigh'] != null && filters['52WeekHigh'] != "any") {
+      String highValue = filters['52WeekHigh'].toString();
+      
+      switch (highValue) {
+        case 'under_10':
+          filterParts.add('52WeekHigh:<10');
+          break;
+        case '10_50':
+          filterParts.add('52WeekHigh:>=10&&52WeekHigh:<50');
+          break;
+        case '50_100':
+          filterParts.add('52WeekHigh:>=50&&52WeekHigh:<100');
+          break;
+        case 'over_100':
+          filterParts.add('52WeekHigh:>=100');
+          break;
+      }
+    }
+    
+    // 52 Week Low filter
+    if (filters.containsKey('52WeekLow') && filters['52WeekLow'] != null && filters['52WeekLow'] != "any") {
+      String lowValue = filters['52WeekLow'].toString();
+      
+      switch (lowValue) {
+        case 'under_10':
+          filterParts.add('52WeekLow:<10');
+          break;
+        case '10_50':
+          filterParts.add('52WeekLow:>=10&&52WeekLow:<50');
+          break;
+        case '50_100':
+          filterParts.add('52WeekLow:>=50&&52WeekLow:<100');
+          break;
+        case 'over_100':
+          filterParts.add('52WeekLow:>=100');
+          break;
+      }
+    }
+    
+    // Price Change 1W filter
+    if (filters.containsKey('priceChange1W') && filters['priceChange1W'] != null && filters['priceChange1W'] != "any") {
+      String changeValue = filters['priceChange1W'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus10':
+          filterParts.add('priceChange1WPercent:<-10');
+          break;
+        case 'minus10_minus5':
+          filterParts.add('priceChange1WPercent:>=-10&&priceChange1WPercent:<-5');
+          break;
+        case 'minus5_0':
+          filterParts.add('priceChange1WPercent:>=-5&&priceChange1WPercent:<0');
+          break;
+        case '0_5':
+          filterParts.add('priceChange1WPercent:>=0&&priceChange1WPercent:<=5');
+          break;
+        case '5_10':
+          filterParts.add('priceChange1WPercent:>5&&priceChange1WPercent:<=10');
+          break;
+        case 'over_10':
+          filterParts.add('priceChange1WPercent:>10');
+          break;
+      }
+    }
+    
+    // Price Change 3M filter
+    if (filters.containsKey('priceChange3M') && filters['priceChange3M'] != null && filters['priceChange3M'] != "any") {
+      String changeValue = filters['priceChange3M'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus30':
+          filterParts.add('priceChange3MPercent:<-30');
+          break;
+        case 'minus30_minus15':
+          filterParts.add('priceChange3MPercent:>=-30&&priceChange3MPercent:<-15');
+          break;
+        case 'minus15_0':
+          filterParts.add('priceChange3MPercent:>=-15&&priceChange3MPercent:<0');
+          break;
+        case '0_15':
+          filterParts.add('priceChange3MPercent:>=0&&priceChange3MPercent:<=15');
+          break;
+        case '15_30':
+          filterParts.add('priceChange3MPercent:>15&&priceChange3MPercent:<=30');
+          break;
+        case 'over_30':
+          filterParts.add('priceChange3MPercent:>30');
+          break;
+      }
+    }
+    
+    // Price Change 6M filter
+    if (filters.containsKey('priceChange6M') && filters['priceChange6M'] != null && filters['priceChange6M'] != "any") {
+      String changeValue = filters['priceChange6M'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus40':
+          filterParts.add('priceChange6MPercent:<-40');
+          break;
+        case 'minus40_minus20':
+          filterParts.add('priceChange6MPercent:>=-40&&priceChange6MPercent:<-20');
+          break;
+        case 'minus20_0':
+          filterParts.add('priceChange6MPercent:>=-20&&priceChange6MPercent:<0');
+          break;
+        case '0_20':
+          filterParts.add('priceChange6MPercent:>=0&&priceChange6MPercent:<=20');
+          break;
+        case '20_40':
+          filterParts.add('priceChange6MPercent:>20&&priceChange6MPercent:<=40');
+          break;
+        case 'over_40':
+          filterParts.add('priceChange6MPercent:>40');
+          break;
+      }
+    }
+    
+    // Price Change 3Y filter
+    if (filters.containsKey('priceChange3Y') && filters['priceChange3Y'] != null && filters['priceChange3Y'] != "any") {
+      String changeValue = filters['priceChange3Y'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus50':
+          filterParts.add('priceChange3YPercent:<-50');
+          break;
+        case 'minus50_0':
+          filterParts.add('priceChange3YPercent:>=-50&&priceChange3YPercent:<0');
+          break;
+        case '0_50':
+          filterParts.add('priceChange3YPercent:>=0&&priceChange3YPercent:<=50');
+          break;
+        case '50_100':
+          filterParts.add('priceChange3YPercent:>50&&priceChange3YPercent:<=100');
+          break;
+        case '100_200':
+          filterParts.add('priceChange3YPercent:>100&&priceChange3YPercent:<=200');
+          break;
+        case 'over_200':
+          filterParts.add('priceChange3YPercent:>200');
+          break;
+      }
+    }
+    
+    // Price Change 5Y filter
+    if (filters.containsKey('priceChange5Y') && filters['priceChange5Y'] != null && filters['priceChange5Y'] != "any") {
+      String changeValue = filters['priceChange5Y'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus50':
+          filterParts.add('priceChange5YPercent:<-50');
+          break;
+        case 'minus50_0':
+          filterParts.add('priceChange5YPercent:>=-50&&priceChange5YPercent:<0');
+          break;
+        case '0_100':
+          filterParts.add('priceChange5YPercent:>=0&&priceChange5YPercent:<=100');
+          break;
+        case '100_200':
+          filterParts.add('priceChange5YPercent:>100&&priceChange5YPercent:<=200');
+          break;
+        case '200_500':
+          filterParts.add('priceChange5YPercent:>200&&priceChange5YPercent:<=500');
+          break;
+        case 'over_500':
+          filterParts.add('priceChange5YPercent:>500');
+          break;
+      }
+    }
+    
+    // Market Cap Change 3Y filter
+    if (filters.containsKey('marketCapChange3Y') && filters['marketCapChange3Y'] != null && filters['marketCapChange3Y'] != "any") {
+      String changeValue = filters['marketCapChange3Y'].toString();
+      
+      switch (changeValue) {
+        case 'under_minus50':
+          filterParts.add('marketCap_change_3y:<-50');
+          break;
+        case 'minus50_0':
+          filterParts.add('marketCap_change_3y:>=-50&&marketCap_change_3y:<0');
+          break;
+        case '0_50':
+          filterParts.add('marketCap_change_3y:>=0&&marketCap_change_3y:<=50');
+          break;
+        case '50_100':
+          filterParts.add('marketCap_change_3y:>50&&marketCap_change_3y:<=100');
+          break;
+        case '100_200':
+          filterParts.add('marketCap_change_3y:>100&&marketCap_change_3y:<=200');
+          break;
+        case 'over_200':
+          filterParts.add('marketCap_change_3y:>200');
+          break;
+      }
+    }
+    
+    // Current Price filter
+    if (filters.containsKey('currentPrice') && filters['currentPrice'] != null && filters['currentPrice'] != "any") {
+      String priceValue = filters['currentPrice'].toString();
+      
+      switch (priceValue) {
+        case 'under_5':
+          filterParts.add('currentPrice:<5');
+          break;
+        case '5_10':
+          filterParts.add('currentPrice:>=5&&currentPrice:<10');
+          break;
+        case '10_20':
+          filterParts.add('currentPrice:>=10&&currentPrice:<20');
+          break;
+        case '20_50':
+          filterParts.add('currentPrice:>=20&&currentPrice:<50');
+          break;
+        case '50_100':
+          filterParts.add('currentPrice:>=50&&currentPrice:<100');
+          break;
+        case '100_200':
+          filterParts.add('currentPrice:>=100&&currentPrice:<200');
+          break;
+        case 'over_200':
+          filterParts.add('currentPrice:>=200');
+          break;
+      }
+    }
+    
+    // Price Proximity to 52W High filter
+    if (filters.containsKey('priceProximityToHigh') && filters['priceProximityToHigh'] != null && filters['priceProximityToHigh'] != "any") {
+      String proximityValue = filters['priceProximityToHigh'].toString();
+      
+      switch (proximityValue) {
+        case 'under_20':
+          filterParts.add('priceProximityToHigh:<20');
+          break;
+        case '20_40':
+          filterParts.add('priceProximityToHigh:>=20&&priceProximityToHigh:<40');
+          break;
+        case '40_60':
+          filterParts.add('priceProximityToHigh:>=40&&priceProximityToHigh:<60');
+          break;
+        case '60_80':
+          filterParts.add('priceProximityToHigh:>=60&&priceProximityToHigh:<80');
+          break;
+        case '80_95':
+          filterParts.add('priceProximityToHigh:>=80&&priceProximityToHigh:<95');
+          break;
+        case 'over_95':
+          filterParts.add('priceProximityToHigh:>=95');
+          break;
+      }
+    }
+    
     // Numeric range filters
     // Market cap range (in millions)
     if (filters.containsKey('usdMarketCapMin')) {
