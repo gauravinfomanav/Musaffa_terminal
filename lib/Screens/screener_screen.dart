@@ -336,9 +336,8 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     final crossAxisCount = 4;
     final rows = (filterCount / crossAxisCount).ceil();
     
-    // Calculate dynamic height: each row ~80px + spacing
-    // Add extra space for tabs (60px) + title (40px) + padding
-    final contentHeight = (rows * 80.0) + 140;
+    
+    final contentHeight = (rows * 80.0) + 80;
     
     return Container(
       height: contentHeight.clamp(180, 500), // Reduced min/max height
