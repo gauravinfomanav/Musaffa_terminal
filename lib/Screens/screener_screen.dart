@@ -167,7 +167,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     });
   }
 
-  int _getAppliedFiltersCount() {
+  int _getTotalAppliedFiltersCount() {
     return _filterValues.values.where((v) => v != null && v != "any").length;
   }
 
@@ -319,41 +319,41 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      category,
-                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                        fontSize: 11,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected 
-                            ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
-                            : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                      ),
-                    ),
-                    if (_getAppliedFiltersCount(category) > 0) ...[
-                      const SizedBox(width: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text(
-                          '${_getAppliedFiltersCount(category)}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                 child: Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     Text(
+                       category,
+                       style: DashboardTextStyles.tickerSymbol.copyWith(
+                         fontSize: 11,
+                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                         color: isSelected 
+                             ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
+                             : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                       ),
+                     ),
+                     if (_getAppliedFiltersCount(category) > 0) ...[
+                       const SizedBox(width: 4),
+                       Container(
+                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                         decoration: BoxDecoration(
+                           color: const Color(0xFF81AACE),
+                           borderRadius: BorderRadius.circular(8),
+                         ),
+                         constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                         child: Text(
+                           '${_getAppliedFiltersCount(category)}',
+                           style: const TextStyle(
+                             color: Colors.white,
+                             fontSize: 9,
+                             fontWeight: FontWeight.w600,
+                           ),
+                           textAlign: TextAlign.center,
+                         ),
+                       ),
+                     ],
+                   ],
+                 ),
               ),
             );
           }).toList(),
@@ -393,7 +393,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
           Row(
             children: [
               Expanded(child: _buildFilterTabs(isDarkMode)),
-              if (_getAppliedFiltersCount() > 0) ...[
+              if (_getTotalAppliedFiltersCount() > 0) ...[
                 const SizedBox(width: 16),
                 GestureDetector(
                   onTap: _resetAllFilters,
@@ -601,7 +601,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                     ),
                   ),
-                  if (_getAppliedFiltersCount() > 0) ...[
+                  if (_getTotalAppliedFiltersCount() > 0) ...[
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -614,7 +614,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                         ),
                       ),
                       child: Text(
-                        '${_getAppliedFiltersCount()} filters',
+                        '${_getTotalAppliedFiltersCount()} filters',
                         style: DashboardTextStyles.tickerSymbol.copyWith(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
