@@ -916,9 +916,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'change3Y': stock.priceChange3YPercent != null ? '${stock.priceChange3YPercent! >= 0 ? '+' : ''}${stock.priceChange3YPercent!.toStringAsFixed(2)}%' : '--',
       'change5Y': stock.priceChange5YPercent != null ? '${stock.priceChange5YPercent! >= 0 ? '+' : ''}${stock.priceChange5YPercent!.toStringAsFixed(2)}%' : '--',
       'priceChangeYTD': stock.priceChangeYTDPercent != null ? '${stock.priceChangeYTDPercent! >= 0 ? '+' : ''}${stock.priceChangeYTDPercent!.toStringAsFixed(2)}%' : '--',
-      'totalReturn1Y': stock.totalReturn1Y != null ? '${stock.totalReturn1Y! >= 0 ? '+' : ''}${stock.totalReturn1Y!.toStringAsFixed(2)}%' : '--',
-      'totalReturn3Y': stock.totalReturn3Y != null ? '${stock.totalReturn3Y! >= 0 ? '+' : ''}${stock.totalReturn3Y!.toStringAsFixed(2)}%' : '--',
-      'totalReturn5Y': stock.totalReturn5Y != null ? '${stock.totalReturn5Y! >= 0 ? '+' : ''}${stock.totalReturn5Y!.toStringAsFixed(2)}%' : '--',
+      'epsAnnual': stock.epsAnnual != null ? stock.epsAnnual!.toStringAsFixed(2) : '--',
+      'dividendPerShare': stock.dividendPerShareAnnual != null ? '\$${stock.dividendPerShareAnnual!.toStringAsFixed(2)}' : '--',
+      'cashFlowPerShare': stock.cashFlowPerShareAnnual != null ? '\$${stock.cashFlowPerShareAnnual!.toStringAsFixed(2)}' : '--',
       
       // Technical fields
       'high52W': stock.d52WeekHigh != null ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}' : '--',

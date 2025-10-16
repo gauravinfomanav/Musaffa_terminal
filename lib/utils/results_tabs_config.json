@@ -440,24 +440,24 @@
           "sortable": true
         },
         {
-          "id": "totalReturn1Y",
-          "label": "Total Return 1Y",
-          "field": "totalReturn1Y",
-          "type": "percentage",
+          "id": "epsAnnual",
+          "label": "EPS Annual",
+          "field": "epsAnnual",
+          "type": "number",
           "sortable": true
         },
         {
-          "id": "totalReturn3Y",
-          "label": "Total Return 3Y",
-          "field": "totalReturn3Y",
-          "type": "percentage",
+          "id": "dividendPerShare",
+          "label": "Dividend/Share",
+          "field": "dividendPerShareAnnual",
+          "type": "currency",
           "sortable": true
         },
         {
-          "id": "totalReturn5Y",
-          "label": "Total Return 5Y",
-          "field": "totalReturn5Y",
-          "type": "percentage",
+          "id": "cashFlowPerShare",
+          "label": "Cash Flow/Share",
+          "field": "cashFlowPerShareAnnual",
+          "type": "currency",
           "sortable": true
         }
       ]
