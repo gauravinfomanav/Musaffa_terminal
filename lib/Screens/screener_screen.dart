@@ -653,7 +653,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
           style: DashboardTextStyles.tickerSymbol.copyWith(
             fontSize: 14,
               color: Colors.red.shade400,
-            ),
+          ),
             textAlign: TextAlign.center,
         ),
       );
@@ -925,14 +925,13 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'low52W': stock.d52WeekLow != null ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}' : '--',
       'avgVolume10D': stock.avgVolume10days != null ? getShortenedT(stock.avgVolume10days!) : '--',
       'avgVolume30D': stock.avgVolume30days != null ? getShortenedT(stock.avgVolume30days!) : '--',
-      'priceProximityToHigh': stock.priceProximityToHigh != null ? '${stock.priceProximityToHigh!.toStringAsFixed(2)}%' : '--',
+      'priceTangibleBookValue': stock.priceTangiblebookValueAnnual != null ? stock.priceTangiblebookValueAnnual!.toStringAsFixed(2) : '--',
       'marketCapChange3Y': stock.marketCapChange3y != null ? '${stock.marketCapChange3y! >= 0 ? '+' : ''}${stock.marketCapChange3y!.toStringAsFixed(2)}%' : '--',
       'previousClose': stock.previousClose != null ? '\$${stock.previousClose!.toStringAsFixed(2)}' : '--',
       'open': stock.open != null ? '\$${stock.open!.toStringAsFixed(2)}' : '--',
       'high': stock.high != null ? '\$${stock.high!.toStringAsFixed(2)}' : '--',
       'low': stock.low != null ? '\$${stock.low!.toStringAsFixed(2)}' : '--',
       'close': stock.close != null ? '\$${stock.close!.toStringAsFixed(2)}' : '--',
-      'priceTangibleBookValue': stock.priceTangiblebookValueAnnual != null ? stock.priceTangiblebookValueAnnual!.toStringAsFixed(2) : '--',
       
       // Growth fields
       'revenueGrowth3Y': stock.revenueGrowth3Y != null ? '${stock.revenueGrowth3Y! >= 0 ? '+' : ''}${stock.revenueGrowth3Y!.toStringAsFixed(2)}%' : '--',

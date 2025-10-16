@@ -531,10 +531,10 @@
           "sortable": true
         },
         {
-          "id": "priceProximityToHigh",
-          "label": "Price to 52W High",
-          "field": "priceProximityToHigh",
-          "type": "percentage",
+          "id": "priceTangibleBookValue",
+          "label": "Price/Tangible Book",
+          "field": "priceTangiblebookValueAnnual",
+          "type": "number",
           "sortable": true
         },
         {
