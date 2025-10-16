@@ -699,24 +699,24 @@
           "sortable": true
         },
         {
-          "id": "assetsGrowth1Y",
-          "label": "Assets Growth 1Y",
-          "field": "assetsGrowth1y",
+          "id": "revenueGrowth1Y",
+          "label": "Revenue Growth 1Y",
+          "field": "revenueGrowth1Y",
           "type": "percentage",
           "sortable": true
         },
         {
-          "id": "assetsGrowth3Y",
-          "label": "Assets Growth 3Y",
-          "field": "assetsGrowth3y",
+          "id": "epsGrowth1Y",
+          "label": "EPS Growth 1Y",
+          "field": "epsGrowth1y",
           "type": "percentage",
           "sortable": true
         },
         {
-          "id": "assetsGrowth5Y",
-          "label": "Assets Growth 5Y",
-          "field": "assetsGrowth5y",
-          "type": "percentage",
+          "id": "revenuePerShare",
+          "label": "Revenue/Share",
+          "field": "revenuePerShareAnnual",
+          "type": "currency",
           "sortable": true
         }
       ]

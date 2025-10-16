@@ -945,9 +945,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'revenueShareGrowth5Y': stock.revenueShareGrowth5Y != null ? '${stock.revenueShareGrowth5Y! >= 0 ? '+' : ''}${stock.revenueShareGrowth5Y!.toStringAsFixed(2)}%' : '--',
       'roe5Y': stock.roe5Y != null ? '${stock.roe5Y!.toStringAsFixed(2)}%' : '--',
       'roa5Y': stock.roa5Y != null ? '${stock.roa5Y!.toStringAsFixed(2)}%' : '--',
-      'assetsGrowth1Y': stock.assetsGrowth1y != null ? '${stock.assetsGrowth1y! >= 0 ? '+' : ''}${stock.assetsGrowth1y!.toStringAsFixed(2)}%' : '--',
-      'assetsGrowth3Y': stock.assetsGrowth3y != null ? '${stock.assetsGrowth3y! >= 0 ? '+' : ''}${stock.assetsGrowth3y!.toStringAsFixed(2)}%' : '--',
-      'assetsGrowth5Y': stock.assetsGrowth5y != null ? '${stock.assetsGrowth5y! >= 0 ? '+' : ''}${stock.assetsGrowth5y!.toStringAsFixed(2)}%' : '--',
+      'revenueGrowth1Y': stock.revenueGrowth1Y != null ? '${stock.revenueGrowth1Y! >= 0 ? '+' : ''}${stock.revenueGrowth1Y!.toStringAsFixed(2)}%' : '--',
+      'epsGrowth1Y': stock.epsGrowth1y != null ? '${stock.epsGrowth1y! >= 0 ? '+' : ''}${stock.epsGrowth1y!.toStringAsFixed(2)}%' : '--',
+      'revenuePerShare': stock.revenuePerShareAnnual != null ? '\$${stock.revenuePerShareAnnual!.toStringAsFixed(2)}' : '--',
     };
   }
   
