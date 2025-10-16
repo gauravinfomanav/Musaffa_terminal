@@ -863,8 +863,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   
   Map<String, String> _getFieldsForStock(dynamic stock) {
     return {
-      // Basic fields
-      'ticker': stock.ticker ?? '--',
+      // Basic fields (removed ticker as requested)
       'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
       'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
       'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
@@ -878,6 +877,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'sharesOutstanding': stock.sharesOutStanding != null ? getShortenedT(stock.sharesOutStanding!) : '--',
       'enterpriseValue': stock.enterpriseValue != null ? getShortenedT(stock.enterpriseValue!) : '--',
       'recommendation': stock.analystRecommendationWeightedAvg ?? '--',
+      'epsTTM': stock.epsTTM != null ? stock.epsTTM!.toStringAsFixed(2) : '--',
+      'revenueAnnual': stock.revenueAnnual != null ? getShortenedT(stock.revenueAnnual!) : '--',
+      'netIncome': stock.netIncomeAnnual != null ? getShortenedT(stock.netIncomeAnnual!) : '--',
       
       // Valuation fields
       'peAnnual': stock.peAnnual != null ? stock.peAnnual!.toStringAsFixed(2) : '--',
@@ -887,9 +889,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'evEbit': stock.evEbit != null ? stock.evEbit!.toStringAsFixed(2) : '--',
       'evFcf': stock.evFcf != null ? stock.evFcf!.toStringAsFixed(2) : '--',
       'bookValuePerShare': stock.bookValuePerShareAnnual != null ? '\$${stock.bookValuePerShareAnnual!.toStringAsFixed(2)}' : '--',
+      'pfcfShareTTM': stock.pfcfShareTTM != null ? stock.pfcfShareTTM!.toStringAsFixed(2) : '--',
+      'pcfShareTTM': stock.pcfShareTTM != null ? stock.pcfShareTTM!.toStringAsFixed(2) : '--',
+      'ptbvAnnual': stock.ptbvAnnual != null ? stock.ptbvAnnual!.toStringAsFixed(2) : '--',
       
       // Financial fields
-      'revenueAnnual': stock.revenueAnnual != null ? getShortenedT(stock.revenueAnnual!) : '--',
       'grossMargin': stock.grossMarginAnnual != null ? '${stock.grossMarginAnnual!.toStringAsFixed(2)}%' : '--',
       'operatingMargin': stock.operatingMarginAnnual != null ? '${stock.operatingMarginAnnual!.toStringAsFixed(2)}%' : '--',
       'netProfitMargin': stock.netProfitMarginAnnual != null ? '${stock.netProfitMarginAnnual!.toStringAsFixed(2)}%' : '--',
@@ -897,6 +901,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'roa': stock.roaTTM != null ? '${stock.roaTTM!.toStringAsFixed(2)}%' : '--',
       'debtEquity': stock.totalDebtTotalEquityAnnual != null ? stock.totalDebtTotalEquityAnnual!.toStringAsFixed(2) : '--',
       'currentRatio': stock.currentRatioAnnual != null ? stock.currentRatioAnnual!.toStringAsFixed(2) : '--',
+      'quickRatio': stock.quickRatioAnnual != null ? stock.quickRatioAnnual!.toStringAsFixed(2) : '--',
+      'assetTurnover': stock.assetTurnoverAnnual != null ? stock.assetTurnoverAnnual!.toStringAsFixed(2) : '--',
+      'inventoryTurnover': stock.inventoryTurnoverAnnual != null ? stock.inventoryTurnoverAnnual!.toStringAsFixed(2) : '--',
+      'receivablesTurnover': stock.receivablesTurnoverTTM != null ? stock.receivablesTurnoverTTM!.toStringAsFixed(2) : '--',
+      'payoutRatio': stock.payoutRatioTTM != null ? '${stock.payoutRatioTTM!.toStringAsFixed(2)}%' : '--',
       
       // Performance fields
       'change1W': stock.priceChange1WPercent != null ? '${stock.priceChange1WPercent! >= 0 ? '+' : ''}${stock.priceChange1WPercent!.toStringAsFixed(2)}%' : '--',
@@ -906,15 +915,24 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'change1Y': stock.priceChange1YPercent != null ? '${stock.priceChange1YPercent! >= 0 ? '+' : ''}${stock.priceChange1YPercent!.toStringAsFixed(2)}%' : '--',
       'change3Y': stock.priceChange3YPercent != null ? '${stock.priceChange3YPercent! >= 0 ? '+' : ''}${stock.priceChange3YPercent!.toStringAsFixed(2)}%' : '--',
       'change5Y': stock.priceChange5YPercent != null ? '${stock.priceChange5YPercent! >= 0 ? '+' : ''}${stock.priceChange5YPercent!.toStringAsFixed(2)}%' : '--',
+      'priceChangeYTD': stock.priceChangeYTDPercent != null ? '${stock.priceChangeYTDPercent! >= 0 ? '+' : ''}${stock.priceChangeYTDPercent!.toStringAsFixed(2)}%' : '--',
+      'totalReturn1Y': stock.totalReturn1Y != null ? '${stock.totalReturn1Y! >= 0 ? '+' : ''}${stock.totalReturn1Y!.toStringAsFixed(2)}%' : '--',
+      'totalReturn3Y': stock.totalReturn3Y != null ? '${stock.totalReturn3Y! >= 0 ? '+' : ''}${stock.totalReturn3Y!.toStringAsFixed(2)}%' : '--',
+      'totalReturn5Y': stock.totalReturn5Y != null ? '${stock.totalReturn5Y! >= 0 ? '+' : ''}${stock.totalReturn5Y!.toStringAsFixed(2)}%' : '--',
       
       // Technical fields
       'high52W': stock.d52WeekHigh != null ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}' : '--',
       'low52W': stock.d52WeekLow != null ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}' : '--',
       'avgVolume10D': stock.avgVolume10days != null ? getShortenedT(stock.avgVolume10days!) : '--',
       'avgVolume30D': stock.avgVolume30days != null ? getShortenedT(stock.avgVolume30days!) : '--',
-      'quickRatio': stock.quickRatioAnnual != null ? stock.quickRatioAnnual!.toStringAsFixed(2) : '--',
+      'priceProximityToHigh': stock.priceProximityToHigh != null ? '${stock.priceProximityToHigh!.toStringAsFixed(2)}%' : '--',
       'marketCapChange3Y': stock.marketCapChange3y != null ? '${stock.marketCapChange3y! >= 0 ? '+' : ''}${stock.marketCapChange3y!.toStringAsFixed(2)}%' : '--',
       'previousClose': stock.previousClose != null ? '\$${stock.previousClose!.toStringAsFixed(2)}' : '--',
+      'open': stock.open != null ? '\$${stock.open!.toStringAsFixed(2)}' : '--',
+      'high': stock.high != null ? '\$${stock.high!.toStringAsFixed(2)}' : '--',
+      'low': stock.low != null ? '\$${stock.low!.toStringAsFixed(2)}' : '--',
+      'close': stock.close != null ? '\$${stock.close!.toStringAsFixed(2)}' : '--',
+      'priceTangibleBookValue': stock.priceTangiblebookValueAnnual != null ? stock.priceTangiblebookValueAnnual!.toStringAsFixed(2) : '--',
       
       // Growth fields
       'revenueGrowth3Y': stock.revenueGrowth3Y != null ? '${stock.revenueGrowth3Y! >= 0 ? '+' : ''}${stock.revenueGrowth3Y!.toStringAsFixed(2)}%' : '--',
@@ -925,6 +943,12 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'revenueGrowthTTMYoY': stock.revenueGrowthTTMYoy != null ? '${stock.revenueGrowthTTMYoy! >= 0 ? '+' : ''}${stock.revenueGrowthTTMYoy!.toStringAsFixed(2)}%' : '--',
       'epsGrowthQuarterlyYoY': stock.epsGrowthQuarterlyYoy != null ? '${stock.epsGrowthQuarterlyYoy! >= 0 ? '+' : ''}${stock.epsGrowthQuarterlyYoy!.toStringAsFixed(2)}%' : '--',
       'epsGrowthTTMYoY': stock.epsGrowthTTMYoy != null ? '${stock.epsGrowthTTMYoy! >= 0 ? '+' : ''}${stock.epsGrowthTTMYoy!.toStringAsFixed(2)}%' : '--',
+      'revenueShareGrowth5Y': stock.revenueShareGrowth5Y != null ? '${stock.revenueShareGrowth5Y! >= 0 ? '+' : ''}${stock.revenueShareGrowth5Y!.toStringAsFixed(2)}%' : '--',
+      'roe5Y': stock.roe5Y != null ? '${stock.roe5Y!.toStringAsFixed(2)}%' : '--',
+      'roa5Y': stock.roa5Y != null ? '${stock.roa5Y!.toStringAsFixed(2)}%' : '--',
+      'assetsGrowth1Y': stock.assetsGrowth1y != null ? '${stock.assetsGrowth1y! >= 0 ? '+' : ''}${stock.assetsGrowth1y!.toStringAsFixed(2)}%' : '--',
+      'assetsGrowth3Y': stock.assetsGrowth3y != null ? '${stock.assetsGrowth3y! >= 0 ? '+' : ''}${stock.assetsGrowth3y!.toStringAsFixed(2)}%' : '--',
+      'assetsGrowth5Y': stock.assetsGrowth5y != null ? '${stock.assetsGrowth5y! >= 0 ? '+' : ''}${stock.assetsGrowth5y!.toStringAsFixed(2)}%' : '--',
     };
   }
   

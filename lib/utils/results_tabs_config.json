@@ -6,13 +6,6 @@
       "isDefault": true,
       "columns": [
         {
-          "id": "ticker",
-          "label": "Ticker",
-          "field": "ticker",
-          "type": "text",
-          "sortable": true
-        },
-        {
           "id": "price",
           "label": "Price",
           "field": "currentPrice",
@@ -88,6 +81,27 @@
           "field": "analystRecommendationWeightedAvg",
           "type": "text",
           "sortable": true
+        },
+        {
+          "id": "epsTTM",
+          "label": "EPS TTM",
+          "field": "epsTTM",
+          "type": "number",
+          "sortable": true
+        },
+        {
+          "id": "revenueAnnual",
+          "label": "Revenue Annual",
+          "field": "revenueAnnual",
+          "type": "currency",
+          "sortable": true
+        },
+        {
+          "id": "netIncome",
+          "label": "Net Income",
+          "field": "netIncomeAnnual",
+          "type": "currency",
+          "sortable": true
         }
       ]
     },
@@ -96,13 +110,6 @@
       "label": "Valuation",
       "isDefault": false,
       "columns": [
-        {
-          "id": "ticker",
-          "label": "Ticker",
-          "field": "ticker",
-          "type": "text",
-          "sortable": true
-        },
         {
           "id": "price",
           "label": "Price",
@@ -186,6 +193,27 @@
           "field": "bookValuePerShareAnnual",
           "type": "currency",
           "sortable": true
+        },
+        {
+          "id": "pfcfShareTTM",
+          "label": "P/FCF TTM",
+          "field": "pfcfShareTTM",
+          "type": "number",
+          "sortable": true
+        },
+        {
+          "id": "pcfShareTTM",
+          "label": "P/CF TTM",
+          "field": "pcfShareTTM",
+          "type": "number",
+          "sortable": true
+        },
+        {
+          "id": "ptbvAnnual",
+          "label": "P/TBV Annual",
+          "field": "ptbvAnnual",
+          "type": "number",
+          "sortable": true
         }
       ]
     },
@@ -194,13 +222,6 @@
       "label": "Financial",
       "isDefault": false,
       "columns": [
-        {
-          "id": "ticker",
-          "label": "Ticker",
-          "field": "ticker",
-          "type": "text",
-          "sortable": true
-        },
         {
           "id": "price",
           "label": "Price",
@@ -284,6 +305,41 @@
           "field": "currentRatioAnnual",
           "type": "number",
           "sortable": true
+        },
+        {
+          "id": "quickRatio",
+          "label": "Quick Ratio",
+          "field": "quickRatioAnnual",
+          "type": "number",
+          "sortable": true
+        },
+        {
+          "id": "assetTurnover",
+          "label": "Asset Turnover",
+          "field": "assetTurnoverAnnual",
+          "type": "number",
+          "sortable": true
+        },
+        {
+          "id": "inventoryTurnover",
+          "label": "Inventory Turnover",
+          "field": "inventoryTurnoverAnnual",
+          "type": "number",
+          "sortable": true
+        },
+        {
+          "id": "receivablesTurnover",
+          "label": "Receivables Turnover",
+          "field": "receivablesTurnoverTTM",
+          "type": "number",
+          "sortable": true
+        },
+        {
+          "id": "payoutRatio",
+          "label": "Payout Ratio",
+          "field": "payoutRatioTTM",
+          "type": "percentage",
+          "sortable": true
         }
       ]
     },
@@ -292,13 +348,6 @@
       "label": "Performance",
       "isDefault": false,
       "columns": [
-        {
-          "id": "ticker",
-          "label": "Ticker",
-          "field": "ticker",
-          "type": "text",
-          "sortable": true
-        },
         {
           "id": "price",
           "label": "Price",
@@ -382,6 +431,34 @@
           "field": "priceChange5YPercent",
           "type": "percentage",
           "sortable": true
+        },
+        {
+          "id": "priceChangeYTD",
+          "label": "YTD",
+          "field": "priceChangeYTDPercent",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "totalReturn1Y",
+          "label": "Total Return 1Y",
+          "field": "totalReturn1Y",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "totalReturn3Y",
+          "label": "Total Return 3Y",
+          "field": "totalReturn3Y",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "totalReturn5Y",
+          "label": "Total Return 5Y",
+          "field": "totalReturn5Y",
+          "type": "percentage",
+          "sortable": true
         }
       ]
     },
@@ -390,13 +467,6 @@
       "label": "Technical",
       "isDefault": false,
       "columns": [
-        {
-          "id": "ticker",
-          "label": "Ticker",
-          "field": "ticker",
-          "type": "text",
-          "sortable": true
-        },
         {
           "id": "price",
           "label": "Price",
@@ -461,10 +531,10 @@
           "sortable": true
         },
         {
-          "id": "quickRatio",
-          "label": "Quick Ratio",
-          "field": "quickRatioAnnual",
-          "type": "number",
+          "id": "priceProximityToHigh",
+          "label": "Price to 52W High",
+          "field": "priceProximityToHigh",
+          "type": "percentage",
           "sortable": true
         },
         {
@@ -480,6 +550,41 @@
           "field": "previousClose",
           "type": "currency",
           "sortable": true
+        },
+        {
+          "id": "open",
+          "label": "Open",
+          "field": "open",
+          "type": "currency",
+          "sortable": true
+        },
+        {
+          "id": "high",
+          "label": "High",
+          "field": "high",
+          "type": "currency",
+          "sortable": true
+        },
+        {
+          "id": "low",
+          "label": "Low",
+          "field": "low",
+          "type": "currency",
+          "sortable": true
+        },
+        {
+          "id": "close",
+          "label": "Close",
+          "field": "close",
+          "type": "currency",
+          "sortable": true
+        },
+        {
+          "id": "priceTangibleBookValue",
+          "label": "Price/Tangible Book",
+          "field": "priceTangiblebookValueAnnual",
+          "type": "number",
+          "sortable": true
         }
       ]
     },
@@ -488,13 +593,6 @@
       "label": "Growth",
       "isDefault": false,
       "columns": [
-        {
-          "id": "ticker",
-          "label": "Ticker",
-          "field": "ticker",
-          "type": "text",
-          "sortable": true
-        },
         {
           "id": "price",
           "label": "Price",
@@ -576,6 +674,48 @@
           "id": "epsGrowthTTMYoY",
           "label": "EPS Growth TTM",
           "field": "epsGrowthTTMYoy",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "revenueShareGrowth5Y",
+          "label": "Rev/Share Growth 5Y",
+          "field": "revenueShareGrowth5Y",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "roe5Y",
+          "label": "ROE 5Y",
+          "field": "roe5Y",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "roa5Y",
+          "label": "ROA 5Y",
+          "field": "roa5Y",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "assetsGrowth1Y",
+          "label": "Assets Growth 1Y",
+          "field": "assetsGrowth1y",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "assetsGrowth3Y",
+          "label": "Assets Growth 3Y",
+          "field": "assetsGrowth3y",
+          "type": "percentage",
+          "sortable": true
+        },
+        {
+          "id": "assetsGrowth5Y",
+          "label": "Assets Growth 5Y",
+          "field": "assetsGrowth5y",
           "type": "percentage",
           "sortable": true
         }
