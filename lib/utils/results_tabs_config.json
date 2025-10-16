@@ -461,10 +461,10 @@
           "sortable": true
         },
         {
-          "id": "priceProximityToHigh",
-          "label": "Price to 52W High",
-          "field": "priceProximityToHigh",
-          "type": "percentage",
+          "id": "quickRatio",
+          "label": "Quick Ratio",
+          "field": "quickRatioAnnual",
+          "type": "number",
           "sortable": true
         },
         {

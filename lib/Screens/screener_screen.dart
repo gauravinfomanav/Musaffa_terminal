@@ -912,7 +912,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'low52W': stock.d52WeekLow != null ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}' : '--',
       'avgVolume10D': stock.avgVolume10days != null ? getShortenedT(stock.avgVolume10days!) : '--',
       'avgVolume30D': stock.avgVolume30days != null ? getShortenedT(stock.avgVolume30days!) : '--',
-      'priceProximityToHigh': stock.priceProximityToHigh != null ? '${stock.priceProximityToHigh!.toStringAsFixed(2)}%' : '--',
+      'quickRatio': stock.quickRatioAnnual != null ? stock.quickRatioAnnual!.toStringAsFixed(2) : '--',
       'marketCapChange3Y': stock.marketCapChange3y != null ? '${stock.marketCapChange3y! >= 0 ? '+' : ''}${stock.marketCapChange3y!.toStringAsFixed(2)}%' : '--',
       'previousClose': stock.previousClose != null ? '\$${stock.previousClose!.toStringAsFixed(2)}' : '--',
       
