@@ -564,9 +564,20 @@ class _DynamicTableState extends State<DynamicTable> {
             textColor = rowModel.changeColor!;
           }
           
-          // Determine if we should show +/- prefix for change/gainLoss columns
+          // Determine if we should show +/- prefix for change/gainLoss columns and apply color coding
           String displayValue = cellData;
-          if (column.fieldName == 'change' || column.fieldName == 'gainLoss') {
+          
+          // Check if this is a percentage or change field that should have color coding
+          bool isPercentageField = column.fieldName.contains('change') || 
+                                  column.fieldName.contains('Growth') || 
+                                  column.fieldName.contains('Yield') ||
+                                  column.fieldName.contains('Margin') ||
+                                  column.fieldName.contains('YTD') ||
+                                  column.fieldName.contains('marketCapChange') ||
+                                  column.fieldName == 'change' || 
+                                  column.fieldName == 'gainLoss';
+          
+          if (isPercentageField) {
             // Parse the numeric value to determine sign
             final numValue = double.tryParse(cellData.replaceAll(RegExp(r'[^\d.-]'), ''));
             if (numValue != null) {

@@ -260,31 +260,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   }
 
   Widget _buildHeader(bool isDarkMode) {
-    return Row(
-      children: [
-        Text(
+    return Text(
           'STOCK SCREENER',
           style: DashboardTextStyles.headerTitle,
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            ),
-          ),
-          child: Text(
-            '${_getResultsCount()} Results',
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 12,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -936,7 +914,6 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'roe5Y': stock.roe5Y != null ? '${stock.roe5Y!.toStringAsFixed(2)}%' : '--',
       'roa5Y': stock.roa5Y != null ? '${stock.roa5Y!.toStringAsFixed(2)}%' : '--',
       'revenueGrowth1Y': stock.revenueGrowth1Y != null ? '${stock.revenueGrowth1Y! >= 0 ? '+' : ''}${stock.revenueGrowth1Y!.toStringAsFixed(2)}%' : '--',
-      'epsGrowth1Y': stock.epsGrowth1y != null ? '${stock.epsGrowth1y! >= 0 ? '+' : ''}${stock.epsGrowth1y!.toStringAsFixed(2)}%' : '--',
       'revenuePerShare': stock.revenuePerShareAnnual != null ? '\$${stock.revenuePerShareAnnual!.toStringAsFixed(2)}' : '--',
     };
   }

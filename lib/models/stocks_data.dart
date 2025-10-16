@@ -429,7 +429,7 @@ class StocksData {
     exchangeCountry = json['exchange_country'];
     exchangeSymbol = json['exchange_symbol'];
     grossIncomeAnnual = json['grossIncome_annual'];
-    grossMarginAnnual = json['gross_margin_annual'];
+    grossMarginAnnual = json['grossMarginAnnual'];
     grossMarginTTM = json['grossMarginTTM'];
     halalRevenuePercent = json['halal_revenue_percent'];
     high = json['high'];

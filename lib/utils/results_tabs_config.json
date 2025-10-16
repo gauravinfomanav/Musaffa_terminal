@@ -706,13 +706,6 @@
           "sortable": true
         },
         {
-          "id": "epsGrowth1Y",
-          "label": "EPS Growth 1Y",
-          "field": "epsGrowth1y",
-          "type": "percentage",
-          "sortable": true
-        },
-        {
           "id": "revenuePerShare",
           "label": "Revenue/Share",
           "field": "revenuePerShareAnnual",
