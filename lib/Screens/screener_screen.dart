@@ -323,14 +323,14 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                    mainAxisSize: MainAxisSize.min,
                    children: [
                      Text(
-                       category,
-                       style: DashboardTextStyles.tickerSymbol.copyWith(
-                         fontSize: 11,
-                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                         color: isSelected 
-                             ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
-                             : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                       ),
+                  category,
+                  style: DashboardTextStyles.tickerSymbol.copyWith(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected 
+                        ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
+                        : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                  ),
                      ),
                      if (_getAppliedFiltersCount(category) > 0) ...[
                        const SizedBox(width: 4),
@@ -353,7 +353,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                        ),
                      ],
                    ],
-                 ),
+                ),
               ),
             );
           }).toList(),
@@ -647,32 +647,32 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       
       // Show error message
       if (filterController.errorMessage.value.isNotEmpty) {
-        return Center(
-          child: Text(
+      return Center(
+        child: Text(
             filterController.errorMessage.value,
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 14,
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            fontSize: 14,
               color: Colors.red.shade400,
             ),
             textAlign: TextAlign.center,
-          ),
-        );
-      }
-      
+        ),
+      );
+    }
+
       // Show empty state
       if (filterController.stocks.isEmpty) {
-        return Center(
-          child: Text(
+      return Center(
+        child: Text(
             'No stocks found. Try adjusting your filters.',
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 14,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-            textAlign: TextAlign.center,
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            fontSize: 14,
+            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
           ),
-        );
-      }
-      
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
       // Convert StocksData to SimpleRowModel for DynamicTable
       List<SimpleRowModel> rows = filterController.stocks.map((stock) {
         final isPositive = (stock.priceChange1DPercent ?? 0) >= 0;
@@ -685,37 +685,19 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
           price: stock.currentPrice,
           changePercent: stock.priceChange1DPercent,
           currency: stock.currency ?? 'USD',
-          fields: {
-            'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
-            'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
-            'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
-            'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
-            'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
-            'sector': stock.sector ?? '--',
-            'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
-            'peRatio': stock.peTTM != null ? stock.peTTM!.toStringAsFixed(2) : '--',
-          },
+          fields: _getFieldsForStock(stock),
           changeColor: changeColor,
           isPositive: isPositive,
         );
       }).toList();
       
       // Build table with pagination
-      return Column(
+    return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // DynamicTable - no fixed height, takes natural height
           DynamicTable(
-            columns: const [
-              SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-              SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-              SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
-              SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
-              SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
-              SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
-              SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
-              SimpleColumn(label: 'P/E', fieldName: 'peRatio', isNumeric: true),
-            ],
+            columns: _getColumnsForSelectedTab(),
             rows: rows,
             showFixedColumn: true,
             considerPadding: false,
@@ -740,7 +722,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+      children: [
           // Page info
           Text(
             'Page ${filterController.currentPage + 1} of ${filterController.totalPages} (${filterController.totalFound} stocks)',
@@ -781,11 +763,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                         width: 1,
                       ),
                     ),
-                    child: Text(
+                child: Text(
                       'Previous',
                       style: DashboardTextStyles.dataCell.copyWith(
                         fontSize: 12,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                    color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                       ),
                     ),
                   ),
@@ -813,15 +795,15 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
+                decoration: BoxDecoration(
                       color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  border: Border.all(
+                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
                         width: 1,
-                      ),
-                    ),
-                    child: Text(
+                  ),
+                ),
+                      child: Text(
                       'Next',
                       style: DashboardTextStyles.dataCell.copyWith(
                         fontSize: 12,
@@ -831,9 +813,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   ),
                 ),
             ],
-          ),
-        ],
-      );
+        ),
+      ],
+    );
     });
   }
   
@@ -847,6 +829,103 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     });
     
     return filters;
+  }
+  
+  List<SimpleColumn> _getColumnsForSelectedTab() {
+    if (_resultsTabsConfig == null) {
+      return _getDefaultColumns();
+    }
+    
+    final selectedTab = _resultsTabsConfig!.tabs.firstWhere(
+      (tab) => tab.id == _selectedResultsTab,
+      orElse: () => _resultsTabsConfig!.tabs.first,
+    );
+    
+    return selectedTab.columns.map((column) {
+      return SimpleColumn(
+        label: column.label.toUpperCase(),
+        fieldName: column.id,
+        isNumeric: column.type == 'number' || column.type == 'currency' || column.type == 'percentage',
+      );
+    }).toList();
+  }
+  
+  List<SimpleColumn> _getDefaultColumns() {
+    return const [
+      SimpleColumn(label: 'TICKER', fieldName: 'ticker', isNumeric: false),
+      SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
+      SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+      SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+      SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+      SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
+    ];
+  }
+  
+  Map<String, String> _getFieldsForStock(dynamic stock) {
+    return {
+      // Basic fields
+      'ticker': stock.ticker ?? '--',
+      'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
+      'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
+      'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
+      'sector': stock.sector ?? '--',
+      
+      // Overview fields
+      'change1D': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
+      'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
+      'peTTM': stock.peTTM != null ? stock.peTTM!.toStringAsFixed(2) : '--',
+      'dividendYield': stock.currentDividendYieldTTM != null ? '${stock.currentDividendYieldTTM!.toStringAsFixed(2)}%' : '--',
+      'sharesOutstanding': stock.sharesOutStanding != null ? getShortenedT(stock.sharesOutStanding!) : '--',
+      'enterpriseValue': stock.enterpriseValue != null ? getShortenedT(stock.enterpriseValue!) : '--',
+      'recommendation': stock.analystRecommendationWeightedAvg ?? '--',
+      
+      // Valuation fields
+      'peAnnual': stock.peAnnual != null ? stock.peAnnual!.toStringAsFixed(2) : '--',
+      'pbAnnual': stock.pbAnnual != null ? stock.pbAnnual!.toStringAsFixed(2) : '--',
+      'psTTM': stock.psTTM != null ? stock.psTTM!.toStringAsFixed(2) : '--',
+      'psAnnual': stock.psAnnual != null ? stock.psAnnual!.toStringAsFixed(2) : '--',
+      'evEbit': stock.evEbit != null ? stock.evEbit!.toStringAsFixed(2) : '--',
+      'evFcf': stock.evFcf != null ? stock.evFcf!.toStringAsFixed(2) : '--',
+      'bookValuePerShare': stock.bookValuePerShareAnnual != null ? '\$${stock.bookValuePerShareAnnual!.toStringAsFixed(2)}' : '--',
+      
+      // Financial fields
+      'revenueAnnual': stock.revenueAnnual != null ? getShortenedT(stock.revenueAnnual!) : '--',
+      'grossMargin': stock.grossMarginAnnual != null ? '${stock.grossMarginAnnual!.toStringAsFixed(2)}%' : '--',
+      'operatingMargin': stock.operatingMarginAnnual != null ? '${stock.operatingMarginAnnual!.toStringAsFixed(2)}%' : '--',
+      'netProfitMargin': stock.netProfitMarginAnnual != null ? '${stock.netProfitMarginAnnual!.toStringAsFixed(2)}%' : '--',
+      'roe': stock.rOE != null ? '${stock.rOE!.toStringAsFixed(2)}%' : '--',
+      'roa': stock.roaTTM != null ? '${stock.roaTTM!.toStringAsFixed(2)}%' : '--',
+      'debtEquity': stock.totalDebtTotalEquityAnnual != null ? stock.totalDebtTotalEquityAnnual!.toStringAsFixed(2) : '--',
+      'currentRatio': stock.currentRatioAnnual != null ? stock.currentRatioAnnual!.toStringAsFixed(2) : '--',
+      
+      // Performance fields
+      'change1W': stock.priceChange1WPercent != null ? '${stock.priceChange1WPercent! >= 0 ? '+' : ''}${stock.priceChange1WPercent!.toStringAsFixed(2)}%' : '--',
+      'change1M': stock.priceChange1MPercent != null ? '${stock.priceChange1MPercent! >= 0 ? '+' : ''}${stock.priceChange1MPercent!.toStringAsFixed(2)}%' : '--',
+      'change3M': stock.priceChange3MPercent != null ? '${stock.priceChange3MPercent! >= 0 ? '+' : ''}${stock.priceChange3MPercent!.toStringAsFixed(2)}%' : '--',
+      'change6M': stock.priceChange6MPercent != null ? '${stock.priceChange6MPercent! >= 0 ? '+' : ''}${stock.priceChange6MPercent!.toStringAsFixed(2)}%' : '--',
+      'change1Y': stock.priceChange1YPercent != null ? '${stock.priceChange1YPercent! >= 0 ? '+' : ''}${stock.priceChange1YPercent!.toStringAsFixed(2)}%' : '--',
+      'change3Y': stock.priceChange3YPercent != null ? '${stock.priceChange3YPercent! >= 0 ? '+' : ''}${stock.priceChange3YPercent!.toStringAsFixed(2)}%' : '--',
+      'change5Y': stock.priceChange5YPercent != null ? '${stock.priceChange5YPercent! >= 0 ? '+' : ''}${stock.priceChange5YPercent!.toStringAsFixed(2)}%' : '--',
+      
+      // Technical fields
+      'high52W': stock.d52WeekHigh != null ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}' : '--',
+      'low52W': stock.d52WeekLow != null ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}' : '--',
+      'avgVolume10D': stock.avgVolume10days != null ? getShortenedT(stock.avgVolume10days!) : '--',
+      'avgVolume30D': stock.avgVolume30days != null ? getShortenedT(stock.avgVolume30days!) : '--',
+      'priceProximityToHigh': stock.priceProximityToHigh != null ? '${stock.priceProximityToHigh!.toStringAsFixed(2)}%' : '--',
+      'marketCapChange3Y': stock.marketCapChange3y != null ? '${stock.marketCapChange3y! >= 0 ? '+' : ''}${stock.marketCapChange3y!.toStringAsFixed(2)}%' : '--',
+      'previousClose': stock.previousClose != null ? '\$${stock.previousClose!.toStringAsFixed(2)}' : '--',
+      
+      // Growth fields
+      'revenueGrowth3Y': stock.revenueGrowth3Y != null ? '${stock.revenueGrowth3Y! >= 0 ? '+' : ''}${stock.revenueGrowth3Y!.toStringAsFixed(2)}%' : '--',
+      'revenueGrowth5Y': stock.revenueGrowth5Y != null ? '${stock.revenueGrowth5Y! >= 0 ? '+' : ''}${stock.revenueGrowth5Y!.toStringAsFixed(2)}%' : '--',
+      'epsGrowth3Y': stock.epsGrowth3Y != null ? '${stock.epsGrowth3Y! >= 0 ? '+' : ''}${stock.epsGrowth3Y!.toStringAsFixed(2)}%' : '--',
+      'epsGrowth5Y': stock.epsGrowth5Y != null ? '${stock.epsGrowth5Y! >= 0 ? '+' : ''}${stock.epsGrowth5Y!.toStringAsFixed(2)}%' : '--',
+      'revenueGrowthQuarterlyYoY': stock.revenueGrowthQuarterlyYoy != null ? '${stock.revenueGrowthQuarterlyYoy! >= 0 ? '+' : ''}${stock.revenueGrowthQuarterlyYoy!.toStringAsFixed(2)}%' : '--',
+      'revenueGrowthTTMYoY': stock.revenueGrowthTTMYoy != null ? '${stock.revenueGrowthTTMYoy! >= 0 ? '+' : ''}${stock.revenueGrowthTTMYoy!.toStringAsFixed(2)}%' : '--',
+      'epsGrowthQuarterlyYoY': stock.epsGrowthQuarterlyYoy != null ? '${stock.epsGrowthQuarterlyYoy! >= 0 ? '+' : ''}${stock.epsGrowthQuarterlyYoy!.toStringAsFixed(2)}%' : '--',
+      'epsGrowthTTMYoY': stock.epsGrowthTTMYoy != null ? '${stock.epsGrowthTTMYoy! >= 0 ? '+' : ''}${stock.epsGrowthTTMYoy!.toStringAsFixed(2)}%' : '--',
+    };
   }
   
   // Removed _scrollToResults() - no longer needed
