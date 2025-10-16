@@ -117,12 +117,10 @@ class FilterController extends GetxController {
       // Default sort if not provided
       String sortQuery = sortBy ?? 'usdMarketCap:desc';
       
-      print('Filter selected: $filters');
-      print('Query passed: $filterQuery');
       
       var params = {
         "q": "*",
-        "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume,beta,peTTM,pbAnnual,psTTM,currentDividendYieldTTM,avgVolume10days,avgVolume30days,52WeekHigh,52WeekLow,change1D,sharia_compliance,marketCapClassification,exchange",
+        "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume,beta,peTTM,pbAnnual,psTTM,currentDividendYieldTTM,avgVolume10days,avgVolume30days,52WeekHigh,52WeekLow,change1D,sharia_compliance,marketCapClassification,exchange,sharesOutStanding,enterpriseValue,analyst_recommendation_weighted_avg,epsTTM,revenue_annual,net_income_annual,ROE,roaTTM,totalDebt_totalEquityAnnual,currentRatioAnnual,quickRatioAnnual,assetTurnoverAnnual,inventoryTurnoverAnnual,receivablesTurnoverTTM,payoutRatioTTM,price_tangiblebook_value_annual,marketCap_change_3y,previous_close,open,high,low,close,revenueGrowth1Y,revenueGrowth3Y,revenueGrowth5Y,epsGrowth3Y,epsGrowth5Y,epsGrowthQuarterlyYoy,epsGrowthTTMYoy,revenueGrowthQuarterlyYoy,revenueGrowthTTMYoy,revenueShareGrowth5Y,roe5Y,roa5Y,epsGrowth1y,revenuePerShareAnnual,peAnnual,psAnnual,ev_ebit,ev_fcf,bookValuePerShareAnnual,pfcfShareTTM,pcfShareTTM,ptbvAnnual,grossMarginAnnual,operatingMarginAnnual,netProfitMarginAnnual,priceChange1WPercent,priceChange1MPercent,priceChange3MPercent,priceChange6MPercent,priceChange1YPercent,priceChange3YPercent,priceChange5YPercent,priceChangeYTDPercent,epsAnnual,dividendPerShareAnnual,cashFlowPerShareAnnual,priceProximityToHigh",
         "filter_by": filterQuery,
         "sort_by": sortQuery,
         "page": "$page",
@@ -153,6 +151,7 @@ class FilterController extends GetxController {
           
           if (document != null && document['ticker'] != null) {
             try {
+              
               // Create StocksData object from document
               StocksData stock = StocksData.fromJson(document);
               stocks.add(stock);

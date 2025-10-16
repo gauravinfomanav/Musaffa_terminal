@@ -591,18 +591,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         children: [
           Row(
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Results',
-                    style: DashboardTextStyles.tickerSymbol.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                    ),
-                  ),
-                  if (_getTotalAppliedFiltersCount() > 0) ...[
-                    const SizedBox(width: 8),
+              if (_getTotalAppliedFiltersCount() > 0) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -614,7 +603,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                         ),
                       ),
                       child: Text(
-                        '${_getTotalAppliedFiltersCount()} filters',
+                    '${_getTotalAppliedFiltersCount()} filters',
                         style: DashboardTextStyles.tickerSymbol.copyWith(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
@@ -622,10 +611,10 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                         ),
                       ),
                     ),
-                  ],
+                const Spacer(),
+              ] else ...[
+                const Spacer(),
                 ],
-              ),
-              const Spacer(),
               _buildResultsTabs(isDarkMode),
             ],
           ),
@@ -862,6 +851,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   }
   
   Map<String, String> _getFieldsForStock(dynamic stock) {
+    
     return {
       // Basic fields (removed ticker as requested)
       'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
@@ -874,7 +864,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
       'peTTM': stock.peTTM != null ? stock.peTTM!.toStringAsFixed(2) : '--',
       'dividendYield': stock.currentDividendYieldTTM != null ? '${stock.currentDividendYieldTTM!.toStringAsFixed(2)}%' : '--',
-      'sharesOutstanding': stock.sharesOutStanding != null ? getShortenedT(stock.sharesOutStanding!) : '--',
+      'sharesOutstanding': stock.sharesOutStanding != null ? getShortenedT(stock.sharesOutStanding! * 1000000) : '--',
       'enterpriseValue': stock.enterpriseValue != null ? getShortenedT(stock.enterpriseValue!) : '--',
       'recommendation': stock.analystRecommendationWeightedAvg ?? '--',
       'epsTTM': stock.epsTTM != null ? stock.epsTTM!.toStringAsFixed(2) : '--',
