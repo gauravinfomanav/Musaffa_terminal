@@ -447,6 +447,45 @@ class FilterController extends GetxController {
       }
     }
     
+    
+    if (filters.containsKey('sharesOutstanding') && filters['sharesOutstanding'] != null && filters['sharesOutstanding'] != "any") {
+      String sharesValue = filters['sharesOutstanding'].toString();
+      
+      switch (sharesValue) {
+        case 'under_10m':
+          filterParts.add('sharesOutStanding:<10');
+          break;
+        case '10m_50m':
+          filterParts.add('sharesOutStanding:>=10&&sharesOutStanding:<=50');
+          break;
+        case '50m_100m':
+          filterParts.add('sharesOutStanding:>=50&&sharesOutStanding:<=100');
+          break;
+        case '100m_500m':
+          filterParts.add('sharesOutStanding:>=100&&sharesOutStanding:<=500');
+          break;
+        case '500m_1b':
+          filterParts.add('sharesOutStanding:>=500&&sharesOutStanding:<=1000');
+          break;
+        case 'over_1b':
+          filterParts.add('sharesOutStanding:>1000');
+          break;
+        default:
+          // Try to parse as direct value
+          if (sharesValue.contains('_')) {
+            var parts = sharesValue.split('_');
+            if (parts.length == 2) {
+              var min = parts[0].replaceAll(RegExp(r'[^\d]'), '');
+              var max = parts[1].replaceAll(RegExp(r'[^\d]'), '');
+              if (min.isNotEmpty && max.isNotEmpty) {
+                filterParts.add('sharesOutStanding:>=$min&&sharesOutStanding:<=$max');
+              }
+            }
+          }
+          break;
+      }
+    }
+    
     // Avg Volume 10 Days filter (from UI - handle ranges like "over_5m")
     if (filters.containsKey('volume10Days') && filters['volume10Days'] != null && filters['volume10Days'] != "any") {
       String volumeValue = filters['volume10Days'].toString();
@@ -2214,6 +2253,57 @@ class FilterController extends GetxController {
     
     // If no direct mapping found, return the original sector
     return [uiSector];
+  }
+
+  /// Fetch all filtered stocks across all pages (for watchlist addition)
+  Future<List<dynamic>> fetchAllFilteredStocks(Map<String, dynamic> filters) async {
+    try {
+      final filterQuery = _buildFilterQuery(filters);
+      
+      final allStocks = <StocksData>[];
+      int page = 1;
+      bool hasMorePages = true;
+      
+      while (hasMorePages) {
+        final params = {
+          'q': '*',
+          'page': page.toString(),
+          'per_page': '250', // Use the maximum allowed per page
+          'filter_by': filterQuery,
+          'sort_by': 'usdMarketCap:desc',
+          "include_fields": "id,ticker,country,sector,usdMarketCap,currentPrice,priceChange1DPercent,currency,company_symbol,industry,volume,beta,peTTM,pbAnnual,psTTM,currentDividendYieldTTM,avgVolume10days,avgVolume30days,52WeekHigh,52WeekLow,change1D,sharia_compliance,marketCapClassification,exchange,sharesOutStanding,enterpriseValue,analyst_recommendation_weighted_avg,epsTTM,revenue_annual,net_income_annual,ROE,roaTTM,totalDebt_totalEquityAnnual,currentRatioAnnual,quickRatioAnnual,assetTurnoverAnnual,inventoryTurnoverAnnual,receivablesTurnoverTTM,payoutRatioTTM,price_tangiblebook_value_annual,marketCap_change_3y,previous_close,open,high,low,close,revenueGrowth1Y,revenueGrowth3Y,revenueGrowth5Y,epsGrowth3Y,epsGrowth5Y,epsGrowthQuarterlyYoy,epsGrowthTTMYoy,revenueGrowthQuarterlyYoy,revenueGrowthTTMYoy,revenueShareGrowth5Y,roe5Y,roa5Y,epsGrowth1y,revenuePerShareAnnual,peAnnual,psAnnual,ev_ebit,ev_fcf,bookValuePerShareAnnual,pfcfShareTTM,pcfShareTTM,ptbvAnnual,grossMarginAnnual,operatingMarginAnnual,netProfitMarginAnnual,priceChange1WPercent,priceChange1MPercent,priceChange3MPercent,priceChange6MPercent,priceChange1YPercent,priceChange3YPercent,priceChange5YPercent,priceChangeYTDPercent,epsAnnual,dividendPerShareAnnual,cashFlowPerShareAnnual,priceProximityToHigh",
+        };
+
+        final response = await WebService.getTypesense(['collections', 'stocks_data', 'documents', 'search'], params);
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final hits = data['hits'] as List<dynamic>? ?? [];
+          final found = data['found'] as int? ?? 0;
+          
+          // Convert to StocksData objects
+          final pageStocks = hits.map((hit) {
+            final document = hit['document'] as Map<String, dynamic>?;
+            if (document != null) {
+              return StocksData.fromJson(document);
+            }
+            return null;
+          }).where((stock) => stock != null).cast<StocksData>().toList();
+          
+          allStocks.addAll(pageStocks);
+          
+          // Check if there are more pages
+          hasMorePages = allStocks.length < found && hits.length == 250;
+          page++;
+        } else {
+          hasMorePages = false;
+        }
+      }
+      
+      return allStocks;
+    } catch (e) {
+      return [];
+    }
   }
 }
 

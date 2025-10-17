@@ -171,11 +171,6 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     return _filterValues.values.where((v) => v != null && v != "any").length;
   }
 
-  int _getResultsCount() {
-    // Return actual results count from controller
-    return filterController.totalFound;
-  }
-
   bool _isFilterApplied(String filterId) {
     final value = _filterValues[filterId];
     return value != null && value != "any";
@@ -569,6 +564,10 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         children: [
           Row(
             children: [
+              // Add to Watchlist Button
+              _buildAddToWatchlistButton(isDarkMode),
+              const SizedBox(width: 12),
+              
               if (_getTotalAppliedFiltersCount() > 0) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -588,8 +587,8 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                           color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                         ),
                       ),
-                    ),
-                const Spacer(),
+              ),
+              const Spacer(),
               ] else ...[
                 const Spacer(),
                 ],
@@ -661,7 +660,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       // Build table with pagination
     return Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
+      children: [
           // DynamicTable - no fixed height, takes natural height
           DynamicTable(
             columns: _getColumnsForSelectedTab(),
@@ -722,21 +721,21 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
+          decoration: BoxDecoration(
                       color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(4),
                       border: Border.all(
                         color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
                         width: 1,
-                      ),
+          ),
                     ),
                 child: Text(
                       'Previous',
                       style: DashboardTextStyles.dataCell.copyWith(
                         fontSize: 12,
                     color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      ),
-                    ),
+                  ),
+                ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -916,6 +915,278 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       'revenueGrowth1Y': stock.revenueGrowth1Y != null ? '${stock.revenueGrowth1Y! >= 0 ? '+' : ''}${stock.revenueGrowth1Y!.toStringAsFixed(2)}%' : '--',
       'revenuePerShare': stock.revenuePerShareAnnual != null ? '\$${stock.revenuePerShareAnnual!.toStringAsFixed(2)}' : '--',
     };
+  }
+  
+  Widget _buildAddToWatchlistButton(bool isDarkMode) {
+    return Obx(() {
+      final stocks = filterController.stocks;
+      final hasStocks = stocks.isNotEmpty;
+      
+      return ElevatedButton.icon(
+          onPressed: hasStocks ? _showAddToWatchlistDialog : null,
+          icon: Icon(
+            Icons.add,
+            size: 16,
+            color: hasStocks 
+                ? (isDarkMode ? Colors.white : Colors.black87)
+                : (isDarkMode ? Colors.grey[600] : Colors.grey[400]),
+          ),
+          label: Text(
+            'Add to Watchlist',
+            style: DashboardTextStyles.tickerSymbol.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: hasStocks 
+                  ? (isDarkMode ? Colors.white : Colors.black87)
+                  : (isDarkMode ? Colors.grey[600] : Colors.grey[400]),
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: hasStocks 
+                ? (isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5))
+                : (isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0)),
+            foregroundColor: hasStocks 
+                ? (isDarkMode ? Colors.white : Colors.black87)
+                : (isDarkMode ? Colors.grey[600] : Colors.grey[400]),
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+              side: BorderSide(
+                color: hasStocks 
+                    ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0))
+                    : (isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0)),
+                width: 0.5,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            minimumSize: const Size(0, 32),
+          ),
+      );
+    });
+  }
+  
+  void _showAddToWatchlistDialog() {
+    final stocks = filterController.stocks;
+    
+    if (stocks.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String watchlistName = '';
+        
+        return AlertDialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark 
+              ? const Color(0xFF1A1A1A) 
+              : const Color(0xFFF8F9FA),
+          title: Text(
+            'Add to Watchlist',
+            style: DashboardTextStyles.headerTitle.copyWith(
+              fontSize: 18,
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.white 
+                  : Colors.black87,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Add all filtered stocks to a new watchlist',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.grey[300] 
+                      : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                onChanged: (value) => watchlistName = value,
+                decoration: InputDecoration(
+                  labelText: 'Watchlist Name',
+                  labelStyle: DashboardTextStyles.tickerSymbol.copyWith(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[400] 
+                        : Colors.grey[600],
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? const Color(0xFF404040) 
+                          : const Color(0xFFD0D0D0),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? const Color(0xFF404040) 
+                          : const Color(0xFFD0D0D0),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.blue[400]! 
+                          : Colors.blue[600]!,
+                    ),
+                  ),
+                ),
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
+                      : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.grey[400] 
+                      : Colors.grey[600],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (watchlistName.trim().isNotEmpty) {
+                  _addStocksToNewWatchlist(watchlistName.trim(), stocks);
+                  Navigator.of(context).pop();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                    ? const Color(0xFF2A2A2A) 
+                    : const Color(0xFFE5E5E5),
+                foregroundColor: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.white 
+                    : Colors.black87,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              child: Text(
+                'Add',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ),
+      ],
+        );
+      },
+    );
+  }
+  
+  Future<void> _addStocksToNewWatchlist(String watchlistName, List<dynamic> stocks) async {
+    final watchlistController = Get.find<WatchlistController>();
+    
+    try {
+      // Get ALL filtered stocks, not just the current page
+      final allFilteredStocks = await _getAllFilteredStocks();
+      
+      // If no stocks found from all pages, use current page stocks as fallback
+      final stocksToUse = allFilteredStocks.isNotEmpty ? allFilteredStocks : stocks;
+      
+      // Convert stocks to the format expected by the watchlist API
+      final stockTickers = stocksToUse.map((stock) => stock.ticker).where((ticker) => ticker != null).cast<String>().toList();
+      
+      // Create watchlist and add stocks
+      final success = await watchlistController.addStocksToNewWatchlist(watchlistName, stockTickers);
+      
+      if (success) {
+        // Show success message using proper snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Added ${stockTickers.length} stocks to "$watchlistName"',
+              style: DashboardTextStyles.tickerSymbol.copyWith(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                ? const Color(0xFF374151) 
+                : const Color(0xFF6B7280),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        );
+      } else {
+        // Show error message using proper snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to create watchlist or add stocks',
+              style: DashboardTextStyles.tickerSymbol.copyWith(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+            backgroundColor: Colors.red[600],
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message using proper snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'An error occurred: $e',
+            style: DashboardTextStyles.tickerSymbol.copyWith(
+              color: Colors.white,
+              fontSize: 12,
+            ),
+          ),
+          backgroundColor: Colors.red[600],
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+      );
+    }
+  }
+  
+  /// Get all filtered stocks across all pages, not just the current page
+  Future<List<dynamic>> _getAllFilteredStocks() async {
+    try {
+      // Build the same filter query that's currently being used
+      final filters = <String, dynamic>{};
+      
+      // Get all applied filters from the UI
+      for (String filterId in _filterValues.keys) {
+        final value = _filterValues[filterId];
+        if (value != null && value != "any") {
+          filters[filterId] = value;
+        }
+      }
+      
+      // Use the filter controller to fetch all stocks with the same filters
+      // but with a large per_page to get all results
+      final allStocks = await filterController.fetchAllFilteredStocks(filters);
+      return allStocks;
+    } catch (e) {
+      // Fallback to current page stocks if error occurs
+      return filterController.stocks;
+    }
   }
   
   // Removed _scrollToResults() - no longer needed

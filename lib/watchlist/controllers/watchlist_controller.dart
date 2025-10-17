@@ -345,4 +345,88 @@ class WatchlistController extends GetxController {
       isLoadingStocks.value = false;
     }
   }
+
+  /// Create a new watchlist and add stocks to it
+  Future<bool> addStocksToNewWatchlist(String watchlistName, List<String> stockTickers) async {
+    try {
+      // First create the watchlist
+      final watchlistCreated = await createWatchlist(watchlistName);
+      
+      if (!watchlistCreated) {
+        return false;
+      }
+
+      // Fetch real-time prices for the stocks
+      final stocksWithPrices = await _fetchRealTimePricesForStocks(stockTickers);
+
+      // Add stocks to the newly created watchlist
+      final stocksAdded = await addStocksToWatchlist(stocksWithPrices);
+      
+      return stocksAdded;
+    } catch (e) {
+      errorMessage.value = 'Error creating watchlist with stocks: $e';
+      return false;
+    }
+  }
+
+  /// Fetch real-time prices for stocks from Typesense
+  Future<List<Map<String, dynamic>>> _fetchRealTimePricesForStocks(List<String> stockTickers) async {
+    final stocksToAdd = <Map<String, dynamic>>[];
+    
+    try {
+      // Process stocks in batches of 250 (Typesense limit)
+      final batchSize = 250;
+      final priceMap = <String, double>{};
+      
+      for (int i = 0; i < stockTickers.length; i += batchSize) {
+        final batch = stockTickers.skip(i).take(batchSize).toList();
+        
+        final params = {
+          'q': '*',
+          'filter_by': 'id:=[${batch.map((id) => '`$id`').join(',')}]',
+          'include_fields': r'$stocks_data(id,currentPrice)',
+          'per_page': '250'
+        };
+        
+        final response = await WebService.getTypesense(['collections', 'stocks_data', 'documents', 'search'], params);
+        
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final hits = data['hits'] as List<dynamic>? ?? [];
+          
+          // Create a map of ticker -> current price
+          for (final hit in hits) {
+            final document = hit['document'] as Map<String, dynamic>?;
+            if (document != null) {
+              final ticker = document['id']?.toString() ?? '';
+              final price = document['currentPrice']?.toDouble() ?? 0.0;
+              if (price > 0) { // Only add if price is valid
+                priceMap[ticker] = price;
+              }
+            }
+          }
+        }
+      }
+      
+      // Build stocks data with real-time prices
+      for (String selectedTicker in stockTickers) {
+        final currentPrice = priceMap[selectedTicker] ?? 0.0; // Use 0.0 if no price found
+        stocksToAdd.add({
+          'ticker': selectedTicker,
+          'current_price': currentPrice,
+        });
+      }
+      
+    } catch (e) {
+      // Fallback: use 0.0 as price if error occurs
+      for (String selectedTicker in stockTickers) {
+        stocksToAdd.add({
+          'ticker': selectedTicker,
+          'current_price': 0.0,
+        });
+      }
+    }
+    
+    return stocksToAdd;
+  }
 }
