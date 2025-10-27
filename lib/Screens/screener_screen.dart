@@ -159,7 +159,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       }
     });
     
-    // Fetch stocks with filters
+    // Always fetch stocks - FilterController handles default filters when none are applied
     filterController.fetchStocks(filters: filters);
     
     setState(() {
@@ -473,10 +473,14 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       config: filterConfig,
                       selectedValue: _filterValues[filterConfig.id],
                       onChanged: (value) {
+                        // Only apply filters if the value actually changed
+                        final currentValue = _filterValues[filterConfig.id];
+                        if (currentValue != value) {
                         setState(() {
                           _filterValues[filterConfig.id] = value;
                         });
                         _applyFilters();
+                        }
                       },
                       isDarkMode: isDarkMode,
                       isApplied: _isFilterApplied(filterConfig.id),

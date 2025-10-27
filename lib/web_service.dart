@@ -174,4 +174,39 @@ class WebService {
       body: {'watchlist_id': watchlistId},
     );
   }
+
+  /// Get historical prices for backtesting
+  static Future<http.Response> getHistoricalPrices({
+    required List<String> symbols,
+    required String date,
+  }) async {
+    print('🌐 WebService: Making historical prices API call');
+    print('🌐 URL: https://risepython.infomanav.in/8009/latest_stock_candles/');
+    print('🌐 Symbols: $symbols');
+    print('🌐 Date: $date');
+    
+    final headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    final body = jsonEncode({
+      'company_symbols': symbols,
+      'date': date,
+    });
+    
+    print('🌐 Request body: $body');
+    
+    final uri = Uri.parse('https://risepython.infomanav.in/8009/latest_stock_candles/');
+    
+    try {
+      print('🌐 Making HTTP POST request...');
+      final response = await http.post(uri, headers: headers, body: body);
+      print('🌐 Response status: ${response.statusCode}');
+      print('🌐 Response body: ${response.body}');
+      return response;
+    } catch (e) {
+      print('🌐 HTTP Error: $e');
+      return http.Response(jsonEncode({'error': e.toString()}), 500);
+    }
+  }
 }

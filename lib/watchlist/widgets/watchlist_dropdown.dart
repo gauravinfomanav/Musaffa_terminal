@@ -9,6 +9,7 @@ import 'package:musaffa_terminal/watchlist/widgets/watchlist_stocks_table.dart';
 import 'package:musaffa_terminal/watchlist/widgets/add_stocks_modal.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_news_widget.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_performance_summary.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_backtest_widget.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 
 class WatchlistDropdown extends StatefulWidget {
@@ -643,6 +644,23 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
                 isDarkMode: isDarkMode,
               ),
             ),
+          
+          // Backtest section
+          Container(
+            margin: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                width: 1,
+              ),
+            ),
+            child: WatchlistBacktestWidget(
+              watchlistStocks: controller.watchlistStocks.map((stock) => stock.ticker).toList(),
+            ),
+          ),
           
           // News section
           Container(
