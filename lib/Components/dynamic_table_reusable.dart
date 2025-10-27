@@ -552,55 +552,64 @@ class _DynamicTableState extends State<DynamicTable> {
       // Dynamic column cells
       if (widget.columns.isNotEmpty) {
         widget.columns.forEach((column) {
-          String cellData = rowModel.fields[column.fieldName]?.toString() ?? "-";
+          final fieldValue = rowModel.fields[column.fieldName];
           
+          DataCell cell;
           
-          Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-          
-          // Apply special styling for change column, price column, currentPrice column, and gainLoss column
-          if ((column.fieldName == 'change' || column.fieldName == 'price' || 
-               column.fieldName == 'currentPrice' || column.fieldName == 'gainLoss') && 
-              rowModel.changeColor != null) {
-            textColor = rowModel.changeColor!;
-          }
-          
-          // Determine if we should show +/- prefix for change/gainLoss columns and apply color coding
-          String displayValue = cellData;
-          
-          // Check if this is a percentage or change field that should have color coding
-          bool isPercentageField = column.fieldName.contains('change') || 
-                                  column.fieldName.contains('Growth') || 
-                                  column.fieldName.contains('Yield') ||
-                                  column.fieldName.contains('Margin') ||
-                                  column.fieldName.contains('YTD') ||
-                                  column.fieldName.contains('marketCapChange') ||
-                                  column.fieldName == 'change' || 
-                                  column.fieldName == 'gainLoss';
-          
-          if (isPercentageField) {
-            // Parse the numeric value to determine sign
-            final numValue = double.tryParse(cellData.replaceAll(RegExp(r'[^\d.-]'), ''));
-            if (numValue != null) {
-              if (numValue > 0 && !cellData.startsWith('+')) {
-                displayValue = '+$cellData';
-              } else if (numValue == 0 && !cellData.startsWith('+') && !cellData.startsWith('-')) {
-                displayValue = '+$cellData';
-              }
-              // Update color based on actual value
-              if (numValue >= 0) {
-                textColor = Colors.green.shade600;
-              } else {
-                textColor = Colors.red.shade600;
+          // Check if the field value is a Widget (like TargetPriceCell)
+          if (fieldValue is Widget) {
+            cell = DataCell(fieldValue);
+          } else {
+            String cellData = fieldValue?.toString() ?? "-";
+            
+            Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+            
+            // Apply special styling for change column, price column, currentPrice column, and gainLoss column
+            if ((column.fieldName == 'change' || column.fieldName == 'price' || 
+                 column.fieldName == 'currentPrice' || column.fieldName == 'gainLoss') && 
+                rowModel.changeColor != null) {
+              textColor = rowModel.changeColor!;
+            }
+            
+            // Determine if we should show +/- prefix for change/gainLoss columns and apply color coding
+            String displayValue = cellData;
+            
+            // Check if this is a percentage or change field that should have color coding
+            bool isPercentageField = column.fieldName.contains('change') || 
+                                    column.fieldName.contains('Growth') || 
+                                    column.fieldName.contains('Yield') ||
+                                    column.fieldName.contains('Margin') ||
+                                    column.fieldName.contains('YTD') ||
+                                    column.fieldName.contains('marketCapChange') ||
+                                    column.fieldName == 'change' || 
+                                    column.fieldName == 'gainLoss';
+            
+            if (isPercentageField) {
+              // Parse the numeric value to determine sign
+              final numValue = double.tryParse(cellData.replaceAll(RegExp(r'[^\d.-]'), ''));
+              if (numValue != null) {
+                if (numValue > 0 && !cellData.startsWith('+')) {
+                  displayValue = '+$cellData';
+                } else if (numValue == 0 && !cellData.startsWith('+') && !cellData.startsWith('-')) {
+                  displayValue = '+$cellData';
+                }
+                // Update color based on actual value
+                if (numValue >= 0) {
+                  textColor = Colors.green.shade600;
+                } else {
+                  textColor = Colors.red.shade600;
+                }
               }
             }
+            
+            cell = DataCell(
+              Text(
+                displayValue,
+                style: DashboardTextStyles.dataCell.copyWith(color: textColor),
+              ),
+            );
           }
           
-          DataCell cell = DataCell(
-            Text(
-              displayValue,
-              style: DashboardTextStyles.dataCell.copyWith(color: textColor),
-            ),
-          );
           cellArr.add(cell);
         });
         dataRowLst.add(DataRow(cells: cellArr));

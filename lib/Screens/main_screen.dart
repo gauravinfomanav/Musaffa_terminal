@@ -221,9 +221,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   double _calculateResponsiveSidebarWidth(double screenWidth) {
-    if (screenWidth < 800) return screenWidth * 0.5;
-    if (screenWidth < 1200) return screenWidth * 0.4;
-    return screenWidth * 0.35;
+    if (screenWidth < 800) return screenWidth * 0.7;    // 60% of screen
+    if (screenWidth < 1200) return screenWidth * 0.8;  // 50% of screen  
+    return screenWidth * 0.55;                          // 45% of screen
   }
 
   Widget _buildWatchlistSidebar(BoxConstraints constraints) {
@@ -234,7 +234,7 @@ class _MainScreenState extends State<MainScreen> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      width: sidebarWidth.clamp(320.0, 600.0),
+      width: sidebarWidth.clamp(320.0, 1200.0),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         border: Border(

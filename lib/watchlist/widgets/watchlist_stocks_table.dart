@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_stock_model.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
+import 'package:musaffa_terminal/watchlist/widgets/target_price_cell.dart';
+import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'dart:convert';
 
 class WatchlistStocksTable extends StatefulWidget {
@@ -166,6 +169,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
                 'addedPrice': addedPrice,
                 'currentPrice': '\$${currentPrice.toStringAsFixed(2)}',
                 'gainLoss': formattedGainLoss,
+                'targetPrice': _buildTargetPriceWidget(watchlistStock.ticker),
                 'marketCap': marketCapFormatted,
                 'volume': volume,
               },
@@ -369,6 +373,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       SimpleColumn(label: 'ADDED', fieldName: 'addedPrice', isNumeric: true, width: 75),
       SimpleColumn(label: 'CURRENT', fieldName: 'currentPrice', isNumeric: true, width: 75),
       SimpleColumn(label: 'GAIN/LOSS', fieldName: 'gainLoss', isNumeric: true, width: 85),
+      SimpleColumn(label: 'TARGET', fieldName: 'targetPrice', isNumeric: false, width: 80),
       SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 85),
       SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true, width: 85),
     ];
@@ -388,6 +393,12 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         fixedColumnWidth: 1.5, // Flex value for fixed column (smaller = less space)
         enableLivePrices: true,
       ),
+    );
+  }
+
+  Widget _buildTargetPriceWidget(String ticker) {
+    return TargetPriceCell(
+      ticker: ticker,
     );
   }
 

@@ -209,4 +209,57 @@ class WebService {
       return http.Response(jsonEncode({'error': e.toString()}), 500);
     }
   }
+
+  // Target Price API methods
+  static Future<ApiResponse> getTargetPrices(String watchlistId) async {
+    return await callApi(
+      method: HttpMethod.GET,
+      path: ['targets', 'watchlist', watchlistId],
+    );
+  }
+
+  static Future<ApiResponse> createTargetPrice({
+    required String ticker,
+    required double targetPrice,
+    required String alertType,
+    required String watchlistId,
+    bool isActive = true,
+  }) async {
+    return await callApi(
+      method: HttpMethod.POST,
+      path: ['targets'],
+      body: {
+        'ticker': ticker,
+        'target_price': targetPrice,
+        'alert_type': alertType,
+        'watchlist_id': watchlistId,
+        'is_active': isActive,
+      },
+    );
+  }
+
+  static Future<ApiResponse> updateTargetPrice({
+    required String targetId,
+    double? targetPrice,
+    String? alertType,
+    bool? isActive,
+  }) async {
+    final body = <String, dynamic>{};
+    if (targetPrice != null) body['target_price'] = targetPrice;
+    if (alertType != null) body['alert_type'] = alertType;
+    if (isActive != null) body['is_active'] = isActive;
+
+    return await callApi(
+      method: HttpMethod.PUT,
+      path: ['targets', targetId],
+      body: body,
+    );
+  }
+
+  static Future<ApiResponse> deleteTargetPrice(String targetId) async {
+    return await callApi(
+      method: HttpMethod.DELETE,
+      path: ['targets', targetId],
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_stock_model.dart';
 import 'package:musaffa_terminal/watchlist/models/user_preferences_model.dart';
+import 'package:musaffa_terminal/watchlist/models/target_price_model.dart';
 
 class WatchlistController extends GetxController {
   // Observable variables
@@ -20,6 +21,11 @@ class WatchlistController extends GetxController {
   final RxList<WatchlistStock> watchlistStocks = <WatchlistStock>[].obs;
   final RxBool isLoadingStocks = false.obs;
   final RxString stocksErrorMessage = ''.obs;
+
+  // Target prices for selected watchlist
+  final RxList<TargetPriceModel> targetPrices = <TargetPriceModel>[].obs;
+  final RxBool isLoadingTargetPrices = false.obs;
+  final RxString targetPricesErrorMessage = ''.obs;
 
   @override
   void onInit() {
@@ -274,6 +280,8 @@ class WatchlistController extends GetxController {
         
         if (stocksResponse.status == 'success') {
           watchlistStocks.value = stocksResponse.data;
+          // Fetch target prices after stocks are loaded
+          await fetchTargetPrices();
         } else {
           stocksErrorMessage.value = 'Failed to fetch stocks';
           watchlistStocks.value = [];
@@ -428,5 +436,102 @@ class WatchlistController extends GetxController {
     }
     
     return stocksToAdd;
+  }
+
+  // Target Price Methods
+  /// Fetch target prices for the selected watchlist
+  Future<void> fetchTargetPrices() async {
+    if (selectedWatchlist.value == null) return;
+
+    try {
+      isLoadingTargetPrices.value = true;
+      targetPricesErrorMessage.value = '';
+
+      final response = await WebService.getTargetPrices(selectedWatchlist.value!.id);
+
+      if (response.status == ApiStatus.SUCCESS) {
+        final responseData = jsonDecode(response.data!);
+        if (responseData['status'] == 'success') {
+          final List<dynamic> targetsData = responseData['data'] ?? [];
+          targetPrices.value = targetsData
+              .map((data) => TargetPriceModel.fromJson(data))
+              .toList();
+        }
+      } else {
+        targetPricesErrorMessage.value = 'Failed to fetch target prices';
+      }
+    } catch (e) {
+      targetPricesErrorMessage.value = 'Error fetching target prices: $e';
+    } finally {
+      isLoadingTargetPrices.value = false;
+    }
+  }
+
+  /// Get target price for a specific ticker
+  TargetPriceModel? getTargetPriceForTicker(String ticker) {
+    try {
+      return targetPrices.firstWhere((target) => target.ticker == ticker);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Create a new target price
+  Future<void> createTargetPrice(String ticker, double targetPrice, String alertType) async {
+    if (selectedWatchlist.value == null) return;
+
+    try {
+      final response = await WebService.createTargetPrice(
+        ticker: ticker,
+        targetPrice: targetPrice,
+        alertType: alertType,
+        watchlistId: selectedWatchlist.value!.id,
+      );
+
+      if (response.status == ApiStatus.SUCCESS) {
+        // Refresh target prices
+        await fetchTargetPrices();
+      } else {
+        throw Exception('Failed to set target price');
+      }
+    } catch (e) {
+      throw Exception('Error setting target price: $e');
+    }
+  }
+
+  /// Update an existing target price
+  Future<void> updateTargetPrice(String targetId, double targetPrice, String alertType) async {
+    try {
+      final response = await WebService.updateTargetPrice(
+        targetId: targetId,
+        targetPrice: targetPrice,
+        alertType: alertType,
+      );
+
+      if (response.status == ApiStatus.SUCCESS) {
+        // Refresh target prices
+        await fetchTargetPrices();
+      } else {
+        throw Exception('Failed to update target price');
+      }
+    } catch (e) {
+      throw Exception('Error updating target price: $e');
+    }
+  }
+
+  /// Delete a target price
+  Future<void> deleteTargetPrice(String targetId) async {
+    try {
+      final response = await WebService.deleteTargetPrice(targetId);
+
+      if (response.status == ApiStatus.SUCCESS) {
+        // Refresh target prices
+        await fetchTargetPrices();
+      } else {
+        throw Exception('Failed to delete target price');
+      }
+    } catch (e) {
+      throw Exception('Error deleting target price: $e');
+    }
   }
 }
