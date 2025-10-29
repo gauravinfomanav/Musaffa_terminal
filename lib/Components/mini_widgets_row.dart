@@ -4,8 +4,29 @@ import 'shimmer.dart';
 import 'dart:convert';
 import 'dart:async';
 
+/// Widget height constants for market indices mini widgets
+class MiniWidgetsRowConstants {
+  /// Default height for mini widgets row
+  static const double defaultHeight = 180.0;
+  
+  /// Minimum height for responsive sizing
+  static const double minHeight = 120.0;
+  
+  /// Maximum height for responsive sizing
+  static const double maxHeight = 250.0;
+  
+  /// Gap between individual widgets
+  static const double widgetGap = 8.0;
+}
+
 class MiniWidgetsRow extends StatefulWidget {
-  const MiniWidgetsRow({super.key});
+  /// Height of the widget. If null, uses responsive height based on screen size.
+  final double? height;
+  
+  const MiniWidgetsRow({
+    super.key,
+    this.height,
+  });
 
   @override
   State<MiniWidgetsRow> createState() => _MiniWidgetsRowState();
@@ -393,6 +414,27 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     super.dispose();
   }
 
+  /// Calculates responsive height based on screen size if height is not provided
+  double _calculateHeight(BuildContext context) {
+    if (widget.height != null) {
+      return widget.height!.clamp(
+        MiniWidgetsRowConstants.minHeight,
+        MiniWidgetsRowConstants.maxHeight,
+      );
+    }
+    
+    // Responsive height based on screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (screenWidth < 800) {
+      return MiniWidgetsRowConstants.minHeight; // Smaller screens
+    } else if (screenWidth < 1400) {
+      return MiniWidgetsRowConstants.defaultHeight; // Medium screens
+    } else {
+      return 200.0; // Large screens - slightly taller
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
@@ -400,13 +442,14 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDarkMode ? const Color(0xFF404040) : Colors.white;
     final backgroundColor = isDarkMode ? const Color(0xFF2D2D2D) : Colors.white;
+    final widgetHeight = _calculateHeight(context);
     
     return RepaintBoundary(
       child: Stack(
         children: [
           // Main container with WebView
           Container(
-            height: 180,
+            height: widgetHeight,
             decoration: BoxDecoration(
               color: backgroundColor,
             ),
@@ -415,10 +458,12 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 ? Row(
                     children: List.generate(4, (index) => Expanded(
                       child: Container(
-                        margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
+                        margin: EdgeInsets.only(
+                          right: index < 3 ? MiniWidgetsRowConstants.widgetGap : 0,
+                        ),
                         child: ShimmerWidgets.box(
                           width: double.infinity,
-                          height: 180,
+                          height: widgetHeight,
                           baseColor: Theme.of(context).brightness == Brightness.dark
                               ? Colors.grey[800]!
                               : Colors.grey[300]!,
