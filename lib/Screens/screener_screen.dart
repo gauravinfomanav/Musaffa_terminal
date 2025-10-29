@@ -580,9 +580,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         children: [
           Row(
             children: [
-              // Add to Watchlist Button
-              _buildAddToWatchlistButton(isDarkMode),
-              const SizedBox(width: 12),
+              
               
               if (_getTotalAppliedFiltersCount() > 0) ...[
                     Container(

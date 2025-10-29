@@ -10,6 +10,7 @@ import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
+import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/web_service.dart';
@@ -104,6 +105,9 @@ class HomeTabBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
+          // Stock Screener button
+          _ScreenerButton(isDarkMode: isDarkMode),
+          const SizedBox(width: 8),
           // Watchlist toggle button
           _WatchlistToggleButton(
             isOpen: isWatchlistOpen,
@@ -864,6 +868,108 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
           ),
         );
       },
+    );
+  }
+}
+
+class _ScreenerButton extends StatefulWidget {
+  final bool isDarkMode;
+
+  const _ScreenerButton({
+    required this.isDarkMode,
+  });
+
+  @override
+  State<_ScreenerButton> createState() => _ScreenerButtonState();
+}
+
+class _ScreenerButtonState extends State<_ScreenerButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onTap() {
+    _animationController.forward().then((_) {
+      _animationController.reverse();
+    });
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ScreenerScreen(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: _onTap,
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                constraints: const BoxConstraints(
+                  minWidth: 40,
+                  maxWidth: 48,
+                  minHeight: 40,
+                  maxHeight: 48,
+                ),
+                decoration: BoxDecoration(
+                  color: _isHovered 
+                      ? (widget.isDarkMode 
+                          ? const Color(0xFF2D2D2D).withOpacity(0.5)
+                          : const Color(0xFFF9FAFB).withOpacity(0.8))
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.filter_list,
+                  size: 18,
+                  color: _isHovered
+                      ? (widget.isDarkMode 
+                          ? const Color(0xFFE0E0E0)
+                          : const Color(0xFF374151))
+                      : (widget.isDarkMode 
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF6B7280)),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
