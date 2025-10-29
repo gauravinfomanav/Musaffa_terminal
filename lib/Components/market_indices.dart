@@ -1,22 +1,111 @@
 import 'package:flutter/material.dart';
-import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'dart:async'; // Import for Timer
 
-// Define the JavaScript channel name (must match in JS code)
-const String _kJsChannelName = 'ResizeObserver';
+/// Widget height constants for market indices TradingView widget
+class DynamicHeightTradingViewConstants {
+  /// Default height for medium screens (horizontal layout)
+  static const double defaultHeight = 600.0;
+  
+  /// Height for small screens (vertical layout)
+  static const double smallScreenHeight = 600.0;
+  
+  /// Height for large screens
+  static const double largeScreenHeight = 700.0;
+  
+  /// Minimum height for responsive sizing
+  static const double minHeight = 400.0;
+  
+  /// Maximum height for responsive sizing
+  static const double maxHeight = 900.0;
+  
+  /// Height for extra large screens
+  static const double extraLargeScreenHeight = 800.0;
+  
+  /// Title section height (title + spacing)
+  static const double titleHeight = 42.0;
+  
+  /// Content padding
+  static const EdgeInsets contentPadding = EdgeInsets.symmetric(horizontal: 16.0);
+  
+  /// Title spacing
+  static const double titleSpacing = 26.0;
+  
+  /// Animation duration for height changes
+  static const Duration animationDuration = Duration(milliseconds: 250);
+  
+  /// Screen width breakpoint for small screens (vertical layout)
+  static const double smallScreenBreakpoint = 1000.0;
+  
+  /// Screen width breakpoint for large screens
+  static const double largeScreenBreakpoint = 1600.0;
+  
+  /// Screen width breakpoint for extra large screens
+  static const double extraLargeScreenBreakpoint = 2000.0;
+}
 
+/// A TradingView widget that displays market indices overview with responsive height.
+/// 
+/// This widget automatically adjusts its height based on screen size, or can be
+/// configured with explicit height values. It supports both light and dark themes.
+/// 
+/// Example usage:
+/// ```dart
+/// // Responsive height (default)
+/// DynamicHeightTradingView()
+/// 
+/// // Custom explicit height
+/// DynamicHeightTradingView(height: 650)
+/// 
+/// // Custom min/max bounds
+/// DynamicHeightTradingView(
+///   height: 700,
+///   minHeight: 500,
+///   maxHeight: 800,
+/// )
+/// 
+/// // Disable responsive height
+/// DynamicHeightTradingView(
+///   height: 600,
+///   useResponsiveHeight: false,
+/// )
+/// ```
 class DynamicHeightTradingView extends StatefulWidget {
-  final double? initialHeight; // Optional initial height before calculation
+  /// Explicit height for the widget. If null, uses responsive height calculation.
+  /// Will be clamped between [minHeight] and [maxHeight] if provided.
+  final double? height;
+  
+  /// Width of the widget. If null, expands to fill available space.
   final double? width;
+  
+  /// Whether to use responsive height calculation. Defaults to true.
+  /// If false and [height] is null, uses [DynamicHeightTradingViewConstants.defaultHeight].
+  final bool useResponsiveHeight;
+  
+  /// Custom minimum height override. If null, uses [DynamicHeightTradingViewConstants.minHeight].
+  final double? minHeight;
+  
+  /// Custom maximum height override. If null, uses [DynamicHeightTradingViewConstants.maxHeight].
+  final double? maxHeight;
+  
+  /// Title text to display above the chart. Defaults to "Market Indices".
+  final String? title;
 
   const DynamicHeightTradingView({
     super.key,
-    this.initialHeight = 700, // Provide a reasonable default initial height
+    this.height,
     this.width,
+    this.useResponsiveHeight = true,
+    this.minHeight,
+    this.maxHeight,
+    this.title,
   });
+  
+  // Deprecated: Use [height] instead
+  @Deprecated('Use height parameter instead')
+  double? get initialHeight => height;
 
   @override
   State<DynamicHeightTradingView> createState() =>
@@ -88,6 +177,11 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
           "d": "GOLD",
           "logoid": "metal/gold",
           "currency-logoid": "country/US"
+        }, {
+          "s": "CAPITALCOM:SILVER",
+          "d": "SILVER",
+          "logoid": "metal/silver",
+          "currency-logoid": "country/US"
         }
           ]
         },
@@ -114,7 +208,19 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
             {
               "s": "INDEX:SMI",
               "d": "SWISS MARKET INDEX SMI® PRICE"
-            }
+            },
+            {
+          "s": "CAPITALCOM:GOLD",
+          "d": "GOLD",
+          "logoid": "metal/gold",
+          "currency-logoid": "country/GB"
+        },
+         {
+          "s": "CAPITALCOM:SILVER",
+          "d": "SILVER",
+          "logoid": "metal/silver",
+          "currency-logoid": "country/US"
+        }
           ]
         },
         {
@@ -140,7 +246,18 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
             {
               "s": "INDEX:KSIC",
               "d": "Kospi Composite"
-            }
+            },
+            {
+          "s": "CAPITALCOM:GOLD",
+          "d": "GOLD",
+          "logoid": "metal/gold",
+          "currency-logoid": "country/IN"
+        }, {
+          "s": "CAPITALCOM:SILVER",
+          "d": "SILVER",
+          "logoid": "metal/silver",
+          "currency-logoid": "country/US"
+        }
           ]
         }
       ],
@@ -171,11 +288,43 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
   }
   // --- End of HTML Generator ---
 
+  /// Calculates responsive height based on screen size if height is not provided
+  double _calculateHeight(BuildContext context) {
+    // If explicit height is provided, clamp it and return
+    if (widget.height != null) {
+      final minH = widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight;
+      final maxH = widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight;
+      return widget.height!.clamp(minH, maxH);
+    }
+    
+    // If responsive height is disabled, use default
+    if (!widget.useResponsiveHeight) {
+      return DynamicHeightTradingViewConstants.defaultHeight;
+    }
+    
+    // Calculate responsive height based on screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (screenWidth < DynamicHeightTradingViewConstants.smallScreenBreakpoint) {
+      // Small screens (vertical layout)
+      return DynamicHeightTradingViewConstants.smallScreenHeight;
+    } else if (screenWidth < DynamicHeightTradingViewConstants.largeScreenBreakpoint) {
+      // Medium screens (horizontal layout)
+      return DynamicHeightTradingViewConstants.defaultHeight;
+    } else if (screenWidth < DynamicHeightTradingViewConstants.extraLargeScreenBreakpoint) {
+      // Large screens
+      return DynamicHeightTradingViewConstants.largeScreenHeight;
+    } else {
+      // Extra large screens
+      return DynamicHeightTradingViewConstants.extraLargeScreenHeight;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    print("initState: Setting initial height to ${widget.initialHeight}");
-    _webViewHeight = widget.initialHeight; // Set initial height
+    // Set initial height - will be calculated properly in build method
+    _webViewHeight = widget.height;
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -204,10 +353,39 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                 setState(() {
                   _isLoading = false; // Hide loading indicator
                 });
-                // Trigger an initial height check from JS *after* page finished
-                // _controller.runJavaScript(
-                //   'setTimeout(() => { checkHeight(); }, 100);' // Use the fallback check function
-                // );
+                
+                // Inject minimal JavaScript to prevent window.open to TradingView website
+                // NavigationDelegate handles most navigation blocking
+                _controller.runJavaScript('''
+                  (function() {
+                    // Wait for TradingView widget to load
+                    setTimeout(function() {
+                      // Only prevent window.open to TradingView website pages
+                      // This allows widget interactions while blocking external navigation
+                      const originalOpen = window.open;
+                      window.open = function(url, name, features) {
+                        if (!url) return originalOpen.call(this, url, name, features);
+                        const urlLower = url.toLowerCase();
+                        
+                        // Block opening TradingView web pages (symbol detail pages)
+                        // But allow widget resource URLs
+                        if (urlLower.includes('tradingview.com') || 
+                            urlLower.includes('tradingview-widget.com')) {
+                          // Check if it's a symbol detail page (not widget resource)
+                          if (urlLower.includes('/symbols/') || 
+                              urlLower.includes('/chart/') ||
+                              urlLower.includes('/screener/') ||
+                              urlLower.includes('/markets/') ||
+                              urlLower.includes('/ideas/')) {
+                            return null; // Block navigation to TradingView website
+                          }
+                        }
+                        
+                        return originalOpen.call(this, url, name, features);
+                      };
+                    }, 1000); // Wait for widget to fully load
+                  })();
+                ''');
               }
             });
           },
@@ -224,13 +402,38 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                 isForMainFrame: ${error.isForMainFrame}''');
           },
           onNavigationRequest: (NavigationRequest request) {
-            // Allow initial data URL load and TradingView URLs
-            if (request.url.startsWith('data:text/html;base64') ||
-                request.url.startsWith('https://s3.tradingview.com') ||
-                request.url.startsWith('https://www.tradingview.com') ||
-                request.url.startsWith('https://www.tradingview-widget.com')) {
+            final url = request.url.toLowerCase();
+            
+            // Always allow initial data URL load
+            if (request.url.startsWith('data:text/html;base64')) {
               return NavigationDecision.navigate;
             }
+            
+            // Allow ALL subresources (scripts, images, iframes) - needed for widget functionality
+            // Widget interactions happen within iframes, which are subresources
+            if (!request.isMainFrame) {
+              return NavigationDecision.navigate; // Allow all subresources
+            }
+            
+            // For main frame navigation, be more selective
+            // Block only symbol detail pages and external TradingView website pages
+            if (url.contains('tradingview.com') || url.contains('tradingview-widget.com')) {
+              // Block symbol detail pages and external website navigation
+              if (url.contains('/symbols/') ||
+                  url.contains('/chart/') ||
+                  url.contains('/screener/') ||
+                  url.contains('/markets/') ||
+                  url.contains('/ideas/') ||
+                  url.contains('/publish/') ||
+                  (url.contains('www.tradingview.com') && !url.contains('s3.tradingview.com'))) {
+                print('Blocking navigation to TradingView website: ${request.url}');
+                return NavigationDecision.prevent;
+              }
+              // Allow widget resource URLs (may be needed for some widget functionality)
+              return NavigationDecision.navigate;
+            }
+            
+            // Block all other external navigation
             print('Blocking navigation to ${request.url}');
             return NavigationDecision.prevent;
           },
@@ -282,11 +485,12 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
       });
     } else {
       print("Theme hasn't changed. No reload needed.");
-      // If it wasn't loading before and theme didn't change, ensure loading indicator is off
-      // (Handles cases where didChangeDependencies might be called for other reasons)
-      if (_isLoading && _webViewHeight != null && _webViewHeight! > 0) {
-        // If we have a height and theme is same, likely finished loading previously
-        // setState(() => _isLoading = false);
+      // If theme hasn't changed and we're still loading, it means we've already loaded
+      // Set loading to false to prevent continuous loading indicator
+      if (_isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -301,6 +505,10 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
 
   @override
   Widget build(BuildContext context) {
+    // Calculate the height to use
+    final calculatedHeight = _calculateHeight(context);
+    final effectiveHeight = _webViewHeight ?? calculatedHeight;
+    
     // Use AnimatedSize for smoother height transitions
     return Visibility(
       visible: true,
@@ -309,36 +517,34 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: DynamicHeightTradingViewConstants.contentPadding,
             child: Text(
-              "Market Indices",
+              widget.title ?? "Market Indices",
               textAlign: TextAlign.start,
               style: DashboardTextStyles.titleSmall,
             ),
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: DynamicHeightTradingViewConstants.titleSpacing),
           AnimatedSize(
-            duration: const Duration(milliseconds: 250), // Animation duration
+            duration: DynamicHeightTradingViewConstants.animationDuration,
             curve: Curves.easeInOut, // Animation curve
             child: SizedBox(
-              // Use the calculated height, or the initial/default if not yet calculated/loading
-              // Use a minimum height while loading after initial build to prevent collapse
-              height: _webViewHeight ?? (widget.initialHeight ?? 200),
-              width: widget.width ??
-                  double.infinity, // Use provided width or expand
+              // Use the calculated height, or fallback to minimum if not determined
+              height: effectiveHeight.clamp(
+                widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
+                widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
+              ),
+              width: widget.width ?? double.infinity, // Use provided width or expand
               child: Stack(
                 // Use Stack to overlay loading indicator
                 children: [
-                  // Hide WebView visually while loading *and* height is not determined yet
-                  // Or just let it load underneath the indicator
+                  // WebView content
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: DynamicHeightTradingViewConstants.contentPadding,
                     child: WebViewWidget(controller: _controller),
                   ),
-                  // Show loading indicator centered
-                  if (_isLoading ||
-                      _webViewHeight == null ||
-                      _webViewHeight! <= 0)
+                  // Show loading indicator only when actually loading
+                  if (_isLoading)
                     const Center(child: CircularProgressIndicator()),
                 ],
               ),

@@ -127,9 +127,7 @@ class _MainScreenState extends State<MainScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   flex: 1,
-                  child: DynamicHeightTradingView(
-                    initialHeight: 500,
-                  ),
+                  child: DynamicHeightTradingView(),
                 ),
               ],
             ),
@@ -169,9 +167,7 @@ class _MainScreenState extends State<MainScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   flex: _calculateMarketIndicesFlex(screenWidth),
-                  child: DynamicHeightTradingView(
-                    initialHeight: 600,
-                  ),
+                  child: DynamicHeightTradingView(),
                 ),
               ],
             ),
