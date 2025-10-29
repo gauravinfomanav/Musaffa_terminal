@@ -199,15 +199,23 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       backgroundColor: isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Stack(
-            children: [
-              Column(
-                children: [
-                  HomeTabBar(
-                    showBackButton: true,
-                    onWatchlistToggle: _toggleWatchlist,
-                    isWatchlistOpen: _isWatchlistOpen,
-                  ),
+          return GestureDetector(
+            onTap: () {
+              if (_isWatchlistOpen) {
+                setState(() {
+                  _isWatchlistOpen = false;
+                });
+              }
+            },
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    HomeTabBar(
+                      showBackButton: true,
+                      onWatchlistToggle: _toggleWatchlist,
+                      isWatchlistOpen: _isWatchlistOpen,
+                    ),
                   
                   Expanded(
                     child: SingleChildScrollView(
@@ -237,17 +245,21 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                 ],
               ),
               
-              if (_isWatchlistOpen)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: WatchlistSidebar(
-                    isDarkMode: isDarkMode,
-                    onClose: () => setState(() => _isWatchlistOpen = false),
+                if (_isWatchlistOpen)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      onTap: () {}, // Prevent closing when tapping on sidebar itself
+                      child: WatchlistSidebar(
+                        isDarkMode: isDarkMode,
+                        onClose: () => setState(() => _isWatchlistOpen = false),
+                      ),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           );
         },
       ),

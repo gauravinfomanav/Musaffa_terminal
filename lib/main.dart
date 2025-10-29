@@ -3,8 +3,18 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Screens/main_screen.dart';
 import 'services/websocket_service.dart';
 import 'services/live_price_service.dart';
+import 'services/fcm_service.dart';
+import 'dart:io';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FCMService.initialize();
+  if (Platform.isMacOS) {
+    Future.delayed(const Duration(seconds: 5), () async {
+      await FCMService.retryInitialization();
+    });
+  }
+  
   runApp(MyApp());
 }
 

@@ -104,7 +104,7 @@ class _TargetPriceCellState extends State<TargetPriceCell> {
                   )
                 : Center(
                     child: Text(
-                      '\$${targetPrice.targetPrice.toStringAsFixed(0)}',
+                      '\$${targetPrice.targetPrice.toStringAsFixed(2)}',
                       style: DashboardTextStyles.dataCell.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

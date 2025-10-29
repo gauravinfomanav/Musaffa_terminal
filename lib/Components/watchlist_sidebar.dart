@@ -12,19 +12,21 @@ class WatchlistSidebar extends StatelessWidget {
     required this.onClose,
   }) : super(key: key);
 
+  double _calculateResponsiveSidebarWidth(double screenWidth) {
+    if (screenWidth < 800) return screenWidth * 0.7;    // 70% of screen
+    if (screenWidth < 1200) return screenWidth * 0.8;  // 80% of screen  
+    return screenWidth * 0.55;                          // 55% of screen
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final sidebarWidth = screenWidth > 1200 
-        ? screenWidth * 0.35  // 35% of screen width on larger screens
-        : screenWidth > 800 
-            ? screenWidth * 0.4  // 40% on medium screens
-            : screenWidth * 0.5; // 50% on smaller screens
+    final sidebarWidth = _calculateResponsiveSidebarWidth(screenWidth);
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      width: sidebarWidth.clamp(320.0, 600.0), // Min 320px, max 600px
+      width: sidebarWidth.clamp(320.0, 1200.0), // Min 320px, max 1200px
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         border: Border(

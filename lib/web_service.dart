@@ -262,4 +262,51 @@ class WebService {
       path: ['targets', targetId],
     );
   }
+
+  // FCM Token Management
+  static Future<ApiResponse> registerFCMToken({
+    required String token,
+    required String deviceType,
+    required String deviceName,
+  }) async {
+    return await callApi(
+      method: HttpMethod.POST,
+      path: ['fcm', 'register-token'],
+      body: {
+        'token': token,
+        'device_type': deviceType,
+        'device_name': deviceName,
+      },
+    );
+  }
+
+  static Future<ApiResponse> getFCMTokens() async {
+    return await callApi(
+      method: HttpMethod.GET,
+      path: ['fcm', 'tokens'],
+    );
+  }
+
+  static Future<ApiResponse> updateFCMToken({
+    required String tokenId,
+    String? deviceName,
+    bool? isActive,
+  }) async {
+    final body = <String, dynamic>{};
+    if (deviceName != null) body['device_name'] = deviceName;
+    if (isActive != null) body['is_active'] = isActive;
+
+    return await callApi(
+      method: HttpMethod.PUT,
+      path: ['fcm', 'tokens', tokenId],
+      body: body,
+    );
+  }
+
+  static Future<ApiResponse> deleteFCMToken(String tokenId) async {
+    return await callApi(
+      method: HttpMethod.DELETE,
+      path: ['fcm', 'tokens', tokenId],
+    );
+  }
 }

@@ -391,17 +391,18 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
       return;
     }
 
-    // Validate target price against current price and alert type
-    if (_currentPrice != null) {
-      if (_selectedAlertType == 'above' && price <= _currentPrice!) {
-        _showErrorSnackBar('Target price must be higher than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Above Target" alerts');
-        return;
-      }
-      if (_selectedAlertType == 'below' && price >= _currentPrice!) {
-        _showErrorSnackBar('Target price must be lower than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Below Target" alerts');
-        return;
-      }
-    }
+    // Temporarily allow same price as current price
+    // TODO: Re-enable validation later
+    // if (_currentPrice != null) {
+    //   if (_selectedAlertType == 'above' && price <= _currentPrice!) {
+    //     _showErrorSnackBar('Target price must be higher than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Above Target" alerts');
+    //     return;
+    //   }
+    //   if (_selectedAlertType == 'below' && price >= _currentPrice!) {
+    //     _showErrorSnackBar('Target price must be lower than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Below Target" alerts');
+    //     return;
+    //   }
+    // }
 
     Navigator.of(context).pop();
     widget.onSave(price, _selectedAlertType);

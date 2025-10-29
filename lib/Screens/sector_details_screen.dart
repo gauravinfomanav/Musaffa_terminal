@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
-import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
+import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/services/sector_mapping_service.dart';
 import 'package:musaffa_terminal/Controllers/sector_stocks_controller.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
@@ -773,23 +773,31 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       backgroundColor: Theme.of(context).brightness == Brightness.dark 
           ? const Color(0xFF0F0F0F) 
           : const Color(0xFFFAFAFA),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              HomeTabBar(
-                showBackButton: true,
-                isWatchlistOpen: _isWatchlistOpen,
-                onWatchlistToggle: _toggleWatchlist,
-                onThemeToggle: () {
-                  final currentTheme = Theme.of(context).brightness;
-                  Get.changeThemeMode(
-                    currentTheme == Brightness.dark 
-                        ? ThemeMode.light 
-                        : ThemeMode.dark,
-                  );
-                },
-              ),
+      body: GestureDetector(
+        onTap: () {
+          if (_isWatchlistOpen) {
+            setState(() {
+              _isWatchlistOpen = false;
+            });
+          }
+        },
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                HomeTabBar(
+                  showBackButton: true,
+                  isWatchlistOpen: _isWatchlistOpen,
+                  onWatchlistToggle: _toggleWatchlist,
+                  onThemeToggle: () {
+                    final currentTheme = Theme.of(context).brightness;
+                    Get.changeThemeMode(
+                      currentTheme == Brightness.dark 
+                          ? ThemeMode.light 
+                          : ThemeMode.dark,
+                    );
+                  },
+                ),
               Expanded(
                 child: SingleChildScrollView(
                   child: Container(
@@ -872,27 +880,22 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                 ),
             ],
           ),
-          // Watchlist Sidebar
-          if (_isWatchlistOpen)
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: 400,
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF),
-                  border: Border(
-                    left: BorderSide(
-                      color: isDarkMode ? const Color(0xFF333333) : const Color(0xFFE5E7EB),
-                      width: 1,
-                    ),
+            // Watchlist Sidebar
+            if (_isWatchlistOpen)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  onTap: () {}, // Prevent closing when tapping on sidebar itself
+                  child: WatchlistSidebar(
+                    isDarkMode: isDarkMode,
+                    onClose: () => setState(() => _isWatchlistOpen = false),
                   ),
                 ),
-                child: WatchlistDropdown(isDarkMode: isDarkMode),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

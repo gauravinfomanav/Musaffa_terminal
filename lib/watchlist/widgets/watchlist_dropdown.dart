@@ -621,6 +621,7 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
             ),
           ),
           
+          
           // Dynamic table for stocks
           WatchlistStocksTable(
             stocks: controller.watchlistStocks,

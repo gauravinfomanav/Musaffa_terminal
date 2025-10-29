@@ -1,8 +1,11 @@
 import Cocoa
 import FlutterMacOS
+import UserNotifications
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
+   
+    
     let flutterViewController = FlutterViewController()
     let minSize = NSSize(width: 1400, height: 800)
     self.minSize = minSize
@@ -13,7 +16,46 @@ class MainFlutterWindow: NSWindow {
     self.contentViewController = flutterViewController
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    
+    
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+      print("🔍 MainFlutterWindow: Permission request completed - granted: \(granted)")
+      if let error = error {
+        print("🔍 MainFlutterWindow: Permission error: \(error.localizedDescription)")
+      }
+      
+      if granted {
+        print("✅ Notification permission granted")
+        // Register for remote notifications AFTER permission is granted
+        DispatchQueue.main.async {
+          print("🔍 MainFlutterWindow: About to call NSApp.registerForRemoteNotifications()")
+          NSApp.registerForRemoteNotifications()
+          print("📱 Registered for remote notifications")
+        }
+      } else {
+        print("❌ Notification permission denied: \(error?.localizedDescription ?? "Unknown error")")
+      }
+    }
+    
+    print("🔍 MainFlutterWindow: About to call super.awakeFromNib()")
 
     super.awakeFromNib()
+    
+    print("🔍 MainFlutterWindow: super.awakeFromNib() completed")
+  }
+  
+  // Handle successful APNs registration
+  func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    print("✅ APNs registration successful")
+    print("📱 Device token length: \(deviceToken.count) bytes")
+    print("📱 Device token: \(deviceToken.map { String(format: "%02x", $0) }.joined())")
+    print("🔍 MainFlutterWindow: APNs token received - this should make FCM work!")
+  }
+  
+  // Handle APNs registration failure
+  func application(_ application: NSApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+   
+    // Check specific error types
+    
   }
 }
