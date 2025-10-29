@@ -107,6 +107,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildVerticalLayout(EdgeInsets padding) {
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Padding(
         padding: padding,
         child: Column(
@@ -148,6 +149,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildHorizontalLayout(EdgeInsets padding, double screenWidth) {
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Padding(
         padding: padding,
         child: Column(
@@ -199,12 +201,6 @@ class _MainScreenState extends State<MainScreen> {
     return 5;
   }
 
-  int _calculateTopMoversFlex(double screenWidth) {
-    if (screenWidth < 1200) return 3;
-    if (screenWidth < 1600) return 2;
-    if (screenWidth < 2000) return 1;
-    return 1;
-  }
 
   int _calculateMarketIndicesFlex(double screenWidth) {
     if (screenWidth < 1200) return 3;
