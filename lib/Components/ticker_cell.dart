@@ -3,6 +3,8 @@ import 'package:musaffa_terminal/models/ticker_cell_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/socket_message.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
+import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
+import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
 
 class MainTickerCell extends StatelessWidget {
   const MainTickerCell(
@@ -36,82 +38,126 @@ class MainTickerCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      // color: backgroundColor,
-      // color: Colors.white,
-      color: Colors.transparent,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: horizontalSpacing, vertical: verticalSpacing),
-            child: SizedBox(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Visibility(
-                    // visible: model.forceShowLogoSection,
-                    child: Row(
-                      children: [
-                        showLogo(model.tickerName, model.logoUrl ?? "",
-                            sideWidth: 25,
-                            circular: true,
-                            name: model.companyName),
-                        SizedBox(
-                          width: 12,
-                        ),
-                      ],
+    return GestureDetector(
+      onTap: () => _navigateToDetailScreen(context),
+      child: Container(
+        // color: backgroundColor,
+        // color: Colors.white,
+        color: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: horizontalSpacing, vertical: verticalSpacing),
+              child: SizedBox(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Visibility(
+                      // visible: model.forceShowLogoSection,
+                      child: Row(
+                        children: [
+                          showLogo(model.tickerName, model.logoUrl ?? "",
+                              sideWidth: 25,
+                              circular: true,
+                              name: model.companyName),
+                          SizedBox(
+                            width: 12,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          model.companyName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: DashboardTextStyles.stockName,
-                        ),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Container(
-                                // width: 45,
-                                child: Text(
-                                  model.tickerName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: DashboardTextStyles.tickerSymbol,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            model.companyName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: DashboardTextStyles.stockName,
+                          ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Container(
+                                  // width: 45,
+                                  child: Text(
+                                    model.tickerName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: DashboardTextStyles.tickerSymbol,
+                                  ),
                                 ),
                               ),
-                            ),
-                           
-                          ],
-                        ),
-                        
-                      ],
+                             
+                            ],
+                          ),
+                          
+                        ],
+                      ),
                     ),
-                  ),
-                  Container(width: 8),
-                  // Price and change are now shown in the dynamic columns only
-                  SizedBox(width: 80),
-                ],
+                    Container(width: 8),
+                    // Price and change are now shown in the dynamic columns only
+                    SizedBox(width: 80),
+                  ],
+                ),
               ),
             ),
-          ),
-          Visibility(
-            visible: showBottomBorder,
-            child: Container(
-              height: 1,
-              color: Theme.of(context).dividerColor,
-            ),
-          )
-        ],
+            Visibility(
+              visible: showBottomBorder,
+              child: Container(
+                height: 1,
+                color: Theme.of(context).dividerColor,
+              ),
+            )
+          ],
+        ),
       ),
     );
+  }
+
+  void _navigateToDetailScreen(BuildContext context) {
+    // Check if we have stock data for navigation
+    if (model.stock != null) {
+      // Navigate to appropriate screen based on isStock flag
+      if (model.isStock) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TickerDetailScreen(ticker: model.stock!),
+          ),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EtfDetailsScreen(ticker: model.stock!),
+          ),
+        );
+      }
+    } else {
+      // If no stock data, show a snackbar or handle gracefully
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Stock details not available for ${model.tickerName}',
+            style: DashboardTextStyles.tickerSymbol.copyWith(
+              color: Colors.white,
+              fontSize: 12,
+            ),
+          ),
+          backgroundColor: Colors.orange.shade600,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+      );
+    }
   }
 }
 

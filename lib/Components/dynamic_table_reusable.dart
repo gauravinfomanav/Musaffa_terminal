@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/ticker_cell.dart';
 import 'package:musaffa_terminal/models/ticker_cell_model.dart';
+import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/live_price_model.dart';
 import 'package:musaffa_terminal/services/live_price_service.dart';
 import 'package:musaffa_terminal/services/websocket_service.dart';
@@ -463,6 +464,18 @@ class _DynamicTableState extends State<DynamicTable> {
             isStock: true,
             mainTicker: rowModel.symbol,
             showLockOnStars: false,
+            stock: TickerModel(
+              symbol: rowModel.symbol,
+              name: rowModel.name,
+              companyName: rowModel.name,
+              logo: rowModel.logo,
+              currentPrice: rowModel.price,
+              percentChange: rowModel.changePercent,
+              currency: rowModel.currency ?? 'USD',
+              isStock: true,
+              mainTicker: rowModel.symbol,
+              ticker: rowModel.symbol,
+            ),
           ),
           showBottomBorder: false,
           horizontalSpacing: 6,
