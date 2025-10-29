@@ -3,23 +3,145 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
 
+/// Widget height constants for stock heatmap TradingView widget
+class StockHeatmapConstants {
+  /// Default height for medium screens
+  static const double defaultHeight = 600.0;
+  
+  /// Height for small screens (vertical layout)
+  static const double smallScreenHeight = 500.0;
+  
+  /// Height for large screens
+  static const double largeScreenHeight = 700.0;
+  
+  /// Minimum height for responsive sizing
+  static const double minHeight = 400.0;
+  
+  /// Maximum height for responsive sizing
+  static const double maxHeight = 900.0;
+  
+  /// Height for extra large screens
+  static const double extraLargeScreenHeight = 800.0;
+  
+  /// Header section height (title + spacing)
+  static const double headerHeight = 42.0;
+  
+  /// Content padding
+  static const EdgeInsets contentPadding = EdgeInsets.symmetric(horizontal: 16.0);
+  
+  /// Title spacing
+  static const double titleSpacing = 8.0;
+  
+  /// Screen width breakpoint for small screens (vertical layout)
+  static const double smallScreenBreakpoint = 1000.0;
+  
+  /// Screen width breakpoint for large screens
+  static const double largeScreenBreakpoint = 1600.0;
+  
+  /// Screen width breakpoint for extra large screens
+  static const double extraLargeScreenBreakpoint = 2000.0;
+}
+
+/// A TradingView widget that displays stock heatmap with responsive height.
+/// 
+/// This widget automatically adjusts its height based on screen size, or can be
+/// configured with explicit height values. It supports both light and dark themes.
+/// 
+/// Example usage:
+/// ```dart
+/// // Responsive height (default)
+/// StockHeatmap()
+/// 
+/// // Custom explicit height
+/// StockHeatmap(height: 650)
+/// 
+/// // Custom min/max bounds
+/// StockHeatmap(
+///   height: 700,
+///   minHeight: 500,
+///   maxHeight: 800,
+/// )
+/// ```
 class StockHeatmap extends StatefulWidget {
-  final double initialHeight;
+  /// Explicit height for the widget. If null, uses responsive height calculation.
+  /// Will be clamped between [minHeight] and [maxHeight] if provided.
+  final double? height;
+  
+  /// Width of the widget. If null, expands to fill available space.
+  final double? width;
+  
+  /// Whether to use responsive height calculation. Defaults to true.
+  /// If false and [height] is null, uses [StockHeatmapConstants.defaultHeight].
+  final bool useResponsiveHeight;
+  
+  /// Custom minimum height override. If null, uses [StockHeatmapConstants.minHeight].
+  final double? minHeight;
+  
+  /// Custom maximum height override. If null, uses [StockHeatmapConstants.maxHeight].
+  final double? maxHeight;
+  
+  /// Title text to display above the chart. Defaults to "Stock Heatmap".
+  final String? title;
 
   const StockHeatmap({
     super.key,
-    this.initialHeight = 600,
+    this.height,
+    this.width,
+    this.useResponsiveHeight = true,
+    this.minHeight,
+    this.maxHeight,
+    this.title,
   });
+  
+  // Deprecated: Use [height] instead
+  @Deprecated('Use height parameter instead')
+  double? get initialHeight => height;
 
   @override
   State<StockHeatmap> createState() => _StockHeatmapState();
 }
 
-class _StockHeatmapState extends State<StockHeatmap> {
+class _StockHeatmapState extends State<StockHeatmap> 
+    with AutomaticKeepAliveClientMixin {
   late WebViewController _controller;
   bool _isLoading = true;
   Brightness? _currentLoadedBrightness;
-  double _webViewHeight = 600;
+  bool _isWebViewInitialized = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  /// Calculates responsive height based on screen size if height is not provided
+  double _calculateHeight(BuildContext context) {
+    // If explicit height is provided, clamp it and return
+    if (widget.height != null) {
+      final minH = widget.minHeight ?? StockHeatmapConstants.minHeight;
+      final maxH = widget.maxHeight ?? StockHeatmapConstants.maxHeight;
+      return widget.height!.clamp(minH, maxH);
+    }
+    
+    // If responsive height is disabled, use default
+    if (!widget.useResponsiveHeight) {
+      return StockHeatmapConstants.defaultHeight;
+    }
+    
+    // Calculate responsive height based on screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (screenWidth < StockHeatmapConstants.smallScreenBreakpoint) {
+      // Small screens (vertical layout)
+      return StockHeatmapConstants.smallScreenHeight;
+    } else if (screenWidth < StockHeatmapConstants.largeScreenBreakpoint) {
+      // Medium screens (horizontal layout)
+      return StockHeatmapConstants.defaultHeight;
+    } else if (screenWidth < StockHeatmapConstants.extraLargeScreenBreakpoint) {
+      // Large screens
+      return StockHeatmapConstants.largeScreenHeight;
+    } else {
+      // Extra large screens
+      return StockHeatmapConstants.extraLargeScreenHeight;
+    }
+  }
 
   // --- Function to Generate Stock Heatmap HTML ---
   String _generateStockHeatmapHtml(String colorTheme) {
@@ -118,66 +240,6 @@ class _StockHeatmapState extends State<StockHeatmap> {
             }
             </script>
         </div>
-        
-        <script>
-            // Prevent all clicks and navigation while allowing zoom/pan
-            document.addEventListener('DOMContentLoaded', function() {
-                // Prevent all click events
-                document.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                    return false;
-                }, true);
-                
-                // Prevent context menu
-                document.addEventListener('contextmenu', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    return false;
-                }, true);
-                
-                // Override window.open to prevent popups
-                window.open = function() {
-                    return null;
-                };
-                
-                // Prevent all link clicks
-                document.addEventListener('click', function(event) {
-                    const target = event.target;
-                    if (target.tagName === 'A' || target.closest('a')) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        event.stopImmediatePropagation();
-                        return false;
-                    }
-                }, true);
-                
-                // Prevent all button clicks
-                document.addEventListener('click', function(event) {
-                    const target = event.target;
-                    if (target.tagName === 'BUTTON' || target.closest('button')) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        event.stopImmediatePropagation();
-                        return false;
-                    }
-                }, true);
-                
-                // Disable all links after they load
-                setTimeout(function() {
-                    const links = document.querySelectorAll('a');
-                    links.forEach(link => {
-                        link.style.pointerEvents = 'none';
-                        link.onclick = function(event) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            return false;
-                        };
-                    });
-                }, 1000);
-            });
-        </script>
     </body>
     </html>
     ''';
@@ -186,6 +248,10 @@ class _StockHeatmapState extends State<StockHeatmap> {
   @override
   void initState() {
     super.initState();
+    _initializeWebView();
+  }
+
+  void _initializeWebView() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -205,11 +271,41 @@ class _StockHeatmapState extends State<StockHeatmap> {
           },
           onPageFinished: (String url) {
             print('Stock Heatmap WebView page finished loading: $url');
-            Future.delayed(const Duration(milliseconds: 500), () {
+            Future.delayed(const Duration(milliseconds: 300), () {
               if (mounted) {
                 setState(() {
                   _isLoading = false;
+                  _isWebViewInitialized = true;
                 });
+                
+                // Inject minimal JavaScript to prevent window.open to TradingView website
+                _controller.runJavaScript('''
+                  (function() {
+                    setTimeout(function() {
+                      // Only prevent window.open to TradingView website pages
+                      const originalOpen = window.open;
+                      window.open = function(url, name, features) {
+                        if (!url) return originalOpen.call(this, url, name, features);
+                        const urlLower = url.toLowerCase();
+                        
+                        // Block opening TradingView web pages (symbol detail pages)
+                        if (urlLower.includes('tradingview.com') || 
+                            urlLower.includes('tradingview-widget.com')) {
+                          // Check if it's a symbol detail page (not widget resource)
+                          if (urlLower.includes('/symbols/') || 
+                              urlLower.includes('/chart/') ||
+                              urlLower.includes('/screener/') ||
+                              urlLower.includes('/markets/') ||
+                              urlLower.includes('/ideas/')) {
+                            return null; // Block navigation to TradingView website
+                          }
+                        }
+                        
+                        return originalOpen.call(this, url, name, features);
+                      };
+                    }, 1000); // Wait for widget to fully load
+                  })();
+                ''');
               }
             });
           },
@@ -226,32 +322,65 @@ class _StockHeatmapState extends State<StockHeatmap> {
                 isForMainFrame: ${error.isForMainFrame}''');
           },
           onNavigationRequest: (NavigationRequest request) {
-            // Allow initial data URL load and TradingView URLs
-            if (request.url.startsWith('data:text/html;base64') ||
-                request.url.startsWith('https://s3.tradingview.com') ||
-                request.url.startsWith('https://www.tradingview.com') ||
-                request.url.startsWith('https://www.tradingview-widget.com')) {
+            final url = request.url.toLowerCase();
+            
+            // Always allow initial data URL load
+            if (request.url.startsWith('data:text/html;base64')) {
               return NavigationDecision.navigate;
             }
+            
+            // Allow ALL subresources (scripts, images, iframes) - needed for widget functionality
+            // Widget interactions happen within iframes, which are subresources
+            if (!request.isMainFrame) {
+              return NavigationDecision.navigate; // Allow all subresources
+            }
+            
+            // For main frame navigation, be more selective
+            // Block only symbol detail pages and external TradingView website pages
+            if (url.contains('tradingview.com') || url.contains('tradingview-widget.com')) {
+              // Block symbol detail pages and external website navigation
+              if (url.contains('/symbols/') ||
+                  url.contains('/chart/') ||
+                  url.contains('/screener/') ||
+                  url.contains('/markets/') ||
+                  url.contains('/ideas/') ||
+                  url.contains('/publish/') ||
+                  (url.contains('www.tradingview.com') && !url.contains('s3.tradingview.com'))) {
+                print('Blocking navigation to TradingView website: ${request.url}');
+                return NavigationDecision.prevent;
+              }
+              // Allow widget resource URLs (may be needed for some widget functionality)
+              return NavigationDecision.navigate;
+            }
+            
+            // Block all other external navigation
             print('Blocking navigation to ${request.url}');
             return NavigationDecision.prevent;
           },
         ),
       );
+
+    // Initialize WebView content after the frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadWebViewContent();
+      }
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadWebViewContent();
+    // Only reload if theme actually changed and WebView is already initialized
+    if (_isWebViewInitialized) {
+      _loadWebViewContent();
+    }
   }
 
   void _loadWebViewContent() {
     final Brightness currentBrightness = Theme.of(context).brightness;
-    print("Stock Heatmap: Current theme brightness: $currentBrightness");
 
     if (currentBrightness != _currentLoadedBrightness) {
-      print("Stock Heatmap: Theme changed or initial load. Reloading WebView. New theme: $currentBrightness");
       setState(() {
         _isLoading = true;
       });
@@ -276,68 +405,72 @@ class _StockHeatmapState extends State<StockHeatmap> {
         print("Error loading Stock Heatmap WebView content: $error");
       });
     } else {
-      print("Stock Heatmap: Theme hasn't changed. No reload needed.");
+      // If theme hasn't changed and we're still loading, it means we've already loaded
+      // Set loading to false to prevent continuous loading indicator
+      if (_isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Text(
-            "Stock Heatmap",
-            textAlign: TextAlign.start,
-            style: Theme.of(context).brightness == Brightness.dark
-                ? const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFFE5E7EB),
-                  )
-                : const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFF374151),
-                  ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        // WebView
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.transparent, width: 0),
-              color: Colors.transparent,
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    
+    final calculatedHeight = _calculateHeight(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return RepaintBoundary(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: StockHeatmapConstants.contentPadding,
+            child: Text(
+              widget.title ?? "Stock Heatmap",
+              textAlign: TextAlign.start,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
+              ),
             ),
-            clipBehavior: Clip.hardEdge,
-            child: _isLoading
-                ? Center(
+          ),
+          SizedBox(height: StockHeatmapConstants.titleSpacing),
+          // WebView with responsive height
+          SizedBox(
+            height: calculatedHeight.clamp(
+              widget.minHeight ?? StockHeatmapConstants.minHeight,
+              widget.maxHeight ?? StockHeatmapConstants.maxHeight,
+            ),
+            width: widget.width ?? double.infinity,
+            child: Stack(
+              children: [
+                // WebView content
+                Padding(
+                  padding: StockHeatmapConstants.contentPadding,
+                  child: WebViewWidget(controller: _controller),
+                ),
+                // Show loading indicator only when actually loading
+                if (_isLoading)
+                  Center(
                     child: CircularProgressIndicator(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                    ),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.zero,
-                    clipBehavior: Clip.hardEdge,
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.transparent, width: 0),
-                      ),
-                      child: WebViewWidget(controller: _controller),
+                      color: isDarkMode ? Colors.white : Colors.black,
                     ),
                   ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

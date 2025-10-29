@@ -133,12 +133,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 16),
             // Bottom Row: Stock Heatmap (full width)
-            Container(
-              height: 600,
-              child: StockHeatmap(
-                initialHeight: 600,
-              ),
-            ),
+            StockHeatmap(),
           ],
         ),
       ),
@@ -173,12 +168,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 16),
             // Bottom Row: Stock Heatmap (full width)
-            Container(
-              height: 600,
-              child: StockHeatmap(
-                initialHeight: 600,
-              ),
-            ),
+            StockHeatmap(),
           ],
         ),
       ),
