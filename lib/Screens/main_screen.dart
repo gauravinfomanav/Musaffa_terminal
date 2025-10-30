@@ -206,6 +206,29 @@ class _MainScreenState extends State<MainScreen> {
     final unifiedAccent = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
     // Keep tiles sized by content; just use comfortable padding
 
+    void _open(Widget page) {
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => page,
+          transitionDuration: const Duration(milliseconds: 180),
+          reverseTransitionDuration: const Duration(milliseconds: 140),
+          opaque: false,
+          barrierColor: Colors.transparent,
+          transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
+            final fade = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+            final slide = Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero)
+                .chain(CurveTween(curve: Curves.easeOutCubic))
+                .animate(animation);
+            return FadeTransition(
+              opacity: fade,
+              child: SlideTransition(position: slide, child: child),
+            );
+          },
+          maintainState: true,
+        ),
+      );
+    }
+
     Widget buildTile({
       required IconData icon,
       required String title,
@@ -285,11 +308,7 @@ class _MainScreenState extends State<MainScreen> {
               icon: CupertinoIcons.chart_bar_alt_fill,
               title: 'Stock Market Heatmap',
               subtitle: 'Explore live market breadth across sectors and market caps with interactive zoom and tooltips for each company.',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const StockHeatmapFullScreenPage()),
-                );
-              },
+              onTap: () => _open(const StockHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
             const SizedBox(width: 12),
@@ -297,11 +316,7 @@ class _MainScreenState extends State<MainScreen> {
               icon: CupertinoIcons.chart_pie_fill,
               title: 'ETF Market Heatmap',
               subtitle: 'View top ETFs grouped by asset class and theme. Quickly spot flows and performance leaders across US-listed funds.',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const EtfHeatmapFullScreenPage()),
-                );
-              },
+              onTap: () => _open(const EtfHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
           ],
@@ -313,11 +328,7 @@ class _MainScreenState extends State<MainScreen> {
               icon: CupertinoIcons.bitcoin_circle_fill,
               title: 'Crypto Market Map',
               subtitle: 'Monitor the digital assets universe by market cap and weekly performance. Drill into leaders and emerging movers.',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CryptoHeatmapFullScreenPage()),
-                );
-              },
+              onTap: () => _open(const CryptoHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
             const SizedBox(width: 12),
@@ -325,11 +336,7 @@ class _MainScreenState extends State<MainScreen> {
               icon: CupertinoIcons.arrow_2_circlepath,
               title: 'Forex Cross‑Rates Heatmap',
               subtitle: 'Compare strength across major FX pairs and crosses at a glance with a theme-aware, full‑width heatmap.',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ForexCrossRatesFullScreenPage()),
-                );
-              },
+              onTap: () => _open(const ForexCrossRatesFullScreenPage()),
               accentColor: unifiedAccent,
             ),
           ],
