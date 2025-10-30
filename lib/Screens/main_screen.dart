@@ -132,8 +132,8 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Bottom Row: Stock Heatmap (full width)
-            StockHeatmap(),
+            // Bottom Row: Tappable placeholder for Stock Heatmap → navigates to full screen
+            _buildHeatmapLauncher(context),
           ],
         ),
       ),
@@ -167,8 +167,8 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Bottom Row: Stock Heatmap (full width)
-            StockHeatmap(),
+            // Bottom Row: Tappable placeholder for Stock Heatmap → navigates to full screen
+            _buildHeatmapLauncher(context),
           ],
         ),
       ),
@@ -193,6 +193,48 @@ class _MainScreenState extends State<MainScreen> {
     if (screenWidth < 1600) return 3;
     if (screenWidth < 2000) return 3;
     return 3;
+  }
+
+  Widget _buildHeatmapLauncher(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const StockHeatmapFullScreenPage(),
+          ),
+        );
+      },
+      child: Container(
+        height: 400,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          border: Border.all(
+            color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.grid_view_rounded, size: 18, color: isDark ? Colors.white : Colors.black),
+            const SizedBox(width: 8),
+            Text(
+              'Open Stock Heatmap',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   double _calculateResponsiveSidebarWidth(double screenWidth) {

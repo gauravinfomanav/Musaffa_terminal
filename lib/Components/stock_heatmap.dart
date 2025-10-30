@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:get/get.dart';
+import 'package:musaffa_terminal/Components/tabbar.dart';
+import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -27,7 +30,7 @@ class StockHeatmapConstants {
   static const double headerHeight = 42.0;
   
   /// Content padding
-  static const EdgeInsets contentPadding = EdgeInsets.symmetric(horizontal: 16.0);
+  static const EdgeInsets contentPadding = EdgeInsets.symmetric(horizontal: 0.0);
   
   /// Title spacing
   static const double titleSpacing = 8.0;
@@ -82,6 +85,8 @@ class StockHeatmap extends StatefulWidget {
   
   /// Title text to display above the chart. Defaults to "Stock Heatmap".
   final String? title;
+  /// Whether to show the header/title above the heatmap. Defaults to true.
+  final bool showHeader;
 
   const StockHeatmap({
     super.key,
@@ -91,6 +96,7 @@ class StockHeatmap extends StatefulWidget {
     this.minHeight,
     this.maxHeight,
     this.title,
+    this.showHeader = true,
   });
   
   // Deprecated: Use [height] instead
@@ -107,44 +113,24 @@ class _StockHeatmapState extends State<StockHeatmap>
   bool _isLoading = true;
   Brightness? _currentLoadedBrightness;
   bool _isWebViewInitialized = false;
+  
+  // Simplified: no responsive/cached calculations
+  Timer? _heartbeatTimer;
 
   @override
   bool get wantKeepAlive => true;
 
-  /// Calculates responsive height based on screen size if height is not provided
+  /// Returns explicit height if set, otherwise a simple default height.
   double _calculateHeight(BuildContext context) {
-    // If explicit height is provided, clamp it and return
-    if (widget.height != null) {
-      final minH = widget.minHeight ?? StockHeatmapConstants.minHeight;
-      final maxH = widget.maxHeight ?? StockHeatmapConstants.maxHeight;
-      return widget.height!.clamp(minH, maxH);
-    }
-    
-    // If responsive height is disabled, use default
-    if (!widget.useResponsiveHeight) {
-      return StockHeatmapConstants.defaultHeight;
-    }
-    
-    // Calculate responsive height based on screen width
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    if (screenWidth < StockHeatmapConstants.smallScreenBreakpoint) {
-      // Small screens (vertical layout)
-      return StockHeatmapConstants.smallScreenHeight;
-    } else if (screenWidth < StockHeatmapConstants.largeScreenBreakpoint) {
-      // Medium screens (horizontal layout)
-      return StockHeatmapConstants.defaultHeight;
-    } else if (screenWidth < StockHeatmapConstants.extraLargeScreenBreakpoint) {
-      // Large screens
-      return StockHeatmapConstants.largeScreenHeight;
-    } else {
-      // Extra large screens
-      return StockHeatmapConstants.extraLargeScreenHeight;
-    }
+    final minH = widget.minHeight ?? StockHeatmapConstants.minHeight;
+    final maxH = widget.maxHeight ?? StockHeatmapConstants.maxHeight;
+    final h = widget.height ?? StockHeatmapConstants.defaultHeight;
+    return h.clamp(minH, maxH);
   }
 
   // --- Function to Generate Stock Heatmap HTML ---
   String _generateStockHeatmapHtml(String colorTheme) {
+    final backgroundColor = colorTheme == 'dark' ? '#1A1A1A' : '#FFFFFF';
     return '''
     <!DOCTYPE html>
     <html lang="en">
@@ -153,93 +139,27 @@ class _StockHeatmapState extends State<StockHeatmap>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Stock Heatmap</title>
         <style>
-            body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #FFFFFF; }
-            .tradingview-widget-container { 
-                height: 100%; 
-                width: 100%; 
-                background: #FFFFFF !important; 
-            }
-            .tradingview-widget-container__widget { 
-                background: #FFFFFF !important; 
-            }
-            iframe { 
-                background: #FFFFFF !important; 
-            }
-            [class*="tradingview"] { 
-                background: #FFFFFF !important; 
-            }
-            div[style*="background"] { 
-                background: #FFFFFF !important; 
-            }
-            
-            /* Remove blue highlight on scroll */
-            * { -webkit-tap-highlight-color: transparent !important; }
-            * { -webkit-touch-callout: none !important; }
-            * { -webkit-user-select: none !important; }
-            * { -moz-user-select: none !important; }
-            * { -ms-user-select: none !important; }
-            * { user-select: none !important; }
-            
-            /* Remove scroll bounce and blue header */
-            body { -webkit-overflow-scrolling: touch !important; }
-            * { -webkit-overflow-scrolling: touch !important; }
-            
-            /* Hide scrollbars and prevent scrolling */
-            ::-webkit-scrollbar { display: none !important; }
-            * { scrollbar-width: none !important; }
-            
-            /* Prevent any scrolling within the widget */
-            * { overflow: hidden !important; }
-            body { overflow: hidden !important; }
-            html { overflow: hidden !important; }
-            
-            /* Enable zoom/pan but disable clicks */
-            .tradingview-widget-container { 
-                pointer-events: auto !important;
-                cursor: grab !important;
-            }
-            .tradingview-widget-container__widget { 
-                pointer-events: auto !important;
-                cursor: grab !important;
-            }
-            iframe { 
-                pointer-events: auto !important;
-                cursor: grab !important;
-            }
-            
-            /* Disable click events on links and buttons */
-            a { pointer-events: none !important; }
-            button { pointer-events: none !important; }
-            [onclick] { pointer-events: none !important; }
-            
-            /* Keep other elements non-interactive */
-            body { pointer-events: none !important; }
-            html { pointer-events: none !important; }
+          html, body { margin:0; padding:0; height:100%; width:100%; background:$backgroundColor; }
+          .tradingview-widget-container { height:100%; width:100%; background:$backgroundColor; }
+          .tradingview-widget-container__widget { height:100%; width:100%; }
         </style>
     </head>
     <body>
-        <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
-            {
-                "dataSource": "SPX500",
-                "blockSize": "market_cap_basic",
-                "blockColor": "change",
-                "grouping": "sector",
-                "locale": "en",
-                "symbolUrl": "",
-                "colorTheme": "$colorTheme",
-                "exchanges": [],
-                "hasTopBar": false,
-                "isDataSetEnabled": false,
-                "isZoomEnabled": true,
-                "hasSymbolTooltip": true,
-                "isMonoSize": false,
-                "width": "100%",
-                "height": "100%"
-            }
-            </script>
-        </div>
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+        {
+          "dataSource": "SPX500",
+          "blockSize": "market_cap_basic",
+          "blockColor": "change",
+          "grouping": "sector",
+          "locale": "en",
+          "colorTheme": "$colorTheme",
+          "width": "100%",
+          "height": "100%"
+        }
+        </script>
+      </div>
     </body>
     </html>
     ''';
@@ -254,6 +174,7 @@ class _StockHeatmapState extends State<StockHeatmap>
   void _initializeWebView() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -262,7 +183,6 @@ class _StockHeatmapState extends State<StockHeatmap>
             }
           },
           onPageStarted: (String url) {
-            print("Stock Heatmap WebView page started loading: $url");
             if (mounted) {
               setState(() {
                 _isLoading = true;
@@ -270,42 +190,12 @@ class _StockHeatmapState extends State<StockHeatmap>
             }
           },
           onPageFinished: (String url) {
-            print('Stock Heatmap WebView page finished loading: $url');
             Future.delayed(const Duration(milliseconds: 300), () {
               if (mounted) {
                 setState(() {
                   _isLoading = false;
                   _isWebViewInitialized = true;
                 });
-                
-                // Inject minimal JavaScript to prevent window.open to TradingView website
-                _controller.runJavaScript('''
-                  (function() {
-                    setTimeout(function() {
-                      // Only prevent window.open to TradingView website pages
-                      const originalOpen = window.open;
-                      window.open = function(url, name, features) {
-                        if (!url) return originalOpen.call(this, url, name, features);
-                        const urlLower = url.toLowerCase();
-                        
-                        // Block opening TradingView web pages (symbol detail pages)
-                        if (urlLower.includes('tradingview.com') || 
-                            urlLower.includes('tradingview-widget.com')) {
-                          // Check if it's a symbol detail page (not widget resource)
-                          if (urlLower.includes('/symbols/') || 
-                              urlLower.includes('/chart/') ||
-                              urlLower.includes('/screener/') ||
-                              urlLower.includes('/markets/') ||
-                              urlLower.includes('/ideas/')) {
-                            return null; // Block navigation to TradingView website
-                          }
-                        }
-                        
-                        return originalOpen.call(this, url, name, features);
-                      };
-                    }, 1000); // Wait for widget to fully load
-                  })();
-                ''');
               }
             });
           },
@@ -371,7 +261,7 @@ class _StockHeatmapState extends State<StockHeatmap>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only reload if theme actually changed and WebView is already initialized
+   
     if (_isWebViewInitialized) {
       _loadWebViewContent();
     }
@@ -417,6 +307,7 @@ class _StockHeatmapState extends State<StockHeatmap>
 
   @override
   void dispose() {
+    _heartbeatTimer?.cancel();
     super.dispose();
   }
 
@@ -426,51 +317,151 @@ class _StockHeatmapState extends State<StockHeatmap>
     
     final calculatedHeight = _calculateHeight(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return RepaintBoundary(
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Padding(
-            padding: StockHeatmapConstants.contentPadding,
-            child: Text(
-              widget.title ?? "Stock Heatmap",
-              textAlign: TextAlign.start,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
+          if (widget.showHeader) ...[
+            Padding(
+              padding: StockHeatmapConstants.contentPadding,
+              child: Text(
+                widget.title ?? "Stock Heatmap",
+                textAlign: TextAlign.start,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
+                ),
+              ),
+            ),
+            SizedBox(height: StockHeatmapConstants.titleSpacing),
+          ],
+          // WebView with simple fixed height and full width, tappable to open full screen
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const StockHeatmapFullScreenPage(),
+                ),
+              );
+            },
+            child: SizedBox(
+              height: calculatedHeight,
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: StockHeatmapConstants.contentPadding,
+                    child: WebViewWidget(controller: _controller),
+                  ),
+                  if (_isLoading)
+                    Center(
+                      child: CircularProgressIndicator(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          SizedBox(height: StockHeatmapConstants.titleSpacing),
-          // WebView with responsive height
-          SizedBox(
-            height: calculatedHeight.clamp(
-              widget.minHeight ?? StockHeatmapConstants.minHeight,
-              widget.maxHeight ?? StockHeatmapConstants.maxHeight,
-            ),
-            width: widget.width ?? double.infinity,
-            child: Stack(
-              children: [
-                // WebView content
-                Padding(
-                  padding: StockHeatmapConstants.contentPadding,
-                  child: WebViewWidget(controller: _controller),
-                ),
-                // Show loading indicator only when actually loading
-                if (_isLoading)
-                  Center(
-                    child: CircularProgressIndicator(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
+      );
+  }
+}
+
+/// Full-screen page for the Stock Heatmap, no parent scrolling
+class StockHeatmapFullScreenPage extends StatefulWidget {
+  const StockHeatmapFullScreenPage({super.key});
+
+  @override
+  State<StockHeatmapFullScreenPage> createState() => _StockHeatmapFullScreenPageState();
+}
+
+class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage> {
+  bool _isWatchlistOpen = false;
+
+  void _toggleWatchlist() {
+    setState(() {
+      _isWatchlistOpen = !_isWatchlistOpen;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: isDarkMode ? const Color(0xFF0F1115) : Colors.white,
+      body: GestureDetector(
+        onTap: () {
+          if (_isWatchlistOpen) {
+            setState(() {
+              _isWatchlistOpen = false;
+            });
+          }
+        },
+        child: Stack(
+        children: [
+          Column(
+            children: [
+              HomeTabBar(
+                showBackButton: true,
+                isWatchlistOpen: _isWatchlistOpen,
+                onWatchlistToggle: _toggleWatchlist,
+                onThemeToggle: () {
+                  final currentTheme = Theme.of(context).brightness;
+                  Get.changeThemeMode(
+                    currentTheme == Brightness.dark ? ThemeMode.light : ThemeMode.dark,
+                  );
+                },
+              ),
+              // Heatmap fills remaining height below the tab bar
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SizedBox(
+                      height: constraints.maxHeight,
+                      width: double.infinity,
+                      child: StockHeatmap(
+                        useResponsiveHeight: false,
+                        height: constraints.maxHeight,
+                        minHeight: 0,
+                        maxHeight: constraints.maxHeight,
+                        showHeader: false,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          // Watchlist sidebar overlay
+          if (_isWatchlistOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _toggleWatchlist,
+                child: Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: Row(
+                    children: [
+                      Expanded(child: Container()),
+                      GestureDetector(
+                        onTap: () {},
+                        child: WatchlistSidebar(
+                          isDarkMode: isDarkMode,
+                          onClose: _toggleWatchlist,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+        ),
       ),
     );
   }
+
+  // No custom sidebar builder needed; using shared WatchlistSidebar for consistency
 }
