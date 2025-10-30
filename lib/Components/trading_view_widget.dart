@@ -67,13 +67,37 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
       _webViewController!.setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (request) {
-            debugPrint('Navigation request: ${request.url}');
-            // Allow TradingView scripts to load, block other external navigation
-            if (request.url.startsWith('https://s3.tradingview.com') ||
-                request.url.startsWith('https://www.tradingview.com')) {
+            debugPrint('Navigation request: ${request.url} | isMainFrame=${request.isMainFrame}');
+            // Allow all subresource requests (scripts, iframes) for widget functionality
+            if (request.isMainFrame == false) {
               return NavigationDecision.navigate;
             }
-            // Block external navigation to prevent leaving the app
+            final url = request.url;
+            final lowerUrl = url.toLowerCase();
+            // Allow initial data loads or blank navigations
+            if (lowerUrl.startsWith('data:') || lowerUrl == 'about:blank') {
+              return NavigationDecision.navigate;
+            }
+            // If navigating to TradingView hosts, block only known site pages; allow widget/CDN
+            final isTvHost = lowerUrl.contains('s3.tradingview.com') ||
+                lowerUrl.contains('tradingview-widget.com') ||
+                lowerUrl.contains('tradingview.com');
+            if (isTvHost) {
+              final isSitePage = lowerUrl.contains('/symbols/') ||
+                  lowerUrl.contains('/chart/') ||
+                  lowerUrl.contains('/screener/') ||
+                  lowerUrl.contains('/markets/') ||
+                  lowerUrl.contains('/ideas/') ||
+                  lowerUrl.contains('/publish/');
+              if (isSitePage || lowerUrl.contains('www.tradingview.com')) {
+                debugPrint('Blocked TradingView site navigation: $url');
+                return NavigationDecision.prevent;
+              }
+              // Allow widget/CDN navigations
+              return NavigationDecision.navigate;
+            }
+            // Block all other main-frame external navigations
+            debugPrint('Blocked main-frame navigation to: ${request.url}');
             return NavigationDecision.prevent;
           },
           onPageStarted: (url) {
@@ -82,6 +106,8 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
           onPageFinished: (url) {
             debugPrint('Page finished loading: $url');
             _onPageFinished();
+           
+            
           },
           onWebResourceError: (error) {
             debugPrint('WebView resource error: ${error.description}, URL: ${error.url}');
