@@ -132,8 +132,8 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Bottom Row: Tappable placeholder for Stock Heatmap → navigates to full screen
-            _buildHeatmapLauncher(context),
+            // Bottom Section: Heatmap/Cross Rates hub
+            _buildHeatmapHub(context),
           ],
         ),
       ),
@@ -167,8 +167,8 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Bottom Row: Tappable placeholder for Stock Heatmap → navigates to full screen
-            _buildHeatmapLauncher(context),
+            // Bottom Section: Heatmap/Cross Rates hub
+            _buildHeatmapHub(context),
           ],
         ),
       ),
@@ -195,45 +195,136 @@ class _MainScreenState extends State<MainScreen> {
     return 3;
   }
 
-  Widget _buildHeatmapLauncher(BuildContext context) {
+  Widget _buildHeatmapHub(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const StockHeatmapFullScreenPage(),
+    final cardColor = isDark ? const Color(0xFF151718) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
+    final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+    final subTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final accent = isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+
+    Widget buildTile({
+      required IconData icon,
+      required String title,
+      required String subtitle,
+      required VoidCallback onTap,
+    }) {
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            height: 150,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, size: 20, color: accent),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                          letterSpacing: 0.15,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.3,
+                          color: subTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: subTextColor),
+              ],
+            ),
           ),
-        );
-      },
-      child: Container(
-        height: 400,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-          border: Border.all(
-            color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
         ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            Icon(Icons.grid_view_rounded, size: 18, color: isDark ? Colors.white : Colors.black),
-            const SizedBox(width: 8),
-            Text(
-              'Open Stock Heatmap',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : Colors.black,
-              ),
+            buildTile(
+              icon: Icons.grid_view_rounded,
+              title: 'Stock Heatmap',
+              subtitle: 'Market-wide performance by sector and cap',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const StockHeatmapFullScreenPage()),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
+            buildTile(
+              icon: Icons.leaderboard_rounded,
+              title: 'ETF Heatmap',
+              subtitle: 'Top ETFs grouped by theme and region',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const EtfHeatmapFullScreenPage()),
+                );
+              },
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            buildTile(
+              icon: Icons.currency_bitcoin_rounded,
+              title: 'Crypto Heatmap',
+              subtitle: 'Track crypto market leaders and laggards',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CryptoHeatmapFullScreenPage()),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
+            buildTile(
+              icon: Icons.currency_exchange_rounded,
+              title: 'Forex Cross Rates',
+              subtitle: 'Major currency pairs and cross rates',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ForexCrossRatesFullScreenPage()),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
     );
   }
 
