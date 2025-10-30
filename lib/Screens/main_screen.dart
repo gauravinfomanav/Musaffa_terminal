@@ -108,7 +108,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildVerticalLayout(EdgeInsets padding) {
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       child: Padding(
         padding: padding,
         child: Column(
@@ -143,7 +143,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildHorizontalLayout(EdgeInsets padding, double screenWidth) {
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       child: Padding(
         padding: padding,
         child: Column(
