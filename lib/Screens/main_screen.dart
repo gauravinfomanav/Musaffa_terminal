@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
@@ -201,21 +202,23 @@ class _MainScreenState extends State<MainScreen> {
     final borderColor = isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
     final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
     final subTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final accent = isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+    // Unified accent matching app neutrals (same for all tiles)
+    final unifiedAccent = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    // Keep tiles sized by content; just use comfortable padding
 
     Widget buildTile({
       required IconData icon,
       required String title,
       required String subtitle,
       required VoidCallback onTap,
+      required Color accentColor,
     }) {
       return Expanded(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: Container(
-            height: 150,
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(12),
@@ -227,11 +230,11 @@ class _MainScreenState extends State<MainScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: accent.withOpacity(0.12),
+                    color: accentColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, size: 20, color: accent),
+                  child: Icon(icon, size: 20, color: accentColor),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -242,8 +245,9 @@ class _MainScreenState extends State<MainScreen> {
                       Text(
                         title,
                         style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
                           fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: textColor,
                           letterSpacing: 0.15,
                         ),
@@ -254,7 +258,9 @@ class _MainScreenState extends State<MainScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
                           fontSize: 12,
+                          fontWeight: FontWeight.w400,
                           height: 1.3,
                           color: subTextColor,
                         ),
@@ -276,25 +282,27 @@ class _MainScreenState extends State<MainScreen> {
         Row(
           children: [
             buildTile(
-              icon: Icons.grid_view_rounded,
-              title: 'Stock Heatmap',
-              subtitle: 'Market-wide performance by sector and cap',
+              icon: CupertinoIcons.chart_bar_alt_fill,
+              title: 'Stock Market Heatmap',
+              subtitle: 'Explore live market breadth across sectors and market caps with interactive zoom and tooltips for each company.',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const StockHeatmapFullScreenPage()),
                 );
               },
+              accentColor: unifiedAccent,
             ),
             const SizedBox(width: 12),
             buildTile(
-              icon: Icons.leaderboard_rounded,
-              title: 'ETF Heatmap',
-              subtitle: 'Top ETFs grouped by theme and region',
+              icon: CupertinoIcons.chart_pie_fill,
+              title: 'ETF Market Heatmap',
+              subtitle: 'View top ETFs grouped by asset class and theme. Quickly spot flows and performance leaders across US-listed funds.',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const EtfHeatmapFullScreenPage()),
                 );
               },
+              accentColor: unifiedAccent,
             ),
           ],
         ),
@@ -302,25 +310,27 @@ class _MainScreenState extends State<MainScreen> {
         Row(
           children: [
             buildTile(
-              icon: Icons.currency_bitcoin_rounded,
-              title: 'Crypto Heatmap',
-              subtitle: 'Track crypto market leaders and laggards',
+              icon: CupertinoIcons.bitcoin_circle_fill,
+              title: 'Crypto Market Map',
+              subtitle: 'Monitor the digital assets universe by market cap and weekly performance. Drill into leaders and emerging movers.',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CryptoHeatmapFullScreenPage()),
                 );
               },
+              accentColor: unifiedAccent,
             ),
             const SizedBox(width: 12),
             buildTile(
-              icon: Icons.currency_exchange_rounded,
-              title: 'Forex Cross Rates',
-              subtitle: 'Major currency pairs and cross rates',
+              icon: CupertinoIcons.arrow_2_circlepath,
+              title: 'Forex Cross‑Rates Heatmap',
+              subtitle: 'Compare strength across major FX pairs and crosses at a glance with a theme-aware, full‑width heatmap.',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ForexCrossRatesFullScreenPage()),
                 );
               },
+              accentColor: unifiedAccent,
             ),
           ],
         ),
