@@ -10,6 +10,7 @@ import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
+import 'package:musaffa_terminal/Controllers/research_notes_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
@@ -32,9 +33,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late FinancialFundamentalsController financialFundamentalsController;
   late TradingViewController tradingViewController;
   late WatchlistController watchlistController;
+  late ResearchNotesController researchNotesController;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
   bool _isWatchlistOpen = false;
   bool _isInWatchlist = false;
+  bool _isNotesPanelOpen = false;
 
   @override
   void initState() {
@@ -44,6 +47,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     financialFundamentalsController = FinancialFundamentalsController();
     tradingViewController = TradingViewController();
     watchlistController = Get.put(WatchlistController());
+    researchNotesController = Get.put(ResearchNotesController());
     
     // Listen to watchlist changes to update button state
     watchlistController.watchlistStocks.listen((_) {
@@ -55,7 +59,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.fetchStockDetails(widget.ticker.symbol ?? widget.ticker.ticker ?? '');
+      final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+      controller.fetchStockDetails(ticker);
+      researchNotesController.fetchNotes(ticker);
     });
   }
 
@@ -65,6 +71,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     financialFundamentalsController.dispose();
     tradingViewController.dispose();
     super.dispose();
+  }
+
+  void _toggleNotesPanel() {
+    setState(() {
+      _isNotesPanelOpen = !_isNotesPanelOpen;
+      // Refresh notes when opening panel
+      if (_isNotesPanelOpen) {
+        final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+        researchNotesController.fetchNotes(ticker);
+      }
+    });
   }
 
   void _toggleWatchlist() {
@@ -175,75 +192,125 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               // Action Buttons
               Container(
                 margin: const EdgeInsets.only(left: 12,right: 12,top: 8,bottom: 2),
-                child: Row(
+                child: Column(
                   children: [
-                    OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedTabIndex = 0;
-                        });
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                        side: BorderSide(
-                          color: _selectedTabIndex == 0 
-                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                              : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                          width: _selectedTabIndex == 0 ? 2 : 1,
+                    Row(
+                      children: [
+                        OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedTabIndex = 0;
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                            side: BorderSide(
+                              color: _selectedTabIndex == 0 
+                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                                  : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                              width: _selectedTabIndex == 0 ? 2 : 1,
+                            ),
+                            backgroundColor: _selectedTabIndex == 0 
+                                ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
+                                : Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          child: Text(
+                            'Overview',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: Constants.FONT_DEFAULT_NEW,
+                              color: _selectedTabIndex == 0 
+                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                                  : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                            ),
+                          ),
                         ),
-                        backgroundColor: _selectedTabIndex == 0 
-                            ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
-                            : Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedTabIndex = 1;
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                            side: BorderSide(
+                              color: _selectedTabIndex == 1 
+                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                                  : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                              width: _selectedTabIndex == 1 ? 2 : 1,
+                            ),
+                            backgroundColor: _selectedTabIndex == 1 
+                                ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
+                                : Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          child: Text(
+                            'Financial',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: Constants.FONT_DEFAULT_NEW,
+                              color: _selectedTabIndex == 1 
+                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                                  : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE)),
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        'Overview',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: _selectedTabIndex == 0 
-                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                              : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                        ),
-                      ),
+                        const Spacer(),
+                        Obx(() {
+                          final hasNotes = researchNotesController.hasNotes;
+                          return OutlinedButton(
+                            onPressed: () {
+                              if (!hasNotes) {
+                                // If no notes, open dialog directly
+                                _showAddNoteDialog(isDarkMode);
+                              } else {
+                                // If notes exist, toggle panel
+                                _toggleNotesPanel();
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                              side: BorderSide(
+                                color: _isNotesPanelOpen 
+                                    ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                                    : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                                width: _isNotesPanelOpen ? 2 : 1,
+                              ),
+                              backgroundColor: _isNotesPanelOpen 
+                                  ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
+                                  : Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            child: Text(
+                              hasNotes ? 'View Notes' : 'Add Note',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                                color: _isNotesPanelOpen 
+                                    ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
+                                    : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedTabIndex = 1;
-                        });
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                        side: BorderSide(
-                          color: _selectedTabIndex == 1 
-                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                              : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                          width: _selectedTabIndex == 1 ? 2 : 1,
-                        ),
-                        backgroundColor: _selectedTabIndex == 1 
-                            ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
-                            : Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                      child: Text(
-                        'Financial',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: _selectedTabIndex == 1 
-                              ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                              : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE)),
-                        ),
-                      ),
-                    ),
+                    // Notes Panel
+                    if (_isNotesPanelOpen) ...[
+                      const SizedBox(height: 8),
+                      _buildNotesPanel(isDarkMode),
+                    ],
                   ],
                 ),
               ),
@@ -991,6 +1058,357 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
       currency: widget.ticker.currency ?? 'USD',
     );
+  }
+
+  Widget _buildNotesPanel(bool isDarkMode) {
+    return Obx(() {
+      if (researchNotesController.isLoading.value) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              width: 1,
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        child: researchNotesController.hasNotes
+            ? _buildNotesList(isDarkMode)
+            : _buildAddNoteForm(isDarkMode),
+      );
+    });
+  }
+
+  Widget _buildNotesList(bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Research Notes',
+              style: DashboardTextStyles.headerTitle.copyWith(fontSize: 14),
+            ),
+            TextButton(
+              onPressed: () => _showAddNoteDialog(isDarkMode),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+              child: Text(
+                'Add Note',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  color: const Color(0xFF81AACE),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Obx(() {
+          if (researchNotesController.notes.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'No notes found',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  fontSize: 11,
+                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                ),
+              ),
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: researchNotesController.notes.map((note) => Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFF505050) : const Color(0xFFD1D5DB),
+                  width: 0.5,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      note.text,
+                      style: DashboardTextStyles.tickerSymbol.copyWith(
+                        fontSize: 11,
+                      ),
+                      maxLines: null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatDate(note.createdAt),
+                    style: DashboardTextStyles.columnHeader.copyWith(
+                      fontSize: 10,
+                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            )).toList(),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildAddNoteForm(bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'No Research Notes',
+          style: DashboardTextStyles.headerTitle.copyWith(fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Click "Add Note" to create your first research note for this ticker.',
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            fontSize: 11,
+            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: () => _showAddNoteDialog(isDarkMode),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+            side: const BorderSide(
+              color: Color(0xFF81AACE),
+            ),
+            backgroundColor: const Color(0xFF81AACE).withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          child: Text(
+            'Add Note',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: const Color(0xFF81AACE),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAddNoteDialog(bool isDarkMode) {
+    final TextEditingController noteController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            width: 1,
+          ),
+        ),
+        child: Container(
+          width: 500,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Add Research Note',
+                      style: DashboardTextStyles.headerTitle.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 24,
+                        minHeight: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: noteController,
+                maxLines: 6,
+                minLines: 4,
+                style: DashboardTextStyles.tickerSymbol.copyWith(fontSize: 12),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  hintText: 'Enter your research note...',
+                  hintStyle: TextStyle(
+                    fontSize: 12,
+                    color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? const Color(0xFF505050) : const Color(0xFFD1D5DB),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? const Color(0xFF505050) : const Color(0xFFD1D5DB),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF81AACE),
+                      width: 1.5,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      side: BorderSide(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () async {
+                      final noteText = noteController.text.trim();
+                      if (noteText.isEmpty) {
+                        _showErrorSnackBar('Please enter a note');
+                        return;
+                      }
+                      final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+                      final success = await researchNotesController.addNote(ticker, noteText);
+                      if (success) {
+                        Navigator.pop(context);
+                        _showSuccessSnackBar('Note added successfully');
+                        // Open panel if it was closed
+                        if (!_isNotesPanelOpen) {
+                          setState(() {
+                            _isNotesPanelOpen = true;
+                          });
+                        }
+                      } else {
+                        _showErrorSnackBar(researchNotesController.errorMessage.value);
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      side: const BorderSide(
+                        color: Color(0xFF81AACE),
+                      ),
+                      backgroundColor: const Color(0xFF81AACE).withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    child: Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        color: const Color(0xFF81AACE),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        return '${difference.inMinutes}m ago';
+      }
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
   
 }
