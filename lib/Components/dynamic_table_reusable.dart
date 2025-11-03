@@ -143,14 +143,17 @@ class _DynamicTableState extends State<DynamicTable> {
   List<SimpleRowModel> _enrichedRows = [];
   StreamSubscription<Map<String, dynamic>>? _priceStreamSubscription;
   int _updateCounter = 0;
+  Color? _defaultTextColor; // Store default text color to avoid context access during dispose
 
   @override
   void initState() {
     init();
     sController.addListener(() {
-      setState(() {
-        increaseShadow = sController.offset > 0.1;
-      });
+      if (mounted) {
+        setState(() {
+          increaseShadow = sController.offset > 0.1;
+        });
+      }
     });
     
     // Initialize live price services
@@ -161,6 +164,15 @@ class _DynamicTableState extends State<DynamicTable> {
     }
     
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Store default text color when widget is active
+    if (mounted) {
+      _defaultTextColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    }
   }
 
   init() {
@@ -204,12 +216,18 @@ class _DynamicTableState extends State<DynamicTable> {
     _priceStreamSubscription = _webSocketService.priceStream.listen(
       (livePrices) {
         if (mounted) {
-          setState(() {
-            _enrichedRows = _updateRowsWithLivePrices(widget.rows, livePrices);
-            _updateCounter++;
-            // Regenerate table data with updated prices
-            generateDataRows();
-          });
+          try {
+            setState(() {
+              _enrichedRows = _updateRowsWithLivePrices(widget.rows, livePrices);
+              _updateCounter++;
+              // Regenerate table data with updated prices (only if still mounted)
+              if (mounted) {
+                generateDataRows();
+              }
+            });
+          } catch (e) {
+            // Silently handle errors during widget lifecycle transitions
+          }
         }
       },
       onError: (error) {
@@ -280,10 +298,11 @@ class _DynamicTableState extends State<DynamicTable> {
 
   @override
   void dispose() {
+    // Cancel stream subscription first to prevent any further updates
+    _priceStreamSubscription?.cancel();
+    _priceStreamSubscription = null;
+    
     if (widget.enableLivePrices) {
-      // Cancel stream subscription
-      _priceStreamSubscription?.cancel();
-      
       // Remove tickers from visible list when widget is disposed
       List<String> tickers = widget.rows.map((row) => row.symbol).toList();
       _livePriceService.removeVisibleTickers(tickers);
@@ -430,6 +449,11 @@ class _DynamicTableState extends State<DynamicTable> {
   }
 
   generateDataRows() {
+    // Safety check: don't generate rows if widget is disposed
+    if (!mounted) {
+      return;
+    }
+    
     List<DataRow> dataRowLst = [];
     List<DataRow> fixedRowLst = [];
 
@@ -575,7 +599,20 @@ class _DynamicTableState extends State<DynamicTable> {
           } else {
             String cellData = fieldValue?.toString() ?? "-";
             
-            Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+            // Use stored text color or fallback to avoid context access during dispose
+            Color textColor = _defaultTextColor ?? Colors.black;
+            if (mounted) {
+              // Try to get current theme color, but use fallback if context is unavailable
+              try {
+                final themeColor = Theme.of(context).textTheme.bodyLarge?.color;
+                if (themeColor != null) {
+                  textColor = themeColor;
+                  _defaultTextColor = themeColor; // Update stored value
+                }
+              } catch (e) {
+                // Context unavailable (during dispose), use stored value
+              }
+            }
             
             // Apply special styling for change column, price column, currentPrice column, and gainLoss column
             if ((column.fieldName == 'change' || column.fieldName == 'price' || 

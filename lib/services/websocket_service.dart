@@ -20,6 +20,7 @@ class WebSocketService extends GetxService {
   Timer? _reconnectTimer;
   int _reconnectAttempts = 0;
   StreamSubscription? _messageSubscription;
+  bool _hasSubscribedAfterConnection = false;
 
   // Getters
   Map<String, LivePriceData> get livePrices => _livePrices;
@@ -46,27 +47,52 @@ class WebSocketService extends GetxService {
   void _connect() {
     try {
       _connectionStatus.value = 'connecting';
-      _channel = WebSocketChannel.connect(Uri.parse(WebSocketConfig.baseUrl));
       
-      _messageSubscription = _channel!.stream.listen(
-        _handleMessage,
-        onError: _handleError,
-        onDone: _handleDisconnection,
-      );
+      final uri = Uri.parse(WebSocketConfig.baseUrl);
+      _channel = WebSocketChannel.connect(uri);
       
+      // Mark as connected immediately when channel is created
+      // The stream will confirm actual connectivity
       _isConnected.value = true;
       _connectionStatus.value = 'connected';
       _reconnectAttempts = 0;
       
+      _hasSubscribedAfterConnection = false;
       
+      _messageSubscription = _channel!.stream.listen(
+        (message) {
+          // If we were in connecting state, confirm connection on first message
+          if (_connectionStatus.value == 'connecting') {
+            _connectionStatus.value = 'connected';
+            _isConnected.value = true;
+          }
+          
+          _handleMessage(message);
+          
+          // After first successful message, resubscribe to tickers (only once)
+          if (!_hasSubscribedAfterConnection && _subscribedTickers.isNotEmpty) {
+            _hasSubscribedAfterConnection = true;
+            subscribeToTickers(_subscribedTickers.toList());
+          }
+        },
+        onError: (error) {
+          _handleError(error);
+        },
+        onDone: () {
+          _handleDisconnection();
+        },
+        cancelOnError: false,
+      );
       
-      // Resubscribe to previously subscribed tickers
-      if (_subscribedTickers.isNotEmpty) {
-        subscribeToTickers(_subscribedTickers.toList());
-      }
+      // Also try to subscribe after a short delay if no message received yet
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (_isConnected.value && _subscribedTickers.isNotEmpty && !_hasSubscribedAfterConnection) {
+          _hasSubscribedAfterConnection = true;
+          subscribeToTickers(_subscribedTickers.toList());
+        }
+      });
       
     } catch (e) {
-      print('WebSocket connection error: $e');
       _handleError(e);
     }
   }
@@ -90,13 +116,12 @@ class WebSocketService extends GetxService {
         _updateLivePrices(response.data);
       }
     } catch (e) {
-      // Silently handle errors to avoid widget lifecycle issues
+      // Silently handle message parsing errors
     }
   }
 
   /// Handle WebSocket errors
   void _handleError(dynamic error) {
-    print('WebSocket error: $error');
     _isConnected.value = false;
     _connectionStatus.value = 'error';
     _scheduleReconnect();
@@ -104,9 +129,9 @@ class WebSocketService extends GetxService {
 
   /// Handle WebSocket disconnection
   void _handleDisconnection() {
-    print('WebSocket disconnected');
     _isConnected.value = false;
     _connectionStatus.value = 'disconnected';
+    _hasSubscribedAfterConnection = false; // Reset flag for next connection
     _scheduleReconnect();
   }
 
@@ -116,26 +141,29 @@ class WebSocketService extends GetxService {
       _reconnectAttempts++;
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(WebSocketConfig.reconnectInterval, () {
-       
         _connect();
       });
     } else {
-      print('Max reconnection attempts reached');
       _connectionStatus.value = 'failed';
     }
   }
 
   /// Subscribe to live prices for specific tickers
   void subscribeToTickers(List<String> tickers) {
-    if (tickers.isEmpty) return;
+    if (tickers.isEmpty) {
+      return;
+    }
     
-    // Add to subscribed list
+    // Add to subscribed list (use Set to avoid duplicates)
     _subscribedTickers.addAll(tickers);
     
-    if (_isConnected.value) {
-      _sendSubscriptionMessage(tickers);
-    } else {
-      print('WebSocket not connected, will subscribe when connected');
+    // Try to send subscription if channel exists (even if not fully connected yet)
+    if (_channel != null) {
+      try {
+        _sendSubscriptionMessage(tickers);
+      } catch (e) {
+        // Keep tickers in subscribed list, will retry on next connection
+      }
     }
   }
 
@@ -151,13 +179,12 @@ class WebSocketService extends GetxService {
 
   /// Send subscription message to server
   void _sendSubscriptionMessage(List<String> tickers) {
-    if (_channel != null && _isConnected.value) {
+    if (_channel != null) {
       try {
         final message = jsonEncode(tickers);
         _channel!.sink.add(message);
-      
       } catch (e) {
-        print('Error sending subscription message: $e');
+        // Don't throw, just log - connection might recover
       }
     }
   }
