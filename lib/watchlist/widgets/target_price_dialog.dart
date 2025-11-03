@@ -25,6 +25,7 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
   String _selectedAlertType = 'above';
   double? _currentPrice;
   bool _isLoadingPrice = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -197,6 +198,14 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
             TextField(
               controller: _priceController,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (value) {
+                // Clear error when user types
+                if (_errorMessage != null) {
+                  setState(() {
+                    _errorMessage = null;
+                  });
+                }
+              },
               style: DashboardTextStyles.dataCell.copyWith(
                 fontSize: 14,
                 color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
@@ -252,6 +261,41 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
                 ),
               ),
             ),
+            
+            // Error message display
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50.withOpacity(isDarkMode ? 0.1 : 1.0),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: Colors.red.shade400,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 16,
+                      color: Colors.red.shade400,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: DashboardTextStyles.tickerSymbol.copyWith(
+                          fontSize: 12,
+                          color: Colors.red.shade400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             
             const SizedBox(height: 20),
             
@@ -347,7 +391,10 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
     final isSelected = _selectedAlertType == value;
     
     return GestureDetector(
-      onTap: () => setState(() => _selectedAlertType = value),
+      onTap: () => setState(() {
+        _selectedAlertType = value;
+        _errorMessage = null; // Clear error when changing alert type
+      }),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
@@ -380,51 +427,46 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
 
   void _saveTargetPrice() {
     final priceText = _priceController.text.trim();
+    
+    // Clear previous error
+    setState(() {
+      _errorMessage = null;
+    });
+    
     if (priceText.isEmpty) {
-      _showErrorSnackBar('Please enter a target price');
+      setState(() {
+        _errorMessage = 'Please enter a target price';
+      });
       return;
     }
 
     final price = double.tryParse(priceText);
     if (price == null || price <= 0) {
-      _showErrorSnackBar('Please enter a valid target price');
+      setState(() {
+        _errorMessage = 'Please enter a valid target price';
+      });
       return;
     }
 
-    // Temporarily allow same price as current price
-    // TODO: Re-enable validation later
-    // if (_currentPrice != null) {
-    //   if (_selectedAlertType == 'above' && price <= _currentPrice!) {
-    //     _showErrorSnackBar('Target price must be higher than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Above Target" alerts');
-    //     return;
-    //   }
-    //   if (_selectedAlertType == 'below' && price >= _currentPrice!) {
-    //     _showErrorSnackBar('Target price must be lower than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Below Target" alerts');
-    //     return;
-    //   }
-    // }
+    // Validate that target price is different from current price
+    if (_currentPrice != null) {
+      if (_selectedAlertType == 'above' && price <= _currentPrice!) {
+        setState(() {
+          _errorMessage = 'Target price must be higher than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Above Target" alerts';
+        });
+        return;
+      }
+      if (_selectedAlertType == 'below' && price >= _currentPrice!) {
+        setState(() {
+          _errorMessage = 'Target price must be lower than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Below Target" alerts';
+        });
+        return;
+      }
+    }
 
+    // Validation passed, close dialog and save
     Navigator.of(context).pop();
     widget.onSave(price, _selectedAlertType);
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-        backgroundColor: Colors.red.shade600,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
-  }
 }
