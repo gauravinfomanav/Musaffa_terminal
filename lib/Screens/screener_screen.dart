@@ -7,8 +7,10 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/Controllers/filter_controller.dart';
+import 'package:musaffa_terminal/Controllers/screener_strategy_controller.dart';
 import 'package:musaffa_terminal/models/filter_config.dart';
 import 'package:musaffa_terminal/models/results_tab_config.dart';
+import 'package:musaffa_terminal/models/screener_strategy.dart';
 import 'package:musaffa_terminal/services/filter_loader.dart';
 import 'package:musaffa_terminal/services/results_tabs_loader.dart';
 import 'package:musaffa_terminal/widgets/filter_widget_builder.dart';
@@ -25,6 +27,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   late TabController _tabController;
   String _selectedCategory = "Descriptive";
   late FilterController filterController;
+  late ScreenerStrategyController strategyController;
   late ScrollController _scrollController;
   
   // GlobalKey to maintain scroll position
@@ -72,8 +75,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     super.initState();
     print('🚀 [ScreenerScreen] initState called');
     
-    // Initialize FilterController
+    // Initialize Controllers
     filterController = Get.put(FilterController());
+    strategyController = Get.put(ScreenerStrategyController());
     
     // Initialize ScrollController with listener to track position
     _scrollController = ScrollController();
@@ -151,11 +155,17 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
 
   void _applyFilters() {
     // Convert _filterValues to the format expected by FilterController
+    // FilterController expects Map<String, dynamic> where arrays are List<String>
     Map<String, dynamic> filters = {};
     
     _filterValues.forEach((key, value) {
-      if (value != null && value != "any") {
-        filters[key] = value;
+      if (value != null && value != "any" && value.isNotEmpty) {
+        // If value contains comma, it's a comma-separated list - convert to array
+        if (value.contains(',')) {
+          filters[key] = value.split(',').map((e) => e.trim()).toList();
+        } else {
+          filters[key] = value;
+        }
       }
     });
     
@@ -188,6 +198,185 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       _filterValues.clear();
     });
     _applyFilters();
+  }
+
+  /// Apply a saved strategy by loading its filters
+  Future<void> applyStrategy(ScreenerStrategy strategy) async {
+    setState(() {
+      // Clear current filters
+      _filterValues.clear();
+      
+      // Map API filters to _filterValues
+      // API returns filters as Map<String, dynamic>
+      // _filterValues stores Map<String, String?>
+      strategy.filters.forEach((filterId, filterValue) {
+        if (filterValue != null) {
+          if (filterValue is List) {
+            // For array filters (e.g., exchange: ["NYSE", "NASDAQ"]), join with comma
+            _filterValues[filterId] = filterValue.map((e) => e.toString()).join(',');
+          } else {
+            // For string/number filters, convert to string
+            _filterValues[filterId] = filterValue.toString();
+          }
+        }
+      });
+      
+      // Apply the filters
+      _applyFilters();
+    });
+  }
+
+  /// Save current filters as a strategy
+  Future<void> _saveCurrentFiltersAsStrategy() async {
+    // Get current filters and convert to API format
+    // _filterValues stores String? values (some may be comma-separated arrays)
+    // API expects Map<String, dynamic> where arrays are List<String>
+    final currentFilters = <String, dynamic>{};
+    _filterValues.forEach((key, value) {
+      if (value != null && value != "any" && value.isNotEmpty) {
+        // If value contains comma, it's a comma-separated list - convert to array
+        if (value.contains(',')) {
+          currentFilters[key] = value.split(',').map((e) => e.trim()).toList();
+        } else {
+          currentFilters[key] = value;
+        }
+      }
+    });
+
+    // Show dialog to enter strategy name
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => _SaveStrategyDialog(),
+    );
+
+    if (result != null && result['name'] != null && result['name']!.isNotEmpty) {
+      final strategy = await strategyController.saveStrategy(
+        name: result['name']!,
+        description: result['description'],
+        filters: currentFilters,
+        sortBy: null, // You can add sortBy tracking if needed
+        isDefault: false,
+      );
+
+      if (strategy != null) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Strategy "${strategy.name}" saved successfully',
+              style: DashboardTextStyles.tickerSymbol.copyWith(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF374151)
+                : const Color(0xFF6B7280),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              strategyController.errorMessage.value.isNotEmpty
+                  ? strategyController.errorMessage.value
+                  : 'Failed to save strategy',
+              style: DashboardTextStyles.tickerSymbol.copyWith(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+            backgroundColor: Colors.red[600],
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Load and show strategies list
+  void _showStrategiesList() async {
+    // Refresh strategies
+    await strategyController.fetchStrategies();
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1A1A1A)
+          : const Color(0xFFF8F9FA),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) => _StrategiesListSheet(
+        onStrategySelected: (strategy) {
+          Navigator.pop(context);
+          applyStrategy(strategy);
+        },
+        onStrategyDelete: (strategy) async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1A1A1A)
+                  : const Color(0xFFF8F9FA),
+              title: Text(
+                'Delete Strategy',
+                style: DashboardTextStyles.headerTitle.copyWith(
+                  fontSize: 16,
+                ),
+              ),
+              content: Text(
+                'Are you sure you want to delete "${strategy.name}"?',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  fontSize: 14,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(
+                    'Cancel',
+                    style: DashboardTextStyles.tickerSymbol,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(
+                    'Delete',
+                    style: DashboardTextStyles.tickerSymbol.copyWith(
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          if (confirmed == true) {
+            await strategyController.deleteStrategy(strategy.id);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Strategy deleted',
+                    style: DashboardTextStyles.tickerSymbol.copyWith(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF374151)
+                      : const Color(0xFF6B7280),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   @override
@@ -378,8 +567,79 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
           Row(
             children: [
               Expanded(child: _buildFilterTabs(isDarkMode)),
+              const SizedBox(width: 8),
+              // Load Strategies button (always visible)
+              GestureDetector(
+                onTap: _showStrategiesList,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bookmark_outline,
+                        size: 14,
+                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Strategies',
+                        style: DashboardTextStyles.tickerSymbol.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               if (_getTotalAppliedFiltersCount() > 0) ...[
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
+                // Save Strategy button
+                GestureDetector(
+                  onTap: _saveCurrentFiltersAsStrategy,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.save_outlined,
+                          size: 14,
+                          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Save',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Reset All button
                 GestureDetector(
                   onTap: _resetAllFilters,
                   child: Container(
@@ -1204,5 +1464,431 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   }
   
   // Removed _scrollToResults() - no longer needed
+}
+
+// Dialog for saving strategy
+class _SaveStrategyDialog extends StatefulWidget {
+  @override
+  State<_SaveStrategyDialog> createState() => _SaveStrategyDialogState();
+}
+
+class _SaveStrategyDialogState extends State<_SaveStrategyDialog> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return AlertDialog(
+      backgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      title: Row(
+        children: [
+          Text(
+            'Save Strategy',
+            style: DashboardTextStyles.headerTitle.copyWith(
+              fontSize: 18,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: Icon(
+              Icons.close,
+              size: 20,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+            onPressed: () => Navigator.pop(context),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _nameController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Strategy Name *',
+                labelStyle: DashboardTextStyles.tickerSymbol.copyWith(
+                  fontSize: 12,
+                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(
+                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(
+                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF81AACE),
+                    width: 1.5,
+                  ),
+                ),
+                filled: true,
+                fillColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+              ),
+              style: DashboardTextStyles.tickerSymbol.copyWith(
+                fontSize: 14,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Description (Optional)',
+                labelStyle: DashboardTextStyles.tickerSymbol.copyWith(
+                  fontSize: 12,
+                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(
+                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(
+                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF81AACE),
+                    width: 1.5,
+                  ),
+                ),
+                filled: true,
+                fillColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+              ),
+              style: DashboardTextStyles.tickerSymbol.copyWith(
+                fontSize: 14,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: DashboardTextStyles.tickerSymbol.copyWith(
+              fontSize: 12,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_nameController.text.trim().isNotEmpty) {
+              Navigator.pop(context, {
+                'name': _nameController.text.trim(),
+                'description': _descriptionController.text.trim(),
+              });
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF81AACE),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          child: Text(
+            'Save',
+            style: DashboardTextStyles.tickerSymbol.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Bottom sheet for strategies list
+class _StrategiesListSheet extends StatelessWidget {
+  final Function(ScreenerStrategy) onStrategySelected;
+  final Function(ScreenerStrategy) onStrategyDelete;
+
+  const _StrategiesListSheet({
+    required this.onStrategySelected,
+    required this.onStrategyDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final strategyController = Get.find<ScreenerStrategyController>();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Compact header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'STRATEGIES',
+                  style: DashboardTextStyles.headerTitle.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Content
+          Obx(() {
+            if (strategyController.isLoading.value) {
+              return Container(
+                padding: const EdgeInsets.all(32.0),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: const Color(0xFF81AACE),
+                    strokeWidth: 2,
+                  ),
+                ),
+              );
+            }
+
+            if (strategyController.strategies.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24.0),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bookmark_border,
+                        size: 32,
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No saved strategies',
+                        style: DashboardTextStyles.tickerSymbol.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Save current filters to create a strategy',
+                        style: DashboardTextStyles.tickerSymbol.copyWith(
+                          fontSize: 11,
+                          color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Flexible(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.6,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  itemCount: strategyController.strategies.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 4),
+                  itemBuilder: (context, index) {
+                    final strategy = strategyController.strategies[index];
+                    final filterCount = strategy.filters.length;
+
+                    return GestureDetector(
+                      onTap: () => onStrategySelected(strategy),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // Strategy icon/indicator
+                            Container(
+                              width: 4,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: strategy.isDefault 
+                                    ? const Color(0xFF81AACE) 
+                                    : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            
+                            // Content
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          strategy.name,
+                                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDarkMode ? Colors.white : Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                      if (strategy.isDefault)
+                                        Container(
+                                          margin: const EdgeInsets.only(left: 6),
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF81AACE),
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
+                                          child: Text(
+                                            'DEFAULT',
+                                            style: DashboardTextStyles.tickerSymbol.copyWith(
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.5,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  if (strategy.description != null && strategy.description!.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      strategy.description!,
+                                      style: DashboardTextStyles.tickerSymbol.copyWith(
+                                        fontSize: 11,
+                                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            
+                            // Filters count
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(
+                                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                '$filterCount',
+                                style: DashboardTextStyles.tickerSymbol.copyWith(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            
+                            // Delete button
+                            GestureDetector(
+                              onTap: () => onStrategyDelete(strategy),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                child: Icon(
+                                  Icons.delete_outline,
+                                  size: 16,
+                                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
 }
 
