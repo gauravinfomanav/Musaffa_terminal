@@ -6,7 +6,6 @@ import 'package:musaffa_terminal/Components/market_summary.dart';
 import 'package:musaffa_terminal/Components/market_indices.dart';
 import 'package:musaffa_terminal/Components/mini_widgets_row.dart';
 import 'package:musaffa_terminal/Components/stock_heatmap.dart';
-// import 'package:musaffa_terminal/Components/top_movers_widget.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
@@ -97,27 +96,24 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildResponsiveMainContent(BoxConstraints constraints) {
     final screenWidth = constraints.maxWidth;
-    final padding = _calculateResponsivePadding(screenWidth);
     
     if (screenWidth < 1000) {
-      return _buildVerticalLayout(padding);
+      return _buildVerticalLayout();
     } else {
-      return _buildHorizontalLayout(padding, screenWidth);
+      return _buildHorizontalLayout(screenWidth);
     }
   }
 
-  Widget _buildVerticalLayout(EdgeInsets padding) {
+  Widget _buildVerticalLayout() {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Padding(
-        padding: padding,
+        padding: LayoutConstants.screenPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mini Widgets Row (Top)
             MiniWidgetsRow(),
-            const SizedBox(height: 16),
-            // Top Row: Market Summary + Market Indices
+            const SizedBox(height: 16),            
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -132,8 +128,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // Bottom Section: Heatmap/Cross Rates hub
+            const SizedBox(height: 16),            
             _buildHeatmapHub(context),
           ],
         ),
@@ -141,18 +136,18 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildHorizontalLayout(EdgeInsets padding, double screenWidth) {
+  Widget _buildHorizontalLayout(double screenWidth) {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Padding(
-        padding: padding,
+        padding: LayoutConstants.screenPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mini Widgets Row (Top)
+            
             MiniWidgetsRow(),
             const SizedBox(height: 16),
-            // Top Row: Market Summary + Market Indices
+            
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -176,11 +171,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  EdgeInsets _calculateResponsivePadding(double screenWidth) {
-    final padding = (screenWidth * 0.01).clamp(8.0, 24.0);
-    return EdgeInsets.all(padding);
-  }
-
   int _calculateMarketSummaryFlex(double screenWidth) {
     if (screenWidth < 1200) return 2;
     if (screenWidth < 1600) return 3;
@@ -199,9 +189,8 @@ class _MainScreenState extends State<MainScreen> {
     final borderColor = isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
     final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
     final subTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    // Unified accent matching app neutrals (same for all tiles)
     final unifiedAccent = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    // Keep tiles sized by content; just use comfortable padding
+    
 
     void _open(Widget page) {
       Navigator.of(context).push(

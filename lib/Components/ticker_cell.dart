@@ -243,9 +243,8 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     String rankingStr = "";
     if (ranking != null) {
-      var map = Constants.NEW_RANKING_MAPPING;
-      if (map.containsKey(ranking))
-        rankingStr = Constants.NEW_RANKING_MAPPING[ranking] ?? "";
+      
+      
     }
 
     return Container(

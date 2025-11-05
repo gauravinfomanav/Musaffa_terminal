@@ -3,24 +3,30 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'shimmer.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 /// Widget height constants for market indices mini widgets
 class MiniWidgetsRowConstants {
-  /// Default height for mini widgets row
-  static const double defaultHeight = 180.0;
+  /// Minimum height for responsive sizing (smallest screens)
+  static const double minHeight = 200.0;
   
-  /// Minimum height for responsive sizing
-  static const double minHeight = 120.0;
+  /// Maximum height for responsive sizing (largest screens)
+  static const double maxHeight = 480.0;
   
-  /// Maximum height for responsive sizing
-  static const double maxHeight = 250.0;
+ 
+  static const double baseHeightPercentage = 0.15; 
   
-  /// Gap between individual widgets
-  static const double widgetGap = 8.0;
+  
+  static const double minHeightPercentage = 0.1; 
+  
+  
+  static const double maxHeightPercentage = 0.2; 
+  
+  
+  static const int loadingDelayMs = 100;
 }
 
 class MiniWidgetsRow extends StatefulWidget {
-  /// Height of the widget. If null, uses responsive height based on screen size.
   final double? height;
   
   const MiniWidgetsRow({
@@ -44,6 +50,9 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
 
   // --- Function to Generate Mini Widgets HTML ---
   String _generateMiniWidgetsHtml(String colorTheme) {
+    // Theme-aware background color
+    final bgColor = colorTheme == 'dark' ? '#2D2D2D' : '#FFFFFF';
+    
     return '''
     <!DOCTYPE html>
     <html lang="en">
@@ -58,7 +67,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 height: 100% !important; 
                 width: 100% !important; 
                 overflow: hidden !important; 
-                background: #FFFFFF !important; 
+                background: $bgColor !important; 
                 border: none !important; 
                 border-width: 0 !important;
                 border-style: none !important;
@@ -67,10 +76,10 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
             .widgets-container { 
                 display: flex !important; 
-                gap: 8px !important; 
+                gap: 0 !important; 
                 height: 100% !important; 
                 width: 100% !important; 
-                background: #FFFFFF !important;
+                background: $bgColor !important;
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -82,7 +91,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             .mini-widget { 
                 flex: 1 !important; 
                 height: 100% !important; 
-                background: #FFFFFF !important;
+                background: $bgColor !important;
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -91,10 +100,21 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 margin: 0 !important;
                 padding: 0 !important;
             }
+            .mini-widget:not(:last-child) {
+                margin-right: ${LayoutConstants.SCREEN_COMPONENTS_PADDING}px !important;
+                box-sizing: border-box !important;
+            }
+            .mini-widget-wrapper {
+                height: 100% !important;
+                width: 100% !important;
+                background: $bgColor !important;
+                display: flex !important;
+                align-items: center !important;
+            }
             .tradingview-widget-container { 
                 height: 100% !important; 
                 width: 100% !important; 
-                background: #FFFFFF !important; 
+                background: $bgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -104,7 +124,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             .tradingview-widget-container__widget { 
-                background: #FFFFFF !important; 
+                background: $bgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -114,7 +134,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             iframe { 
-                background: #FFFFFF !important; 
+                background: $bgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -124,7 +144,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             [class*="tradingview"] { 
-                background: #FFFFFF !important; 
+                background: $bgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -134,7 +154,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             div[style*="background"] { 
-                background: #FFFFFF !important; 
+                background: $bgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -212,6 +232,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
         <div class="widgets-container">
             <!-- US100 Widget -->
             <div class="mini-widget">
+                <div class="mini-widget-wrapper">
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
@@ -229,10 +250,12 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                     }
                     </script>
                 </div>
+                </div>
             </div>
             
             <!-- US500 Widget -->
             <div class="mini-widget">
+                <div class="mini-widget-wrapper">
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
@@ -250,10 +273,12 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                     }
                     </script>
                 </div>
+                </div>
             </div>
             
             <!-- NASDAQ Widget -->
             <div class="mini-widget">
+                <div class="mini-widget-wrapper">
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
@@ -271,10 +296,12 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                     }
                     </script>
                 </div>
+                </div>
             </div>
             
             <!-- USTEC Widget -->
             <div class="mini-widget">
+                <div class="mini-widget-wrapper">
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
@@ -291,6 +318,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                         "height": "100%"
                     }
                     </script>
+                </div>
                 </div>
             </div>
             
@@ -317,7 +345,6 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
           },
           onPageStarted: (String url) {
-          
             if (mounted) {
               setState(() {
                 _isLoading = true;
@@ -325,8 +352,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
           },
           onPageFinished: (String url) {
-           
-            Future.delayed(const Duration(milliseconds: 500), () {
+            Future.delayed(Duration(milliseconds: MiniWidgetsRowConstants.loadingDelayMs), () {
               if (mounted) {
                 setState(() {
                   _isLoading = false;
@@ -340,8 +366,9 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
               setState(() {
                 _isLoading = false;
               });
+              // Log error for debugging (can be enhanced with error UI)
+              debugPrint('MiniWidgetsRow WebView error: ${error.description}');
             }
-           
           },
           onNavigationRequest: (NavigationRequest request) {
             // Allow initial data URL load and TradingView URLs
@@ -376,10 +403,8 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
 
   void _loadWebViewContent() {
     final Brightness currentBrightness = Theme.of(context).brightness;
-   
 
     if (currentBrightness != _currentLoadedBrightness) {
-   
       setState(() {
         _isLoading = true;
       });
@@ -400,11 +425,9 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
           setState(() {
             _isLoading = false;
           });
+          debugPrint('MiniWidgetsRow load error: $error');
         }
-     
       });
-    } else {
-     
     }
   }
 
@@ -423,16 +446,37 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
       );
     }
     
-    // Responsive height based on screen width
-    final screenWidth = MediaQuery.of(context).size.width;
+    // Truly responsive height based on screen dimensions
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
     
+    // Calculate height as percentage of screen height for true responsiveness
+    double heightPercentage = MiniWidgetsRowConstants.baseHeightPercentage;
+    
+    // Adjust percentage based on screen width for better proportions
     if (screenWidth < 800) {
-      return MiniWidgetsRowConstants.minHeight; // Smaller screens
+      // Small screens: use slightly smaller percentage
+      heightPercentage = MiniWidgetsRowConstants.minHeightPercentage;
     } else if (screenWidth < 1400) {
-      return MiniWidgetsRowConstants.defaultHeight; // Medium screens
+      // Medium screens: use base percentage
+      heightPercentage = MiniWidgetsRowConstants.baseHeightPercentage;
+    } else if (screenWidth < 2000) {
+      // Large screens: use slightly larger percentage
+      heightPercentage = MiniWidgetsRowConstants.baseHeightPercentage * 1.2;
     } else {
-      return 200.0; // Large screens - slightly taller
+      // Extra large screens: use maximum percentage
+      heightPercentage = MiniWidgetsRowConstants.maxHeightPercentage;
     }
+    
+    // Calculate responsive height
+    double calculatedHeight = screenHeight * heightPercentage;
+    
+    // Clamp to min/max constraints
+    return calculatedHeight.clamp(
+      MiniWidgetsRowConstants.minHeight,
+      MiniWidgetsRowConstants.maxHeight,
+    );
   }
 
   @override
@@ -440,7 +484,9 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDarkMode ? const Color(0xFF404040) : Colors.white;
+    final borderColor = isDarkMode 
+        ? const Color(0xFF404040) 
+        : const Color(0xFFE5E7EB); // Use subtle border for light mode
     final backgroundColor = isDarkMode ? const Color(0xFF2D2D2D) : Colors.white;
     final widgetHeight = _calculateHeight(context);
     
@@ -459,7 +505,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                     children: List.generate(4, (index) => Expanded(
                       child: Container(
                         margin: EdgeInsets.only(
-                          right: index < 3 ? MiniWidgetsRowConstants.widgetGap : 0,
+                          right: index < 3 ? LayoutConstants.SCREEN_COMPONENTS_PADDING : 0,
                         ),
                         child: ShimmerWidgets.box(
                           width: double.infinity,
