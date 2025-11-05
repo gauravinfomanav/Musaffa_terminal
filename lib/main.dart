@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
       ),
       themeMode: ThemeMode.light, // Set default to light mode
-      home: MainScreen(),
+      home: const MainScreen(),
       initialBinding: AppBinding(),
     );
   }

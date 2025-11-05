@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
 import 'package:musaffa_terminal/Components/market_indices.dart';
@@ -17,13 +18,43 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
   bool _isWatchlistOpen = false;
+  bool _showSplash = true;
+  late AnimationController _splashController;
+  late Animation<double> _splashFadeAnimation;
 
   @override
   void initState() {
     super.initState();
     Get.put(WatchlistController());
+    _splashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _splashFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _splashController, curve: Curves.easeOut),
+    );
+    _hideSplash();
+  }
+
+  @override
+  void dispose() {
+    _splashController.dispose();
+    super.dispose();
+  }
+
+  void _hideSplash() async {
+    await Future.delayed(const Duration(seconds: 3));
+    if (mounted) {
+      _splashController.forward().then((_) {
+        if (mounted) {
+          setState(() {
+            _showSplash = false;
+          });
+        }
+      });
+    }
   }
 
   void _toggleWatchlist() {
@@ -48,6 +79,7 @@ class _MainScreenState extends State<MainScreen> {
         builder: (context, constraints) {
           return Stack(
             children: [
+              // Main content
               Column(
                 children: [
                   HomeTabBar(
@@ -87,10 +119,35 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                 ),
+              // Splash overlay
+              if (_showSplash)
+                Positioned.fill(
+                  child: FadeTransition(
+                    opacity: _splashFadeAnimation,
+                    child: Container(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? const Color(0xFF0F0F0F)
+                          : const Color(0xFFFAFAFA),
+                      child: Center(
+                        child: _buildSplashAnimation(),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSplashAnimation() {
+    return Lottie.asset(
+      'resources/Sandy Loading.json',
+      width: 250,
+      height: 250,
+      fit: BoxFit.contain,
+      repeat: true,
     );
   }
 
@@ -113,7 +170,7 @@ class _MainScreenState extends State<MainScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             MiniWidgetsRow(),
-            const SizedBox(height: 16),            
+            const SizedBox(height: 12),            
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -121,7 +178,7 @@ class _MainScreenState extends State<MainScreen> {
                   flex: 2,
                   child: MarketSummaryDynamicTable(),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: _calculateWidgetSpacing(MediaQuery.of(context).size.width)),
                 Expanded(
                   flex: 1,
                   child: DynamicHeightTradingView(),
@@ -155,7 +212,7 @@ class _MainScreenState extends State<MainScreen> {
                   flex: _calculateMarketSummaryFlex(screenWidth),
                   child: MarketSummaryDynamicTable(),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: _calculateWidgetSpacing(screenWidth)),
                 Expanded(
                   flex: _calculateMarketIndicesFlex(screenWidth),
                   child: DynamicHeightTradingView(),
@@ -181,6 +238,14 @@ class _MainScreenState extends State<MainScreen> {
   int _calculateMarketIndicesFlex(double screenWidth) {
     // Always returns 3 for consistent market indices width
     return 3;
+  }
+
+  /// Calculates responsive spacing between main content widgets
+  double _calculateWidgetSpacing(double screenWidth) {
+    if (screenWidth < 1200) return LayoutConstants.SCREEN_COMPONENTS_PADDING; // 12.0
+    if (screenWidth < 1600) return 16.0;
+    if (screenWidth < 2000) return 20.0;
+    return LayoutConstants.SCREEN_COMPONENTS_PADDING * 2; // 24.0 for extra large
   }
 
   Widget _buildHeatmapHub(BuildContext context) {
