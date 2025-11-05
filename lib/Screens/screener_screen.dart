@@ -164,7 +164,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         if (value.contains(',')) {
           filters[key] = value.split(',').map((e) => e.trim()).toList();
         } else {
-          filters[key] = value;
+        filters[key] = value;
         }
       }
     });

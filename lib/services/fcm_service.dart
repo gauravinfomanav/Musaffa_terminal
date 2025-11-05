@@ -163,13 +163,8 @@ class FCMService {
         _fcmToken = 'dev-fcm-token-${DateTime.now().millisecondsSinceEpoch}';
         print('🔑 Development FCM Token: $_fcmToken');
         
-        try {
-          await _registerTokenWithBackend();
-          print('✅ Development token registered successfully');
-          print('💡 Note: This is a development token - real notifications may not work');
-        } catch (regError) {
-          print('⚠️  Development token registration failed: $regError');
-        }
+        await _registerTokenWithBackend(); // Non-blocking - won't throw
+        print('💡 Note: This is a development token - real notifications may not work');
         return; // Exit early with fallback
       }
       
@@ -193,12 +188,7 @@ class FCMService {
       _fcmToken = 'dev-fcm-token-${DateTime.now().millisecondsSinceEpoch}';
       print('🔑 Development FCM Token: $_fcmToken');
       
-      try {
-        await _registerTokenWithBackend();
-        print('✅ Development token registered successfully');
-      } catch (regError) {
-        print('⚠️  Development token registration failed: $regError');
-      }
+      await _registerTokenWithBackend(); 
     }
   }
 
@@ -329,11 +319,16 @@ class FCMService {
         print('✅ FCM token registered with backend successfully');
         print('📊 Backend response: ${response.data}');
       } else {
-        throw Exception('Failed to register FCM token: ${response.status} - ${response.errorMessage ?? "Unknown error"}');
+        // Don't throw - just log the error. FCM works even if backend registration fails.
+        // Backend endpoint might not be implemented (501) or temporarily unavailable.
+        print('⚠️  Backend registration failed: ${response.status} - ${response.errorMessage ?? "Unknown error"}');
+        print('💡 FCM notifications will still work directly from Firebase. Backend registration is optional.');
       }
     } catch (e) {
-      print('❌ Error registering FCM token: $e');
-      rethrow;
+      // Don't throw - just log the error. App should continue working.
+      print('⚠️  Error registering FCM token with backend: $e');
+      print('💡 FCM is working correctly. Notifications from Firebase console will work.');
+      print('💡 Backend registration failed but this is non-critical.');
     }
   }
 

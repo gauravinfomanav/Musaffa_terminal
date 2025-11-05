@@ -88,8 +88,8 @@ class WebSocketService extends GetxService {
       Future.delayed(const Duration(milliseconds: 1000), () {
         if (_isConnected.value && _subscribedTickers.isNotEmpty && !_hasSubscribedAfterConnection) {
           _hasSubscribedAfterConnection = true;
-          subscribeToTickers(_subscribedTickers.toList());
-        }
+        subscribeToTickers(_subscribedTickers.toList());
+      }
       });
       
     } catch (e) {
@@ -160,7 +160,7 @@ class WebSocketService extends GetxService {
     // Try to send subscription if channel exists (even if not fully connected yet)
     if (_channel != null) {
       try {
-        _sendSubscriptionMessage(tickers);
+      _sendSubscriptionMessage(tickers);
       } catch (e) {
         // Keep tickers in subscribed list, will retry on next connection
       }

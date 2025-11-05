@@ -188,11 +188,8 @@ class _MainScreenState extends State<MainScreen> {
     return 5;
   }
 
-
   int _calculateMarketIndicesFlex(double screenWidth) {
-    if (screenWidth < 1200) return 3;
-    if (screenWidth < 1600) return 3;
-    if (screenWidth < 2000) return 3;
+    // Always returns 3 for consistent market indices width
     return 3;
   }
 
@@ -346,9 +343,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   double _calculateResponsiveSidebarWidth(double screenWidth) {
-    if (screenWidth < 800) return screenWidth * 0.7;    // 60% of screen
-    if (screenWidth < 1200) return screenWidth * 0.8;  // 50% of screen  
-    return screenWidth * 0.55;                          // 45% of screen
+    if (screenWidth < 800) return screenWidth * 0.7;    // 70% of screen
+    if (screenWidth < 1200) return screenWidth * 0.8;   // 80% of screen  
+    return screenWidth * 0.55;                         // 55% of screen
   }
 
   Widget _buildWatchlistSidebar(BoxConstraints constraints) {

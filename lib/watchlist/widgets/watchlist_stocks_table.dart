@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_stock_model.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:musaffa_terminal/watchlist/widgets/target_price_cell.dart';
-import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'dart:convert';
 
 class WatchlistStocksTable extends StatefulWidget {
@@ -166,7 +164,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
               isPositive: isGain,
               changeColor: isGain ? Colors.green.shade600 : Colors.red.shade600,
               fields: {
-                'addedPrice': addedPrice,
+                'addedPrice': '\$${addedPrice.toStringAsFixed(2)}',
                 'currentPrice': '\$${currentPrice.toStringAsFixed(2)}',
                 'gainLoss': formattedGainLoss,
                 'targetPrice': _buildTargetPriceWidget(watchlistStock.ticker),
@@ -186,7 +184,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
               isPositive: true,
               changeColor: Colors.grey,
               fields: {
-                'addedPrice': watchlistStock.currentPrice,
+                'addedPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
                 'currentPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
                 'gainLoss': 0.0,
                 'marketCap': '--',
@@ -229,8 +227,8 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         isPositive: true,
         changeColor: Colors.grey,
         fields: {
-          'addedPrice': watchlistStock.currentPrice,
-          'currentPrice': watchlistStock.currentPrice,
+          'addedPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
+          'currentPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
           'gainLoss': 0.0,
           'marketCap': '--',
           'volume': 0.0,

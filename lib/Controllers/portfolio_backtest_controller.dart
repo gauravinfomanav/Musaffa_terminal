@@ -65,21 +65,17 @@ class PortfolioBacktestController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
       
-      print('🚀 Starting backtest for stocks: ${selectedStocks.join(", ")}');
-      print('📅 Backtest date: ${backtestDate.value}');
-      
-      // Get current prices
-      print('📊 Fetching current prices...');
+     
       final currentPrices = await _getCurrentPrices(selectedStocks);
-      print('✅ Current prices: $currentPrices');
+      
       
       // Get historical prices
-      print('📈 Fetching historical prices...');
+      
       final historicalPrices = await _getHistoricalPrices(selectedStocks);
-      print('✅ Historical prices: ${historicalPrices.keys.join(", ")}');
+      
       
       // Calculate results
-      print('🧮 Calculating results...');
+      
       final result = _calculateBacktestResults(
         currentPrices: currentPrices,
         historicalPrices: historicalPrices,
@@ -87,15 +83,13 @@ class PortfolioBacktestController extends GetxController {
         backtestDate: backtestDate.value,
       );
       
-      print('✅ Backtest completed successfully');
-      print('📊 Results: Initial=${result.initialInvestment}, Current=${result.currentValue}, Return=${result.totalReturnPercent}%');
+      
       
       backtestResult.value = result;
       stockPerformances.value = result.stockPerformances;
       
     } catch (e) {
-      print('❌ Backtest error: $e');
-      print('❌ Stack trace: ${StackTrace.current}');
+     
       errorMessage.value = 'Error running backtest: $e';
       backtestResult.value = null;
     } finally {
@@ -105,12 +99,12 @@ class PortfolioBacktestController extends GetxController {
 
   /// Get current prices from existing Typesense API
   Future<Map<String, double>> _getCurrentPrices(List<String> symbols) async {
-    print('🔍 Fetching current prices for: ${symbols.join(", ")}');
+    
     final Map<String, double> currentPrices = {};
     
     for (String symbol in symbols) {
       try {
-        print('📊 Fetching price for $symbol...');
+        
         
         // Use existing search service to get current price
         final response = await WebService.getTypesense([
@@ -124,72 +118,70 @@ class PortfolioBacktestController extends GetxController {
           "per_page": "1"
         });
         
-        print('📡 API Response status: ${response.statusCode}');
-        print('📡 API Response body: ${response.body}');
+       
         
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          print('📊 Parsed data: $data');
+        
           
           if (data['hits'] != null && data['hits'].isNotEmpty) {
             final stockData = data['hits'][0]['document'];
-            print('📊 Stock data: $stockData');
+            
             
             final price = stockData['currentPrice'] ?? stockData['price'] ?? 0.0;
             currentPrices[symbol] = (price as num).toDouble();
-            print('✅ Got price for $symbol: ${currentPrices[symbol]}');
+            
           } else {
-            print('⚠️ No data found for $symbol');
+            
             currentPrices[symbol] = 0.0;
           }
         } else {
-          print('❌ API error for $symbol: ${response.statusCode}');
+         
           currentPrices[symbol] = 0.0;
         }
       } catch (e) {
-        print('❌ Error fetching current price for $symbol: $e');
+       
         currentPrices[symbol] = 0.0;
       }
     }
     
-    print('📊 Final current prices: $currentPrices');
+   
     return currentPrices;
   }
 
   /// Get historical prices from your API
   Future<Map<String, HistoricalPrice>> _getHistoricalPrices(List<String> symbols) async {
     final dateString = DateFormat('yyyy-MM-dd').format(backtestDate.value);
-    print('📈 Fetching historical prices for: ${symbols.join(", ")} on $dateString');
+   
     
     final response = await WebService.getHistoricalPrices(
       symbols: symbols,
       date: dateString,
     );
     
-    print('📡 Historical API Response status: ${response.statusCode}');
-    print('📡 Historical API Response body: ${response.body}');
+   
     
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print('📊 Historical data: $data');
+      
       
       if (data['results'] != null) {
         final results = data['results'] as List;
-        print('📊 Historical results count: ${results.length}');
+        
         
         final historicalPrices = <String, HistoricalPrice>{
           for (final item in results)
             item['company_symbol'] as String: HistoricalPrice.fromJson(item)
         };
         
-        print('✅ Historical prices: ${historicalPrices.keys.join(", ")}');
+        
         return historicalPrices;
       } else {
-        print('❌ No results in historical data');
+        
         throw Exception('No results in historical data');
       }
     } else {
-      print('❌ Historical API error: ${response.statusCode}');
+    
       if (response.statusCode == 404) {
         throw Exception('No historical data available for the selected date. Try a more recent date (2020-2024).');
       } else {

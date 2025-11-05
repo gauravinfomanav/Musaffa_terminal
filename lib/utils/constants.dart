@@ -59,8 +59,8 @@ class DashboardTextStyles {
   
   // Title Styles - For section headers like "Top Movers Today"
   static TextStyle get titleSmall => TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
     fontFamily: Constants.FONT_DEFAULT_NEW,
     color: primaryTextColor,
   );

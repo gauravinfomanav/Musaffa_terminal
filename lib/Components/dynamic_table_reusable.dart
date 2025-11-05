@@ -150,9 +150,9 @@ class _DynamicTableState extends State<DynamicTable> {
     init();
     sController.addListener(() {
       if (mounted) {
-        setState(() {
-          increaseShadow = sController.offset > 0.1;
-        });
+      setState(() {
+        increaseShadow = sController.offset > 0.1;
+      });
       }
     });
     
@@ -217,14 +217,14 @@ class _DynamicTableState extends State<DynamicTable> {
       (livePrices) {
         if (mounted) {
           try {
-            setState(() {
-              _enrichedRows = _updateRowsWithLivePrices(widget.rows, livePrices);
-              _updateCounter++;
+          setState(() {
+            _enrichedRows = _updateRowsWithLivePrices(widget.rows, livePrices);
+            _updateCounter++;
               // Regenerate table data with updated prices (only if still mounted)
               if (mounted) {
-                generateDataRows();
+            generateDataRows();
               }
-            });
+          });
           } catch (e) {
             // Silently handle errors during widget lifecycle transitions
           }
