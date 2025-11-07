@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
+import 'package:musaffa_terminal/Components/market_indices.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
-import 'package:musaffa_terminal/Components/market_indices.dart';
 import 'package:musaffa_terminal/Components/mini_widgets_row.dart';
 import 'package:musaffa_terminal/Components/stock_heatmap.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -171,19 +171,31 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           children: [
             MiniWidgetsRow(),
             const SizedBox(height: 12),            
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: MarketSummaryDynamicTable(),
-                ),
-                SizedBox(width: _calculateWidgetSpacing(MediaQuery.of(context).size.width)),
-                Expanded(
-                  flex: 1,
-                  child: DynamicHeightTradingView(),
-                ),
-              ],
+            Builder(
+              builder: (context) {
+                final screenWidth = MediaQuery.of(context).size.width;
+                // Calculate available width after padding and spacing
+                // Available width = screenWidth - (left padding + right padding + spacing between widgets)
+                final availableWidth = screenWidth - (2 * LayoutConstants.SCREEN_PADDING) - LayoutConstants.SCREEN_COMPONENTS_PADDING;
+                final widgetWidth = availableWidth / 2;
+                
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Table always takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: MarketSummaryDynamicTable(),
+                    ),
+                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    // TradingView widget also takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: DynamicHeightTradingView(),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 16),            
             _buildHeatmapHub(context),
@@ -205,19 +217,30 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             MiniWidgetsRow(),
             const SizedBox(height: 16),
             
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: _calculateMarketSummaryFlex(screenWidth),
-                  child: MarketSummaryDynamicTable(),
-                ),
-                SizedBox(width: _calculateWidgetSpacing(screenWidth)),
-                Expanded(
-                  flex: _calculateMarketIndicesFlex(screenWidth),
-                  child: DynamicHeightTradingView(),
-                ),
-              ],
+            Builder(
+              builder: (context) {
+                // Calculate available width after padding and spacing
+                // Available width = screenWidth - (left padding + right padding + spacing between widgets)
+                final availableWidth = screenWidth - (2 * LayoutConstants.SCREEN_PADDING) - LayoutConstants.SCREEN_COMPONENTS_PADDING;
+                final widgetWidth = availableWidth / 2;
+                
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Table always takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: MarketSummaryDynamicTable(),
+                    ),
+                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    // TradingView widget also takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: DynamicHeightTradingView(),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 16),
             // Bottom Section: Heatmap/Cross Rates hub
@@ -228,25 +251,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
   }
 
-  int _calculateMarketSummaryFlex(double screenWidth) {
-    if (screenWidth < 1200) return 2;
-    if (screenWidth < 1600) return 3;
-    if (screenWidth < 2000) return 4;
-    return 5;
-  }
-
-  int _calculateMarketIndicesFlex(double screenWidth) {
-    // Always returns 3 for consistent market indices width
-    return 3;
-  }
-
-  /// Calculates responsive spacing between main content widgets
-  double _calculateWidgetSpacing(double screenWidth) {
-    if (screenWidth < 1200) return LayoutConstants.SCREEN_COMPONENTS_PADDING; // 12.0
-    if (screenWidth < 1600) return 16.0;
-    if (screenWidth < 2000) return 20.0;
-    return LayoutConstants.SCREEN_COMPONENTS_PADDING * 2; // 24.0 for extra large
-  }
 
   Widget _buildHeatmapHub(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;

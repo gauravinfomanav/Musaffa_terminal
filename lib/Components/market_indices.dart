@@ -512,10 +512,12 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
     // Use AnimatedSize for smoother height transitions
     return Visibility(
       visible: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // Make column take minimum space
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SizedBox(
+        width: widget.width ?? double.infinity, // Ensure full width
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Make column take minimum space
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Padding(
             padding: DynamicHeightTradingViewConstants.contentPadding,
             child: Text(
@@ -551,6 +553,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

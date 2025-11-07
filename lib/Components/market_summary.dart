@@ -16,19 +16,12 @@ class MarketSummaryDynamicTable extends StatefulWidget {
 
 class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
   final ScrollController _scrollController = ScrollController();
-  bool _increaseShadow = false;
   late MarketSummaryController controller;
 
   @override
   void initState() {
     super.initState();
     controller = Get.put(MarketSummaryController());
-    
-    _scrollController.addListener(() {
-      setState(() {
-        _increaseShadow = _scrollController.offset > 0.1;
-      });
-    });
   }
 
   @override
@@ -94,48 +87,52 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                     ],
                   ),
                   SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark 
-                              ? Colors.grey.shade800 
-                              : Colors.grey.shade50,
-                        ),
-                        child: DataTable(
-                          headingRowHeight: 20,
-                          horizontalMargin: 6,
-                          dataRowMinHeight: 20,
-                          dataRowMaxHeight: 32,
-                          columns: controller.fixedDataCols,
-                          rows: controller.fixedDataRows,
-                          dividerThickness: 0,
-                          border: TableBorder(
-                            bottom: BorderSide.none,
-                            top: BorderSide.none,
-                            verticalInside: BorderSide.none,
-                            horizontalInside: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Scrollbar(
-                          controller: _scrollController,
-                          thickness: 4,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            scrollDirection: Axis.horizontal,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Get available width for the table
+                      final availableWidth = constraints.maxWidth;
+                      final fixedColumnWidth = 180.0; // Fixed "Sector" column width
+                      final scrollableAreaWidth = availableWidth - fixedColumnWidth;
+                      
+                      // Calculate minimum width needed for 6 columns with base spacing
+                      final baseColumnSpacing = 10.0;
+                      final numColumns = 6; // 1D, 1W, 1M, 3M, 6M, 1Y
+                      final estimatedColumnWidth = 80.0; // Estimated width per column
+                      final minWidthNeeded = (numColumns * estimatedColumnWidth) + ((numColumns - 1) * baseColumnSpacing);
+                      
+                      // Calculate dynamic spacing to fill available space
+                      double dynamicSpacing;
+                      if (scrollableAreaWidth > minWidthNeeded) {
+                        // We have extra space - increase spacing
+                        final extraSpace = scrollableAreaWidth - minWidthNeeded;
+                        final additionalSpacing = extraSpace / (numColumns - 1);
+                        dynamicSpacing = baseColumnSpacing + additionalSpacing;
+                        // Cap maximum spacing at 50px for readability
+                        dynamicSpacing = dynamicSpacing.clamp(baseColumnSpacing, 50.0);
+                      } else {
+                        // Use base spacing if not enough space
+                        dynamicSpacing = baseColumnSpacing;
+                      }
+                      
+                      return Row(
+                        children: [
+                          Container(
+                            constraints: BoxConstraints(
+                              minWidth: fixedColumnWidth,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.grey.shade800 
+                                  : Colors.grey.shade50,
+                            ),
                             child: DataTable(
                               headingRowHeight: 20,
-                              horizontalMargin: 0,
-                              columnSpacing: 10,
+                              horizontalMargin: 6,
                               dataRowMinHeight: 20,
                               dataRowMaxHeight: 32,
-                              columns: controller.dataCols,
-                              rows: controller.dataRows,
+                              columns: controller.fixedDataCols,
+                              rows: controller.fixedDataRows,
                               dividerThickness: 0,
-                              showBottomBorder: false,
                               border: TableBorder(
                                 bottom: BorderSide.none,
                                 top: BorderSide.none,
@@ -144,9 +141,37 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
+                          Expanded(
+                            child: Scrollbar(
+                              controller: _scrollController,
+                              thickness: 4,
+                              thumbVisibility: true,
+                              child: SingleChildScrollView(
+                                controller: _scrollController,
+                                scrollDirection: Axis.horizontal,
+                                child: DataTable(
+                                  headingRowHeight: 20,
+                                  horizontalMargin: 0,
+                                  columnSpacing: dynamicSpacing,
+                                  dataRowMinHeight: 20,
+                                  dataRowMaxHeight: 32,
+                                  columns: controller.dataCols,
+                                  rows: controller.dataRows,
+                                  dividerThickness: 0,
+                                  showBottomBorder: false,
+                                  border: TableBorder(
+                                    bottom: BorderSide.none,
+                                    top: BorderSide.none,
+                                    verticalInside: BorderSide.none,
+                                    horizontalInside: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               );
