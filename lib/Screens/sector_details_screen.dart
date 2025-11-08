@@ -10,6 +10,7 @@ import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 
 class SectorDetailsScreen extends StatefulWidget {
   final String sectorName;
@@ -324,6 +325,180 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoadingShimmer(bool isDarkMode) {
+    final baseColor = isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
+    final highlightColor = isDarkMode ? const Color(0xFF373E45) : const Color(0xFFF3F4F6);
+
+    Widget shimmerBox({double width = double.infinity, double height = 18}) {
+      return ShimmerWidgets.box(
+        width: width,
+        height: height,
+        borderRadius: BorderRadius.circular(6),
+        baseColor: baseColor,
+        highlightColor: highlightColor,
+      );
+    }
+
+    Widget buildTableRowSkeleton() {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            shimmerBox(width: 110, height: 22),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Row(
+                children: List.generate(6, (index) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: index == 5 ? 0 : 20),
+                    child: shimmerBox(width: 90, height: 18),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildCardSkeleton({int rows = 6}) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF151718) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            shimmerBox(width: 220, height: 22),
+            const SizedBox(height: 20),
+            ...List.generate(rows, (_) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      shimmerBox(width: 150, height: 18),
+                      shimmerBox(width: 110, height: 18),
+                    ],
+                  ),
+                )),
+          ],
+        ),
+      );
+    }
+
+    Widget buildGainersLosersSkeleton() {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF151718) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            shimmerBox(width: 200, height: 22),
+            const SizedBox(height: 20),
+            ...List.generate(7, (_) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    children: [
+                      shimmerBox(width: 60, height: 18),
+                      const SizedBox(width: 16),
+                      shimmerBox(width: 110, height: 18),
+                      const SizedBox(width: 16),
+                      shimmerBox(width: 90, height: 18),
+                      const Spacer(),
+                      shimmerBox(width: 100, height: 18),
+                    ],
+                  ),
+                )),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        shimmerBox(width: 280, height: 28),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF151718) : Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDarkMode
+                            ? const Color(0xFF2A2F33)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        shimmerBox(width: 240, height: 24),
+                        const SizedBox(height: 24),
+                        ...List.generate(10, (_) => buildTableRowSkeleton()),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      shimmerBox(width: 280, height: 20),
+                      Row(
+                        children: [
+                          shimmerBox(width: 140, height: 20),
+                          const SizedBox(width: 16),
+                          shimmerBox(width: 140, height: 20),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            SizedBox(
+              width: 360,
+              child: Column(
+                children: [
+                  buildCardSkeleton(rows: 7),
+                  const SizedBox(height: 20),
+                  buildCardSkeleton(rows: 7),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        Row(
+          children: [
+            Expanded(child: buildGainersLosersSkeleton()),
+            const SizedBox(width: 20),
+            Expanded(child: buildGainersLosersSkeleton()),
+          ],
+        ),
+      ],
     );
   }
 
@@ -814,9 +989,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                       // Stocks Table
                       Obx(() {
                         if (sectorStocksController.isLoading.value) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
+                          return _buildLoadingShimmer(isDarkMode);
                         }
                         
                         if (sectorStocksController.errorMessage.value.isNotEmpty) {
