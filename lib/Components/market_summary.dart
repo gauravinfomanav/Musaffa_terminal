@@ -91,29 +91,44 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                     builder: (context, constraints) {
                       // Get available width for the table
                       final availableWidth = constraints.maxWidth;
-                      final fixedColumnWidth = 180.0; // Fixed "Sector" column width
-                      final scrollableAreaWidth = availableWidth - fixedColumnWidth;
-                      
+                      final fixedColumnWidth =
+                          180.0; // Fixed "Sector" column width
+                      final scrollableAreaWidth =
+                          availableWidth - fixedColumnWidth;
+
+                      // Determine row height based on screen width
+                      final screenWidth = MediaQuery.of(context).size.width;
+                      final bool isLargeScreen = screenWidth >= 1600;
+                      final double dataRowMaxHeight =
+                          isLargeScreen ? 35.0 : 30.0;
+
                       // Calculate minimum width needed for 6 columns with base spacing
                       final baseColumnSpacing = 10.0;
-                      final numColumns = 6; // 1D, 1W, 1M, 3M, 6M, 1Y
-                      final estimatedColumnWidth = 80.0; // Estimated width per column
-                      final minWidthNeeded = (numColumns * estimatedColumnWidth) + ((numColumns - 1) * baseColumnSpacing);
-                      
+                      final numColumns =
+                          6; // 1D, 1W, 1M, 3M, 6M, 1Y
+                      final estimatedColumnWidth =
+                          80.0; // Estimated width per column
+                      final minWidthNeeded = (numColumns * estimatedColumnWidth) +
+                          ((numColumns - 1) * baseColumnSpacing);
+
                       // Calculate dynamic spacing to fill available space
                       double dynamicSpacing;
                       if (scrollableAreaWidth > minWidthNeeded) {
                         // We have extra space - increase spacing
-                        final extraSpace = scrollableAreaWidth - minWidthNeeded;
-                        final additionalSpacing = extraSpace / (numColumns - 1);
-                        dynamicSpacing = baseColumnSpacing + additionalSpacing;
+                        final extraSpace =
+                            scrollableAreaWidth - minWidthNeeded;
+                        final additionalSpacing =
+                            extraSpace / (numColumns - 1);
+                        dynamicSpacing =
+                            baseColumnSpacing + additionalSpacing;
                         // Cap maximum spacing at 50px for readability
-                        dynamicSpacing = dynamicSpacing.clamp(baseColumnSpacing, 50.0);
+                        dynamicSpacing =
+                            dynamicSpacing.clamp(baseColumnSpacing, 50.0);
                       } else {
                         // Use base spacing if not enough space
                         dynamicSpacing = baseColumnSpacing;
                       }
-                      
+
                       return Row(
                         children: [
                           Container(
@@ -121,15 +136,16 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                               minWidth: fixedColumnWidth,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark 
-                                  ? Colors.grey.shade800 
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade800
                                   : Colors.grey.shade50,
                             ),
                             child: DataTable(
                               headingRowHeight: 20,
                               horizontalMargin: 6,
                               dataRowMinHeight: 20,
-                              dataRowMaxHeight: 32,
+                              dataRowMaxHeight: dataRowMaxHeight,
                               columns: controller.fixedDataCols,
                               rows: controller.fixedDataRows,
                               dividerThickness: 0,
@@ -154,7 +170,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                                   horizontalMargin: 0,
                                   columnSpacing: dynamicSpacing,
                                   dataRowMinHeight: 20,
-                                  dataRowMaxHeight: 32,
+                                  dataRowMaxHeight: dataRowMaxHeight,
                                   columns: controller.dataCols,
                                   rows: controller.dataRows,
                                   dividerThickness: 0,
