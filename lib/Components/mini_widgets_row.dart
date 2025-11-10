@@ -96,10 +96,9 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 flex: 1 !important; 
                 height: 100% !important; 
                 background: $widgetBgColor !important;
-                border: 1px solid $borderColor !important;
-                border-width: 1px !important;
-                border-style: solid !important;
-                border-color: $borderColor !important;
+                border: none !important;
+                border-width: 0 !important;
+                box-shadow: inset 0 0 0 0.5px $borderColor !important;
                 border-radius: 10px !important;
                 outline: none !important;
                 margin: 0 !important;
@@ -238,10 +237,9 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             
             /* Apply border to each mini-widget (must be after general border removal rules) */
             div.mini-widget {
-                border: 1px solid $borderColor !important;
-                border-width: 1px !important;
-                border-style: solid !important;
-                border-color: $borderColor !important;
+                border: none !important;
+                border-width: 0 !important;
+                box-shadow: inset 0 0 0 0.5px $borderColor !important;
                 border-radius: 10px !important;
                 overflow: hidden !important;
             }
@@ -505,7 +503,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDarkMode 
         ? const Color(0xFF505050) 
-        : const Color(0xFFD1D5DB); // Very light border
+        : const Color.fromARGB(255, 235, 235, 235); // Very light border
     // App background color (for container/gaps between widgets)
     final appBackgroundColor = isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
     // Widget background color (inside each widget box)
@@ -527,7 +525,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                       right: index < 3 ? LayoutConstants.SCREEN_COMPONENTS_PADDING : 0,
                     ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: borderColor, width: 1),
+                      border: Border.all(color: borderColor, width: 0.1),
                       // borderRadius: BorderRadius.circular(1),
                     ),
                     child: ShimmerWidgets.box(

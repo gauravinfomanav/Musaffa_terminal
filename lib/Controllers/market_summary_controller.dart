@@ -98,8 +98,8 @@ class MarketSummaryController extends GetxController {
     final headerColor = isDarkMode == true ? Colors.white : DashboardTextStyles.newtextcolor;
 
     fixedLst.add(DataColumn(
-      label: Container(
-        padding: EdgeInsets.only(right: 12),
+      label: Padding(
+        padding: const EdgeInsets.only(right: 12, bottom: 4),
         child: Text(
           "Sector",
           style: TextStyle(
@@ -114,7 +114,8 @@ class MarketSummaryController extends GetxController {
     dataFieldsToDisplay.forEach((element) {
       var widget = DataColumn(
         headingRowAlignment: MainAxisAlignment.center,
-        label: Container(
+        label: Padding(
+          padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             element.displayName ?? '',
             style: TextStyle(

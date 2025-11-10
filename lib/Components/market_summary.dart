@@ -106,7 +106,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       final screenWidth = MediaQuery.of(context).size.width;
                       final bool isLargeScreen = screenWidth >= 1600;
                       final double dataRowMaxHeight =
-                          isLargeScreen ? 34.0 : 29.0;
+                          isLargeScreen ? 33.0 : 28.0;
 
                       // Calculate minimum width needed for 6 columns with base spacing
                       final baseColumnSpacing = 10.0;
@@ -147,12 +147,16 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                         alignment: Alignment.centerLeft,
                         child: Container(
                           decoration: BoxDecoration(
+                            color: isDarkMode 
+                                ? const Color(0xFF2D2D2D)
+                                : Colors.white,
                             border: Border.all(color: containerBorderColor, width: 0.5),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           padding: EdgeInsets.all(8),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                             Container(
                               constraints: BoxConstraints(
@@ -161,12 +165,12 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                               decoration: BoxDecoration(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
-                                    ? Colors.grey.shade800
-                                    : Colors.grey.shade50,
+                                    ? const Color(0xFF2D2D2D)
+                                    : Colors.white,
                               ),
                               child: DataTable(
-                                headingRowHeight: 20,
-                                horizontalMargin: 6,
+                                headingRowHeight: 24,
+                                horizontalMargin: 0,
                                 dataRowMinHeight: 20,
                                 dataRowMaxHeight: dataRowMaxHeight,
                                 columns: controller.fixedDataCols,
@@ -184,30 +188,38 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                               ),
                             ),
                             Flexible(
-                              child: Scrollbar(
-                                controller: _scrollController,
-                                thickness: 4,
-                                thumbVisibility: true,
-                                child: SingleChildScrollView(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? const Color(0xFF2D2D2D)
+                                      : Colors.white,
+                                ),
+                                child: Scrollbar(
                                   controller: _scrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  child: DataTable(
-                                    headingRowHeight: 20,
-                                    horizontalMargin: 0,
-                                    columnSpacing: dynamicSpacing,
-                                    dataRowMinHeight: 20,
-                                    dataRowMaxHeight: dataRowMaxHeight,
-                                    columns: controller.dataCols,
-                                    rows: controller.dataRows,
-                                    dividerThickness: borderWidth,
-                                    showBottomBorder: false,
-                                    border: TableBorder(
-                                      bottom: BorderSide.none,
-                                      top: BorderSide.none,
-                                      verticalInside: BorderSide.none,
-                                      horizontalInside: BorderSide(
-                                        color: borderColor,
-                                        width: borderWidth,
+                                  thickness: 4,
+                                  thumbVisibility: true,
+                                  child: SingleChildScrollView(
+                                    controller: _scrollController,
+                                    scrollDirection: Axis.horizontal,
+                                    child: DataTable(
+                                      headingRowHeight: 24,
+                                      horizontalMargin: 0,
+                                      columnSpacing: dynamicSpacing,
+                                      dataRowMinHeight: 20,
+                                      dataRowMaxHeight: dataRowMaxHeight,
+                                      columns: controller.dataCols,
+                                      rows: controller.dataRows,
+                                      dividerThickness: borderWidth,
+                                      showBottomBorder: false,
+                                      border: TableBorder(
+                                        bottom: BorderSide.none,
+                                        top: BorderSide.none,
+                                        verticalInside: BorderSide.none,
+                                        horizontalInside: BorderSide(
+                                          color: borderColor,
+                                          width: borderWidth,
+                                        ),
                                       ),
                                     ),
                                   ),

@@ -173,7 +173,7 @@ class _MainScreenState extends State<MainScreen> {
                       width: widgetWidth,
                       child: MarketSummaryDynamicTable(),
                     ),
-                    // SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
                     // TradingView widget also takes exactly half of available width
                     SizedBox(
                       width: widgetWidth,
@@ -220,7 +220,7 @@ class _MainScreenState extends State<MainScreen> {
                       width: widgetWidth,
                       child: MarketSummaryDynamicTable(),
                     ),
-                    // SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
                     // TradingView widget also takes exactly half of available width
                     SizedBox(
                       width: widgetWidth,
@@ -321,7 +321,7 @@ class _MainScreenState extends State<MainScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                   decoration: BoxDecoration(
                     color: cardColor,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: borderHighlight,
                       width: 1,

@@ -16,10 +16,10 @@ class DynamicHeightTradingViewConstants {
   static const double largeScreenHeight = 700.0;
   
   /// Minimum height for responsive sizing
-  static const double minHeight = 400.0;
+  static const double minHeight = 410.0;
   
   /// Maximum height for responsive sizing
-  static const double maxHeight = 900.0;
+  static const double maxHeight = 910.0;
   
   /// Height for extra large screens
   static const double extraLargeScreenHeight = 800.0;
@@ -537,7 +537,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
               ),
             ),
           ),
-          const SizedBox(height: DynamicHeightTradingViewConstants.titleSpacing),
+           const SizedBox(height: 14),
           AnimatedSize(
             duration: DynamicHeightTradingViewConstants.animationDuration,
             curve: Curves.easeInOut, // Animation curve
