@@ -1,19 +1,32 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 class SplashOverlay extends StatefulWidget {
   final Widget child;
-  
+  final Duration displayDuration;
+  final Duration fadeDuration;
+  final double blurSigma;
+  final double backgroundOpacity;
+  final Widget? splashContent;
+
   const SplashOverlay({
     Key? key,
     required this.child,
+    this.displayDuration = const Duration(seconds: 3),
+    this.fadeDuration = const Duration(milliseconds: 400),
+    this.blurSigma = 4,
+    this.backgroundOpacity = 0.35,
+    this.splashContent,
   }) : super(key: key);
 
   @override
   State<SplashOverlay> createState() => _SplashOverlayState();
 }
 
-class _SplashOverlayState extends State<SplashOverlay> with SingleTickerProviderStateMixin {
+class _SplashOverlayState extends State<SplashOverlay>
+    with SingleTickerProviderStateMixin {
   bool _showSplash = true;
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -23,25 +36,22 @@ class _SplashOverlayState extends State<SplashOverlay> with SingleTickerProvider
     super.initState();
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: widget.fadeDuration,
     );
     _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
     );
     _hideSplash();
   }
 
-  _hideSplash() async {
-    await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
-      _fadeController.forward().then((_) {
-        if (mounted) {
-          setState(() {
-            _showSplash = false;
-          });
-        }
-      });
-    }
+  Future<void> _hideSplash() async {
+    await Future.delayed(widget.displayDuration);
+    if (!mounted) return;
+    await _fadeController.forward();
+    if (!mounted) return;
+    setState(() {
+      _showSplash = false;
+    });
   }
 
   @override
@@ -50,30 +60,41 @@ class _SplashOverlayState extends State<SplashOverlay> with SingleTickerProvider
     super.dispose();
   }
 
+  Widget _defaultSplashContent() {
+    return Lottie.asset(
+      'resources/Sandy Loading.json',
+      width: 100,
+      height: 100,
+      fit: BoxFit.contain,
+      repeat: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final splashTint = (Theme.of(context).brightness == Brightness.dark
+            ? Colors.black
+            : Colors.white)
+        .withOpacity(widget.backgroundOpacity);
+
     return Stack(
       children: [
-        // Main content with opacity
-        Opacity(
-          opacity: _showSplash ? 0.3 : 1.0,
-          child: widget.child,
-        ),
-        // Splash overlay
+        widget.child,
         if (_showSplash)
-          FadeTransition(
-            opacity: _fadeAnimation,
-            child: Container(
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? const Color(0xFF0F0F0F).withOpacity(0.95)
-                  : const Color(0xFFFAFAFA).withOpacity(0.95),
-              child: Center(
-                child: Lottie.asset(
-                  'resources/Sandy Loading.json',
-                  width: 250,
-                  height: 250,
-                  fit: BoxFit.contain,
-                  repeat: true,
+          Positioned.fill(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(
+                    sigmaX: widget.blurSigma,
+                    sigmaY: widget.blurSigma,
+                  ),
+                  child: Container(
+                    color: splashTint,
+                    alignment: Alignment.center,
+                    child: widget.splashContent ?? _defaultSplashContent(),
+                  ),
                 ),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/controllers/finhub_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
@@ -52,7 +53,14 @@ class HomeTabBar extends StatelessWidget {
         ],
       ),
               child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            SvgPicture.asset(
+              'resources/Small Logo.svg',
+              height: 22,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 12),
             // Back button or Theme toggle button
             if (showBackButton)
               GestureDetector(

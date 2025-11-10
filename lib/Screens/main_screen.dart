@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -18,43 +19,29 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen> {
   bool _isWatchlistOpen = false;
   bool _showSplash = true;
-  late AnimationController _splashController;
-  late Animation<double> _splashFadeAnimation;
 
   @override
   void initState() {
     super.initState();
     Get.put(WatchlistController());
-    _splashController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _splashFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _splashController, curve: Curves.easeOut),
-    );
     _hideSplash();
-  }
-
-  @override
-  void dispose() {
-    _splashController.dispose();
-    super.dispose();
   }
 
   void _hideSplash() async {
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
-      _splashController.forward().then((_) {
-        if (mounted) {
-          setState(() {
-            _showSplash = false;
-          });
-        }
+      setState(() {
+        _showSplash = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   void _toggleWatchlist() {
@@ -79,57 +66,66 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         builder: (context, constraints) {
           return Stack(
             children: [
-              // Main content
-              Column(
-                children: [
-                  HomeTabBar(
-                    isWatchlistOpen: _isWatchlistOpen,
-                    onWatchlistToggle: _toggleWatchlist,
-                    onThemeToggle: () {
-                      final currentTheme = Theme.of(context).brightness;
-                      Get.changeThemeMode(
-                        currentTheme == Brightness.dark 
-                            ? ThemeMode.light 
-                            : ThemeMode.dark,
-                      );
-                    },
-                  ),
-                  Expanded(
-                    child: _buildResponsiveMainContent(constraints),
-                  ),
-                ],
-              ),
-              if (_isWatchlistOpen)
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: _toggleWatchlist,
-                    child: Container(
-                      color: Colors.black.withOpacity(0.3),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(),
-                          ),
-                          GestureDetector(
-                            onTap: () {},
-                            child: _buildWatchlistSidebar(constraints),
-                          ),
-                        ],
+                // Main content
+                Column(
+                  children: [
+                    HomeTabBar(
+                      isWatchlistOpen: _isWatchlistOpen,
+                      onWatchlistToggle: _toggleWatchlist,
+                      onThemeToggle: () {
+                        final currentTheme = Theme.of(context).brightness;
+                        Get.changeThemeMode(
+                          currentTheme == Brightness.dark 
+                              ? ThemeMode.light 
+                              : ThemeMode.dark,
+                        );
+                      },
+                    ),
+                    Expanded(
+                      child: _buildResponsiveMainContent(constraints),
+                    ),
+                  ],
+                ),
+                if (_isWatchlistOpen)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: _toggleWatchlist,
+                      child: Container(
+                        color: Colors.black.withOpacity(0.3),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(),
+                            ),
+                            GestureDetector(
+                              onTap: () {},
+                              child: _buildWatchlistSidebar(constraints),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
               // Splash overlay
               if (_showSplash)
                 Positioned.fill(
-                  child: FadeTransition(
-                    opacity: _splashFadeAnimation,
-                    child: Container(
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? const Color(0xFF0F0F0F)
-                          : const Color(0xFFFAFAFA),
-                      child: Center(
-                        child: _buildSplashAnimation(),
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+                      child: Container(
+                        color: (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.black
+                                : Colors.black)
+                            .withOpacity(0.4),
+                        child: Center(
+                          child: Lottie.asset(
+                            'resources/Sandy Loading.json',
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.contain,
+                            repeat: true,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -138,16 +134,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
           );
         },
       ),
-    );
-  }
-
-  Widget _buildSplashAnimation() {
-    return Lottie.asset(
-      'resources/Sandy Loading.json',
-      width: 250,
-      height: 250,
-      fit: BoxFit.contain,
-      repeat: true,
     );
   }
 
