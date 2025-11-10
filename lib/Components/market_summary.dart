@@ -150,7 +150,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                             color: isDarkMode 
                                 ? const Color(0xFF2D2D2D)
                                 : Colors.white,
-                            border: Border.all(color: containerBorderColor, width: 0.5),
+                            border: Border.all(color: containerBorderColor, width: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           padding: EdgeInsets.all(8),
