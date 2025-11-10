@@ -19,15 +19,33 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
   bool _isWatchlistOpen = false;
   bool _showSplash = true;
+  late AnimationController _watchlistAnimationController;
+  late Animation<Offset> _watchlistSlideAnimation;
 
   @override
   void initState() {
     super.initState();
     Get.put(WatchlistController());
     _hideSplash();
+    
+    // Initialize watchlist slide animation
+    _watchlistAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+      reverseDuration: const Duration(milliseconds: 250),
+    );
+    
+    _watchlistSlideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _watchlistAnimationController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    ));
   }
 
   void _hideSplash() async {
@@ -41,19 +59,36 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
+    _watchlistAnimationController.dispose();
     super.dispose();
   }
 
   void _toggleWatchlist() {
-    setState(() {
-      _isWatchlistOpen = !_isWatchlistOpen;
-      
-      // When opening the watchlist, reset to default watchlist
-      if (_isWatchlistOpen) {
+    if (_isWatchlistOpen) {
+      // Closing: animate out first, then remove widget
+      _watchlistAnimationController.reverse().then((_) {
+        if (mounted) {
+          setState(() {
+            _isWatchlistOpen = false;
+          });
+        }
+      });
+    } else {
+      // Opening: add widget first, then animate in
+      setState(() {
+        _isWatchlistOpen = true;
         final watchlistController = Get.find<WatchlistController>();
         watchlistController.resetToDefaultWatchlist();
-      }
-    });
+      });
+      // Reset animation to start position, then animate in
+      _watchlistAnimationController.reset();
+      // Start animation after widget is in tree
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _isWatchlistOpen) {
+          _watchlistAnimationController.forward();
+        }
+      });
+    }
   }
 
   @override
@@ -97,9 +132,12 @@ class _MainScreenState extends State<MainScreen> {
                             Expanded(
                               child: Container(),
                             ),
-                            GestureDetector(
-                              onTap: () {},
-                              child: _buildWatchlistSidebar(constraints),
+                            SlideTransition(
+                              position: _watchlistSlideAnimation,
+                              child: GestureDetector(
+                                onTap: () {},
+                                child: _buildWatchlistSidebar(constraints),
+                              ),
                             ),
                           ],
                         ),
