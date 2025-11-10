@@ -523,7 +523,11 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
             child: Text(
               widget.title ?? "Market Indices",
               textAlign: TextAlign.start,
-              style: DashboardTextStyles.titleSmall,
+              style: DashboardTextStyles.titleSmall.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF0A0A0A),
+              ),
             ),
           ),
           const SizedBox(height: DynamicHeightTradingViewConstants.titleSpacing),

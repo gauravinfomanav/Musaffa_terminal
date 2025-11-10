@@ -79,10 +79,16 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                 children: [
                   Row(
                     children: [
-                      Text(
+                      Text(                        
                         "Previous day closing data",
                         textAlign: TextAlign.start,
-                        style:DashboardTextStyles.titleSmall,
+                        style: DashboardTextStyles.titleSmall.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : DashboardTextStyles.newtextcolor,
+                        ),
+                        
+                       
                       ),
                     ],
                   ),
@@ -129,6 +135,10 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                         dynamicSpacing = baseColumnSpacing;
                       }
 
+                      final borderWidth = isLargeScreen ? 0.5 : 0.25;
+                      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                      final borderColor = Theme.of(context).primaryColorLight;
+
                       return Row(
                         children: [
                           Container(
@@ -148,12 +158,15 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                               dataRowMaxHeight: dataRowMaxHeight,
                               columns: controller.fixedDataCols,
                               rows: controller.fixedDataRows,
-                              dividerThickness: 0,
+                              dividerThickness: borderWidth,
                               border: TableBorder(
                                 bottom: BorderSide.none,
                                 top: BorderSide.none,
                                 verticalInside: BorderSide.none,
-                                horizontalInside: BorderSide.none,
+                                horizontalInside: BorderSide(
+                                  color: borderColor,
+                                  width: borderWidth,
+                                ),
                               ),
                             ),
                           ),
@@ -173,13 +186,16 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                                   dataRowMaxHeight: dataRowMaxHeight,
                                   columns: controller.dataCols,
                                   rows: controller.dataRows,
-                                  dividerThickness: 0,
+                                  dividerThickness: borderWidth,
                                   showBottomBorder: false,
                                   border: TableBorder(
                                     bottom: BorderSide.none,
                                     top: BorderSide.none,
                                     verticalInside: BorderSide.none,
-                                    horizontalInside: BorderSide.none,
+                                    horizontalInside: BorderSide(
+                                      color: borderColor,
+                                      width: borderWidth,
+                                    ),
                                   ),
                                 ),
                               ),

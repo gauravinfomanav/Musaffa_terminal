@@ -349,7 +349,7 @@ class WatchlistBacktestWidget extends StatelessWidget {
             ),
             datePickerTheme: DatePickerThemeData(
               backgroundColor: Colors.white,
-              headerBackgroundColor: const Color(0xFFF2F2F7), // iOS light gray
+              headerBackgroundColor: const Color(0xFFF2F2F7), 
               headerForegroundColor: const Color(0xFF1C1C1E),
               dayForegroundColor: MaterialStateProperty.resolveWith((states) {
                 if (states.contains(MaterialState.selected)) {

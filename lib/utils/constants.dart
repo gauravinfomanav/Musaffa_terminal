@@ -50,10 +50,11 @@ class LayoutConstants {
 
 class DashboardTextStyles {
   static const Color primaryTextColor =
-      Color(0xFF374151); // Colors.grey.shade800
+      Color(0xFF0A0A0A); // Colors.grey.shade800
   static const Color secondaryTextColor =
-      Color(0xFF6B7280); // Colors.grey.shade700
+      Color(0xFF0A0A0A); // Colors.grey.shade700
   static const Color accentColor = Color(0xFF81AACE);
+  static const Color newtextcolor = Color(0xFF0A0A0A);
 
   static TextStyle get titleSmall => TextStyle(
         fontSize: 24,

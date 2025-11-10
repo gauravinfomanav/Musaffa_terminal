@@ -397,40 +397,53 @@ class _DynamicTableState extends State<DynamicTable> {
               ),
             ),
           Expanded(
-            child: Scrollbar(
-              controller: sController,
-              thickness: 4,
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                controller: sController,
-                scrollDirection: Axis.horizontal,
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    dividerColor: Colors.transparent,
-                  ),
-                  child: DataTable(
-                    key: ValueKey('table_$_updateCounter'),
-                    showCheckboxColumn: false,
-                    headingRowHeight: 24,
-                    horizontalMargin: widget.horizontalMargin,
-                    columnSpacing: widget.columnSpacing,
-                    dataRowMinHeight: 48,
-                    dataRowMaxHeight: 48,
-                    columns: dataCols.isNotEmpty ? dataCols : [DataColumn(label: SizedBox.shrink())],
-                    rows: dataRows.isNotEmpty ? dataRows : [DataRow(cells: [DataCell(SizedBox.shrink())])],
-                    dividerThickness: 0,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.transparent, width: 0),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Scrollbar(
+                  controller: sController,
+                  thickness: 4,
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    controller: sController,
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
+                      ),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          dividerColor: Colors.transparent,
+                        ),
+                        child: DataTable(
+                          key: ValueKey('table_$_updateCounter'),
+                          showCheckboxColumn: false,
+                          headingRowHeight: 24,
+                          horizontalMargin: widget.horizontalMargin,
+                          columnSpacing: widget.columnSpacing,
+                          dataRowMinHeight: 48,
+                          dataRowMaxHeight: 48,
+                          columns: dataCols.isNotEmpty
+                              ? dataCols
+                              : [DataColumn(label: SizedBox.shrink())],
+                          rows: dataRows.isNotEmpty
+                              ? dataRows
+                              : [DataRow(cells: [DataCell(SizedBox.shrink())])],
+                          dividerThickness: 0,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.transparent, width: 0),
+                          ),
+                          border: TableBorder(
+                            bottom: BorderSide.none,
+                            top: BorderSide.none,
+                            verticalInside: BorderSide.none,
+                            horizontalInside: BorderSide.none,
+                          ),
+                        ),
+                      ),
                     ),
-                    border: TableBorder(
-                      bottom: BorderSide.none,
-                      top: BorderSide.none,
-                      verticalInside: BorderSide.none,
-                      horizontalInside: BorderSide.none,
-                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],

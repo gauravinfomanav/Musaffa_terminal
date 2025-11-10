@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/Screens/sector_details_screen.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 class MarketSummaryDefaults {
   String? displayName;
@@ -93,15 +94,18 @@ class MarketSummaryController extends GetxController {
     List<DataColumn> fixedLst = [];
     List<DataColumn> lst = [];
 
+    final isDarkMode = Get.context?.theme.brightness == Brightness.dark;
+    final headerColor = isDarkMode == true ? Colors.white : DashboardTextStyles.newtextcolor;
+
     fixedLst.add(DataColumn(
       label: Container(
         padding: EdgeInsets.only(right: 12),
         child: Text(
           "Sector",
           style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
-            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            color: headerColor,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ),
@@ -114,9 +118,9 @@ class MarketSummaryController extends GetxController {
           child: Text(
             element.displayName ?? '',
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              color: headerColor,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
@@ -129,7 +133,8 @@ class MarketSummaryController extends GetxController {
   }
 
   void generateDataRows() {
-    final rowTextColor = Colors.grey.shade800;
+    final isDarkMode = Get.context?.theme.brightness == Brightness.dark;
+    final rowTextColor = isDarkMode == true ? Colors.white : DashboardTextStyles.newtextcolor;
     List<DataRow> dataRowLst = [];
     List<DataRow> fixedRowLst = [];
 
@@ -197,11 +202,7 @@ class MarketSummaryController extends GetxController {
           }
 
           var valueCell = DataCell(Container(
-            constraints: BoxConstraints(minWidth: 75),
             padding: EdgeInsets.symmetric(vertical: 7, horizontal: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-            ),
             child: Text(
               matchedFieldStr,
               textAlign: TextAlign.center,
