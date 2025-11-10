@@ -187,7 +187,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       width: widgetWidth,
                       child: MarketSummaryDynamicTable(),
                     ),
-                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    // SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
                     // TradingView widget also takes exactly half of available width
                     SizedBox(
                       width: widgetWidth,
@@ -232,7 +232,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       width: widgetWidth,
                       child: MarketSummaryDynamicTable(),
                     ),
-                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    // SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
                     // TradingView widget also takes exactly half of available width
                     SizedBox(
                       width: widgetWidth,
@@ -242,7 +242,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 28),
             // Bottom Section: Heatmap/Cross Rates hub
             _buildHeatmapHub(context),
           ],
@@ -291,66 +291,131 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       required VoidCallback onTap,
       required Color accentColor,
     }) {
-      return Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor, width: 1),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
+      return StatefulBuilder(
+        builder: (context, setState) {
+          bool isHovering = false;
+          bool isChevronHovering = false;
+
+          void setHover(bool value) {
+            if (isHovering != value) {
+              setState(() => isHovering = value);
+            }
+          }
+
+          void setChevronHover(bool value) {
+            if (isChevronHovering != value) {
+              setState(() => isChevronHovering = value);
+            }
+          }
+
+          final bool shouldHighlight = isHovering || isChevronHovering;
+          final Color highlightColor = accentColor.withOpacity(0.2);
+          final Color arrowColor = shouldHighlight ? accentColor : subTextColor;
+          final Color iconBackgroundColor = shouldHighlight
+              ? accentColor.withOpacity(0.22)
+              : accentColor.withOpacity(0.12);
+          final Color borderHighlight = shouldHighlight
+              ? accentColor.withOpacity(0.45)
+              : borderColor;
+
+          return Expanded(
+            child: MouseRegion(
+              onEnter: (_) => setHover(true),
+              onExit: (_) => setHover(false),
+              cursor: SystemMouseCursors.basic,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: borderHighlight,
+                      width: 1,
+                    ),
+                    boxShadow: shouldHighlight
+                        ? [
+                            BoxShadow(
+                              color: accentColor.withOpacity(0.14),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
+                          ]
+                        : const [],
                   ),
-                  alignment: Alignment.center,
-                  child: Icon(icon, size: 20, color: accentColor),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                          letterSpacing: 0.15,
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: iconBackgroundColor,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(icon, size: 18, color: arrowColor),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                                letterSpacing: 0.15,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              subtitle,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                height: 1.3,
+                                color: subTextColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          height: 1.3,
-                          color: subTextColor,
+                      const SizedBox(width: 12),
+                      MouseRegion(
+                        onEnter: (_) => setChevronHover(true),
+                        onExit: (_) => setChevronHover(false),
+                        cursor: SystemMouseCursors.basic,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          padding: const EdgeInsets.all(8),
+                          alignment: Alignment.topCenter,
+                          decoration: BoxDecoration(
+                            color: shouldHighlight ? highlightColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16,
+                            color: arrowColor,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: subTextColor),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     }
 
@@ -362,7 +427,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             buildTile(
               icon: CupertinoIcons.chart_bar_alt_fill,
               title: 'Stock Market Heatmap',
-              subtitle: 'Explore live market breadth across sectors and market caps with interactive zoom and tooltips for each company.',
+              subtitle:
+                  'Explore live market breadth across sectors and market caps with interactive zoom and tooltips for each company.',
               onTap: () => _open(const StockHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
@@ -370,19 +436,17 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             buildTile(
               icon: CupertinoIcons.chart_pie_fill,
               title: 'ETF Market Heatmap',
-              subtitle: 'View top ETFs grouped by asset class and theme. Quickly spot flows and performance leaders across US-listed funds.',
+              subtitle:
+                  'View top ETFs grouped by asset class and theme. Quickly spot flows and performance leaders across US-listed funds.',
               onTap: () => _open(const EtfHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
+            const SizedBox(width: 12),
             buildTile(
               icon: CupertinoIcons.bitcoin_circle_fill,
               title: 'Crypto Market Map',
-              subtitle: 'Monitor the digital assets universe by market cap and weekly performance. Drill into leaders and emerging movers.',
+              subtitle:
+                  'Monitor the digital assets universe by market cap and weekly performance. Drill into leaders and emerging movers.',
               onTap: () => _open(const CryptoHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
@@ -390,7 +454,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             buildTile(
               icon: CupertinoIcons.arrow_2_circlepath,
               title: 'Forex Cross‑Rates Heatmap',
-              subtitle: 'Compare strength across major FX pairs and crosses at a glance with a theme-aware, full‑width heatmap.',
+              subtitle:
+                  'Compare strength across major FX pairs and crosses at a glance with a theme-aware, full-width heatmap.',
               onTap: () => _open(const ForexCrossRatesFullScreenPage()),
               accentColor: unifiedAccent,
             ),
