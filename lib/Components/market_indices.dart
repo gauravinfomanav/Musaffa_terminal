@@ -93,6 +93,10 @@ class DynamicHeightTradingView extends StatefulWidget {
   /// Title text to display above the chart. Defaults to "Market Indices".
   final String? title;
 
+  /// Optional padding applied to the title and content. Defaults to
+  /// [DynamicHeightTradingViewConstants.contentPadding].
+  final EdgeInsetsGeometry? contentPadding;
+
   const DynamicHeightTradingView({
     super.key,
     this.height,
@@ -101,6 +105,7 @@ class DynamicHeightTradingView extends StatefulWidget {
     this.minHeight,
     this.maxHeight,
     this.title,
+    this.contentPadding,
   });
   
   // Deprecated: Use [height] instead
@@ -508,6 +513,8 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
     // Calculate the height to use
     final calculatedHeight = _calculateHeight(context);
     final effectiveHeight = _webViewHeight ?? calculatedHeight;
+    final EdgeInsetsGeometry contentPadding =
+        widget.contentPadding ?? DynamicHeightTradingViewConstants.contentPadding;
     
     // Use AnimatedSize for smoother height transitions
     return Visibility(
@@ -519,7 +526,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
           Padding(
-            padding: DynamicHeightTradingViewConstants.contentPadding,
+            padding: contentPadding,
             child: Text(
               widget.title ?? "Market Indices",
               textAlign: TextAlign.start,
@@ -546,7 +553,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                 children: [
                   // WebView content
                   Padding(
-                    padding: DynamicHeightTradingViewConstants.contentPadding,
+                    padding: contentPadding,
                     child: WebViewWidget(controller: _controller),
                   ),
                   // Show loading indicator only when actually loading

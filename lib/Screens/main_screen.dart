@@ -191,7 +191,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     // TradingView widget also takes exactly half of available width
                     SizedBox(
                       width: widgetWidth,
-                      child: DynamicHeightTradingView(),
+                      child: DynamicHeightTradingView(
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ],
                 );
@@ -236,7 +238,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     // TradingView widget also takes exactly half of available width
                     SizedBox(
                       width: widgetWidth,
-                      child: DynamicHeightTradingView(),
+                      child: DynamicHeightTradingView(
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ],
                 );
