@@ -50,8 +50,12 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
 
   // --- Function to Generate Mini Widgets HTML ---
   String _generateMiniWidgetsHtml(String colorTheme) {
-    // Theme-aware background color
-    final bgColor = colorTheme == 'dark' ? '#2D2D2D' : '#FFFFFF';
+    // App background color (for gaps between widgets)
+    final appBgColor = colorTheme == 'dark' ? '#0F0F0F' : '#FAFAFA';
+    // Widget background color (inside each widget box)
+    final widgetBgColor = colorTheme == 'dark' ? '#2D2D2D' : '#FFFFFF';
+    // Theme-aware border color (very light)
+    final borderColor = colorTheme == 'dark' ? '#505050' : '#D1D5DB';
     
     return '''
     <!DOCTYPE html>
@@ -67,7 +71,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 height: 100% !important; 
                 width: 100% !important; 
                 overflow: hidden !important; 
-                background: $bgColor !important; 
+                background: $appBgColor !important; 
                 border: none !important; 
                 border-width: 0 !important;
                 border-style: none !important;
@@ -79,7 +83,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 gap: 0 !important; 
                 height: 100% !important; 
                 width: 100% !important; 
-                background: $bgColor !important;
+                background: $appBgColor !important;
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -91,14 +95,17 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             .mini-widget { 
                 flex: 1 !important; 
                 height: 100% !important; 
-                background: $bgColor !important;
-                border: none !important;
-                border-width: 0 !important;
-                border-style: none !important;
-                border-color: transparent !important;
+                background: $widgetBgColor !important;
+                border: 1px solid $borderColor !important;
+                border-width: 1px !important;
+                border-style: solid !important;
+                border-color: $borderColor !important;
+                border-radius: 10px !important;
                 outline: none !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
             }
             .mini-widget:not(:last-child) {
                 margin-right: ${LayoutConstants.SCREEN_COMPONENTS_PADDING}px !important;
@@ -107,14 +114,16 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             .mini-widget-wrapper {
                 height: 100% !important;
                 width: 100% !important;
-                background: $bgColor !important;
+                background: $widgetBgColor !important;
                 display: flex !important;
                 align-items: center !important;
+                overflow: hidden !important;
+                border-radius: 10px !important;
             }
             .tradingview-widget-container { 
                 height: 100% !important; 
                 width: 100% !important; 
-                background: $bgColor !important; 
+                background: $widgetBgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -124,7 +133,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             .tradingview-widget-container__widget { 
-                background: $bgColor !important; 
+                background: $widgetBgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -134,7 +143,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             iframe { 
-                background: $bgColor !important; 
+                background: $widgetBgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -144,7 +153,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             [class*="tradingview"] { 
-                background: $bgColor !important; 
+                background: $widgetBgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -154,7 +163,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 padding: 0 !important;
             }
             div[style*="background"] { 
-                background: $bgColor !important; 
+                background: $widgetBgColor !important; 
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -184,7 +193,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
             
             /* Force remove any default WebView styling */
-            .widgets-container, .mini-widget, .tradingview-widget-container {
+            .widgets-container, .tradingview-widget-container {
                 border: 0 !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -226,6 +235,16 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             a { pointer-events: none !important; }
             button { pointer-events: none !important; }
             iframe { pointer-events: none !important; }
+            
+            /* Apply border to each mini-widget (must be after general border removal rules) */
+            div.mini-widget {
+                border: 1px solid $borderColor !important;
+                border-width: 1px !important;
+                border-style: solid !important;
+                border-color: $borderColor !important;
+                border-radius: 10px !important;
+                overflow: hidden !important;
+            }
         </style>
     </head>
     <body>
@@ -485,63 +504,51 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDarkMode 
-        ? const Color(0xFF404040) 
-        : const Color(0xFFE5E7EB); // Use subtle border for light mode
-    final backgroundColor = isDarkMode ? const Color(0xFF2D2D2D) : Colors.white;
+        ? const Color(0xFF505050) 
+        : const Color(0xFFD1D5DB); // Very light border
+    // App background color (for container/gaps between widgets)
+    final appBackgroundColor = isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
+    // Widget background color (inside each widget box)
+    final widgetBackgroundColor = isDarkMode ? const Color(0xFF2D2D2D) : Colors.white;
     final widgetHeight = _calculateHeight(context);
     
     return RepaintBoundary(
-      child: Stack(
-        children: [
-          // Main container with WebView
-          Container(
-            height: widgetHeight,
-            decoration: BoxDecoration(
-              color: backgroundColor,
-            ),
-            clipBehavior: Clip.hardEdge,
-            child: _isLoading
-                ? Row(
-                    children: List.generate(4, (index) => Expanded(
-                      child: Container(
-                        margin: EdgeInsets.only(
-                          right: index < 3 ? LayoutConstants.SCREEN_COMPONENTS_PADDING : 0,
-                        ),
-                        child: ShimmerWidgets.box(
-                          width: double.infinity,
-                          height: widgetHeight,
-                          baseColor: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[800]!
-                              : Colors.grey[300]!,
-                          highlightColor: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[700]!
-                              : Colors.grey[100]!,
-                        ),
-                      ),
-                    )),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.zero,
-                    clipBehavior: Clip.hardEdge,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                      ),
-                      child: WebViewWidget(controller: _controller),
+      child: Container(
+        height: widgetHeight,
+        decoration: BoxDecoration(
+          color: appBackgroundColor,
+        ),
+        clipBehavior: Clip.none,
+        child: _isLoading
+            ? Row(
+                children: List.generate(4, (index) => Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(
+                      right: index < 3 ? LayoutConstants.SCREEN_COMPONENTS_PADDING : 0,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: borderColor, width: 1),
+                      // borderRadius: BorderRadius.circular(1),
+                    ),
+                    child: ShimmerWidgets.box(
+                      width: double.infinity,
+                      height: widgetHeight,
+                      baseColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[800]!
+                          : Colors.grey[300]!,
+                      highlightColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[700]!
+                          : Colors.grey[100]!,
                     ),
                   ),
-          ),
-          // White border overlay on top to cover any black borders
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
+                )),
+              )
+            : Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: borderColor, width: 2),
+                  color: appBackgroundColor,
                 ),
+                child: WebViewWidget(controller: _controller),
               ),
-            ),
-          ),
-        ],
       ),
     );
   }
