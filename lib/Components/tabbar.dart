@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -55,14 +56,8 @@ class HomeTabBar extends StatelessWidget {
               child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              'resources/Small Logo.svg',
-              height: 22,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 12),
-            // Back button or Theme toggle button
-            if (showBackButton)
+            // Back button first if it exists
+            if (showBackButton) ...[
               GestureDetector(
                 onTap: () => Get.back(),
                 child: Icon(
@@ -71,7 +66,15 @@ class HomeTabBar extends StatelessWidget {
                   color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                 ),
               ),
-            if (showBackButton) const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
+            // Logo - always shown, position depends on back button
+            SvgPicture.asset(
+              'resources/Small Logo.svg',
+              height: 22,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 12),
             // Theme toggle button
             // GestureDetector(
             //   onTap: onThemeToggle,
@@ -465,7 +468,7 @@ class _SearchFieldState extends State<_SearchField> {
   }
 }
 
-class _MarketIndicesStrip extends StatelessWidget {
+class _MarketIndicesStrip extends StatefulWidget {
   final FinhubController controller;
   final bool isDarkMode;
 
@@ -475,9 +478,70 @@ class _MarketIndicesStrip extends StatelessWidget {
   });
 
   @override
+  State<_MarketIndicesStrip> createState() => _MarketIndicesStripState();
+}
+
+class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
+  late ScrollController _scrollController;
+  Timer? _scrollTimer;
+  bool _isHovered = false;
+  double _scrollPosition = 0.0;
+  double _contentWidth = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _startScrolling();
+  }
+
+  void _startScrolling() {
+    _scrollTimer?.cancel();
+    _scrollTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (!_isHovered && mounted && _scrollController.hasClients) {
+        setState(() {
+          _scrollPosition +=1.5; // Slow scroll increment
+          if (_scrollPosition >= _contentWidth) {
+            _scrollPosition = 0.0; // Reset for seamless loop
+          }
+        });
+        _scrollController.jumpTo(_scrollPosition);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildIndexItems(List<MarketIndex> indices) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: indices
+          .map(
+            (index) => Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: _IndexItem(
+                  index: index,
+                  isDarkMode: widget.isDarkMode,
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (controller.isLoading.value && controller.indices.isEmpty) {
+      if (widget.controller.isLoading.value &&
+          widget.controller.indices.isEmpty) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -492,8 +556,12 @@ class _MarketIndicesStrip extends StatelessWidget {
                     width: 120,
                     height: 18,
                     borderRadius: BorderRadius.circular(6),
-                    baseColor: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                    highlightColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
+                    baseColor: widget.isDarkMode
+                        ? const Color(0xFF404040)
+                        : const Color(0xFFE5E7EB),
+                    highlightColor: widget.isDarkMode
+                        ? const Color(0xFF2D2D2D)
+                        : const Color(0xFFF3F4F6),
                   ),
                 ),
               ),
@@ -502,29 +570,45 @@ class _MarketIndicesStrip extends StatelessWidget {
         );
       }
 
-      if (controller.indices.isEmpty) {
+      if (widget.controller.indices.isEmpty) {
         return const SizedBox.shrink();
       }
 
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: controller.indices
-              .take(20)
-              .map(
-                (index) => Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: _IndexItem(
-                      index: index,
-                      isDarkMode: isDarkMode,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
+      final indices = widget.controller.indices.take(20).toList();
+      // Duplicate for seamless loop
+      final duplicatedIndices = [...indices, ...indices];
+
+      return MouseRegion(
+        onEnter: (_) {
+          setState(() {
+            _isHovered = true;
+          });
+        },
+        onExit: (_) {
+          setState(() {
+            _isHovered = false;
+          });
+        },
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(), 
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients && _contentWidth == 0.0) {
+                  final maxScroll = _scrollController.position.maxScrollExtent;
+                  if (maxScroll > 0) {
+                    setState(() {
+                      _contentWidth = maxScroll / 2; 
+                    });
+                  }
+                }
+              });
+
+              return _buildIndexItems(duplicatedIndices);
+            },
+          ),
         ),
       );
     });
