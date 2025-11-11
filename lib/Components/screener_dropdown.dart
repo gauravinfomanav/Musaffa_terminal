@@ -68,6 +68,26 @@ class ScreenerDropdown extends StatelessWidget {
             ),
             child: Row(
               children: [
+                // Reset button (only show when filter is applied) - moved to left
+                if (isApplied && onReset != null)
+                  GestureDetector(
+                    onTap: onReset,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      margin: const EdgeInsets.only(left: 6, right: 4),
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: 14,
+                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+                
                 // Dropdown
                 Expanded(
                   child: Padding(
@@ -86,15 +106,19 @@ class ScreenerDropdown extends StatelessWidget {
                           color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                         ),
                         dropdownColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                        itemHeight: 48,
                         onChanged: onChanged,
                         items: allOptions.map<DropdownMenuItem<String>>((option) {
                           return DropdownMenuItem<String>(
                             value: option['value'],
-                            child: Text(
-                              option['label'] ?? '',
-                              style: DashboardTextStyles.tickerSymbol.copyWith(
-                                fontSize: 12,
-                                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
+                              child: Text(
+                                option['label'] ?? '',
+                                style: DashboardTextStyles.tickerSymbol.copyWith(
+                                  fontSize: 12,
+                                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                                ),
                               ),
                             ),
                           );
@@ -103,26 +127,6 @@ class ScreenerDropdown extends StatelessWidget {
                     ),
                   ),
                 ),
-                
-                // Reset button (only show when filter is applied)
-                if (isApplied && onReset != null)
-                  GestureDetector(
-                    onTap: onReset,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.close,
-                        size: 14,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
