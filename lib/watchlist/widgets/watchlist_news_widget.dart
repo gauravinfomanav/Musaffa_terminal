@@ -165,7 +165,7 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
         'Error: $error',
         style: TextStyle(
           color: Colors.red.shade400,
-          fontSize: 12,
+          fontSize: 13,
         ),
         textAlign: TextAlign.center,
       ),
@@ -179,7 +179,7 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
         'No news available for watchlist stocks',
         style: TextStyle(
           color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-          fontSize: 12,
+          fontSize: 13,
         ),
         textAlign: TextAlign.center,
       ),
@@ -208,7 +208,7 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
                 'WATCHLIST NEWS',
                 style: DashboardTextStyles.columnHeader.copyWith(
                   color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
@@ -248,7 +248,7 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
                       news['ticker'] ?? '--',
                       style: DashboardTextStyles.tickerSymbol.copyWith(
                         color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -257,7 +257,7 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
                       news['datetime'] ?? '--',
                       style: DashboardTextStyles.tickerSymbol.copyWith(
                         color: widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                        fontSize: 9,
+                        fontSize: 10,
                       ),
                     ),
                   ],
@@ -270,7 +270,7 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
                   news['summary'] ?? '--',
                   style: DashboardTextStyles.stockName.copyWith(
                     color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                    fontSize: 11,
+                    fontSize: 12,
                     height: 1.2,
                   ),
                   maxLines: 4,

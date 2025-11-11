@@ -340,18 +340,19 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: BorderSide(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        color: Colors.blue,
                         width: 1,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(90),
                       ),
                     ),
                     child: Text(
                       'Cancel',
                       style: DashboardTextStyles.buttonText.copyWith(
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        color: Colors.blue,
                         fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -362,10 +363,10 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
                     onPressed: _saveTargetPrice,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      backgroundColor: const Color(0xFF81AACE),
+                      backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(90),
                       ),
                       elevation: 0,
                     ),

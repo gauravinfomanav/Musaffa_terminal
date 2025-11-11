@@ -1722,12 +1722,14 @@ class _StrategiesListDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
+      titlePadding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
+      contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       title: Row(
         children: [
           Text(
             'STRATEGIES',
             style: DashboardTextStyles.headerTitle.copyWith(
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
               color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
@@ -1740,7 +1742,7 @@ class _StrategiesListDialog extends StatelessWidget {
               padding: const EdgeInsets.all(4),
               child: Icon(
                 Icons.close,
-                size: 16,
+                size: 20,
                 color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
               ),
             ),
@@ -1752,7 +1754,7 @@ class _StrategiesListDialog extends StatelessWidget {
         child: Obx(() {
           if (strategyController.isLoading.value) {
             return Container(
-              padding: const EdgeInsets.all(32.0),
+              padding: const EdgeInsets.all(20.0),
               child: Center(
                 child: CircularProgressIndicator(
                   color: const Color(0xFF81AACE),
@@ -1764,7 +1766,7 @@ class _StrategiesListDialog extends StatelessWidget {
 
           if (strategyController.strategies.isEmpty) {
             return Container(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(16.0),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1803,7 +1805,7 @@ class _StrategiesListDialog extends StatelessWidget {
             ),
             child: ListView.separated(
               shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
               itemCount: strategyController.strategies.length,
               separatorBuilder: (context, index) => const SizedBox(height: 4),
               itemBuilder: (context, index) {
@@ -1813,7 +1815,7 @@ class _StrategiesListDialog extends StatelessWidget {
                 return GestureDetector(
                   onTap: () => onStrategySelected(strategy),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     decoration: BoxDecoration(
                       color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
                       borderRadius: BorderRadius.circular(4),
@@ -1824,19 +1826,6 @@ class _StrategiesListDialog extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        // Strategy icon/indicator
-                        Container(
-                          width: 4,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: strategy.isDefault 
-                                ? const Color(0xFF81AACE) 
-                                : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        
                         // Content
                         Expanded(
                           child: Column(
@@ -1857,7 +1846,7 @@ class _StrategiesListDialog extends StatelessWidget {
                                   ),
                                   if (strategy.isDefault)
                                     Container(
-                                      margin: const EdgeInsets.only(left: 6),
+                                      margin: const EdgeInsets.only(left: 4),
                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF81AACE),
@@ -1876,7 +1865,7 @@ class _StrategiesListDialog extends StatelessWidget {
                                 ],
                               ),
                               if (strategy.description != null && strategy.description!.isNotEmpty) ...[
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 1),
                                 Text(
                                   strategy.description!,
                                   style: DashboardTextStyles.tickerSymbol.copyWith(
@@ -1893,7 +1882,7 @@ class _StrategiesListDialog extends StatelessWidget {
                         
                         // Filters count
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF3F4F6),
                             borderRadius: BorderRadius.circular(3),
@@ -1903,7 +1892,7 @@ class _StrategiesListDialog extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            '$filterCount',
+                            '$filterCount ${filterCount == 1 ? 'filter' : 'filters'}',
                             style: DashboardTextStyles.tickerSymbol.copyWith(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
@@ -1917,7 +1906,7 @@ class _StrategiesListDialog extends StatelessWidget {
                         GestureDetector(
                           onTap: () => onStrategyDelete(strategy),
                           child: Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(2),
                             child: Icon(
                               Icons.delete_outline,
                               size: 16,

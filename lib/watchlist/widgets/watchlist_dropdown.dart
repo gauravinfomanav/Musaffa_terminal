@@ -251,9 +251,11 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
                 ),
               ),
               const SizedBox(width: 8),
-              _buildSetDefaultButton(controller, isDarkMode),
-              const SizedBox(width: 4),
+              _buildAddStocksButton(controller, isDarkMode),
+              const SizedBox(width: 8),
               _buildCreateButton(isInactive: false, isDarkMode: isDarkMode),
+              const SizedBox(width: 8),
+              _buildSetDefaultButton(controller, isDarkMode),
             ],
           ),
         ),
@@ -266,11 +268,57 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
     );
   }
 
+  Widget _buildAddStocksButton(WatchlistController controller, bool isDarkMode) {
+    final selectedWatchlist = controller.selectedWatchlist.value;
+    
+    return GestureDetector(
+      onTap: selectedWatchlist != null ? () {
+        showDialog(
+          context: Get.context!,
+          barrierDismissible: true,
+          builder: (context) => AddStocksModal(
+            watchlistName: selectedWatchlist.name,
+            watchlistId: selectedWatchlist.id,
+          ),
+        );
+      } : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.blue,
+          borderRadius: BorderRadius.circular(90),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.add,
+              size: 12,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'ADD STOCKS',
+              style: DashboardTextStyles.columnHeader.copyWith(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSetDefaultButton(WatchlistController controller, bool isDarkMode) {
     final selectedWatchlist = controller.selectedWatchlist.value;
     final isDefault = selectedWatchlist != null && controller.isDefaultWatchlist(selectedWatchlist.id);
     
-    return GestureDetector(
+    return _DefaultButton(
+      isDarkMode: isDarkMode,
+      isDefault: isDefault,
       onTap: selectedWatchlist != null && !isDefault ? () async {
         final success = await controller.setDefaultWatchlist(selectedWatchlist.id);
         if (success) {
@@ -294,45 +342,6 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
           );
         }
       } : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          color: isDefault 
-              ? (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB))
-              : (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB)),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: isDefault 
-                ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-                : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isDefault ? Icons.star : Icons.star_border,
-              size: 10,
-              color: isDefault 
-                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-                  : (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
-            ),
-            const SizedBox(width: 2),
-            Text(
-              isDefault ? 'DEFAULT' : 'SET DEFAULT',
-              style: DashboardTextStyles.columnHeader.copyWith(
-                color: isDefault 
-                    ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-                    : (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
-                fontSize: 8,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -342,14 +351,12 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
         _showCreateWatchlistDialog(isDarkMode);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isInactive 
-              ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
-              : (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB)),
-          borderRadius: BorderRadius.circular(4),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(90),
           border: Border.all(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            color: Colors.blue,
             width: 1,
           ),
         ),
@@ -359,18 +366,14 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
             Icon(
               Icons.add,
               size: 12,
-              color: isInactive 
-                  ? (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
-                  : (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151)),
+              color: Colors.blue,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
-              'CREATE',
+              'CREATE WATCHLIST',
               style: DashboardTextStyles.columnHeader.copyWith(
-                color: isInactive 
-                    ? (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
-                    : (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151)),
-                fontSize: 9,
+                color: Colors.blue,
+                fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
               ),
@@ -558,11 +561,10 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-          // Header with count and add button
+          // Header with count
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'STOCKS (${controller.stocksCount})',
@@ -572,54 +574,19 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
                     letterSpacing: 0.5,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    final selectedWatchlist = controller.selectedWatchlist.value!;
-                    showDialog(
-                      context: Get.context!,
-                      barrierDismissible: true,
-                      builder: (context) => AddStocksModal(
-                        watchlistName: selectedWatchlist.name,
-                        watchlistId: selectedWatchlist.id,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add,
-                          size: 10,
-                          color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'ADD',
-                          style: DashboardTextStyles.columnHeader.copyWith(
-                            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
           
+          // Performance Summary - only show if we have data (moved above stocks table)
+          if (_tableData.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: WatchlistPerformanceSummary(
+                tableData: _tableData,
+                isDarkMode: isDarkMode,
+              ),
+            ),
           
           // Dynamic table for stocks
           WatchlistStocksTable(
@@ -634,17 +601,6 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
               });
             },
           ),
-          
-          // Performance Summary - only show if we have data
-          if (_tableData.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(top: 16),
-              child: WatchlistPerformanceSummary(
-                tableData: _tableData,
-                isDarkMode: isDarkMode,
-              ),
-            ),
-          
           
           // News section
           Container(
@@ -677,6 +633,69 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
       builder: (BuildContext context) {
         return CreateWatchlistDialog(isDarkMode: isDarkMode);
       },
+    );
+  }
+}
+
+class _DefaultButton extends StatefulWidget {
+  final bool isDarkMode;
+  final bool isDefault;
+  final VoidCallback? onTap;
+
+  const _DefaultButton({
+    required this.isDarkMode,
+    required this.isDefault,
+    required this.onTap,
+  });
+
+  @override
+  State<_DefaultButton> createState() => _DefaultButtonState();
+}
+
+class _DefaultButtonState extends State<_DefaultButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: _isHovering
+                ? (widget.isDarkMode 
+                    ? const Color(0xFF2A2A2A).withOpacity(0.5)
+                    : const Color(0xFFF3F4F6).withOpacity(0.7))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(90),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.isDefault ? Icons.star : Icons.star_border,
+                size: 12,
+                color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                widget.isDefault ? 'DEFAULT' : 'SET DEFAULT',
+                style: DashboardTextStyles.columnHeader.copyWith(
+                  color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

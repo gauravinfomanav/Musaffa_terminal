@@ -148,7 +148,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                 'PERFORMANCE SUMMARY',
                 style: DashboardTextStyles.columnHeader.copyWith(
                   color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
@@ -186,7 +186,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                         'Past Performance',
                         style: DashboardTextStyles.tickerSymbol.copyWith(
                           color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -218,7 +218,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                     'Day P&L:',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                   Row(
@@ -227,7 +227,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                         '${isPositivePL ? '+' : ''}\$${totalDayPL.toStringAsFixed(2)}',
                         style: DashboardTextStyles.stockName.copyWith(
                           color: plColor,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -236,7 +236,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                         '(${isPositivePL ? '+' : ''}${totalDayPLPercent.toStringAsFixed(1)}%)',
                         style: DashboardTextStyles.stockName.copyWith(
                           color: plColor,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -253,14 +253,14 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                     'Best:',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                   Text(
                     '$bestTicker ${bestPerformer >= 0 ? '+' : ''}${bestPerformer.toStringAsFixed(1)}%',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: Colors.green.shade600,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -274,14 +274,14 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                     'Worst:',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                   Text(
                     '$worstTicker ${worstPerformer >= 0 ? '+' : ''}${worstPerformer.toStringAsFixed(1)}%',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: Colors.red.shade600,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -296,14 +296,14 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                     'Volume Leader:',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                   Text(
                     '$volumeLeader ${_formatVolume(maxVolume)}',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -318,14 +318,14 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                     'Positive Movers:',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                   Text(
                     '$near52WeekHigh stocks',
                     style: DashboardTextStyles.stockName.copyWith(
                       color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -360,7 +360,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                 'PERFORMANCE SUMMARY',
                 style: DashboardTextStyles.columnHeader.copyWith(
                   color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
@@ -383,7 +383,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
             'No performance data available',
             style: DashboardTextStyles.stockName.copyWith(
               color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              fontSize: 11,
+              fontSize: 13,
             ),
             textAlign: TextAlign.center,
           ),
@@ -435,7 +435,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                 'Loading past performance...',
                 style: DashboardTextStyles.tickerSymbol.copyWith(
                   color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                  fontSize: 11,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -467,7 +467,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                   _backtestController.errorMessage.value,
                   style: DashboardTextStyles.tickerSymbol.copyWith(
                     color: widget.isDarkMode ? Colors.red[300] : Colors.red[800],
-                    fontSize: 11,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -512,7 +512,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
                 'Past Performance Results',
                 style: DashboardTextStyles.columnHeader.copyWith(
                   fontWeight: FontWeight.w600,
-                  fontSize: 11,
+                  fontSize: 13,
                   color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                 ),
               ),
@@ -522,7 +522,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
           Text(
             '${DateFormat('MMM dd, yyyy').format(result.backtestDate)} - ${DateFormat('MMM dd, yyyy').format(result.currentDate)}',
             style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 10,
+              fontSize: 12,
               color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
             ),
           ),
@@ -616,7 +616,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
           Text(
             title,
             style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 9,
+              fontSize: 11,
               color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
             ),
           ),
@@ -624,7 +624,7 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
           Text(
             value,
             style: DashboardTextStyles.stockName.copyWith(
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: color,
             ),
