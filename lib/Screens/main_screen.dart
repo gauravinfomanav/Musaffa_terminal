@@ -460,7 +460,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               onTap: () => _open(const StockHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 20),
             buildTile(
               icon: CupertinoIcons.chart_pie_fill,
               title: 'ETF Market Heatmap',
@@ -469,7 +469,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               onTap: () => _open(const EtfHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 20),
             buildTile(
               icon: CupertinoIcons.bitcoin_circle_fill,
               title: 'Crypto Market Map',
@@ -478,7 +478,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               onTap: () => _open(const CryptoHeatmapFullScreenPage()),
               accentColor: unifiedAccent,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 20),
             buildTile(
               icon: CupertinoIcons.arrow_2_circlepath,
               title: 'Forex Cross‑Rates Heatmap',

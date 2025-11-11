@@ -142,6 +142,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       final containerBorderColor = isDarkMode 
                           ? const Color(0xFF505050) 
                           : const Color(0xFFD1D5DB);
+                      // Responsive spacing between columns
+                      final columnSpacing = isLargeScreen ? 42.0 : 15.0;
 
                       return Align(
                         alignment: Alignment.centerLeft,
@@ -160,7 +162,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                             children: [
                             Container(
                               constraints: BoxConstraints(
-                                minWidth: fixedColumnWidth,
+                                minWidth: fixedColumnWidth + columnSpacing,
                               ),
                               decoration: BoxDecoration(
                                 color: Theme.of(context).brightness ==

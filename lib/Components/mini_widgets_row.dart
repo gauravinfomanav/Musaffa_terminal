@@ -106,7 +106,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 overflow: hidden !important;
             }
             .mini-widget:not(:last-child) {
-                margin-right: 24px !important;
+                margin-right: 20px !important;
                 box-sizing: border-box !important;
             }
             .mini-widget-wrapper {
