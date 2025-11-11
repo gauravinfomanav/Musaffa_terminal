@@ -3,7 +3,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'shimmer.dart';
 import 'dart:convert';
 import 'dart:async';
-import 'package:musaffa_terminal/utils/constants.dart';
 
 /// Widget height constants for market indices mini widgets
 class MiniWidgetsRowConstants {
@@ -107,7 +106,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 overflow: hidden !important;
             }
             .mini-widget:not(:last-child) {
-                margin-right: ${LayoutConstants.SCREEN_COMPONENTS_PADDING}px !important;
+                margin-right: 24px !important;
                 box-sizing: border-box !important;
             }
             .mini-widget-wrapper {
@@ -506,8 +505,6 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
         : const Color.fromARGB(255, 235, 235, 235); // Very light border
     // App background color (for container/gaps between widgets)
     final appBackgroundColor = isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
-    // Widget background color (inside each widget box)
-    final widgetBackgroundColor = isDarkMode ? const Color(0xFF2D2D2D) : Colors.white;
     final widgetHeight = _calculateHeight(context);
     
     return RepaintBoundary(
@@ -522,7 +519,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 children: List.generate(4, (index) => Expanded(
                   child: Container(
                     margin: EdgeInsets.only(
-                      right: index < 3 ? LayoutConstants.SCREEN_COMPONENTS_PADDING : 0,
+                      right: index < 3 ? 20 : 0,
                     ),
                     decoration: BoxDecoration(
                       border: Border.all(color: borderColor, width: 0.1),
