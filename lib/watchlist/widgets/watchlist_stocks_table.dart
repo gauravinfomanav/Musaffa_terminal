@@ -64,8 +64,6 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
 
   Future<void> _enrichStocksData() async {
     if (widget.stocks.isEmpty || _isEnrichingData) return;
-
-    print('WatchlistStocksTable: Starting data enrichment for ${widget.stocks.length} stocks');
     
     if (mounted) {
       setState(() {
@@ -164,7 +162,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
               isPositive: isGain,
               changeColor: isGain ? Colors.green.shade600 : Colors.red.shade600,
               fields: {
-                'addedPrice': '\$${addedPrice.toStringAsFixed(2)}',
+                'addedPrice': addedPrice, // Store as number for live price calculations
                 'currentPrice': '\$${currentPrice.toStringAsFixed(2)}',
                 'gainLoss': formattedGainLoss,
                 'targetPrice': _buildTargetPriceWidget(watchlistStock.ticker),
@@ -184,7 +182,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
               isPositive: true,
               changeColor: Colors.grey,
               fields: {
-                'addedPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
+                'addedPrice': watchlistStock.currentPrice, // Store as number for live price calculations
                 'currentPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
                 'gainLoss': 0.0,
                 'marketCap': '--',
@@ -200,7 +198,6 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
             _isEnrichingData = false;
           });
           
-          print('WatchlistStocksTable: Data enrichment completed, ${_tableData.length} items ready');
           // Notify parent widget that data is ready
           widget.onDataReady?.call(_tableData);
         }
@@ -227,7 +224,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         isPositive: true,
         changeColor: Colors.grey,
         fields: {
-          'addedPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
+          'addedPrice': watchlistStock.currentPrice, // Store as number for live price calculations
           'currentPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
           'gainLoss': 0.0,
           'marketCap': '--',
@@ -263,31 +260,24 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
 
   @override
   Widget build(BuildContext context) {
-    print('WatchlistStocksTable: build called - isLoading: ${widget.isLoading}, _isEnrichingData: $_isEnrichingData, stocks: ${widget.stocks.length}, _tableData: ${_tableData.length}');
-    
     if (widget.isLoading || _isEnrichingData) {
-      print('WatchlistStocksTable: showing loading state');
       return _buildLoadingState();
     }
 
     if (widget.errorMessage != null) {
-      print('WatchlistStocksTable: showing error state: ${widget.errorMessage}');
       return _buildErrorState();
     }
 
     // Show empty state if no stocks in current watchlist
     if (widget.stocks.isEmpty) {
-      print('WatchlistStocksTable: showing empty state');
       return _buildEmptyState();
     }
 
     // Show loading state if we have stocks but no table data yet (data enrichment in progress)
     if (_tableData.isEmpty && widget.stocks.isNotEmpty) {
-      print('WatchlistStocksTable: showing loading state (no table data)');
       return _buildLoadingState();
     }
 
-    print('WatchlistStocksTable: showing table with ${_tableData.length} items');
     return _buildTable();
   }
 

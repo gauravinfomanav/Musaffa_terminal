@@ -256,6 +256,9 @@ class _DynamicTableState extends State<DynamicTable> {
             // Update gain/loss with new calculation
             updatedFields['gainLoss'] = double.parse(priceDiff.toStringAsFixed(1));
             updatedFields['gainLossPercent'] = double.parse(gainLossPercent.toStringAsFixed(2));
+            
+            // Format addedPrice for display (keep as number for calculations, but format for consistency)
+            // Note: addedPrice stays as number so calculations work, display logic will format it
           }
         }
         
@@ -640,7 +643,13 @@ class _DynamicTableState extends State<DynamicTable> {
           if (fieldValue is Widget) {
             cell = DataCell(fieldValue);
           } else {
-            String cellData = fieldValue?.toString() ?? "-";
+            String cellData;
+            // Format numeric price fields (like addedPrice) with currency symbol
+            if ((fieldValue is num) && (column.fieldName == 'addedPrice' || column.fieldName == 'currentPrice' || column.fieldName == 'price')) {
+              cellData = '\$${fieldValue.toStringAsFixed(2)}';
+            } else {
+              cellData = fieldValue?.toString() ?? "-";
+            }
             
             // Use stored text color or fallback to avoid context access during dispose
             Color textColor = _defaultTextColor ?? Colors.black;
