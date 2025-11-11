@@ -458,7 +458,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   Widget _buildHeader(bool isDarkMode) {
     return Text(
           'STOCK SCREENER',
-          style: DashboardTextStyles.headerTitle,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w500,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+          )
     );
   }
 
@@ -554,7 +558,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       height: contentHeight.clamp(180, 500), // Reduced min/max height
       padding: const EdgeInsets.all(12), // Reduced padding
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -828,7 +832,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       key: key,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),

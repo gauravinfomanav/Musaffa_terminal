@@ -314,13 +314,21 @@ class _DynamicTableState extends State<DynamicTable> {
     List<DataColumn> fixedLst = [];
     List<DataColumn> lst = [];
 
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final headerColor = isDarkMode ? Colors.white : const Color(0xFF757576);
+
     // Fixed column for company name
     if (widget.showFixedColumn) {
       fixedLst.add(DataColumn(
-        label: Expanded(
+        label: Padding(
+          padding: const EdgeInsets.only(right: 12, bottom: 4),
           child: Text(
             "Company",
-            style: DashboardTextStyles.columnHeader,
+            style: TextStyle(
+              fontSize: 13,
+              color: headerColor,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ),
       ));
@@ -329,10 +337,16 @@ class _DynamicTableState extends State<DynamicTable> {
     // Dynamic columns
     widget.columns.forEach((column) {
       var dataColumn = DataColumn(
-        label: Expanded(
+        headingRowAlignment: MainAxisAlignment.center,
+        label: Padding(
+          padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             column.label,
-            style: DashboardTextStyles.columnHeader,
+            style: TextStyle(
+              fontSize: 13,
+              color: headerColor,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ),
       );
@@ -349,6 +363,11 @@ class _DynamicTableState extends State<DynamicTable> {
   Widget build(BuildContext context) {
     generateCols();
     generateDataRows();
+    
+    // Match market summary border styling
+    final borderWidth = 0.2;
+    final borderColor = Theme.of(context).primaryColorLight;
+    
     return Container(
       padding: EdgeInsets.symmetric(
           horizontal: widget.considerPadding == true ? 16 : 0),
@@ -361,7 +380,7 @@ class _DynamicTableState extends State<DynamicTable> {
                 decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.grey.shade800
-                    : Colors.grey.shade50,
+                    : Colors.white,
                 boxShadow: [
                   BoxShadow(
                     color: increaseShadow
@@ -383,7 +402,7 @@ class _DynamicTableState extends State<DynamicTable> {
                   dataRowMaxHeight: 48,
                   columns: fixedDataCols,
                   rows: fixedDataRows,
-                dividerThickness: 0,
+                dividerThickness: borderWidth,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.transparent, width: 0),
                 ),
@@ -391,7 +410,10 @@ class _DynamicTableState extends State<DynamicTable> {
                   bottom: BorderSide.none,
                   top: BorderSide.none,
                   verticalInside: BorderSide.none,
-                  horizontalInside: BorderSide.none,
+                  horizontalInside: BorderSide(
+                    color: borderColor,
+                    width: borderWidth,
+                  ),
                 ),
               ),
               ),
@@ -399,22 +421,26 @@ class _DynamicTableState extends State<DynamicTable> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return Scrollbar(
-                  controller: sController,
-                  thickness: 4,
-                  thumbVisibility: true,
-                  child: SingleChildScrollView(
+                return Container(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade800
+                      : Colors.white,
+                  child: Scrollbar(
                     controller: sController,
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: constraints.maxWidth,
-                      ),
-                      child: Theme(
-                        data: Theme.of(context).copyWith(
-                          dividerColor: Colors.transparent,
+                    thickness: 4,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: sController,
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: constraints.maxWidth,
                         ),
-                        child: DataTable(
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            dividerColor: Colors.transparent,
+                          ),
+                          child: DataTable(
                           key: ValueKey('table_$_updateCounter'),
                           showCheckboxColumn: false,
                           headingRowHeight: 24,
@@ -428,7 +454,7 @@ class _DynamicTableState extends State<DynamicTable> {
                           rows: dataRows.isNotEmpty
                               ? dataRows
                               : [DataRow(cells: [DataCell(SizedBox.shrink())])],
-                          dividerThickness: 0,
+                          dividerThickness: borderWidth,
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.transparent, width: 0),
                           ),
@@ -436,7 +462,11 @@ class _DynamicTableState extends State<DynamicTable> {
                             bottom: BorderSide.none,
                             top: BorderSide.none,
                             verticalInside: BorderSide.none,
-                            horizontalInside: BorderSide.none,
+                            horizontalInside: BorderSide(
+                              color: borderColor,
+                              width: borderWidth,
+                            ),
+                          ),
                           ),
                         ),
                       ),
