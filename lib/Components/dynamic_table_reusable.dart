@@ -323,7 +323,7 @@ class _DynamicTableState extends State<DynamicTable> {
         label: Padding(
           padding: const EdgeInsets.only(right: 12, bottom: 4),
           child: Text(
-            "Company",
+            "COMPANY",
             style: TextStyle(
               fontSize: 13,
               color: headerColor,
