@@ -95,7 +95,7 @@ class MarketSummaryController extends GetxController {
     List<DataColumn> lst = [];
 
     final isDarkMode = Get.context?.theme.brightness == Brightness.dark;
-    final headerColor = isDarkMode == true ? Colors.white : DashboardTextStyles.newtextcolor;
+    final headerColor = isDarkMode == true ? Colors.white : Color(0xFF757576);
 
     fixedLst.add(DataColumn(
       label: Padding(
@@ -103,7 +103,7 @@ class MarketSummaryController extends GetxController {
         child: Text(
           "Sector",
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             color: headerColor,
             fontWeight: FontWeight.w400,
           ),
@@ -119,7 +119,7 @@ class MarketSummaryController extends GetxController {
           child: Text(
             element.displayName ?? '',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               color: headerColor,
               fontWeight: FontWeight.w400,
             ),

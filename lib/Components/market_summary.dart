@@ -135,7 +135,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                         dynamicSpacing = baseColumnSpacing;
                       }
 
-                      final borderWidth = isLargeScreen ? 0.5 : 0.25;
+                      final borderWidth = isLargeScreen ? 0.2 : 0.2;
                       final isDarkMode = Theme.of(context).brightness == Brightness.dark;
                       final borderColor = Theme.of(context).primaryColorLight;
                       // Border color for the container (same as mini_widgets_row)
