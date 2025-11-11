@@ -472,7 +472,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(90),
           border: Border.all(
             color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
           ),
@@ -493,9 +493,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                 padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 decoration: BoxDecoration(
                   color: isSelected 
-                      ? (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB))
+                      ? Colors.blue
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(90),
                 ),
                  child: Row(
                    mainAxisSize: MainAxisSize.min,
@@ -506,7 +506,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                     fontSize: 11,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected 
-                        ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
+                        ? Colors.white
                         : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
                   ),
                      ),
@@ -515,14 +515,16 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                        Container(
                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                          decoration: BoxDecoration(
-                           color: const Color(0xFF81AACE),
+                           color: isSelected 
+                               ? Colors.white
+                               : Colors.blue,
                            borderRadius: BorderRadius.circular(8),
                          ),
                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                          child: Text(
                            '${_getAppliedFiltersCount(category)}',
-                           style: const TextStyle(
-                             color: Colors.white,
+                           style: TextStyle(
+                             color: isSelected ? Colors.blue : Colors.white,
                              fontSize: 9,
                              fontWeight: FontWeight.w600,
                            ),
@@ -572,18 +574,14 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
             children: [
               Expanded(child: _buildFilterTabs(isDarkMode)),
               const SizedBox(width: 8),
-              // Load Strategies button (always visible)
+            
               GestureDetector(
                 onTap: _showStrategiesList,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
-                      width: 0.5,
-                    ),
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(90),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -591,7 +589,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       Icon(
                         Icons.bookmark_outline,
                         size: 14,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        color: Colors.white,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -599,7 +597,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                         style: DashboardTextStyles.tickerSymbol.copyWith(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                          color: Colors.white,
                         ),
                       ),
                     ],
@@ -608,17 +606,17 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
               ),
               if (_getTotalAppliedFiltersCount() > 0) ...[
                 const SizedBox(width: 8),
-                // Save Strategy button
+                // Save Strategy button (Secondary - outlined)
                 GestureDetector(
                   onTap: _saveCurrentFiltersAsStrategy,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5),
-                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(90),
                       border: Border.all(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
-                        width: 0.5,
+                        color: Colors.blue,
+                        width: 1,
                       ),
                     ),
                     child: Row(
@@ -627,7 +625,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                         Icon(
                           Icons.save_outlined,
                           size: 14,
-                          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                          color: Colors.blue,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -635,7 +633,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                           style: DashboardTextStyles.tickerSymbol.copyWith(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                            color: Colors.blue,
                           ),
                         ),
                       ],
@@ -643,40 +641,8 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Reset All button
-                GestureDetector(
-                  onTap: _resetAllFilters,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.refresh,
-                          size: 14,
-                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Reset All',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // Reset All button (Tertiary - minimal with hover)
+                _ResetAllButton(isDarkMode: isDarkMode, onTap: _resetAllFilters),
               ],
             ],
           ),
@@ -784,7 +750,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(90),
           border: Border.all(
             color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
           ),
@@ -805,9 +771,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                 padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 decoration: BoxDecoration(
                   color: isSelected 
-                      ? (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB))
+                      ? Colors.blue
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(90),
                 ),
                 child: Text(
                   tab.label,
@@ -815,7 +781,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                     fontSize: 11,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected 
-                        ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
+                        ? Colors.white
                         : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
                   ),
                 ),
@@ -847,29 +813,17 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
               
               
               if (_getTotalAppliedFiltersCount() > 0) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFD0D0D0),
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(
-                    '${_getTotalAppliedFiltersCount()} filters',
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                        ),
-                      ),
-              ),
-              const Spacer(),
+                Text(
+                  '${_getTotalAppliedFiltersCount()} ${_getTotalAppliedFiltersCount() == 1 ? 'filter' : 'filters'}',
+                  style: DashboardTextStyles.dataCell.copyWith(
+                    fontSize: 12,
+                    color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                  ),
+                ),
+                const Spacer(),
               ] else ...[
                 const Spacer(),
-                ],
+              ],
               _buildResultsTabs(isDarkMode),
             ],
           ),
@@ -979,7 +933,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
           // Navigation buttons
           Row(
             children: [
-              // Previous button
+              // Previous button (Secondary - outlined)
               if (filterController.hasPreviousPage) ...[
                 GestureDetector(
                   onTap: () async {
@@ -999,27 +953,27 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(4),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(90),
                       border: Border.all(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        color: Colors.blue,
                         width: 1,
-          ),
+                      ),
                     ),
-                child: Text(
+                    child: Text(
                       'Previous',
                       style: DashboardTextStyles.dataCell.copyWith(
                         fontSize: 12,
-                    color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  ),
-                ),
+                        color: Colors.blue,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
               ],
               
-              // Next button
+              // Next button (Primary)
               if (filterController.hasNextPage)
                 GestureDetector(
                   onTap: () async {
@@ -1039,19 +993,15 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                        width: 1,
-                  ),
-                ),
-                      child: Text(
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(90),
+                    ),
+                    child: Text(
                       'Next',
                       style: DashboardTextStyles.dataCell.copyWith(
                         fontSize: 12,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -1468,6 +1418,67 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   }
   
   // Removed _scrollToResults() - no longer needed
+}
+
+// Reset All button with hover effect
+class _ResetAllButton extends StatefulWidget {
+  final bool isDarkMode;
+  final VoidCallback onTap;
+
+  const _ResetAllButton({
+    required this.isDarkMode,
+    required this.onTap,
+  });
+
+  @override
+  State<_ResetAllButton> createState() => _ResetAllButtonState();
+}
+
+class _ResetAllButtonState extends State<_ResetAllButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _isHovering
+                ? (widget.isDarkMode 
+                    ? const Color(0xFF2A2A2A).withOpacity(0.5)
+                    : const Color(0xFFF3F4F6).withOpacity(0.7))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(90),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.refresh,
+                size: 14,
+                color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Reset All',
+                style: DashboardTextStyles.tickerSymbol.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // Dialog for saving strategy
