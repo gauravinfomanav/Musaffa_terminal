@@ -11,10 +11,11 @@ class MarketNewsController extends GetxController {
   /// Fetch market news for a specific symbol
   Future<void> fetchMarketNews(String symbol) async {
     try {
+      // Don't fetch if already loading or if same symbol is being fetched
+      if (isLoading.value) return;
+      
       isLoading.value = true;
       errorMessage.value = '';
-
-      print('Fetching news for symbol: $symbol'); // Debug log
 
       final response = await WebService.getTypesense([
         'collections',
@@ -56,12 +57,10 @@ class MarketNewsController extends GetxController {
       } else {
         errorMessage.value = 'Failed to fetch market news: ${response.statusCode} - ${response.body}';
         marketNewsList.clear();
-        print('API Error: ${response.statusCode} - ${response.body}'); // Debug log
       }
     } catch (e) {
       errorMessage.value = 'Error fetching market news: $e';
       marketNewsList.clear();
-      print('Exception: $e'); // Debug log
     } finally {
       isLoading.value = false;
     }

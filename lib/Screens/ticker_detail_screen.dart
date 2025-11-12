@@ -500,11 +500,26 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   }
 
   Widget _buildMarketTradingMetrics(StocksData stockData, bool isDarkMode) {
+    // Format shares outstanding - same approach as Market Overview
+    String sharesOutstandingFormatted = '--';
+    if (stockData.sharesOutStanding != null && stockData.sharesOutStanding! > 0) {
+      // sharesOutStanding is stored in millions, so multiply by 1M to get raw number
+      final rawShares = stockData.sharesOutStanding! * 1000000;
+      sharesOutstandingFormatted = Constants.getShortenedMarketCapV2(rawShares).replaceAll('\$', '');
+    }
+    
+    String floatFormatted = '--';
+    if (stockData.sharesOutStanding != null && stockData.sharesOutStanding! > 0) {
+      // Calculate float as 80% of shares outstanding
+      final rawFloat = stockData.sharesOutStanding! * 0.8 * 1000000;
+      floatFormatted = Constants.getShortenedMarketCapV2(rawFloat).replaceAll('\$', '');
+    }
+    
     final data = [
       ['Avg Volume (10D)', '${((stockData.avgVolume10days ?? 0) / 1000000).toStringAsFixed(1)}M'],
       ['Avg Volume (30D)', '${((stockData.avgVolume30days ?? 0) / 1000000).toStringAsFixed(1)}M'],
-      ['Shares Outstanding', '${((stockData.sharesOutStanding ?? 0) / 1000000).toStringAsFixed(1)}M'],
-      ['Float', '${((stockData.sharesOutStanding ?? 0) * 0.8 / 1000000).toStringAsFixed(1)}M'],
+      ['Shares Outstanding', sharesOutstandingFormatted],
+      ['Float', floatFormatted],
       ['Insider Ownership', '${(stockData.businessCompliantRatio ?? 0).toStringAsFixed(1)}%'],
       ['Institutional Hold', '${(stockData.businessQuestionableRatio ?? 0).toStringAsFixed(1)}%'],
     ];
@@ -825,7 +840,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                           ),
                         ),
                         Text(
-                          Constants.getShortenedMarketCapV2(stockData.sharesOutStanding! * 1000000),
+                          Constants.getShortenedMarketCapV2(stockData.sharesOutStanding! * 1000000).replaceAll('\$', ''),
                           style: DashboardTextStyles.tickerSymbol.copyWith(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -1263,18 +1278,13 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ListenableBuilder(
               listenable: recommendationController,
               builder: (context, child) {
-                // Debug logging
-                print('[TickerDetailScreen] Recommendation state - Loading: ${recommendationController.isLoading}, Error: ${recommendationController.error}, Has Data: ${recommendationController.recommendation != null}');
-                
                 // Hide container only if not loading AND (error OR no recommendation)
                 if (!recommendationController.isLoading && 
                     (recommendationController.error != null || 
                      recommendationController.recommendation == null)) {
-                  print('[TickerDetailScreen] Hiding recommendation container');
                   return const SizedBox.shrink();
                 }
                 
-                print('[TickerDetailScreen] Showing recommendation container');
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -1297,7 +1307,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),

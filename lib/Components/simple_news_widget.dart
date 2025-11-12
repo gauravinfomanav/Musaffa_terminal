@@ -4,7 +4,7 @@ import 'package:musaffa_terminal/Controllers/market_news_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
-class SimpleNewsWidget extends StatelessWidget {
+class SimpleNewsWidget extends StatefulWidget {
   final String symbol;
 
   const SimpleNewsWidget({
@@ -13,14 +13,40 @@ class SimpleNewsWidget extends StatelessWidget {
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(MarketNewsController());
-    
-    // Fetch news on widget build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.fetchMarketNews(symbol);
-    });
+  State<SimpleNewsWidget> createState() => _SimpleNewsWidgetState();
+}
 
+class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
+  final MarketNewsController controller = Get.put(MarketNewsController());
+  String? _lastFetchedSymbol;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNewsIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(SimpleNewsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.symbol != widget.symbol) {
+      _fetchNewsIfNeeded();
+    }
+  }
+
+  void _fetchNewsIfNeeded() {
+    if (_lastFetchedSymbol != widget.symbol) {
+      _lastFetchedSymbol = widget.symbol;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          controller.fetchMarketNews(widget.symbol);
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(() {
       if (controller.isLoading.value) {
         return _buildShimmer();
@@ -141,11 +167,12 @@ class SimpleNewsWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                   news['summary'] ?? '--',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     color: Colors.black87,
                     height: 1.2,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
                   ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
