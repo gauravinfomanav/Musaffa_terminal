@@ -25,7 +25,11 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
   @override
   void initState() {
     super.initState();
-    widget.controller.fetchRecommendation(widget.symbol);
+    // Fetch is now called from ticker_detail_screen.dart to ensure it happens even if widget is hidden
+    // Only fetch here if controller doesn't have data and isn't loading
+    if (!widget.controller.isLoading && widget.controller.recommendation == null && widget.controller.error == null) {
+      widget.controller.fetchRecommendation(widget.symbol);
+    }
   }
 
   @override
@@ -50,13 +54,14 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
         _pointerValue = recommendation.weightedAverage * 20; // Scale to 0-100
 
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               // Left side: Custom Gauge
               Expanded(
                 flex: 2,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'Analyst Consensus',
@@ -66,9 +71,9 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     _buildCustomGauge(recommendation),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Text(
                       recommendation.recommendationText,
                       style: TextStyle(
@@ -78,6 +83,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       '${recommendation.weightedAverage.toStringAsFixed(1)}/5.0',
                       style: TextStyle(
@@ -89,12 +95,13 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 24),
               // Right side: Recommendation bars
               Expanded(
                 flex: 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'Analyst Ratings',
@@ -104,13 +111,13 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     _buildRecommendationBar('Strong Buy', recommendation.strongBuy, Colors.green, widget.controller.getStrongBuyPercentage()),
                     _buildRecommendationBar('Buy', recommendation.buy, Colors.lightGreen, widget.controller.getBuyPercentage()),
                     _buildRecommendationBar('Hold', recommendation.hold, Colors.orange, widget.controller.getHoldPercentage()),
                     _buildRecommendationBar('Sell', recommendation.sell, Colors.red, widget.controller.getSellPercentage()),
                     _buildRecommendationBar('Strong Sell', recommendation.strongSell, Colors.red[900]!, widget.controller.getStrongSellPercentage()),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Text(
                       'Total: ${widget.controller.totalRecommendations}',
                       style: TextStyle(
@@ -131,8 +138,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
 
   Widget _buildCustomGauge(RecommendationModel recommendation) {
     return Container(
-      width: 220,
-      height: 125,
+      width: 240,
+      height: 140,
       child: CustomPaint(
         painter: GaugePainter(
           value: _pointerValue,
@@ -231,11 +238,11 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
 
   Widget _buildRecommendationBar(String label, int count, Color color, double percentage) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           SizedBox(
-            width: 70,
+            width: 85,
             child: Text(
               label,
               style: TextStyle(
@@ -243,30 +250,48 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                 fontWeight: FontWeight.w400,
                 fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
             child: Container(
-              height: 14,
+              height: 18,
               decoration: BoxDecoration(
                 color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(7),
+                borderRadius: BorderRadius.circular(9),
               ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: percentage / 100,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(7),
+              child: Stack(
+                children: [
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: percentage / 100,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                    ),
                   ),
-                ),
+                  if (percentage > 5)
+                    Center(
+                      child: Text(
+                        '${percentage.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: percentage > 50 ? Colors.white : Colors.black87,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           SizedBox(
-            width: 25,
+            width: 30,
             child: Text(
               count.toString(),
               style: TextStyle(
@@ -274,6 +299,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                 fontWeight: FontWeight.w400,
                 fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
+              textAlign: TextAlign.right,
             ),
           ),
         ],

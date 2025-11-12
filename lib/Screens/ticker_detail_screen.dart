@@ -75,6 +75,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
       controller.fetchStockDetails(ticker);
       researchNotesController.fetchNotes(ticker);
+      recommendationController.fetchRecommendation(ticker);
       _setupLivePrices(ticker);
     });
   }
@@ -1262,13 +1263,18 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ListenableBuilder(
               listenable: recommendationController,
               builder: (context, child) {
+                // Debug logging
+                print('[TickerDetailScreen] Recommendation state - Loading: ${recommendationController.isLoading}, Error: ${recommendationController.error}, Has Data: ${recommendationController.recommendation != null}');
+                
                 // Hide container only if not loading AND (error OR no recommendation)
                 if (!recommendationController.isLoading && 
                     (recommendationController.error != null || 
                      recommendationController.recommendation == null)) {
+                  print('[TickerDetailScreen] Hiding recommendation container');
                   return const SizedBox.shrink();
                 }
                 
+                print('[TickerDetailScreen] Showing recommendation container');
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

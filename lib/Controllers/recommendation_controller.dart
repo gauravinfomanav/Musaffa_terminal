@@ -13,8 +13,12 @@ class RecommendationController extends ChangeNotifier {
   String? get error => _error;
 
   Future<void> fetchRecommendation(String symbol) async {
-    if (symbol.isEmpty) return;
+    if (symbol.isEmpty) {
+      print('[RecommendationController] Symbol is empty, skipping fetch');
+      return;
+    }
     
+    print('[RecommendationController] Fetching recommendation for: ${symbol.toUpperCase()}');
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -27,20 +31,28 @@ class RecommendationController extends ChangeNotifier {
         symbol.toUpperCase()
       ]);
 
+      print('[RecommendationController] Response status: ${response.statusCode}');
+      print('[RecommendationController] Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('[RecommendationController] Parsed data: $data');
         _recommendation = RecommendationModel.fromJson(data);
         _error = null;
+        print('[RecommendationController] Recommendation loaded: ${_recommendation?.symbol}, Total: ${_recommendation != null ? (_recommendation!.strongBuy + _recommendation!.buy + _recommendation!.hold + _recommendation!.sell + _recommendation!.strongSell) : 0}');
       } else {
-        _error = 'Failed to fetch recommendation data';
+        _error = 'Failed to fetch recommendation data (Status: ${response.statusCode})';
         _recommendation = null;
+        print('[RecommendationController] Error: $_error');
       }
     } catch (e) {
       _error = 'Error: ${e.toString()}';
       _recommendation = null;
+      print('[RecommendationController] Exception: $_error');
     } finally {
       _isLoading = false;
       notifyListeners();
+      print('[RecommendationController] Loading complete. Has data: ${_recommendation != null}, Has error: ${_error != null}');
     }
   }
 
