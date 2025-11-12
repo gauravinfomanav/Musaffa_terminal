@@ -145,11 +145,11 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
               ),
               const SizedBox(width: 8),
               Text(
-                'PERFORMANCE SUMMARY',
+                'Performance Summary',
                 style: DashboardTextStyles.columnHeader.copyWith(
                   color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -357,11 +357,11 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
               ),
               const SizedBox(width: 8),
               Text(
-                'PERFORMANCE SUMMARY',
+                'Performance Summary',
                 style: DashboardTextStyles.columnHeader.copyWith(
                   color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: 0.5,
                 ),
               ),

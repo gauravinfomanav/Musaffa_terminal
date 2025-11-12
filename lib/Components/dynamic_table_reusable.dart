@@ -647,6 +647,9 @@ class _DynamicTableState extends State<DynamicTable> {
             // Format numeric price fields (like addedPrice) with currency symbol
             if ((fieldValue is num) && (column.fieldName == 'addedPrice' || column.fieldName == 'currentPrice' || column.fieldName == 'price')) {
               cellData = '\$${fieldValue.toStringAsFixed(2)}';
+            } else if ((fieldValue is num) && column.fieldName == 'volume') {
+              // Format volume in K, M, B format
+              cellData = _formatVolume(fieldValue.toDouble());
             } else {
               cellData = fieldValue?.toString() ?? "-";
             }
@@ -725,6 +728,18 @@ class _DynamicTableState extends State<DynamicTable> {
       dataRows = dataRowLst;
       fixedDataRows = fixedRowLst;
     });
+  }
+
+  String _formatVolume(double volume) {
+    if (volume >= 1e9) {
+      return '${(volume / 1e9).toStringAsFixed(1)}B';
+    } else if (volume >= 1e6) {
+      return '${(volume / 1e6).toStringAsFixed(1)}M';
+    } else if (volume >= 1e3) {
+      return '${(volume / 1e3).toStringAsFixed(1)}K';
+    } else {
+      return volume.toStringAsFixed(0);
+    }
   }
 }
 

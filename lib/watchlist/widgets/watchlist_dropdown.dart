@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
-import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
 import 'package:musaffa_terminal/watchlist/widgets/create_watchlist_dialog.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_stocks_table.dart';
@@ -24,6 +23,9 @@ class WatchlistDropdown extends StatefulWidget {
 }
 
 class _WatchlistDropdownState extends State<WatchlistDropdown> {
+  final GlobalKey _dropdownKey = GlobalKey();
+  final GlobalKey _dropdownButtonKey = GlobalKey();
+  bool _isDropdownOpen = false;
   List<SimpleRowModel> _tableData = [];
 
   @override
@@ -170,101 +172,252 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
   }
 
   Widget _buildDropdownState(WatchlistController controller, bool isDarkMode) {
-    return Column(
+    return Stack(
       children: [
-        // Dropdown container
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<WatchlistModel>(
-                    value: controller.selectedWatchlist.value,
-                    icon: Icon(
-                      Icons.keyboard_arrow_down,
-                      size: 16,
-                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                    ),
-                    dropdownColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 12,
-                    ),
-                    items: controller.watchlists.map((watchlist) {
-                      final isDefault = controller.isDefaultWatchlist(watchlist.id);
-                      return DropdownMenuItem<WatchlistModel>(
-                        value: watchlist,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
+        Column(
+          children: [
+            // Dropdown container
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      key: _dropdownKey,
+                      onTap: () {
+                        setState(() {
+                          _isDropdownOpen = !_isDropdownOpen;
+                        });
+                      },
+                      child: Container(
+                        key: _dropdownButtonKey,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
                           children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    watchlist.name,
-                                    style: DashboardTextStyles.stockName.copyWith(
-                                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                                      fontSize: 12,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          controller.selectedWatchlist.value?.name ?? 'Select Watchlist',
+                                          style: DashboardTextStyles.stockName.copyWith(
+                                            color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                                            fontSize: 14,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (controller.selectedWatchlist.value != null && 
+                                          controller.isDefaultWatchlist(controller.selectedWatchlist.value!.id)) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.star,
+                                          size: 12,
+                                          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  if (controller.selectedWatchlist.value != null)
+                                    Text(
+                                      '${controller.selectedWatchlist.value!.stockCount} stocks',
+                                      style: DashboardTextStyles.tickerSymbol.copyWith(
+                                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (isDefault) ...[
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.star,
-                                    size: 12,
-                                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                                  ),
                                 ],
-                              ],
+                              ),
                             ),
-                            Text(
-                              '${watchlist.stockCount} stocks',
-                              style: DashboardTextStyles.tickerSymbol.copyWith(
+                            AnimatedRotation(
+                              turns: _isDropdownOpen ? 0.5 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 16,
                                 color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                                fontSize: 10,
                               ),
                             ),
                           ],
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (WatchlistModel? newValue) {
-                      if (newValue != null) {
-                        controller.selectWatchlist(newValue);
-                      }
-                    },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildAddStocksButton(controller, isDarkMode),
+                  const SizedBox(width: 8),
+                  _buildCreateButton(isInactive: false, isDarkMode: isDarkMode),
+                  const SizedBox(width: 8),
+                  _buildSetDefaultButton(controller, isDarkMode),
+                ],
+              ),
+            ),
+            
+            // Stocks list
+            Expanded(
+              child: _buildStocksList(controller, isDarkMode),
+            ),
+          ],
+        ),
+        
+        // Backdrop to close dropdown when clicking outside
+        if (_isDropdownOpen)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isDropdownOpen = false;
+                });
+              },
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+        
+        // Custom animated dropdown menu - overlays on top
+        if (_isDropdownOpen)
+          _buildCustomDropdown(controller, isDarkMode),
+      ],
+    );
+  }
+
+  Widget _buildCustomDropdown(WatchlistController controller, bool isDarkMode) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final dropdownHeight = screenHeight * 0.6;
+    
+    // Get the width of the dropdown button
+    double? dropdownWidth;
+    if (_dropdownButtonKey.currentContext != null) {
+      final RenderBox? renderBox = _dropdownButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        dropdownWidth = renderBox.size.width;
+      }
+    }
+    
+    // Fallback width if measurement fails
+    final screenWidth = MediaQuery.of(context).size.width;
+    final calculatedWidth = dropdownWidth ?? (screenWidth * 0.4);
+    
+    return Positioned(
+      left: 16,
+      top: 80, // Position below the dropdown button (16 margin + ~64 button height)
+      child: GestureDetector(
+        onTap: () {}, // Prevent tap from closing when clicking inside
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: value,
+              alignment: Alignment.topCenter,
+              child: Opacity(
+                opacity: value,
+                child: Container(
+                  width: calculatedWidth,
+                  height: dropdownHeight,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: controller.watchlists.length,
+                      itemBuilder: (context, index) {
+                        final watchlist = controller.watchlists[index];
+                        final isDefault = controller.isDefaultWatchlist(watchlist.id);
+                        final isSelected = controller.selectedWatchlist.value?.id == watchlist.id;
+                        
+                        return InkWell(
+                          onTap: () {
+                            controller.selectWatchlist(watchlist);
+                            setState(() {
+                              _isDropdownOpen = false;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            color: isSelected
+                                ? (isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFE5E7EB))
+                                : Colors.transparent,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        watchlist.name,
+                                        style: DashboardTextStyles.stockName.copyWith(
+                                          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                                          fontSize: isSelected ? 15 : 14,
+                                          fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isDefault) ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.star,
+                                        size: 12,
+                                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                Text(
+                                  '${watchlist.stockCount} stocks',
+                                  style: DashboardTextStyles.tickerSymbol.copyWith(
+                                    color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              _buildAddStocksButton(controller, isDarkMode),
-              const SizedBox(width: 8),
-              _buildCreateButton(isInactive: false, isDarkMode: isDarkMode),
-              const SizedBox(width: 8),
-              _buildSetDefaultButton(controller, isDarkMode),
-            ],
-          ),
+            );
+          },
         ),
-        
-        // Stocks list
-        Expanded(
-          child: _buildStocksList(controller, isDarkMode),
-        ),
-      ],
+      ),
     );
   }
 
@@ -298,7 +451,7 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
             ),
             const SizedBox(width: 6),
             Text(
-              'ADD STOCKS',
+              'Add Stocks',
               style: DashboardTextStyles.columnHeader.copyWith(
                 color: Colors.white,
                 fontSize: 10,
@@ -531,7 +684,7 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'ADD STOCKS',
+                    'Add Stocks',
                     style: DashboardTextStyles.columnHeader.copyWith(
                       color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                       fontSize: 10,
@@ -567,10 +720,10 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
             child: Row(
               children: [
                 Text(
-                  'STOCKS (${controller.stocksCount})',
+                  'Stocks (${controller.stocksCount})',
                   style: DashboardTextStyles.columnHeader.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
                     letterSpacing: 0.5,
                   ),
                 ),

@@ -167,7 +167,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
                 'gainLoss': formattedGainLoss,
                 'targetPrice': _buildTargetPriceWidget(watchlistStock.ticker),
                 'marketCap': marketCapFormatted,
-                'volume': volume,
+                'volume': volume, // Store as number for calculations
               },
             ));
           } else {
@@ -363,7 +363,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       SimpleColumn(label: 'GAIN/LOSS', fieldName: 'gainLoss', isNumeric: true, width: 85),
       SimpleColumn(label: 'TARGET', fieldName: 'targetPrice', isNumeric: false, width: 80),
       SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 85),
-      SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true, width: 85),
+      SimpleColumn(label: 'Volume', fieldName: 'volume', isNumeric: false, width: 85),
     ];
 
     return Container(

@@ -219,47 +219,47 @@ class _AddStocksModalState extends State<AddStocksModal> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenSize = MediaQuery.of(context).size;
     
-    return Material(
-      color: Colors.transparent,
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       child: Container(
-        color: Colors.black.withOpacity(0.5), // Semi-transparent overlay
-        child: Center(
-          child: Container(
-            width: screenSize.width * 0.9,
-            height: screenSize.height * 0.7,
-            constraints: const BoxConstraints(
-              maxWidth: 600,
-              maxHeight: 500,
-            ),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Header
-                _buildHeader(isDarkMode),
-                
-                // Search bar
-                _buildSearchBar(isDarkMode),
-                
-                // Results section
-                Expanded(
-                  child: _buildResultsSection(isDarkMode),
-                ),
-                
-                // Bottom action bar
-                _buildBottomBar(isDarkMode),
-              ],
-            ),
+        width: screenSize.width * 0.9,
+        height: screenSize.height * 0.7,
+        constraints: const BoxConstraints(
+          maxWidth: 600,
+          maxHeight: 500,
+        ),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Header
+            _buildHeader(isDarkMode),
+            
+            // Search bar
+            _buildSearchBar(isDarkMode),
+            
+            // Results section
+            Expanded(
+              child: _buildResultsSection(isDarkMode),
+            ),
+            
+            // Bottom action bar
+            _buildBottomBar(isDarkMode),
+          ],
         ),
       ),
     );
@@ -278,12 +278,15 @@ class _AddStocksModalState extends State<AddStocksModal> {
       ),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Get.back(),
-            child: Icon(
-              Icons.arrow_back_ios,
-              size: 20,
-              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => Get.back(),
+              child: Icon(
+                Icons.arrow_back_ios,
+                size: 20,
+                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -379,7 +382,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
               child: Row(
                 children: [
                   Text(
-                    'SELECTED STOCKS (${_selectedTickers.length})',
+                    'Selected Stocks (${_selectedTickers.length})',
                     style: DashboardTextStyles.columnHeader.copyWith(
                       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                       fontSize: 11,
@@ -442,9 +445,11 @@ class _AddStocksModalState extends State<AddStocksModal> {
       child: Row(
         children: [
           // Remove button
-          GestureDetector(
-            onTap: () => _toggleSelection(ticker),
-            child: Container(
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => _toggleSelection(ticker),
+              child: Container(
               width: 16,
               height: 16,
               decoration: BoxDecoration(
@@ -461,6 +466,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
                   color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                 ),
               ),
+            ),
             ),
           ),
           
@@ -486,9 +492,11 @@ class _AddStocksModalState extends State<AddStocksModal> {
     final tickerSymbol = ticker.symbol ?? ticker.ticker ?? '';
     print('DEBUG: Building search result item - symbol: ${ticker.symbol}, ticker: ${ticker.ticker}, final: $tickerSymbol');
     
-    return GestureDetector(
-      onTap: () => _toggleSelection(tickerSymbol),
-      child: Container(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _toggleSelection(tickerSymbol),
+        child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected 
@@ -594,6 +602,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -618,55 +627,63 @@ class _AddStocksModalState extends State<AddStocksModal> {
             ),
           ),
           const Spacer(),
-          // Cancel button - terminal style
-          GestureDetector(
-            onTap: () => Get.back(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
+          // Cancel button (Secondary)
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => Get.back(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(90),
+                  border: Border.all(
+                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                    width: 1,
+                  ),
                 ),
-              ),
-              child: Text(
-                'CANCEL',
-                style: DashboardTextStyles.columnHeader.copyWith(
-                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                child: Text(
+                  'Cancel',
+                  style: DashboardTextStyles.columnHeader.copyWith(
+                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          // Add Selected button - terminal style
-          GestureDetector(
-            onTap: _selectedTickers.isEmpty ? null : _addSelectedStocks,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedTickers.isEmpty 
-                    ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
-                    : (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB)),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                'ADD SELECTED',
-                style: DashboardTextStyles.columnHeader.copyWith(
+          const SizedBox(width: 12),
+          // Add Selected button (Primary)
+          MouseRegion(
+            cursor: _selectedTickers.isEmpty ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: _selectedTickers.isEmpty ? null : _addSelectedStocks,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
                   color: _selectedTickers.isEmpty 
-                      ? (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
-                      : (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151)),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                      ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
+                      : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
+                  borderRadius: BorderRadius.circular(90),
+                  border: Border.all(
+                    color: _selectedTickers.isEmpty
+                        ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
+                        : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  'Add Selected',
+                  style: DashboardTextStyles.columnHeader.copyWith(
+                    color: _selectedTickers.isEmpty 
+                        ? (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
+                        : Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),

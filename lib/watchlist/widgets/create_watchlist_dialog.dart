@@ -129,10 +129,10 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
             Row(
               children: [
                 Text(
-                  'CREATE WATCHLIST',
+                  'Create Watchlist',
                   style: DashboardTextStyles.columnHeader.copyWith(
                     color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -141,14 +141,11 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: Container(
-                    padding: const EdgeInsets.all(2),
-                    child: Text(
-                      '×',
-                      style: DashboardTextStyles.columnHeader.copyWith(
-                        color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                      ),
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                     ),
                   ),
                 ),
@@ -162,11 +159,12 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'WATCHLIST NAME',
+                  'Watchlist Name',
                   style: DashboardTextStyles.columnHeader.copyWith(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: 0.5,
+                    color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -261,16 +259,18 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // Cancel button
+                // Cancel button (Secondary)
                 GestureDetector(
                   onTap: _isCreating ? null : () => Navigator.of(context).pop(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                      borderRadius: BorderRadius.circular(4),
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(90),
                       border: Border.all(
-                        color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        color: _isCreating
+                            ? (widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
+                            : (widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
                         width: 1,
                       ),
                     ),
@@ -279,8 +279,8 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
                       style: DashboardTextStyles.columnHeader.copyWith(
                         color: _isCreating 
                             ? (widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
-                            : (widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151)),
-                        fontSize: 10,
+                            : (widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
@@ -290,18 +290,20 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
                 
                 const SizedBox(width: 12),
                 
-                // Create button
+                // Create button (Primary)
                 GestureDetector(
                   onTap: _isCreating ? null : _createWatchlist,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: _isCreating 
                           ? (widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
-                          : (widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB)),
-                      borderRadius: BorderRadius.circular(4),
+                          : (widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
+                      borderRadius: BorderRadius.circular(90),
                       border: Border.all(
-                        color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        color: _isCreating
+                            ? (widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
+                            : (widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
                         width: 1,
                       ),
                     ),
@@ -309,14 +311,12 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_isCreating) ...[
-                          Container(
-                            width: 10,
-                            height: 10,
+                          SizedBox(
+                            width: 12,
+                            height: 12,
                             child: CircularProgressIndicator(
                               strokeWidth: 1.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151)
-                              ),
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -326,8 +326,8 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
                           style: DashboardTextStyles.columnHeader.copyWith(
                             color: _isCreating 
                                 ? (widget.isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
-                                : (widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151)),
-                            fontSize: 10,
+                                : Colors.white,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
                           ),
