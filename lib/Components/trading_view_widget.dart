@@ -232,16 +232,27 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return SizedBox(
+    return Container(
       width: double.infinity,
       height: widget.height,
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
       child: Stack(
         children: [
           // WebView or Fallback
           if (_isWebViewSupported && _webViewController != null)
-            WebViewWidget(
-              controller: _webViewController!,
-              gestureRecognizers: _createGestureRecognizers(),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: WebViewWidget(
+                controller: _webViewController!,
+                gestureRecognizers: _createGestureRecognizers(),
+              ),
             ),
           
           // Loading indicator - show when loading OR when WebView not ready
@@ -250,7 +261,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
               child: Container(
                 decoration: BoxDecoration(
                   color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Center(
                   child: Column(
@@ -275,41 +286,6 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
                 ),
               ),
             ),
-          
-          // Theme toggle button - positioned at top right corner
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF404040).withOpacity(0.8) : const Color(0xFFE5E7EB).withOpacity(0.8),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                onPressed: () {
-                  final newTheme = isDarkMode ? 'light' : 'dark';
-                  widget.controller.updateTheme(newTheme);
-                },
-                icon: Icon(
-                  isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                  color: const Color(0xFF81AACE),
-                  size: 18,
-                ),
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(
-                  minWidth: 36,
-                  minHeight: 36,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );

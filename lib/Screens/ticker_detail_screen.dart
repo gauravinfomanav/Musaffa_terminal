@@ -1131,7 +1131,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       
       final stockData = controller.stockData.value!;
       return SingleChildScrollView(
-        padding: const EdgeInsets.all(8),
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1140,32 +1141,49 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             const SizedBox(height: 16),
 
             // TradingView Chart and Analytics Row
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Half screen width for chart
-                Expanded(
-                  child: TradingViewWidget(
-                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: tradingViewController,
-                    height: 400,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Half screen width for analytics in column
-                Expanded(
-                  child: Column(
-                    children: [
-                      // RecommendationWidget(
-                      //   symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                      //   controller: recommendationController,
-                      // ),
-                      // const SizedBox(height: 8),
-                      _buildPerformanceHeatmap(stockData, isDarkMode),
-                    ],
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculate heatmap height based on available width
+                // Heatmap structure:
+                // - Padding: 10px top + 10px bottom = 20px
+                // - Header: ~20px (text) + 6px spacing = 26px
+                // - Grid: 3 rows × cell height
+                //   Cell height = (available width / 3 - spacing) / aspectRatio(2)
+                //   With 4px spacing between cells
+                final availableWidth = (constraints.maxWidth - 16) / 2; // Half width minus spacing
+                final cellWidth = (availableWidth - 20 - 8) / 3; // Container width - padding - spacing
+                final cellHeight = cellWidth / 2; // aspectRatio is 2
+                final gridHeight = (cellHeight * 3) + (4 * 2); // 3 rows + 2 spacings
+                final heatmapHeight = 20 + 26 + gridHeight; // padding + header + grid
+                
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Half screen width for chart
+                    Expanded(
+                      child: TradingViewWidget(
+                        symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                        controller: tradingViewController,
+                        height: heatmapHeight,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Half screen width for analytics in column
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // RecommendationWidget(
+                          //   symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                          //   controller: recommendationController,
+                          // ),
+                          // const SizedBox(height: 8),
+                          _buildPerformanceHeatmap(stockData, isDarkMode),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 16),
 
@@ -1176,11 +1194,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 Expanded(
                   child: _buildPriceMetrics(stockData, isDarkMode),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _buildValuationMetrics(stockData, isDarkMode),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _buildFinancialRatios(stockData, isDarkMode),
                 ),
@@ -1194,11 +1212,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 Expanded(
                   child: _buildGrowthMetrics(stockData, isDarkMode),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _buildRiskMetrics(stockData, isDarkMode),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _buildMarketTradingMetrics(stockData, isDarkMode),
                 ),
