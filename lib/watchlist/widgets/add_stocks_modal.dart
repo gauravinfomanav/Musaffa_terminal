@@ -222,44 +222,44 @@ class _AddStocksModalState extends State<AddStocksModal> {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      child: Container(
-        width: screenSize.width * 0.9,
-        height: screenSize.height * 0.7,
-        constraints: const BoxConstraints(
-          maxWidth: 600,
-          maxHeight: 500,
-        ),
-        decoration: BoxDecoration(
+          child: Container(
+            width: screenSize.width * 0.9,
+            height: screenSize.height * 0.7,
+            constraints: const BoxConstraints(
+              maxWidth: 600,
+              maxHeight: 500,
+            ),
+            decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
+              boxShadow: [
+                BoxShadow(
               color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(isDarkMode),
-            
-            // Search bar
-            _buildSearchBar(isDarkMode),
-            
-            // Results section
-            Expanded(
-              child: _buildResultsSection(isDarkMode),
-            ),
-            
-            // Bottom action bar
-            _buildBottomBar(isDarkMode),
-          ],
+            child: Column(
+              children: [
+                // Header
+                _buildHeader(isDarkMode),
+                
+                // Search bar
+                _buildSearchBar(isDarkMode),
+                
+                // Results section
+                Expanded(
+                  child: _buildResultsSection(isDarkMode),
+                ),
+                
+                // Bottom action bar
+                _buildBottomBar(isDarkMode),
+              ],
         ),
       ),
     );
@@ -281,11 +281,11 @@ class _AddStocksModalState extends State<AddStocksModal> {
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: () => Get.back(),
-              child: Icon(
-                Icons.arrow_back_ios,
-                size: 20,
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+            onTap: () => Get.back(),
+            child: Icon(
+              Icons.arrow_back_ios,
+              size: 20,
+              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
               ),
             ),
           ),
@@ -448,8 +448,8 @@ class _AddStocksModalState extends State<AddStocksModal> {
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: () => _toggleSelection(ticker),
-              child: Container(
+            onTap: () => _toggleSelection(ticker),
+            child: Container(
               width: 16,
               height: 16,
               decoration: BoxDecoration(
@@ -465,8 +465,8 @@ class _AddStocksModalState extends State<AddStocksModal> {
                   height: 1,
                   color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                 ),
+                ),
               ),
-            ),
             ),
           ),
           
@@ -495,8 +495,8 @@ class _AddStocksModalState extends State<AddStocksModal> {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => _toggleSelection(tickerSymbol),
-        child: Container(
+      onTap: () => _toggleSelection(tickerSymbol),
+      child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected 
@@ -601,7 +601,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
               ),
           ],
         ),
-      ),
+        ),
       ),
     );
   }
@@ -631,58 +631,58 @@ class _AddStocksModalState extends State<AddStocksModal> {
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: () => Get.back(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
+            onTap: () => Get.back(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
                   color: Colors.transparent,
                   borderRadius: BorderRadius.circular(90),
-                  border: Border.all(
+                border: Border.all(
                     color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                    width: 1,
-                  ),
+                  width: 1,
                 ),
-                child: Text(
+              ),
+              child: Text(
                   'Cancel',
-                  style: DashboardTextStyles.columnHeader.copyWith(
+                style: DashboardTextStyles.columnHeader.copyWith(
                     color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
+          ),
           ),
           const SizedBox(width: 12),
           // Add Selected button (Primary)
           MouseRegion(
             cursor: _selectedTickers.isEmpty ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: _selectedTickers.isEmpty ? null : _addSelectedStocks,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _selectedTickers.isEmpty 
-                      ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
+            onTap: _selectedTickers.isEmpty ? null : _addSelectedStocks,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: _selectedTickers.isEmpty 
+                    ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
                       : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
                   borderRadius: BorderRadius.circular(90),
-                  border: Border.all(
+                border: Border.all(
                     color: _selectedTickers.isEmpty
                         ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
                         : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
-                    width: 1,
-                  ),
+                  width: 1,
                 ),
-                child: Text(
+              ),
+              child: Text(
                   'Add Selected',
-                  style: DashboardTextStyles.columnHeader.copyWith(
-                    color: _selectedTickers.isEmpty 
-                        ? (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
+                style: DashboardTextStyles.columnHeader.copyWith(
+                  color: _selectedTickers.isEmpty 
+                      ? (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
                         : Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                   ),
                 ),
               ),

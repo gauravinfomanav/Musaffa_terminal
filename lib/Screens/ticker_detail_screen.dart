@@ -269,52 +269,52 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                               children: [
                                 GestureDetector(
                                   onTap: () {
-                                    setState(() {
-                                      _selectedTabIndex = 0;
-                                    });
-                                  },
+                            setState(() {
+                              _selectedTabIndex = 0;
+                            });
+                          },
                                   child: Container(
                                     margin: const EdgeInsets.symmetric(horizontal: 1),
                                     padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                                     decoration: BoxDecoration(
-                                      color: _selectedTabIndex == 0 
+                              color: _selectedTabIndex == 0 
                                           ? Colors.blue
-                                          : Colors.transparent,
+                                : Colors.transparent,
                                       borderRadius: BorderRadius.circular(90),
-                                    ),
-                                    child: Text(
-                                      'Overview',
+                          ),
+                          child: Text(
+                            'Overview',
                                       style: DashboardTextStyles.tickerSymbol.copyWith(
                                         fontSize: 11,
                                         fontWeight: _selectedTabIndex == 0 ? FontWeight.w700 : FontWeight.w400,
-                                        color: _selectedTabIndex == 0 
+                              color: _selectedTabIndex == 0 
                                             ? Colors.white
-                                            : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                                      ),
-                                    ),
-                                  ),
+                                  : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                            ),
+                          ),
+                        ),
                                 ),
                                 GestureDetector(
                                   onTap: () {
-                                    setState(() {
-                                      _selectedTabIndex = 1;
-                                    });
-                                  },
+                            setState(() {
+                              _selectedTabIndex = 1;
+                            });
+                          },
                                   child: Container(
                                     margin: const EdgeInsets.symmetric(horizontal: 1),
                                     padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                                     decoration: BoxDecoration(
-                                      color: _selectedTabIndex == 1 
+                              color: _selectedTabIndex == 1 
                                           ? Colors.blue
-                                          : Colors.transparent,
+                                : Colors.transparent,
                                       borderRadius: BorderRadius.circular(90),
-                                    ),
-                                    child: Text(
-                                      'Financial',
+                          ),
+                          child: Text(
+                            'Financial',
                                       style: DashboardTextStyles.tickerSymbol.copyWith(
                                         fontSize: 11,
                                         fontWeight: _selectedTabIndex == 1 ? FontWeight.w700 : FontWeight.w400,
-                                        color: _selectedTabIndex == 1 
+                              color: _selectedTabIndex == 1 
                                             ? Colors.white
                                             : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
                                       ),
@@ -346,14 +346,14 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                                 border: Border.all(
                                   color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
                                   width: 1,
-                                ),
                               ),
-                              child: Text(
-                                hasNotes ? 'View Notes' : 'Add Note',
-                                style: TextStyle(
-                                  fontSize: 12,
+                            ),
+                            child: Text(
+                              hasNotes ? 'View Notes' : 'Add Note',
+                              style: TextStyle(
+                                fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
                                   color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
                                 ),
                               ),
@@ -687,17 +687,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                       // Live Current Price
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
+                    children: [
+                      Text(
                             'Current Price',
                             style: DashboardTextStyles.tickerSymbol.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                             ),
-                          ),
+                      ),
                           const SizedBox(height: 4),
-                          Text(
+                      Text(
                             '\$${(_livePrice ?? stockData.currentPrice?.toDouble() ?? 0.0).toStringAsFixed(2)}',
                             style: DashboardTextStyles.stockName.copyWith(
                               fontSize: 14,
@@ -725,10 +725,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                             style: DashboardTextStyles.stockName.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: stockData.change1DPercent != null
+                          color: stockData.change1DPercent != null
                                   ? (stockData.change1DPercent! >= 0 ? Colors.green.shade600 : Colors.red.shade600)
                                   : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                            ),
+                        ),
                           ),
                         ],
                       ),
@@ -1208,31 +1208,31 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 final heatmapHeight = 20 + 26 + gridHeight; // padding + header + grid
                 
                 return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Half screen width for chart
-                    Expanded(
-                      child: TradingViewWidget(
-                        symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                        controller: tradingViewController,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Half screen width for chart
+                Expanded(
+                  child: TradingViewWidget(
+                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                    controller: tradingViewController,
                         height: heatmapHeight,
-                      ),
-                    ),
+                  ),
+                ),
                     const SizedBox(width: 16),
-                    // Half screen width for analytics in column
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // RecommendationWidget(
-                          //   symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                          //   controller: recommendationController,
-                          // ),
-                          // const SizedBox(height: 8),
-                          _buildPerformanceHeatmap(stockData, isDarkMode),
-                        ],
-                      ),
-                    ),
-                  ],
+                // Half screen width for analytics in column
+                Expanded(
+                  child: Column(
+                    children: [
+                      // RecommendationWidget(
+                      //   symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                      //   controller: recommendationController,
+                      // ),
+                      // const SizedBox(height: 8),
+                      _buildPerformanceHeatmap(stockData, isDarkMode),
+                    ],
+                  ),
+                ),
+              ],
                 );
               },
             ),
@@ -1286,19 +1286,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 }
                 
                 return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
                     color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                      width: 1,
-                    ),
-                  ),
-                  child: RecommendationWidget(
-                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: recommendationController,
-                  ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+              child: RecommendationWidget(
+                symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                controller: recommendationController,
+              ),
                 );
               },
             ),

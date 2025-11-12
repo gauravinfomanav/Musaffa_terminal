@@ -123,7 +123,15 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   }
                   
                   if (controller.etfData.value == null) {
-                    return const Center(child: Text('No data available'));
+                    return Center(
+                      child: Text(
+                        'No data available',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
+                    );
                   }
                   
                   final etfData = controller.etfData.value!;
@@ -164,6 +172,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
 
   Widget _buildEtfContent(EtfsData etfData, bool isDarkMode) {
     return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +246,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -263,13 +272,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                           children: [
                             Text(
                               etfData.etfProfile?.name ?? widget.ticker.name ?? widget.ticker.companyName ?? 'ETF Name',
-                              style: DashboardTextStyles.headerTitle,
+                              style: DashboardTextStyles.headerTitle.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               etfData.symbol ?? widget.ticker.symbol ?? 'TICKER',
-                              style: DashboardTextStyles.headerTicker,
+                              style: DashboardTextStyles.headerTicker.copyWith(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                              ),
                             ),
                           ],
                         ),
@@ -282,11 +299,18 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     children: [
                       Text(
                         'Current Price: \$${etfData.currentPrice?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerPrice,
+                        style: DashboardTextStyles.headerPrice.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
                       ),
                       Text(
                         'Change: ${etfData.priceChange1D?.toStringAsFixed(2) ?? '--'}',
                         style: DashboardTextStyles.headerChange.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
                           color: etfData.change1DPercent != null
                               ? (etfData.priceChange1D! >= 0 ? Colors.green : Colors.red)
                               : DashboardTextStyles.headerChange.color,
@@ -299,10 +323,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Volume:', style: DashboardTextStyles.headerMetric),
+                      Text(
+                        'Volume:',
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
                       Text(
                         '${((etfData.volume ?? 0) / 1000000).toStringAsFixed(1)}M',
-                        style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
                       ),
                     ],
                   ),
@@ -310,10 +345,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('52W High:', style: DashboardTextStyles.headerMetric),
+                      Text(
+                        '52W High:',
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
                       Text(
                         '\$${etfData.d52WeekHigh?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
                       ),
                     ],
                   ),
@@ -321,10 +367,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('52W Low:', style: DashboardTextStyles.headerMetric),
+                      Text(
+                        '52W Low:',
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
                       Text(
                         '\$${etfData.d52WeekLow?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
                       ),
                     ],
                   ),
@@ -341,7 +398,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -353,17 +410,32 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 children: [
                   Text(
                     'Fund Information',
-                    style: DashboardTextStyles.headerTitle.copyWith(fontSize: 16),
+                    style: DashboardTextStyles.headerTitle.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (etfData.exchange != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Exchange:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Exchange:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           etfData.exchange!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -373,10 +445,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Domicile:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Domicile:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           etfData.domicile!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -386,10 +469,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Asset Class:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Asset Class:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           etfData.assetClass!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -399,10 +493,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Segment:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Segment:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           etfData.investmentSegment!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -412,10 +517,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Inception:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Inception:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           etfData.inceptionDate!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -433,7 +549,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -445,17 +561,32 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 children: [
                   Text(
                     'Key Metrics',
-                    style: DashboardTextStyles.headerTitle.copyWith(fontSize: 16),
+                    style: DashboardTextStyles.headerTitle.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (etfData.numberOfHoldings != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Holdings:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Holdings:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           '${etfData.numberOfHoldings}',
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -465,10 +596,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Expense Ratio:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Expense Ratio:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           '${etfData.expenseRatio!.toStringAsFixed(2)}%',
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -478,10 +620,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('NAV:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'NAV:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           '\$${etfData.nav!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -490,10 +643,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('AUM:', style: DashboardTextStyles.headerMetric),
+                      Text(
+                        'AUM:',
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
                       Text(
                         Constants.getShortenedMarketCapV2(etfData.aum),
-                        style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                        style: DashboardTextStyles.headerMetric.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
                       ),
                     ],
                   ),
@@ -502,10 +666,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Dividend:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Dividend:',
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
                         Text(
                           '\$${etfData.dividentAmount!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.headerMetric.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
                       ],
                     ),
@@ -622,7 +797,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -635,8 +810,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
             ),
@@ -652,6 +827,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   style: TextStyle(
                     color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                     fontSize: 12,
+                    fontWeight: FontWeight.w400,
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                   ),
                 ),
@@ -714,6 +890,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     entry.key,
                     style: TextStyle(
                       fontSize: 12,
+                      fontWeight: FontWeight.w400,
                       fontFamily: Constants.FONT_DEFAULT_NEW,
                       color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                     ),
@@ -725,7 +902,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   '${entry.value.toStringAsFixed(1)}%',
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
                   ),
@@ -841,7 +1018,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -857,8 +1034,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     Text(
                       'Top Holdings',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                         color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
                       ),
@@ -1109,8 +1286,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(6),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
           width: 1,
@@ -1125,15 +1302,16 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             decoration: BoxDecoration(
               color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
               ),
             ),
             child: Text(
               title,
               style: DashboardTextStyles.columnHeader.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                fontSize: 13,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
             ),
           ),
@@ -1153,14 +1331,17 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 Text(
                   row[0],
                   style: DashboardTextStyles.tickerSymbol.copyWith(
-                    fontSize: 11,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
                   ),
                 ),
                 Text(
                   row[1],
                   style: DashboardTextStyles.dataCell.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
                   ),
                 ),
               ],
@@ -1189,11 +1370,11 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
       height: 400,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
+          width: 0.5,
         ),
       ),
       child: Column(
@@ -1202,8 +1383,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           Text(
             'Performance Heatmap',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
             ),
@@ -1269,8 +1450,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           Text(
             period,
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: textColor,
             ),
@@ -1279,7 +1460,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           Text(
             '${value >= 0 ? '+' : ''}${value.toStringAsFixed(1)}%',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: textColor,
@@ -1367,7 +1548,7 @@ class PieChartPainter extends CustomPainter {
 
     // Draw center circle for donut effect
     final centerPaint = Paint()
-      ..color = isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB)
+      ..color = isDarkMode ? const Color(0xFF1A1A1A) : Colors.white
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(center, radius * 0.5, centerPaint);

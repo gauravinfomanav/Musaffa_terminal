@@ -145,7 +145,7 @@ class _CreateWatchlistDialogState extends State<CreateWatchlistDialog> {
                     child: Icon(
                       Icons.close,
                       size: 16,
-                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                     ),
                   ),
                 ),

@@ -28,7 +28,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     // Fetch is now called from ticker_detail_screen.dart to ensure it happens even if widget is hidden
     // Only fetch here if controller doesn't have data and isn't loading
     if (!widget.controller.isLoading && widget.controller.recommendation == null && widget.controller.error == null) {
-      widget.controller.fetchRecommendation(widget.symbol);
+    widget.controller.fetchRecommendation(widget.symbol);
     }
   }
 
@@ -264,11 +264,11 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
               child: Stack(
                 children: [
                   FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: percentage / 100,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: color,
+                alignment: Alignment.centerLeft,
+                widthFactor: percentage / 100,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
                         borderRadius: BorderRadius.circular(9),
                       ),
                     ),
@@ -283,8 +283,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                           color: percentage > 50 ? Colors.white : Colors.black87,
                           fontFamily: Constants.FONT_DEFAULT_NEW,
                         ),
-                      ),
-                    ),
+                  ),
+                ),
                 ],
               ),
             ),

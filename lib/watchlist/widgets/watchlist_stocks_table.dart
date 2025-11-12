@@ -64,7 +64,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
 
   Future<void> _enrichStocksData() async {
     if (widget.stocks.isEmpty || _isEnrichingData) return;
-    
+
     if (mounted) {
       setState(() {
         _isEnrichingData = true;

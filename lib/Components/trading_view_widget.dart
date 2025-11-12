@@ -250,8 +250,8 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: WebViewWidget(
-                controller: _webViewController!,
-                gestureRecognizers: _createGestureRecognizers(),
+              controller: _webViewController!,
+              gestureRecognizers: _createGestureRecognizers(),
               ),
             ),
           
@@ -282,10 +282,10 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
                         ),
                       ),
                     ],
-                  ),
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
