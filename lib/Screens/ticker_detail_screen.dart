@@ -327,8 +327,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                         const Spacer(),
                         Obx(() {
                           final hasNotes = researchNotesController.hasNotes;
-                          return OutlinedButton(
-                            onPressed: () {
+                          return GestureDetector(
+                            onTap: () {
                               if (!hasNotes) {
                                 // If no notes, open dialog directly
                                 _showAddNoteDialog(isDarkMode);
@@ -337,30 +337,24 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                                 _toggleNotesPanel();
                               }
                             },
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                              side: BorderSide(
-                                color: _isNotesPanelOpen 
-                                    ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                                    : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                                width: _isNotesPanelOpen ? 2 : 1,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(90),
+                                border: Border.all(
+                                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                                  width: 1,
+                                ),
                               ),
-                              backgroundColor: _isNotesPanelOpen 
-                                  ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
-                                  : Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            child: Text(
-                              hasNotes ? 'View Notes' : 'Add Note',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                                color: _isNotesPanelOpen 
-                                    ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                                    : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                              child: Text(
+                                hasNotes ? 'View Notes' : 'Add Note',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                                ),
                               ),
                             ),
                           );
@@ -423,7 +417,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ['P/E Ratio', stockData.peTTM?.toStringAsFixed(2) ?? '--'],
     ];
     
-    return _buildCompactTable('Price & Market', data, isDarkMode);
+    return _buildCompactTable('Price & Market', data, isDarkMode, 
+      titleFontSize: 13, 
+      titleFontWeight: FontWeight.w400,
+      childFontSize: 12,
+      childFontWeight: FontWeight.w400,
+    );
   }
 
   Widget _buildValuationMetrics(StocksData stockData, bool isDarkMode) {
@@ -436,7 +435,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ['EV/Revenue', stockData.evRevenue?.toStringAsFixed(2) ?? '--'],
     ];
     
-    return _buildCompactTable('Valuation', data, isDarkMode);
+    return _buildCompactTable('Valuation', data, isDarkMode,
+      titleFontSize: 13,
+      titleFontWeight: FontWeight.w400,
+      childFontSize: 12,
+      childFontWeight: FontWeight.w400,
+    );
   }
 
   Widget _buildFinancialRatios(StocksData stockData, bool isDarkMode) {
@@ -449,7 +453,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ['Interest Coverage', stockData.netInterestCoverageAnnual?.toStringAsFixed(2) ?? '--'],
     ];
     
-    return _buildCompactTable('Financial Ratios', data, isDarkMode);
+    return _buildCompactTable('Financial Ratios', data, isDarkMode,
+      titleFontSize: 13,
+      titleFontWeight: FontWeight.w400,
+      childFontSize: 12,
+      childFontWeight: FontWeight.w400,
+    );
   }
 
 
@@ -463,7 +472,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ['EBITDA', Constants.getShortenedMarketCapV2(stockData.ebitdaEstimateAnnual)],
     ];
     
-    return _buildCompactTable('Growth', data, isDarkMode);
+    return _buildCompactTable('Growth', data, isDarkMode,
+      titleFontSize: 13,
+      titleFontWeight: FontWeight.w400,
+      childFontSize: 12,
+      childFontWeight: FontWeight.w400,
+    );
   }
 
   Widget _buildRiskMetrics(StocksData stockData, bool isDarkMode) {
@@ -476,7 +490,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ['Receivables Turnover', stockData.receivablesTurnoverTTM?.toStringAsFixed(2) ?? '--'],
     ];
     
-    return _buildCompactTable('Risk & Efficiency', data, isDarkMode);
+    return _buildCompactTable('Risk & Efficiency', data, isDarkMode,
+      titleFontSize: 13,
+      titleFontWeight: FontWeight.w400,
+      childFontSize: 12,
+      childFontWeight: FontWeight.w400,
+    );
   }
 
   Widget _buildMarketTradingMetrics(StocksData stockData, bool isDarkMode) {
@@ -489,14 +508,27 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ['Institutional Hold', '${(stockData.businessQuestionableRatio ?? 0).toStringAsFixed(1)}%'],
     ];
     
-    return _buildCompactTable('Market & Trading', data, isDarkMode);
+    return _buildCompactTable('Market & Trading', data, isDarkMode,
+      titleFontSize: 13,
+      titleFontWeight: FontWeight.w400,
+      childFontSize: 12,
+      childFontWeight: FontWeight.w400,
+    );
   }
 
-  Widget _buildCompactTable(String title, List<List<String>> data, bool isDarkMode) {
+  Widget _buildCompactTable(
+    String title, 
+    List<List<String>> data, 
+    bool isDarkMode, {
+    double? titleFontSize,
+    FontWeight? titleFontWeight,
+    double? childFontSize,
+    FontWeight? childFontWeight,
+  }) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -518,9 +550,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ),
             child: Text(
               title,
-              style: DashboardTextStyles.columnHeader.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: titleFontSize ?? 11,
+                fontWeight: titleFontWeight ?? FontWeight.w600,
+                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
               ),
             ),
           ),
@@ -540,14 +574,15 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 Text(
                   row[0],
                   style: DashboardTextStyles.tickerSymbol.copyWith(
-                    fontSize: 11,
+                    fontSize: childFontSize ?? 11,
+                    fontWeight: childFontWeight ?? FontWeight.w400,
                   ),
                 ),
                 Text(
                   row[1],
                   style: DashboardTextStyles.dataCell.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    fontSize: childFontSize ?? 11,
+                    fontWeight: childFontWeight ?? FontWeight.w400,
                   ),
                 ),
               ],
@@ -1016,8 +1051,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           Text(
             'Performance Heatmap',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
             ),
@@ -1089,8 +1124,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           Text(
             period,
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: textColor,
             ),
@@ -1099,7 +1134,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           Text(
             '${value >= 0 ? '+' : ''}${value.toStringAsFixed(1)}%',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
               fontFamily: Constants.FONT_DEFAULT_NEW,
               color: textColor,
@@ -1224,20 +1259,32 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ),
             const SizedBox(height: 16),
             // Forecast/Recommendation Widget
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: RecommendationWidget(
-                symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                controller: recommendationController,
-              ),
+            ListenableBuilder(
+              listenable: recommendationController,
+              builder: (context, child) {
+                // Hide container only if not loading AND (error OR no recommendation)
+                if (!recommendationController.isLoading && 
+                    (recommendationController.error != null || 
+                     recommendationController.recommendation == null)) {
+                  return const SizedBox.shrink();
+                }
+                
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                      width: 1,
+                    ),
+                  ),
+                  child: RecommendationWidget(
+                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                    controller: recommendationController,
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
             // News Section

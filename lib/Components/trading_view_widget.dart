@@ -240,7 +240,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
+          width: 0.5,
         ),
       ),
       child: Stack(

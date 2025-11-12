@@ -38,17 +38,12 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
         }
 
         if (widget.controller.error != null) {
-          return Center(
-            child: Text(
-              'Error: ${widget.controller.error}',
-              style: TextStyle(color: Colors.red),
-            ),
-          );
+          return const SizedBox.shrink();
         }
 
         final recommendation = widget.controller.recommendation;
         if (recommendation == null) {
-          return const Center(child: Text('No recommendation data available'));
+          return const SizedBox.shrink();
         }
 
         // Update pointer value based on weighted average
@@ -66,8 +61,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                     Text(
                       'Analyst Consensus',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
@@ -77,8 +72,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                     Text(
                       recommendation.recommendationText,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
                         color: Color(recommendation.recommendationColor),
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
@@ -86,8 +81,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                     Text(
                       '${recommendation.weightedAverage.toStringAsFixed(1)}/5.0',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
@@ -104,8 +99,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                     Text(
                       'Analyst Ratings',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
@@ -119,8 +114,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                     Text(
                       'Total: ${widget.controller.totalRecommendations}',
                       style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[600],
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
@@ -244,7 +239,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
                 fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
             ),
@@ -274,8 +270,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
             child: Text(
               count.toString(),
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
                 fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
             ),
