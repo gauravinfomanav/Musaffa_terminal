@@ -17,6 +17,10 @@ import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/services/live_price_service.dart';
+import 'package:musaffa_terminal/services/websocket_service.dart';
+import 'package:musaffa_terminal/models/live_price_model.dart';
+import 'dart:async';
 
 class TickerDetailScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -34,10 +38,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TradingViewController tradingViewController;
   late WatchlistController watchlistController;
   late ResearchNotesController researchNotesController;
+  late LivePriceService _livePriceService;
+  late WebSocketService _webSocketService;
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
   bool _isWatchlistOpen = false;
   bool _isInWatchlist = false;
   bool _isNotesPanelOpen = false;
+  
+  // Live price state
+  double? _livePrice;
+  double? _previousPrice;
+  StreamSubscription<Map<String, LivePriceData>>? _priceStreamSubscription;
 
   @override
   void initState() {
@@ -48,6 +59,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tradingViewController = TradingViewController();
     watchlistController = Get.put(WatchlistController());
     researchNotesController = Get.put(ResearchNotesController());
+    _livePriceService = Get.find<LivePriceService>();
+    _webSocketService = Get.find<WebSocketService>();
     
     // Listen to watchlist changes to update button state
     watchlistController.watchlistStocks.listen((_) {
@@ -62,11 +75,54 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
       controller.fetchStockDetails(ticker);
       researchNotesController.fetchNotes(ticker);
+      _setupLivePrices(ticker);
     });
+  }
+  
+  void _setupLivePrices(String ticker) {
+    // Store initial price from Typesense
+    controller.stockData.listen((stockData) {
+      if (stockData != null && stockData.currentPrice != null) {
+        if (mounted) {
+          setState(() {
+            _previousPrice = stockData.currentPrice!.toDouble();
+            _livePrice = stockData.currentPrice!.toDouble();
+            _webSocketService.setTypesensePrices({ticker: _livePrice!});
+          });
+        }
+      }
+    });
+    
+    // Add ticker to visible list for live updates
+    _livePriceService.addVisibleTickers([ticker]);
+    
+    // Listen to live price updates
+    _priceStreamSubscription?.cancel();
+    _priceStreamSubscription = _webSocketService.priceStream.listen(
+      (livePrices) {
+        if (mounted) {
+          final livePriceData = livePrices[ticker];
+          if (livePriceData != null) {
+            setState(() {
+              _previousPrice = _livePrice;
+              _livePrice = livePriceData.price;
+            });
+          }
+        }
+      },
+      onError: (error) {
+        // Handle error silently
+      },
+    );
   }
 
   @override
   void dispose() {
+    _priceStreamSubscription?.cancel();
+    final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+    if (ticker.isNotEmpty) {
+      _livePriceService.removeVisibleTickers([ticker]);
+    }
     recommendationController.dispose();
     financialFundamentalsController.dispose();
     tradingViewController.dispose();
@@ -196,70 +252,75 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   children: [
                     Row(
                       children: [
-                        OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _selectedTabIndex = 0;
-                            });
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                            side: BorderSide(
-                              color: _selectedTabIndex == 0 
-                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                                  : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                              width: _selectedTabIndex == 0 ? 2 : 1,
+                        // Tab selector matching screener style
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
+                              borderRadius: BorderRadius.circular(90),
+                              border: Border.all(
+                                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                              ),
                             ),
-                            backgroundColor: _selectedTabIndex == 0 
-                                ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
-                                : Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          child: Text(
-                            'Overview',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: Constants.FONT_DEFAULT_NEW,
-                              color: _selectedTabIndex == 0 
-                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                                  : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _selectedTabIndex = 1;
-                            });
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                            side: BorderSide(
-                              color: _selectedTabIndex == 1 
-                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                                  : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-                              width: _selectedTabIndex == 1 ? 2 : 1,
-                            ),
-                            backgroundColor: _selectedTabIndex == 1 
-                                ? (isDarkMode ? const Color(0xFF81AACE).withOpacity(0.1) : const Color(0xFF81AACE).withOpacity(0.1))
-                                : Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          child: Text(
-                            'Financial',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: Constants.FONT_DEFAULT_NEW,
-                              color: _selectedTabIndex == 1 
-                                  ? (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE))
-                                  : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE)),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTabIndex = 0;
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 1),
+                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: _selectedTabIndex == 0 
+                                          ? Colors.blue
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(90),
+                                    ),
+                                    child: Text(
+                                      'Overview',
+                                      style: DashboardTextStyles.tickerSymbol.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: _selectedTabIndex == 0 ? FontWeight.w700 : FontWeight.w400,
+                                        color: _selectedTabIndex == 0 
+                                            ? Colors.white
+                                            : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTabIndex = 1;
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 1),
+                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: _selectedTabIndex == 1 
+                                          ? Colors.blue
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(90),
+                                    ),
+                                    child: Text(
+                                      'Financial',
+                                      style: DashboardTextStyles.tickerSymbol.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: _selectedTabIndex == 1 ? FontWeight.w700 : FontWeight.w400,
+                                        color: _selectedTabIndex == 1 
+                                            ? Colors.white
+                                            : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -508,7 +569,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -534,13 +595,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                           children: [
                             Text(
                               widget.ticker.companyName ?? widget.ticker.name ?? 'Company Name',
-                              style: DashboardTextStyles.headerTitle,
+                              style: DashboardTextStyles.stockName.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               widget.ticker.symbol ?? widget.ticker.ticker ?? 'TICKER',
-                              style: DashboardTextStyles.headerTicker,
+                              style: DashboardTextStyles.tickerSymbol.copyWith(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -549,7 +616,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                       // Add to Watchlist Button
                       AddToWatchlistButton(
                         ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                        currentPrice: (stockData.currentPrice ?? 0.0).toDouble(),
+                        currentPrice: _livePrice ?? (stockData.currentPrice ?? 0.0).toDouble(),
                         isDarkMode: isDarkMode,
                         isInWatchlist: _isInWatchlist,
                         onSuccess: () {
@@ -566,17 +633,53 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Current Price: \$${stockData.currentPrice?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerPrice,
+                      // Live Current Price
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Current Price',
+                            style: DashboardTextStyles.tickerSymbol.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '\$${(_livePrice ?? stockData.currentPrice?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                            style: DashboardTextStyles.stockName.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: _getPriceColor(_livePrice, stockData.currentPrice?.toDouble()),
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Change: ${stockData.change1DPercent?.toStringAsFixed(2) ?? '--'}%',
-                        style: DashboardTextStyles.headerChange.copyWith(
-                          color: stockData.change1DPercent != null
-                              ? (stockData.change1DPercent! >= 0 ? Colors.green : Colors.red)
-                              : DashboardTextStyles.headerChange.color,
-                        ),
+                      // Change %
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Change',
+                            style: DashboardTextStyles.tickerSymbol.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${stockData.change1DPercent != null ? (stockData.change1DPercent! >= 0 ? '+' : '') : ''}${stockData.change1DPercent?.toStringAsFixed(2) ?? '--'}%',
+                            style: DashboardTextStyles.stockName.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: stockData.change1DPercent != null
+                                  ? (stockData.change1DPercent! >= 0 ? Colors.green.shade600 : Colors.red.shade600)
+                                  : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -586,11 +689,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     children: [
                       Text(
                         'Market Cap: ${Constants.getShortenedMarketCapV2(stockData.usdMarketCap)}',
-                        style: DashboardTextStyles.headerMetric,
+                        style: DashboardTextStyles.tickerSymbol.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       Text(
                         'Volume: ${((stockData.volume ?? 0) / 1000000).toStringAsFixed(1)}M',
-                        style: DashboardTextStyles.headerMetric,
+                        style: DashboardTextStyles.tickerSymbol.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -606,7 +715,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -618,88 +727,116 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 children: [
                   Text(
                     'Market Overview',
-                    style: DashboardTextStyles.headerTitle.copyWith(fontSize: 16),
+                    style: DashboardTextStyles.stockName.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (widget.ticker.sectorname != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Sector:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Sector:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         Text(
                           widget.ticker.sectorname!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                   ],
-                  if (widget.ticker.countryName != null) ...[
+                  if (stockData.industry != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Country:', style: DashboardTextStyles.headerMetric),
                         Text(
-                          widget.ticker.countryName!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          'Industry:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (widget.ticker.exchange != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Exchange:', style: DashboardTextStyles.headerMetric),
                         Text(
-                          widget.ticker.exchange!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          stockData.industry!,
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                   ],
-                  if (widget.ticker.currency != null) ...[
+                  if (stockData.sharesOutStanding != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Currency:', style: DashboardTextStyles.headerMetric),
                         Text(
-                          widget.ticker.currency!,
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          'Shares Outstanding:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          Constants.getShortenedMarketCapV2(stockData.sharesOutStanding! * 1000000),
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
-                  ],
-                  if (controller.companyProfile.value?.weburl != null) ...[
                     const SizedBox(height: 4),
+                  ],
+                  if (stockData.ipoDate != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Website:', style: DashboardTextStyles.headerMetric),
-                        GestureDetector(
-                          onTap: () {
-                            // Open website in browser
-                            final url = controller.companyProfile.value!.weburl!;
-                            if (url.isNotEmpty) {
-                              // You can use url_launcher package here
-                              // For now, just show a snackbar
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Opening: $url'),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
-                          child: Text(
-                            'Visit Site',
-                            style: DashboardTextStyles.headerMetric.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue,
-                              decoration: TextDecoration.underline,
-                            ),
+                        Text(
+                          'IPO Date:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          stockData.ipoDate!,
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  if (stockData.beta != null) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Beta:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          stockData.beta!.toStringAsFixed(2),
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -719,7 +856,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -731,17 +868,29 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 children: [
                   Text(
                     'Key Highlights',
-                    style: DashboardTextStyles.headerTitle.copyWith(fontSize: 16),
+                    style: DashboardTextStyles.stockName.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (stockData.bookValuePerShareAnnual != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Book Value:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Book Value:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         Text(
                           '\$${stockData.bookValuePerShareAnnual!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -751,10 +900,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Cash/Share:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Cash/Share:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         Text(
                           '\$${stockData.cashPerSharePerShareAnnual!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -764,10 +922,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Dividend Yield:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Dividend Yield:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         Text(
                           '${stockData.currentDividendYieldTTM!.toStringAsFixed(2)}%',
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -777,10 +944,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Enterprise Value:', style: DashboardTextStyles.headerMetric),
+                        Text(
+                          'Enterprise Value:',
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         Text(
                           Constants.getShortenedMarketCapV2(stockData.enterpriseValue),
-                          style: DashboardTextStyles.headerMetric.copyWith(fontWeight: FontWeight.w600),
+                          style: DashboardTextStyles.tickerSymbol.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -794,6 +970,20 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         ],
       ),
     );
+  }
+
+  Color _getPriceColor(double? livePrice, double? typesensePrice) {
+    if (livePrice == null || typesensePrice == null || _previousPrice == null) {
+      return Colors.grey;
+    }
+    
+    if (livePrice > _previousPrice!) {
+      return Colors.green.shade600;
+    } else if (livePrice < _previousPrice!) {
+      return Colors.red.shade600;
+    } else {
+      return Colors.grey;
+    }
   }
 
   Widget _buildPerformanceHeatmap(StocksData stockData, bool isDarkMode) {
