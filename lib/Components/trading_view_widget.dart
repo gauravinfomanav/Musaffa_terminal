@@ -233,18 +233,19 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        width: screenWidth,
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 0.5,
-          ),
+    return Container(
+      width: screenWidth,
+      height: widget.height,
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 0.5,
         ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
         child: Stack(
           children: [
             // WebView with overscan to clip gaps

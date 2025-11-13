@@ -546,17 +546,24 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                 final screenWidth = MediaQuery.of(context).size.width;
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 final bgColor = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
+                final borderColor = isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
                 
-                return ClipRect(
-                  clipBehavior: Clip.hardEdge,
-                  child: Container(
-                    // Use the calculated height, or fallback to minimum if not determined
-                    height: effectiveHeight.clamp(
-                      widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
-                      widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
-                    ),
-                    width: screenWidth,
+                return Container(
+                  height: effectiveHeight.clamp(
+                    widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
+                    widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
+                  ),
+                  width: screenWidth,
+                  decoration: BoxDecoration(
                     color: bgColor,
+                    border: Border.all(
+                      color: borderColor,
+                      width: 0.5,
+                    ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
                     child: Stack(
                       // Use Stack to overlay loading indicator
                       children: [
