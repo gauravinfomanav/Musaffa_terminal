@@ -1017,6 +1017,22 @@ class _ScreenerButtonState extends State<_ScreenerButton>
   }
 
   void _onTap() {
+    // Check if we're already on the screener screen
+    // Use visitAncestorElements to traverse up the widget tree
+    bool isOnScreener = false;
+    context.visitAncestorElements((element) {
+      if (element.widget is ScreenerScreen) {
+        isOnScreener = true;
+        return false; // Stop traversing
+      }
+      return true; // Continue traversing
+    });
+    
+    // Don't navigate if already on screener screen
+    if (isOnScreener) {
+      return;
+    }
+    
     _animationController.forward().then((_) {
       _animationController.reverse();
     });

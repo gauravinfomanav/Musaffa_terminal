@@ -101,7 +101,7 @@ class MarketSummaryController extends GetxController {
       label: Padding(
         padding: const EdgeInsets.only(right: 12, bottom: 4),
         child: Text(
-          "Sector",
+          "SECTOR",
           style: TextStyle(
             fontSize: 13,
             color: headerColor,
