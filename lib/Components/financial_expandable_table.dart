@@ -468,6 +468,18 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
 
   Widget _buildDataColumns() {
     final flattenedRows = _getFlattenedRows();
+    final allColumns = _buildAllColumns();
+    
+    // Calculate available width: screen width - parent padding (8px * 2) - table padding (12px * 2)
+    final screenWidth = MediaQuery.of(context).size.width;
+    final availableWidth = screenWidth - 16 - 24; // 16px for parent padding (8*2), 24px for table padding (12*2)
+    
+    // Calculate column widths dynamically
+    final metricColumnWidth = availableWidth * 0.25; // 25% for metric column
+    final dataColumnCount = allColumns.length - 1; // Exclude metric column
+    final dataColumnWidth = dataColumnCount > 0 
+        ? (availableWidth - metricColumnWidth) / dataColumnCount 
+        : 60.0; // Fallback width
     
     return Scrollbar(
       controller: _scrollController,
@@ -486,12 +498,13 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
             horizontalMargin: 0,
             dataRowMinHeight: widget.rowHeight,
             dataRowMaxHeight: widget.rowHeight,
-            columns: _buildAllColumns().map((column) {
-              // If showNameColumn is false and this is the first column (metric), give it fixed width
+            columnSpacing: 0, // Remove spacing between columns to fill width
+            columns: allColumns.map((column) {
+              // If showNameColumn is false and this is the first column (metric), use calculated width
               if (!widget.showNameColumn && column.key == 'metric') {
                 return DataColumn(
                   label: SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.16, // 10% of screen width
+                    width: metricColumnWidth,
                     child: Text(
                       column.title,
                       style: DashboardTextStyles.columnHeader,
@@ -500,10 +513,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                   ),
                 );
               }
-              // For all other columns, use consistent fixed width for Company Financials and Statements
+              // For all other columns, use calculated width to fill screen
               return DataColumn(
                 label: SizedBox(
-                  width: 60, // Fixed pixel width for consistent data columns
+                  width: dataColumnWidth,
                   child: Text(
                     column.title,
                     style: DashboardTextStyles.columnHeader,
@@ -518,20 +531,20 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                     ? WidgetStateProperty.all(const Color.fromARGB(255, 105, 177, 236).withOpacity(0.1))
                     : null,
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
-                cells: _buildAllColumns().map((column) {
+                cells: allColumns.map((column) {
                   // If showNameColumn is false and this is the first column (metric column), add expand/collapse functionality
                   if (!widget.showNameColumn && column.key == 'metric') {
                     return DataCell(
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.16, // 10% of screen width
+                        width: metricColumnWidth,
                         child: _buildExpandableCellContent(row, column),
                       ),
                     );
                   }
-                  // For all other columns, use consistent fixed width for Company Financials and Statements
+                  // For all other columns, use calculated width to fill screen
                   return DataCell(
                     SizedBox(
-                      width: 60, // Fixed pixel width for consistent data columns
+                      width: dataColumnWidth,
                       child: _buildCellContent(row, column),
                     ),
                   );
