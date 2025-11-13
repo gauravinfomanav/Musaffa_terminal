@@ -714,18 +714,18 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           // Navigation buttons on the right
           Row(
               children: [
-                // Previous button - only show if not on first page
+                // Previous button - only show if not on first page (Secondary)
                 if (sectorStocksController.hasPreviousPage) ...[
                   GestureDetector(
                     onTap: () => sectorStocksController.previousPage(),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(90),
                         border: Border.all(
-                          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                          width: 0.5,
+                          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                          width: 1,
                         ),
                       ),
                       child: Text(
@@ -734,7 +734,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
                         ),
                       ),
                     ),
@@ -742,19 +742,15 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   const SizedBox(width: 12),
                 ],
                 
-                // Next button - only show if there are more pages
+                // Next button - only show if there are more pages (Primary)
                 if (sectorStocksController.hasNextPage)
                   GestureDetector(
                     onTap: () => sectorStocksController.nextPage(),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                          width: 0.5,
-                        ),
+                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                        borderRadius: BorderRadius.circular(90),
                       ),
                       child: Text(
                         'Next',
@@ -762,7 +758,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                           fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                          color: Colors.white,
                         ),
                       ),
                     ),

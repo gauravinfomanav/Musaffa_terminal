@@ -384,17 +384,6 @@ class _DynamicTableState extends State<DynamicTable> {
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.grey.shade800
                     : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: increaseShadow
-                        ? Colors.black.withOpacity(0.03)
-                        : Colors.transparent,
-                    blurRadius: increaseShadow ? 4 : 0,
-                    spreadRadius: 0,
-                    blurStyle: BlurStyle.inner,
-                    offset: Offset(4, 0),
-                  ),
-                ],
               ),
                               child: DataTable(
                   key: ValueKey('fixed_$_updateCounter'),
