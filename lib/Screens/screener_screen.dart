@@ -895,7 +895,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
             showFixedColumn: true,
             considerPadding: false,
             columnSpacing: 16,
-            fixedColumnWidth: 0,
+            fixedColumnWidth: 300,
             enableDragging: false,
             enableLivePrices: true,
           ),

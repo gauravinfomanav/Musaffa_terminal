@@ -377,39 +377,77 @@ class _DynamicTableState extends State<DynamicTable> {
       child: Row(
         children: [
           if (widget.showFixedColumn)
-            Expanded(
-              flex: widget.fixedColumnWidth?.toInt() ?? 3,
-              child: Container(
-                decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade800
-                    : Colors.white,
-              ),
-                              child: DataTable(
-                  key: ValueKey('fixed_$_updateCounter'),
-                  showCheckboxColumn: false,
-                  headingRowHeight: 24,
-                  horizontalMargin: 0,
-                  dataRowMinHeight: 48,
-                  dataRowMaxHeight: 48,
-                  columns: fixedDataCols,
-                  rows: fixedDataRows,
-                dividerThickness: borderWidth,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.transparent, width: 0),
-                ),
-                border: TableBorder(
-                  bottom: BorderSide.none,
-                  top: BorderSide.none,
-                  verticalInside: BorderSide.none,
-                  horizontalInside: BorderSide(
-                    color: borderColor,
-                    width: borderWidth,
+            // Use fixed pixel width if provided and > 10, otherwise use flex
+            widget.fixedColumnWidth != null && widget.fixedColumnWidth! > 10
+                ? SizedBox(
+                    width: widget.fixedColumnWidth,
+                    child: ClipRect(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.white,
+                        ),
+                        child: DataTable(
+                          key: ValueKey('fixed_$_updateCounter'),
+                          showCheckboxColumn: false,
+                          headingRowHeight: 24,
+                          horizontalMargin: 0,
+                          dataRowMinHeight: 48,
+                          dataRowMaxHeight: 48,
+                          columnSpacing: 0,
+                          columns: fixedDataCols,
+                          rows: fixedDataRows,
+                          dividerThickness: borderWidth,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.transparent, width: 0),
+                          ),
+                          border: TableBorder(
+                            bottom: BorderSide.none,
+                            top: BorderSide.none,
+                            verticalInside: BorderSide.none,
+                            horizontalInside: BorderSide(
+                              color: borderColor,
+                              width: borderWidth,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : Expanded(
+                    flex: widget.fixedColumnWidth?.toInt() ?? 3,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade800
+                            : Colors.white,
+                      ),
+                      child: DataTable(
+                        key: ValueKey('fixed_$_updateCounter'),
+                        showCheckboxColumn: false,
+                        headingRowHeight: 24,
+                        horizontalMargin: 0,
+                        dataRowMinHeight: 48,
+                        dataRowMaxHeight: 48,
+                        columns: fixedDataCols,
+                        rows: fixedDataRows,
+                        dividerThickness: borderWidth,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.transparent, width: 0),
+                        ),
+                        border: TableBorder(
+                          bottom: BorderSide.none,
+                          top: BorderSide.none,
+                          verticalInside: BorderSide.none,
+                          horizontalInside: BorderSide(
+                            color: borderColor,
+                            width: borderWidth,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              ),
-            ),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -612,9 +650,20 @@ class _DynamicTableState extends State<DynamicTable> {
         }
 
         var basicCell = DataCell(
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: tickerCell,
+          _TruncationDetector(
+            text: rowModel.name,
+            fixedColumnWidth: widget.fixedColumnWidth,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: widget.fixedColumnWidth != null && widget.fixedColumnWidth! > 10
+                    ? widget.fixedColumnWidth! - 16 // Account for padding
+                    : double.infinity,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 0.0, right: 0),
+                child: tickerCell,
+              ),
+            ),
           ),
         );
         fixedRowCellArr.add(basicCell);
@@ -743,5 +792,77 @@ class EnumValues<T> {
   Map<T, String> get reverse {
     reverseMap = map.map((k, v) => MapEntry(v, k));
     return reverseMap;
+  }
+}
+
+// Widget to detect text truncation and show tooltip only when needed
+class _TruncationDetector extends StatefulWidget {
+  final String text;
+  final Widget child;
+  final double? fixedColumnWidth;
+
+  const _TruncationDetector({
+    required this.text,
+    required this.child,
+    this.fixedColumnWidth,
+  });
+
+  @override
+  State<_TruncationDetector> createState() => _TruncationDetectorState();
+}
+
+class _TruncationDetectorState extends State<_TruncationDetector> {
+  bool _isTruncated = false;
+  final GlobalKey _childKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // Check truncation after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTruncation();
+    });
+  }
+
+  void _checkTruncation() {
+    if (widget.fixedColumnWidth == null || widget.fixedColumnWidth! <= 10) {
+      // If using flex, assume not truncated (or show tooltip for all)
+      return;
+    }
+
+    // Account for logo (25px) + spacing (12px) + left padding (8px)
+    // The text is in an Expanded widget, so available width is: totalWidth - logo - spacing - padding
+    final textAvailableWidth = widget.fixedColumnWidth! - 25 - 12 - 8;
+    
+    // Measure text width using TextPainter with the same style used in MainTickerCell
+    final textStyle = DashboardTextStyles.stockName;
+    final textPainter = TextPainter(
+      text: TextSpan(text: widget.text, style: textStyle),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout(maxWidth: double.infinity);
+    
+    final textWidth = textPainter.size.width;
+    
+    if (mounted) {
+      setState(() {
+        _isTruncated = textWidth > textAvailableWidth;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Use a simple conditional wrapper instead of LayoutBuilder
+    if (_isTruncated) {
+      return Tooltip(
+        key: _childKey,
+        message: widget.text,
+        waitDuration: const Duration(milliseconds: 500),
+        child: widget.child,
+      );
+    }
+    return widget.child;
   }
 }

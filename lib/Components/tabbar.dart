@@ -939,12 +939,12 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
                           ),
                         
                         // Icon
-                        _isDragOver
+                          _isDragOver
                             ? Icon(
                                 Icons.add_circle_outline,
-                                size: 18,
+                          size: 18,
                                 color: widget.isDarkMode 
-                                    ? const Color(0xFF81AACE)
+                                  ? const Color(0xFF81AACE)
                                     : const Color(0xFF81AACE),
                               )
                             : SvgPicture.asset(
@@ -953,15 +953,15 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
                                 height: 20,
                                 colorFilter: ColorFilter.mode(
                                   widget.isOpen
-                                      ? (widget.isDarkMode 
-                                          ? const Color(0xFFE0E0E0)
-                                          : const Color(0xFF374151))
-                                      : (widget.isDarkMode 
-                                          ? const Color(0xFF9CA3AF)
-                                          : const Color(0xFF6B7280)),
+                                  ? (widget.isDarkMode 
+                                      ? const Color(0xFFE0E0E0)
+                                      : const Color(0xFF374151))
+                                  : (widget.isDarkMode 
+                                      ? const Color(0xFF9CA3AF)
+                                      : const Color(0xFF6B7280)),
                                   BlendMode.srcIn,
                                 ),
-                              ),
+                        ),
                       ],
                     ),
                   ),
@@ -1083,12 +1083,12 @@ class _ScreenerButtonState extends State<_ScreenerButton>
                       height: 24,
                       colorFilter: ColorFilter.mode(
                         _isHovered
-                            ? (widget.isDarkMode 
-                                ? const Color(0xFFE0E0E0)
-                                : const Color(0xFF374151))
-                            : (widget.isDarkMode 
-                                ? const Color(0xFF9CA3AF)
-                                : const Color(0xFF6B7280)),
+                      ? (widget.isDarkMode 
+                          ? const Color(0xFFE0E0E0)
+                          : const Color(0xFF374151))
+                      : (widget.isDarkMode 
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF6B7280)),
                         BlendMode.srcIn,
                       ),
                     ),

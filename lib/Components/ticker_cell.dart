@@ -72,6 +72,7 @@ class MainTickerCell extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             model.companyName,
@@ -79,29 +80,15 @@ class MainTickerCell extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: DashboardTextStyles.stockName,
                           ),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Container(
-                                  // width: 45,
-                                  child: Text(
-                                    model.tickerName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: DashboardTextStyles.tickerSymbol,
-                                  ),
-                                ),
-                              ),
-                             
-                            ],
+                          Text(
+                            model.tickerName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: DashboardTextStyles.tickerSymbol,
                           ),
-                          
                         ],
                       ),
                     ),
-                    Container(width: 8),
-                    // Price and change are now shown in the dynamic columns only
-                    SizedBox(width: 80),
                   ],
                 ),
               ),

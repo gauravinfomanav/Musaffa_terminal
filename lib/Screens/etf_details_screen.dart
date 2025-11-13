@@ -1176,7 +1176,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
               showFixedColumn: true,
               considerPadding: false,
               columnSpacing: 16,
-              fixedColumnWidth: 0,
+              fixedColumnWidth: 300,
               enableDragging: true,
               enableLivePrices: true,
               onDragStarted: () {
@@ -1214,17 +1214,17 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           // Navigation buttons on the right
           Row(
             children: [
-              // Previous button - only show if not on first page
+              // Previous button - only show if not on first page (Secondary)
               if (controller.hasPreviousHoldingsPage) ...[
                 GestureDetector(
                   onTap: () => controller.previousHoldingsPage(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(4),
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(90),
                       border: Border.all(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
                         width: 1,
                       ),
                     ),
@@ -1232,8 +1232,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                       'Previous',
                       style: TextStyle(
                         fontSize: 12,
+                        fontWeight: FontWeight.w400,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
                       ),
                     ),
                   ),
@@ -1241,26 +1242,23 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 const SizedBox(width: 12),
               ],
               
-              // Next button - only show if there are more pages
+              // Next button - only show if there are more pages (Primary)
               if (controller.hasNextHoldingsPage)
                 GestureDetector(
                   onTap: () => controller.nextHoldingsPage(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                        width: 1,
-                      ),
+                      color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                      borderRadius: BorderRadius.circular(90),
                     ),
                     child: Text(
                       'Next',
                       style: TextStyle(
                         fontSize: 12,
+                        fontWeight: FontWeight.w400,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                        color: Colors.white,
                       ),
                     ),
                   ),

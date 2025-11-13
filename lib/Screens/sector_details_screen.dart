@@ -815,31 +815,31 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         ),
       ),
       child: DynamicTable(
-        columns: const [
-          SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-          SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-          SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
-          SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
-          SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
-          SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
-          SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
-          SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
-          SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
-          SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
-        ],
-        rows: rows,
-        showFixedColumn: true,
-        considerPadding: false,
-        columnSpacing: 16, 
-        fixedColumnWidth: 0, 
-        enableDragging: true,
-        enableLivePrices: true,
-        onDragStarted: () {
-          // Drag started
-        },
-        onDragEnd: () {
-          // Drag ended
-        },
+      columns: const [
+        SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
+        SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+        SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+        SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+        SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+        SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
+        SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+        SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
+        SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
+        SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
+      ],
+      rows: rows,
+      showFixedColumn: true,
+      considerPadding: false,
+      columnSpacing: 16, 
+      fixedColumnWidth: 300, 
+      enableDragging: true,
+      enableLivePrices: true,
+      onDragStarted: () {
+        // Drag started
+      },
+      onDragEnd: () {
+        // Drag ended
+      },
       ),
     );
   }
@@ -962,7 +962,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             showFixedColumn: true,
             considerPadding: false,
             columnSpacing: 20,
-            fixedColumnWidth: 0,
+            fixedColumnWidth: 300,
             enableDragging: false,
             enableLivePrices: true,
           ),
