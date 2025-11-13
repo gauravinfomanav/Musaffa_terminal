@@ -27,7 +27,7 @@ class WebService {
       'GRhZdTOnzVKId4Ln9G1PIvuIgn1TK0fH';
       
   // Musaffa Terminal API base URL
-  static const String _musaffaBaseUrl = 'http://localhost:3000';
+  static const String _musaffaBaseUrl = 'https://terminal.musaffa.us';
       
   // New Typesense instance for infomanav
   static const String _typesenseInfomanavUrl =

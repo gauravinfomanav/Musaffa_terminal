@@ -404,6 +404,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                   Expanded(
                     child: SingleChildScrollView(
                       controller: _scrollController,
+                      physics: const ClampingScrollPhysics(),
                       child: Container(
                         padding: const EdgeInsets.all(12), // Reduced padding
                         child: Column(
@@ -1045,7 +1046,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
     return const [
       SimpleColumn(label: 'TICKER', fieldName: 'ticker', isNumeric: false),
       SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-      SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+      SimpleColumn(label: 'CHANGE %', fieldName: 'change1D', isNumeric: true),
       SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
       SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
       SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),

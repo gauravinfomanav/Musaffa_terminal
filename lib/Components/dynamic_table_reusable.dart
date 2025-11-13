@@ -246,6 +246,54 @@ class _DynamicTableState extends State<DynamicTable> {
         updatedFields['price'] = '\$${livePriceData.price.toStringAsFixed(2)}';
         updatedFields['currentPrice'] = '\$${livePriceData.price.toStringAsFixed(2)}';
         
+        // Recalculate change % if original change is not empty and not 0
+        // Check both 'change' and 'change1D' fields
+        if (livePriceData.typesensePrice != null && livePriceData.typesensePrice! > 0) {
+          // Try 'change' field first, then 'change1D'
+          String? changeFieldName;
+          final originalChange = row.fields['change'] ?? row.fields['change1D'];
+          
+          if (row.fields.containsKey('change')) {
+            changeFieldName = 'change';
+          } else if (row.fields.containsKey('change1D')) {
+            changeFieldName = 'change1D';
+          }
+          
+          // Check if change field exists and is not empty ('--') and not 0
+          bool shouldUpdateChange = false;
+          double? originalChangePercent = null;
+          
+          if (originalChange != null && originalChange != '--' && originalChange != '-') {
+            // Try to parse the original change value
+            String changeStr = originalChange.toString();
+            // Remove % sign and + sign if present
+            changeStr = changeStr.replaceAll('%', '').replaceAll('+', '').trim();
+            originalChangePercent = double.tryParse(changeStr);
+            
+            // Only update if original change is not null and not 0
+            if (originalChangePercent != null && originalChangePercent != 0) {
+              shouldUpdateChange = true;
+            }
+          }
+          
+          if (shouldUpdateChange && changeFieldName != null) {
+            // Calculate new change % based on live price vs original Typesense price
+            final priceDiff = livePriceData.price - livePriceData.typesensePrice!;
+            final changePercent = (priceDiff / livePriceData.typesensePrice!) * 100;
+            
+            // Update change % field (use the field name that exists)
+            updatedFields[changeFieldName] = '${changePercent >= 0 ? '+' : ''}${changePercent.toStringAsFixed(2)}%';
+            
+            // Update change amount if field exists
+            if (updatedFields.containsKey('changeAmount')) {
+              updatedFields['changeAmount'] = '\$${priceDiff.toStringAsFixed(2)}';
+            }
+            
+            // Update changePercent in the model
+            row = row.copyWith(changePercent: changePercent);
+          }
+        }
+        
         // For watchlist: Recalculate gain/loss dynamically based on live price
         if (updatedFields.containsKey('addedPrice') && updatedFields.containsKey('gainLoss')) {
           final addedPrice = updatedFields['addedPrice'];
@@ -265,6 +313,7 @@ class _DynamicTableState extends State<DynamicTable> {
         // Determine color based on price comparison
         Color? priceColor;
         Color? gainLossColor;
+        Color? changeColor;
         
         if (livePriceData.typesensePrice != null) {
           if (livePriceData.price > livePriceData.typesensePrice!) {
@@ -284,14 +333,27 @@ class _DynamicTableState extends State<DynamicTable> {
           }
         }
         
+        // Update isPositive and changeColor based on change % if it was recalculated
+        bool? isPositive = row.isPositive;
+        if (updatedFields.containsKey('change') && updatedFields['change'] != '--' && updatedFields['change'] != '-') {
+          String changeStr = updatedFields['change'].toString();
+          changeStr = changeStr.replaceAll('%', '').replaceAll('+', '').trim();
+          final changeValue = double.tryParse(changeStr);
+          if (changeValue != null) {
+            isPositive = changeValue >= 0;
+            // Set color for change % column: green for positive, red for negative
+            changeColor = changeValue >= 0 ? Colors.green.shade600 : Colors.red.shade600;
+          }
+        }
+        
         return row.copyWith(
           price: livePriceData.price,
           priceSource: 'websocket',
           fields: updatedFields,
-          changeColor: priceColor ?? gainLossColor,
+          changeColor: changeColor ?? priceColor ?? gainLossColor,
           isPositive: updatedFields.containsKey('addedPrice') ? 
             (livePriceData.price - (updatedFields['addedPrice'] as num)) >= 0 : 
-            row.isPositive,
+            isPositive,
         );
       } else {
         return row.copyWith(priceSource: 'typesense');
@@ -339,19 +401,34 @@ class _DynamicTableState extends State<DynamicTable> {
 
     // Dynamic columns
     widget.columns.forEach((column) {
-      var dataColumn = DataColumn(
-        headingRowAlignment: MainAxisAlignment.center,
-        label: Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            column.label,
-            style: TextStyle(
-              fontSize: 13,
-              color: headerColor,
-              fontWeight: FontWeight.w400,
-            ),
+      // Check if this is a price column that needs fixed width
+      final isPriceColumn = column.fieldName == 'price' || 
+                           column.fieldName == 'currentPrice' || 
+                           column.fieldName == 'addedPrice';
+      
+      Widget headerLabel = Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text(
+          column.label,
+          style: TextStyle(
+            fontSize: 13,
+            color: headerColor,
+            fontWeight: FontWeight.w400,
           ),
         ),
+      );
+      
+      
+      if (isPriceColumn) {
+        headerLabel = SizedBox(
+          width: 65,
+          child: headerLabel,
+        );
+      }
+      
+      var dataColumn = DataColumn(
+        headingRowAlignment: MainAxisAlignment.center,
+        label: headerLabel,
       );
       lst.add(dataColumn);
     });
@@ -677,9 +754,25 @@ class _DynamicTableState extends State<DynamicTable> {
           
           DataCell cell;
           
+          // Check if this is a price column that needs fixed width
+          final isPriceColumn = column.fieldName == 'price' || 
+                               column.fieldName == 'currentPrice' || 
+                               
+                               column.fieldName == 'addedPrice';
+          
           // Check if the field value is a Widget (like TargetPriceCell)
           if (fieldValue is Widget) {
-            cell = DataCell(fieldValue);
+            Widget cellContent = fieldValue;
+            
+            // Apply fixed width for price columns
+            if (isPriceColumn) {
+              cellContent = SizedBox(
+                width: 65, // Fixed width for price columns
+                child: cellContent,
+              );
+            }
+            
+            cell = DataCell(cellContent);
           } else {
             String cellData;
             // Format numeric price fields (like addedPrice) with currency symbol
@@ -745,12 +838,20 @@ class _DynamicTableState extends State<DynamicTable> {
               }
             }
             
-            cell = DataCell(
-              Text(
-                displayValue,
-                style: DashboardTextStyles.dataCell.copyWith(color: textColor),
-              ),
+            Widget cellContent = Text(
+              displayValue,
+              style: DashboardTextStyles.dataCell.copyWith(color: textColor),
             );
+            
+            // Apply fixed width for price columns to prevent shifting
+            if (isPriceColumn) {
+              cellContent = SizedBox(
+                width: 65, // Fixed width for price columns
+                child: cellContent,
+              );
+            }
+            
+            cell = DataCell(cellContent);
           }
           
           cellArr.add(cell);
