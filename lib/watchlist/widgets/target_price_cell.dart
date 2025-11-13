@@ -26,7 +26,7 @@ class _TargetPriceCellState extends State<TargetPriceCell> {
     
     return Obx(() {
       final targetPrice = _controller.getTargetPriceForTicker(widget.ticker);
-      final isLoading = _controller.isLoadingTargetPrices.value;
+      final isLoading = _controller.loadingTargetPricesByTicker[widget.ticker] == true;
 
       if (isLoading) {
         return Container(

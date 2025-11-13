@@ -24,7 +24,8 @@ class WatchlistController extends GetxController {
 
   // Target prices for selected watchlist
   final RxList<TargetPriceModel> targetPrices = <TargetPriceModel>[].obs;
-  final RxBool isLoadingTargetPrices = false.obs;
+  final RxBool isLoadingTargetPrices = false.obs; // For initial fetch only
+  final RxMap<String, bool> loadingTargetPricesByTicker = <String, bool>{}.obs; // Per-ticker loading
   final RxString targetPricesErrorMessage = ''.obs;
 
   @override
@@ -481,6 +482,7 @@ class WatchlistController extends GetxController {
     if (selectedWatchlist.value == null) return;
 
     try {
+      loadingTargetPricesByTicker[ticker] = true;
       final response = await WebService.createTargetPrice(
         ticker: ticker,
         targetPrice: targetPrice,
@@ -496,12 +498,21 @@ class WatchlistController extends GetxController {
       }
     } catch (e) {
       throw Exception('Error setting target price: $e');
+    } finally {
+      loadingTargetPricesByTicker[ticker] = false;
     }
   }
 
   /// Update an existing target price
   Future<void> updateTargetPrice(String targetId, double targetPrice, String alertType) async {
+    // Find the ticker for this targetId
+    final target = targetPrices.firstWhereOrNull((t) => t.targetId == targetId);
+    final ticker = target?.ticker;
+    
     try {
+      if (ticker != null) {
+        loadingTargetPricesByTicker[ticker] = true;
+      }
       final response = await WebService.updateTargetPrice(
         targetId: targetId,
         targetPrice: targetPrice,
@@ -516,12 +527,23 @@ class WatchlistController extends GetxController {
       }
     } catch (e) {
       throw Exception('Error updating target price: $e');
+    } finally {
+      if (ticker != null) {
+        loadingTargetPricesByTicker[ticker] = false;
+      }
     }
   }
 
   /// Delete a target price
   Future<void> deleteTargetPrice(String targetId) async {
+    // Find the ticker for this targetId
+    final target = targetPrices.firstWhereOrNull((t) => t.targetId == targetId);
+    final ticker = target?.ticker;
+    
     try {
+      if (ticker != null) {
+        loadingTargetPricesByTicker[ticker] = true;
+      }
       final response = await WebService.deleteTargetPrice(targetId);
 
       if (response.status == ApiStatus.SUCCESS) {
@@ -532,6 +554,10 @@ class WatchlistController extends GetxController {
       }
     } catch (e) {
       throw Exception('Error deleting target price: $e');
+    } finally {
+      if (ticker != null) {
+        loadingTargetPricesByTicker[ticker] = false;
+      }
     }
   }
 }
