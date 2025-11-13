@@ -78,11 +78,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(6),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
+          width: 0.5,
         ),
       ),
       child: Column(
@@ -94,15 +94,16 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             decoration: BoxDecoration(
               color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
               ),
             ),
             child: Text(
               'Sector Overview',
               style: DashboardTextStyles.columnHeader.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                fontSize: 13,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
             ),
           ),
@@ -265,7 +266,9 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           Text(
             label,
             style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 11,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
             ),
           ),
           Row(
@@ -273,16 +276,18 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
               Text(
                 ticker,
                 style: DashboardTextStyles.dataCell.copyWith(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 change,
                 style: DashboardTextStyles.dataCell.copyWith(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
                   color: changeColor,
                 ),
               ),
@@ -313,14 +318,17 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           Text(
             label,
             style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 11,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
             ),
           ),
           Text(
             value,
             style: DashboardTextStyles.dataCell.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
             ),
           ),
         ],
@@ -508,11 +516,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(6),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
+          width: 0.5,
         ),
       ),
       child: Column(
@@ -524,15 +532,16 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             decoration: BoxDecoration(
               color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
               ),
             ),
             child: Text(
               'Sector Performance',
               style: DashboardTextStyles.columnHeader.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                fontSize: 13,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
             ),
           ),
@@ -576,14 +585,17 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           Text(
             period,
             style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 11,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
             ),
           ),
           Text(
             '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
             style: DashboardTextStyles.dataCell.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
               color: changeColor,
             ),
           ),
@@ -692,6 +704,9 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           Text(
             'Page ${sectorStocksController.currentPage + 1} of ${sectorStocksController.totalPages} (${sectorStocksController.totalStocks} stocks)',
             style: DashboardTextStyles.dataCell.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
               color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
             ),
           ),
@@ -710,12 +725,15 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
                           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                          width: 1,
+                          width: 0.5,
                         ),
                       ),
                       child: Text(
                         'Previous',
                         style: DashboardTextStyles.dataCell.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
                           color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                         ),
                       ),
@@ -735,12 +753,15 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
                           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                          width: 1,
+                          width: 0.5,
                         ),
                       ),
                       child: Text(
                         'Next',
                         style: DashboardTextStyles.dataCell.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
                           color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
                         ),
                       ),
@@ -785,32 +806,45 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       );
     }).toList();
 
-    return DynamicTable(
-      columns: const [
-        SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-        SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-        SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
-        SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
-        SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
-        SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
-        SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
-        SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
-        SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
-        SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
-      ],
-      rows: rows,
-      showFixedColumn: true,
-      considerPadding: false,
-      columnSpacing: 16, 
-      fixedColumnWidth: 0, 
-      enableDragging: true,
-      enableLivePrices: true,
-      onDragStarted: () {
-        // Drag started
-      },
-      onDragEnd: () {
-        // Drag ended
-      },
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 0.5,
+        ),
+      ),
+      child: DynamicTable(
+        columns: const [
+          SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
+          SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+          SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+          SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+          SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+          SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
+          SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+          SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
+          SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
+          SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
+        ],
+        rows: rows,
+        showFixedColumn: true,
+        considerPadding: false,
+        columnSpacing: 16, 
+        fixedColumnWidth: 0, 
+        enableDragging: true,
+        enableLivePrices: true,
+        onDragStarted: () {
+          // Drag started
+        },
+        onDragEnd: () {
+          // Drag ended
+        },
+      ),
     );
   }
 
@@ -886,11 +920,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(6),
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
+          width: 0.5,
         ),
       ),
       child: Column(
@@ -903,15 +937,16 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             decoration: BoxDecoration(
               color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
               ),
             ),
             child: Text(
               title,
               style: DashboardTextStyles.columnHeader.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                fontSize: 13,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
               ),
             ),
           ),
@@ -975,6 +1010,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                 ),
               Expanded(
                 child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -983,7 +1019,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                       // Sector Header - Following app design pattern
                       Text(
                         widget.sectorName,
-                        style: DashboardTextStyles.titleSmall,
+                        style: DashboardTextStyles.titleSmall.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       // Stocks Table
@@ -996,7 +1036,9 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                           return Center(
                             child: Text(
                               sectorStocksController.errorMessage.value,
-                              style: DashboardTextStyles.errorMessage,
+                              style: DashboardTextStyles.errorMessage.copyWith(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                              ),
                             ),
                           );
                         }
@@ -1005,7 +1047,9 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                           return Center(
                             child: Text(
                               'No stocks found for this sector',
-                              style: DashboardTextStyles.noData,
+                              style: DashboardTextStyles.noData.copyWith(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                              ),
                             ),
                           );
                         }
