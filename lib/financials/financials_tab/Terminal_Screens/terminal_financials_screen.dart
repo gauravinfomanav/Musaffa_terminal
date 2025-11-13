@@ -138,10 +138,10 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           fontFamily: Constants.FONT_DEFAULT_NEW,
-          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
+          color: isDarkMode ? const Color(0xFF81AACE) : const Color.fromARGB(255, 64, 58, 58),
         ),
       ),
     );

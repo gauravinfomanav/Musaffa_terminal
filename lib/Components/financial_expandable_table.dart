@@ -635,8 +635,11 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       }
       
       // Check if it's a change value (starts with + or -)
+      // Exclude "--" and "-" which are placeholders for no data
       Color textColor = DashboardTextStyles.primaryTextColor;
-      if (value.startsWith('+')) {
+      if (value == '--' || value == '-') {
+        textColor = Colors.grey;
+      } else if (value.startsWith('+')) {
         textColor = Colors.green;
       } else if (value.startsWith('-')) {
         textColor = Colors.red;
@@ -695,8 +698,11 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
           : DashboardTextStyles.dataCell;
       
       // Check if it's a change value (starts with + or -)
+      // Exclude "--" and "-" which are placeholders for no data
       Color textColor = DashboardTextStyles.primaryTextColor;
-      if (value.startsWith('+')) {
+      if (value == '--' || value == '-') {
+        textColor = Colors.grey;
+      } else if (value.startsWith('+')) {
         textColor = Colors.green;
       } else if (value.startsWith('-')) {
         textColor = Colors.red;

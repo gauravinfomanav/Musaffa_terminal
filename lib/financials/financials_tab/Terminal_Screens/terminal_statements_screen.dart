@@ -6,6 +6,7 @@ import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controlle
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_quarterly.dart' as quarterly;
 import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 class TerminalStatementsScreen extends StatefulWidget {
   final String symbol;
@@ -214,10 +215,19 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Center(
+          Center(
             child: Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text('No data available'),
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                'No data available',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF9CA3AF) 
+                      : const Color(0xFF6B7280),
+                ),
+              ),
             ),
           ),
         ],
@@ -268,7 +278,18 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            child: Center(child: Text('No data available')),
+            child: Center(
+              child: Text(
+                'No data available',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF9CA3AF) 
+                      : const Color(0xFF6B7280),
+                ),
+              ),
+            ),
           ),
         ],
       );
