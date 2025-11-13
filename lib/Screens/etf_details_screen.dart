@@ -182,23 +182,32 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           const SizedBox(height: 16),
 
         
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-        
-              Expanded(
-                child: TradingViewWidget(
-                  symbol: _formatSymbolForTradingView(etfData),
-                  controller: tradingViewController,
-                  height: 400,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Half screen width for performance
-              Expanded(
-                child: _buildPerformanceHeatmap(etfData, isDarkMode),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate heatmap height dynamically based on available width
+              final availableWidth = (constraints.maxWidth - 8) / 2; // Half width minus spacing
+              final cellWidth = (availableWidth - 20 - 8) / 3; // Container width - padding - spacing
+              final cellHeight = cellWidth / 2; // aspectRatio is 2
+              final gridHeight = (cellHeight * 3) + (4 * 2); // 3 rows + 2 spacings
+              final heatmapHeight = 20 + 26 + gridHeight; // padding + header + grid
+              
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TradingViewWidget(
+                      symbol: _formatSymbolForTradingView(etfData),
+                      controller: tradingViewController,
+                      height: heatmapHeight, // Dynamic height to match heatmap
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildPerformanceHeatmap(etfData, isDarkMode, heatmapHeight),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
 
@@ -1352,7 +1361,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     );
   }
 
-  Widget _buildPerformanceHeatmap(EtfsData etfData, bool isDarkMode) {
+  Widget _buildPerformanceHeatmap(EtfsData etfData, bool isDarkMode, double height) {
     final performanceData = {
       '1D': etfData.change1DPercent ?? 0,
       '1W': etfData.priceChange1WPercent ?? 0,
@@ -1367,7 +1376,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
 
     return Container(
       width: double.infinity,
-      height: 400,
+      height: height,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,

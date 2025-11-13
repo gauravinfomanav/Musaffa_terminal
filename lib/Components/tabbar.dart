@@ -393,6 +393,7 @@ class _SearchFieldState extends State<_SearchField> {
       child: TextField(
           controller: _searchController,
           focusNode: _focusNode,
+          cursorColor: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
           onChanged: (value) {
           if (value.length >= 2) {
             _performSearch(value);
@@ -412,6 +413,7 @@ class _SearchFieldState extends State<_SearchField> {
         textInputAction: TextInputAction.search,
         style: DashboardTextStyles.stockName.copyWith(
           color: widget.isDarkMode ? const Color(0xFFE0E0E0) : DashboardTextStyles.stockName.color,
+          fontFamily: Constants.FONT_DEFAULT_NEW,
         ),
         decoration: InputDecoration(
           prefixIcon: Icon(
@@ -423,6 +425,7 @@ class _SearchFieldState extends State<_SearchField> {
           hintStyle: DashboardTextStyles.tickerSymbol.copyWith(
             color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
             fontSize: 13,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           filled: true,
@@ -936,25 +939,29 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
                           ),
                         
                         // Icon
-                        Icon(
-                          _isDragOver
-                              ? Icons.add_circle_outline
-                              : widget.isOpen 
-                                  ? Icons.format_list_bulleted 
-                                  : Icons.format_list_bulleted_outlined,
-                          size: 18,
-                          color: _isDragOver
-                              ? (widget.isDarkMode 
-                                  ? const Color(0xFF81AACE)
-                                  : const Color(0xFF81AACE))
-                              : widget.isOpen
-                                  ? (widget.isDarkMode 
-                                      ? const Color(0xFFE0E0E0)
-                                      : const Color(0xFF374151))
-                                  : (widget.isDarkMode 
-                                      ? const Color(0xFF9CA3AF)
-                                      : const Color(0xFF6B7280)),
-                        ),
+                        _isDragOver
+                            ? Icon(
+                                Icons.add_circle_outline,
+                                size: 18,
+                                color: widget.isDarkMode 
+                                    ? const Color(0xFF81AACE)
+                                    : const Color(0xFF81AACE),
+                              )
+                            : SvgPicture.asset(
+                                'resources/bookmark.svg',
+                                width: 22,
+                                height: 20,
+                                colorFilter: ColorFilter.mode(
+                                  widget.isOpen
+                                      ? (widget.isDarkMode 
+                                          ? const Color(0xFFE0E0E0)
+                                          : const Color(0xFF374151))
+                                      : (widget.isDarkMode 
+                                          ? const Color(0xFF9CA3AF)
+                                          : const Color(0xFF6B7280)),
+                                  BlendMode.srcIn,
+                                ),
+                              ),
                       ],
                     ),
                   ),
@@ -1049,16 +1056,27 @@ class _ScreenerButtonState extends State<_ScreenerButton>
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(
-                  Icons.filter_list,
-                  size: 18,
-                  color: _isHovered
-                      ? (widget.isDarkMode 
-                          ? const Color(0xFFE0E0E0)
-                          : const Color(0xFF374151))
-                      : (widget.isDarkMode 
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF6B7280)),
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: SvgPicture.asset(
+                      'resources/finance_mode.svg',
+                      fit: BoxFit.contain,
+                      width: 24,
+                      height: 24,
+                      colorFilter: ColorFilter.mode(
+                        _isHovered
+                            ? (widget.isDarkMode 
+                                ? const Color(0xFFE0E0E0)
+                                : const Color(0xFF374151))
+                            : (widget.isDarkMode 
+                                ? const Color(0xFF9CA3AF)
+                                : const Color(0xFF6B7280)),
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             );
