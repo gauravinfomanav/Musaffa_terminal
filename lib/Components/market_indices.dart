@@ -541,26 +541,41 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
           AnimatedSize(
             duration: DynamicHeightTradingViewConstants.animationDuration,
             curve: Curves.easeInOut, // Animation curve
-            child: SizedBox(
-              // Use the calculated height, or fallback to minimum if not determined
-              height: effectiveHeight.clamp(
-                widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
-                widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
-              ),
-              width: widget.width ?? double.infinity, // Use provided width or expand
-              child: Stack(
-                // Use Stack to overlay loading indicator
-                children: [
-                  // WebView content
-                  Padding(
-                    padding: contentPadding,
-                    child: WebViewWidget(controller: _controller),
+            child: Builder(
+              builder: (context) {
+                final screenWidth = MediaQuery.of(context).size.width;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final bgColor = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
+                
+                return ClipRect(
+                  clipBehavior: Clip.hardEdge,
+                  child: Container(
+                    // Use the calculated height, or fallback to minimum if not determined
+                    height: effectiveHeight.clamp(
+                      widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
+                      widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
+                    ),
+                    width: screenWidth,
+                    color: bgColor,
+                    child: Stack(
+                      // Use Stack to overlay loading indicator
+                      children: [
+                        // WebView content with overscan
+                        Transform.scale(
+                          scale: 1.02,
+                          child: Padding(
+                            padding: contentPadding,
+                            child: WebViewWidget(controller: _controller),
+                          ),
+                        ),
+                        // Show loading indicator only when actually loading
+                        if (_isLoading)
+                          const Center(child: CircularProgressIndicator()),
+                      ],
+                    ),
                   ),
-                  // Show loading indicator only when actually loading
-                  if (_isLoading)
-                    const Center(child: CircularProgressIndicator()),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],

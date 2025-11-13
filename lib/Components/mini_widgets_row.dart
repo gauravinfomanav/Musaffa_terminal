@@ -70,12 +70,18 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 height: 100% !important; 
                 width: 100% !important; 
                 overflow: hidden !important; 
-                background: $appBgColor !important; 
+                background: $appBgColor !important;
+                background-color: $appBgColor !important;
                 border: none !important; 
                 border-width: 0 !important;
                 border-style: none !important;
                 border-color: transparent !important;
-                outline: none !important; 
+                outline: none !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                touch-action: none !important;
+                overscroll-behavior: none !important;
             }
             .widgets-container { 
                 display: flex !important; 
@@ -507,13 +513,15 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     final appBackgroundColor = isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
     final widgetHeight = _calculateHeight(context);
     
-    return RepaintBoundary(
+    // Get screen width for explicit sizing (prevents layout ambiguity)
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    return ClipRect(
+      clipBehavior: Clip.hardEdge,
       child: Container(
         height: widgetHeight,
-        decoration: BoxDecoration(
-          color: appBackgroundColor,
-        ),
-        clipBehavior: Clip.none,
+        width: screenWidth,
+        color: appBackgroundColor,
         child: _isLoading
             ? Row(
                 children: List.generate(4, (index) => Expanded(
@@ -538,10 +546,8 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                   ),
                 )),
               )
-            : Container(
-                decoration: BoxDecoration(
-                  color: appBackgroundColor,
-                ),
+            : Transform.scale(
+                scale: 1.02,
                 child: WebViewWidget(controller: _controller),
               ),
       ),

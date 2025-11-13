@@ -231,62 +231,64 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
     
-    return Container(
-      width: double.infinity,
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
-        ),
-      ),
-      child: Stack(
-        children: [
-          // WebView or Fallback
-          if (_isWebViewSupported && _webViewController != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: WebViewWidget(
-              controller: _webViewController!,
-              gestureRecognizers: _createGestureRecognizers(),
-              ),
-            ),
-          
-          // Loading indicator - show when loading OR when WebView not ready
-          if (_isLoading || _webViewController == null)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          const Color(0xFF81AACE),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _webViewController == null ? 'Initializing Chart...' : 'Loading Chart...',
-                        style: TextStyle(
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                          fontSize: 14,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                    ],
-                ),
-              ),
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        width: screenWidth,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            width: 0.5,
           ),
-        ],
+        ),
+        child: Stack(
+          children: [
+            // WebView with overscan to clip gaps
+            if (_isWebViewSupported && _webViewController != null)
+              Transform.scale(
+                scale: 1.02,
+                child: WebViewWidget(
+                  controller: _webViewController!,
+                  gestureRecognizers: _createGestureRecognizers(),
+                ),
+              ),
+            
+            // Loading indicator - show when loading OR when WebView not ready
+            if (_isLoading || _webViewController == null)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            const Color(0xFF81AACE),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _webViewController == null ? 'Initializing Chart...' : 'Loading Chart...',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                            fontSize: 14,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
+                      ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
