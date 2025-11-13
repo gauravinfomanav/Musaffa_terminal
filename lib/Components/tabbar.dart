@@ -880,8 +880,7 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
               builder: (context, child) {
                 return Transform.scale(
                   scale: _scaleAnimation.value,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
+                  child: Container(
                     constraints: const BoxConstraints(
                       minWidth: 40,
                       maxWidth: 48,
@@ -899,8 +898,8 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
                                   : const Color(0xFFF9FAFB))
                               : (_isHovered 
                                   ? (widget.isDarkMode 
-                                      ? const Color(0xFF2D2D2D).withOpacity(0.5)
-                                      : const Color(0xFFF9FAFB).withOpacity(0.8))
+                                      ? const Color(0xFF2D2D2D).withOpacity(0.8)
+                                      : const Color(0xFFE5E7EB).withOpacity(0.9))
                                   : Colors.transparent),
                       borderRadius: BorderRadius.circular(6),
                       border: _isDragOver
@@ -1030,8 +1029,7 @@ class _ScreenerButtonState extends State<_ScreenerButton>
           builder: (context, child) {
             return Transform.scale(
               scale: _scaleAnimation.value,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
+              child: Container(
                 constraints: const BoxConstraints(
                   minWidth: 40,
                   maxWidth: 48,
@@ -1041,8 +1039,8 @@ class _ScreenerButtonState extends State<_ScreenerButton>
                 decoration: BoxDecoration(
                   color: _isHovered 
                       ? (widget.isDarkMode 
-                          ? const Color(0xFF2D2D2D).withOpacity(0.5)
-                          : const Color(0xFFF9FAFB).withOpacity(0.8))
+                          ? const Color(0xFF2D2D2D).withOpacity(0.8)
+                          : const Color(0xFFE5E7EB).withOpacity(0.9))
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
