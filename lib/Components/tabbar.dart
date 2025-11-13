@@ -500,9 +500,12 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
     _scrollTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       if (!_isHovered && mounted && _scrollController.hasClients) {
         setState(() {
-          _scrollPosition +=1.5; // Slow scroll increment
-          if (_scrollPosition >= _contentWidth) {
-            _scrollPosition = 0.0; // Reset for seamless loop
+          _scrollPosition += 1.5; // Slow scroll increment
+          // For infinite scroll: when we reach the end of one set, jump back to the start of the next set
+          // Since we have 4 duplicates, we can loop seamlessly
+          if (_contentWidth > 0 && _scrollPosition >= _contentWidth) {
+            // Jump back to the start of the second set (which looks identical to the first)
+            _scrollPosition = _scrollPosition - _contentWidth;
           }
         });
         _scrollController.jumpTo(_scrollPosition);
@@ -523,7 +526,7 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
       children: indices
           .map(
             (index) => Padding(
-              padding: const EdgeInsets.only(left: 12),
+              padding: const EdgeInsets.only(left: 20),
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: _IndexItem(
@@ -575,8 +578,8 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
       }
 
       final indices = widget.controller.indices.take(20).toList();
-      // Duplicate for seamless loop
-      final duplicatedIndices = [...indices, ...indices];
+      // Create multiple duplicates for seamless infinite scrolling
+      final duplicatedIndices = [...indices, ...indices, ...indices, ...indices];
 
       return MouseRegion(
         onEnter: (_) {
@@ -600,7 +603,8 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
                   final maxScroll = _scrollController.position.maxScrollExtent;
                   if (maxScroll > 0) {
                     setState(() {
-                      _contentWidth = maxScroll / 2; 
+                      // Calculate width of one set of indices (we have 4 duplicates)
+                      _contentWidth = maxScroll / 4; 
                     });
                   }
                 }
@@ -649,6 +653,7 @@ class _IndexItem extends StatelessWidget {
           color: color,
           group: MusaffaAutoSizeText.groups.labelMediumGroup,
         ),
+        
       ],
     );
   }
