@@ -1023,7 +1023,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(10), // Reduced padding for terminal look
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+        color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
         borderRadius: BorderRadius.circular(4), // Smaller radius for terminal look
         border: Border.all(
           color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),

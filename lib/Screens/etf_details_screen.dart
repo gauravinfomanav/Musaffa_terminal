@@ -173,7 +173,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   Widget _buildEtfContent(EtfsData etfData, bool isDarkMode) {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -718,11 +718,23 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   }
 
   Widget _buildKeyMetrics(EtfsData etfData, bool isDarkMode) {
+    // Format ETF Total Assets
+    String etfTotalAssetsFormatted = '--';
+    if (etfData.etfTotalAssets != null && etfData.etfTotalAssets! > 0) {
+      etfTotalAssetsFormatted = Constants.getShortenedMarketCapV2(etfData.etfTotalAssets!);
+    }
+    
+    // Format Avg Volume 10D
+    String avgVolume10DFormatted = '--';
+    if (etfData.avgVolume10days != null && etfData.avgVolume10days! > 0) {
+      avgVolume10DFormatted = '${((etfData.avgVolume10days! / 1000000).toStringAsFixed(1))}M';
+    }
+    
     final data = [
       ['P/E Ratio', etfData.priceToEarnings?.toStringAsFixed(2) ?? '--'],
       ['P/B Ratio', etfData.priceToBook?.toStringAsFixed(2) ?? '--'],
-      ['Compliant', '${etfData.businessCompliantRatio?.toStringAsFixed(1) ?? '--'}%'],
-      ['Non-Compliant', '${etfData.businessNonCompliantRatio?.toStringAsFixed(1) ?? '--'}%'],
+      ['ETF Total Assets', etfTotalAssetsFormatted],
+      ['Avg Volume 10D', avgVolume10DFormatted],
       ['Interest Assets', '${etfData.interestBearingAssetsRatio?.toStringAsFixed(1) ?? '--'}%'],
       ['Interest Debt', '${etfData.interestBearingDebtRatio?.toStringAsFixed(1) ?? '--'}%'],
     ];

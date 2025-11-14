@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:musaffa_terminal/firebase_options.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'dart:io';
@@ -52,142 +53,81 @@ class FCMService {
   /// Initialize FCM specifically for macOS
   static Future<void> _initializeForMacOS() async {
     try {
-      print('🍎 Initializing FCM for macOS with APNS...');
-      print('💡 APNS certificate is properly configured - trying harder...');
-      
-      // Debug: Check Firebase app configuration
-      print('🔍 Debug: Firebase app name: ${Firebase.app().name}');
-      print('🔍 Debug: Firebase app options: ${Firebase.app().options.projectId}');
-      
-      // Debug: Check Firebase Messaging instance
-      print('🔍 Debug: Firebase Messaging instance: $_messaging');
-      print('🔍 Debug: Firebase Messaging instance is null: ${_messaging == null}');
-      
-      // Debug: Check if APNS is available
-      try {
-        final apnsAvailability = await _messaging!.isSupported();
-        print('🔍 Debug: APNS supported: $apnsAvailability');
-      } catch (e) {
-        print('🔍 Debug: APNS support check failed: $e');
+      // Skip APNS in release mode to avoid blocking startup
+      if (kReleaseMode) {
+        print('🍎 Release mode detected - skipping APNS to avoid startup delay');
+        // Try to get FCM token directly without APNS
+        try {
+          _fcmToken = await _messaging!.getToken();
+          if (_fcmToken != null) {
+            print('🔑 FCM Token received (without APNS): ${_fcmToken!.substring(0, 20)}...');
+            await _registerTokenWithBackend();
+            _isInitialized = true;
+            print('✅ FCM Service initialized (without APNS)');
+            return;
+          }
+        } catch (e) {
+          print('⚠️  FCM token failed (non-blocking): $e');
+          _fcmToken = 'dev-fcm-token-${DateTime.now().millisecondsSinceEpoch}';
+          await _registerTokenWithBackend();
+          _isInitialized = true;
+          return;
+        }
       }
       
-      // Debug: Try to get FCM token first to see if that works
-      try {
-        print('🔍 Debug: Attempting to get FCM token first...');
-        final fcmToken = await _messaging!.getToken();
-        print('🔍 Debug: FCM token received: ${fcmToken?.substring(0, 20)}...');
-        print('🔍 Debug: FCM token length: ${fcmToken?.length}');
-      } catch (e) {
-        print('🔍 Debug: FCM token failed: $e');
-      }
+      print('🍎 Initializing FCM for macOS with APNS (debug mode only)...');
       
-      // Debug: Check if AppDelegate methods are being called
-      print('🔍 Debug: Checking if AppDelegate APNs registration methods are being called...');
-      print('🔍 Debug: If you see "APNs registration successful" above, the issue is in FCM');
-      print('🔍 Debug: If you see "APNs registration failed" above, the issue is in Apple/Provisioning');
-      print('🔍 Debug: If you see neither, AppDelegate methods are not being called');
-      
-      // Debug: Check notification settings in detail
-      final settings = await _messaging!.getNotificationSettings();
-      print('🔍 Debug: Notification settings:');
-      print('  - Authorization status: ${settings.authorizationStatus}');
-      print('  - Alert setting: ${settings.alert}');
-      print('  - Badge setting: ${settings.badge}');
-      print('  - Sound setting: ${settings.sound}');
-      print('  - Announcement setting: ${settings.announcement}');
-      print('  - Car play setting: ${settings.carPlay}');
-      print('  - Critical alert setting: ${settings.criticalAlert}');
-      print('  - Lock screen setting: ${settings.lockScreen}');
-      print('  - Notification center setting: ${settings.notificationCenter}');
-      print('  - Show previews setting: ${settings.showPreviews}');
-      
-      // Wait for APNS token to be available
+      // In debug mode, try APNS with limited retries (non-blocking)
       String? apnsToken;
       int retryCount = 0;
-      const maxRetries = 15; // Increased retries since certificate is configured
+      const maxRetries = 2; // Reduced retries to avoid blocking
       
       while (apnsToken == null && retryCount < maxRetries) {
         try {
           print('🔍 Debug: Attempting to get APNS token (attempt ${retryCount + 1})...');
           
-          // Try to get APNS token with timeout
+          // Try to get APNS token with short timeout
           apnsToken = await _messaging!.getAPNSToken().timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 3), // Reduced timeout
             onTimeout: () {
-              print('🔍 Debug: APNS token request timed out after 10 seconds');
+              print('🔍 Debug: APNS token request timed out after 3 seconds');
               return null;
             },
           );
           
           if (apnsToken != null) {
             print('🍎 APNS token received: ${apnsToken.substring(0, 20)}...');
-            print('🔍 Debug: Full APNS token length: ${apnsToken.length}');
-            print('🔍 Debug: APNS token format: ${apnsToken.substring(0, 5)}...${apnsToken.substring(apnsToken.length - 5)}');
             break;
-          } else {
-            print('🔍 Debug: APNS token is null on attempt ${retryCount + 1}');
-            print('🔍 Debug: This means Apple servers returned null - no error thrown');
           }
         } catch (e) {
           print('🍎 APNS token attempt ${retryCount + 1} failed: $e');
-          print('🔍 Debug: Error type: ${e.runtimeType}');
-          print('🔍 Debug: Error details: ${e.toString()}');
-          
-          // Check if it's a specific Firebase error
-          if (e.toString().contains('apns-token-not-set')) {
-            print('🔍 Debug: APNS token not set error - Apple hasn\'t provided token yet');
-          } else if (e.toString().contains('network')) {
-            print('🔍 Debug: Network error - can\'t reach Apple servers');
-          } else if (e.toString().contains('certificate')) {
-            print('🔍 Debug: Certificate error - APNS certificate issue');
-          } else if (e.toString().contains('permission')) {
-            print('🔍 Debug: Permission error - notification permissions issue');
-          } else {
-            print('🔍 Debug: Unknown error type');
-          }
         }
         
         retryCount++;
         if (retryCount < maxRetries) {
-          print('🍎 Waiting for APNS token... (${retryCount}/${maxRetries})');
-          await Future.delayed(const Duration(seconds: 2));
+          await Future.delayed(const Duration(seconds: 1)); // Reduced delay
         }
       }
       
-      if (apnsToken == null) {
-        print('⚠️  APNS token not available after $maxRetries attempts');
-        print('💡 Certificate is configured but token not received');
-        print('🔄 Falling back to development mode...');
-        
-        // Fallback: Create a development token for testing
+      // Try to get FCM token (works with or without APNS)
+      try {
+        _fcmToken = await _messaging!.getToken();
+        if (_fcmToken != null) {
+          print('🔑 FCM Token received: ${_fcmToken!.substring(0, 20)}...');
+          await _registerTokenWithBackend();
+          print('✅ FCM token registered successfully');
+        }
+      } catch (e) {
+        print('⚠️  FCM token failed: $e');
+        // Fallback: Create a development token
         _fcmToken = 'dev-fcm-token-${DateTime.now().millisecondsSinceEpoch}';
-        print('🔑 Development FCM Token: $_fcmToken');
-        
-        await _registerTokenWithBackend(); // Non-blocking - won't throw
-        print('💡 Note: This is a development token - real notifications may not work');
-        return; // Exit early with fallback
-      }
-      
-      // Now get FCM token with APNS
-      _fcmToken = await _messaging!.getToken();
-      
-      if (_fcmToken != null) {
-        print('🔑 Real FCM Token received: ${_fcmToken!.substring(0, 20)}...');
         await _registerTokenWithBackend();
-        print('✅ Real FCM token with APNS registered successfully');
-      } else {
-        throw Exception('Failed to get FCM token after APNS setup');
       }
       
     } catch (e) {
       print('❌ macOS FCM initialization failed: $e');
-      print('💡 APNS certificate is configured but token not received');
-      
       // Fallback: Create a development token
-      print('🔄 Creating development token as fallback...');
       _fcmToken = 'dev-fcm-token-${DateTime.now().millisecondsSinceEpoch}';
-      print('🔑 Development FCM Token: $_fcmToken');
-      
       await _registerTokenWithBackend(); 
     }
   }

@@ -879,7 +879,7 @@ class FinancialDataTransformer {
     return ratiosData.map((item) {
       Map<String, dynamic> data = {};
       for (var period in periods) {
-        data[period] = item.values[period]?.toStringAsFixed(2) ?? '--';
+        data[period] = item.values[period]?.toStringAsFixed(2) ?? '-';
       }
       
       return FinancialExpandableRowData(

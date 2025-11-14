@@ -569,7 +569,8 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                       children: [
                         // WebView content with overscan
                         Transform.scale(
-                          scale: 1.02,
+                          scaleX: 1.011,
+                          scaleY: 1.02,
                           child: Padding(
                             padding: contentPadding,
                             child: WebViewWidget(controller: _controller),

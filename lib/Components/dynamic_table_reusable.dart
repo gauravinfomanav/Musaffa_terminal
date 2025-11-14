@@ -406,10 +406,14 @@ class _DynamicTableState extends State<DynamicTable> {
                            column.fieldName == 'currentPrice' || 
                            column.fieldName == 'addedPrice';
       
+      // All headers centered
+      final textAlign = TextAlign.center;
+      
       Widget headerLabel = Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Text(
           column.label,
+          textAlign: textAlign,
           style: TextStyle(
             fontSize: 13,
             color: headerColor,
@@ -422,12 +426,19 @@ class _DynamicTableState extends State<DynamicTable> {
       if (isPriceColumn) {
         headerLabel = SizedBox(
           width: 65,
+          child: Align(
+            alignment: Alignment.center,
+            child: headerLabel,
+          ),
+        );
+      } else {
+        headerLabel = Align(
+          alignment: Alignment.center,
           child: headerLabel,
         );
       }
       
       var dataColumn = DataColumn(
-        headingRowAlignment: MainAxisAlignment.center,
         label: headerLabel,
       );
       lst.add(dataColumn);
@@ -834,8 +845,12 @@ class _DynamicTableState extends State<DynamicTable> {
               }
             }
             
+            // All values left-aligned
+            final textAlign = TextAlign.left;
+            
             Widget cellContent = Text(
               displayValue,
+              textAlign: textAlign,
               style: DashboardTextStyles.dataCell.copyWith(color: textColor),
             );
             
@@ -843,6 +858,14 @@ class _DynamicTableState extends State<DynamicTable> {
             if (isPriceColumn) {
               cellContent = SizedBox(
                 width: 65, // Fixed width for price columns
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: cellContent,
+                ),
+              );
+            } else {
+              cellContent = Align(
+                alignment: Alignment.centerLeft,
                 child: cellContent,
               );
             }

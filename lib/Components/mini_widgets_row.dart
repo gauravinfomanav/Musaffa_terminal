@@ -547,7 +547,8 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 )),
               )
             : Transform.scale(
-                scale: 1.02,
+                scaleX: 1.01,   // No horizontal scaling (left/right)
+                scaleY: 1.011, // Vertical scaling (top/bottom only)
                 child: WebViewWidget(controller: _controller),
               ),
       ),

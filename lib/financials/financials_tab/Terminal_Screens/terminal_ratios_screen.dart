@@ -276,7 +276,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       Map<String, dynamic> data = {};
       for (var year in years) {
         double? value = annualData[metric]?[year];
-        data[year] = value?.toStringAsFixed(2) ?? '--';
+        data[year] = value?.toStringAsFixed(2) ?? '-';
       }
 
       // Calculate YoY Growth
