@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
+import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/web_service.dart';
 
@@ -157,8 +158,6 @@ class _AddStocksModalState extends State<AddStocksModal> {
   Future<void> _addSelectedStocks() async {
     if (_selectedTickers.isEmpty) return;
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     // Fetch real-time prices for selected stocks
     final stocksToAdd = await _fetchRealTimePricesForSelectedStocks();
 
@@ -174,42 +173,14 @@ class _AddStocksModalState extends State<AddStocksModal> {
     
     if (success) {
       Get.back(); // Close modal
-      // Show success message with proper styling
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Added ${_selectedTickers.length} stocks to "${widget.watchlistName}"',
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-          ),
-          backgroundColor: isDarkMode ? const Color(0xFF374151) : const Color(0xFF6B7280),
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
+      SnackBarUtils.showSuccess(
+        context,
+        'Added ${_selectedTickers.length} stocks to "${widget.watchlistName}"',
       );
     } else {
-      // Show error message with proper styling
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _watchlistController.stocksErrorMessage.value,
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-          ),
-          backgroundColor: Colors.red.shade600,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
+      SnackBarUtils.showError(
+        context,
+        _watchlistController.stocksErrorMessage.value,
       );
     }
   }

@@ -571,7 +571,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     
     if (value == null) {
       return Text(
-        "--",
+        "-",
         style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
         maxLines: 1,
@@ -655,7 +655,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     }
 
     return Text(
-      "--",
+      "-",
       style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
       textAlign: column.alignment,
       maxLines: 1,
@@ -668,7 +668,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     
     if (value == null) {
       return Text(
-        "--",
+        "-",
         style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
         maxLines: 1,
@@ -718,7 +718,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     }
 
     return Text(
-      "--",
+      "-",
       style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
       textAlign: column.alignment,
     );

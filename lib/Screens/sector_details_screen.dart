@@ -242,7 +242,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   Widget _buildPerformanceRow(String label, String ticker, String change, bool isDarkMode) {
     // Determine color based on positive/negative change
     Color changeColor;
-    if (change == '--') {
+    if (change == '--' || change == '-') {
       changeColor = isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
     } else if (change.startsWith('+') || (double.tryParse(change.replaceAll('%', '')) ?? 0) > 0) {
       changeColor = const Color(0xFF10B981); // Green for positive
@@ -805,7 +805,6 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -814,32 +813,45 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           width: 0.5,
         ),
       ),
-      child: DynamicTable(
-      columns: const [
-        SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-        SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-        SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
-        SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
-        SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
-        SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
-        SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
-        SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
-        SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
-        SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
-      ],
-      rows: rows,
-      showFixedColumn: true,
-      considerPadding: false,
-      columnSpacing: 16, 
-      fixedColumnWidth: 300, 
-      enableDragging: true,
-      enableLivePrices: true,
-      onDragStarted: () {
-        // Drag started
-      },
-      onDragEnd: () {
-        // Drag ended
-      },
+      child: Column(
+        children: [
+          // Table
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: DynamicTable(
+              columns: const [
+                SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
+                SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+                SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+                SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+                SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+                SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
+                SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+                SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
+                SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
+                SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
+              ],
+              rows: rows,
+              showFixedColumn: true,
+              considerPadding: false,
+              columnSpacing: 16, 
+              fixedColumnWidth: 300, 
+              enableDragging: true,
+              enableLivePrices: true,
+              onDragStarted: () {
+                // Drag started
+              },
+              onDragEnd: () {
+                // Drag ended
+              },
+            ),
+          ),
+          // Pagination controls at bottom
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: _buildPaginationControls(),
+          ),
+        ],
       ),
     );
   }
@@ -1056,15 +1068,9 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      // Dynamic table - takes remaining space
+                                      // Dynamic table with pagination - takes remaining space
                                       Expanded(
-                                        child: Column(
-                                          children: [
-                                            _buildStocksTable(),
-                                            const SizedBox(height: 16),
-                                            _buildPaginationControls(),
-                                          ],
-                                        ),
+                                        child: _buildStocksTable(),
                                       ),
                                       const SizedBox(width: 16),
                                       // Performance widgets - fixed width

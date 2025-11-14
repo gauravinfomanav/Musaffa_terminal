@@ -6,6 +6,7 @@ import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
+import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/Controllers/filter_controller.dart';
 import 'package:musaffa_terminal/Controllers/screener_strategy_controller.dart';
@@ -260,38 +261,16 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       );
 
       if (strategy != null) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Strategy "${strategy.name}" saved successfully',
-              style: DashboardTextStyles.tickerSymbol.copyWith(
-                color: Colors.white,
-                fontSize: 12,
-              ),
-            ),
-            backgroundColor: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF374151)
-                : const Color(0xFF6B7280),
-            duration: const Duration(seconds: 2),
-          ),
+        SnackBarUtils.showSuccess(
+          context,
+          'Strategy "${strategy.name}" saved successfully',
         );
       } else {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              strategyController.errorMessage.value.isNotEmpty
-                  ? strategyController.errorMessage.value
-                  : 'Failed to save strategy',
-              style: DashboardTextStyles.tickerSymbol.copyWith(
-                color: Colors.white,
-                fontSize: 12,
-              ),
-            ),
-            backgroundColor: Colors.red[600],
-            duration: const Duration(seconds: 3),
-          ),
+        SnackBarUtils.showError(
+          context,
+          strategyController.errorMessage.value.isNotEmpty
+              ? strategyController.errorMessage.value
+              : 'Failed to save strategy',
         );
       }
     }
@@ -352,21 +331,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
           if (confirmed == true) {
             await strategyController.deleteStrategy(strategy.id);
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Strategy deleted',
-                    style: DashboardTextStyles.tickerSymbol.copyWith(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
-                  ),
-                  backgroundColor: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF374151)
-                      : const Color(0xFF6B7280),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
+              SnackBarUtils.showSuccess(context, 'Strategy deleted');
             }
           }
         },
@@ -1329,64 +1294,20 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
       final success = await watchlistController.addStocksToNewWatchlist(watchlistName, stockTickers);
       
       if (success) {
-        // Show success message using proper snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Added ${stockTickers.length} stocks to "$watchlistName"',
-              style: DashboardTextStyles.tickerSymbol.copyWith(
-                color: Colors.white,
-                fontSize: 12,
-              ),
-            ),
-            backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                ? const Color(0xFF374151) 
-                : const Color(0xFF6B7280),
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
+        SnackBarUtils.showSuccess(
+          context,
+          'Added ${stockTickers.length} stocks to "$watchlistName"',
         );
       } else {
-        // Show error message using proper snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to create watchlist or add stocks',
-              style: DashboardTextStyles.tickerSymbol.copyWith(
-                color: Colors.white,
-                fontSize: 12,
-              ),
-            ),
-            backgroundColor: Colors.red[600],
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
+        SnackBarUtils.showError(
+          context,
+          'Failed to create watchlist or add stocks',
         );
       }
     } catch (e) {
-      // Show error message using proper snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'An error occurred: $e',
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-          ),
-          backgroundColor: Colors.red[600],
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
+      SnackBarUtils.showError(
+        context,
+        'An error occurred: $e',
       );
     }
   }

@@ -4,7 +4,7 @@ class Constants {
   static const String FONT_DEFAULT_NEW = 'Poppins';
 
   static String getShortenedMarketCapV2(num? value) {
-    if (value == null) return "--";
+    if (value == null) return "-";
 
     if (value >= 1e12) {
       return "\$${(value / 1e12).toStringAsFixed(2)}T";

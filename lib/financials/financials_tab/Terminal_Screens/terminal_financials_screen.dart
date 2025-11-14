@@ -92,6 +92,7 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(8),
       child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -100,7 +101,6 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  flex: 2,
                   child: TerminalPerShareScreen(
                     symbol: widget.symbol,
                     currency: widget.currency,
@@ -113,7 +113,6 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  flex: 2,
                   child: _buildDynamicChart(isDarkMode),
                 ),
               ],
@@ -148,56 +147,71 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
   }
 
   Widget _buildDynamicChart(bool isDarkMode) {
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return Center(
-          child: ShimmerWidgets.chartShimmer(
-            baseColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
-            highlightColor: isDarkMode ? const Color(0xFF404040) : Colors.grey[100]!,
-            width: 400,
-            height: 300,
-          ),
-        );
-      }
-
-      final financialData = controller.financialData.value;
-      if (financialData == null) {
-        return Center(
-          child: Text(
-            'No data available',
-            style: TextStyle(
-              fontSize: 12,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-        );
-      }
-
-      // Get real data based on selected metric
-      List<BarData> chartData = _getRealChartDataForMetric(selectedMetric, financialData);
-      
-      return TerminalBarChart(
-        title: selectedMetric,
-        data: chartData,
-        unit: '',
-        titleWidget: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              selectedMetric,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
-              ),
-            ),
-            _buildMetricToggleButton(isDarkMode),
-          ],
+    return Container(
+      margin: const EdgeInsets.only(right: 12.0),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 0.5,
         ),
-      );
-    });
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return Center(
+              child: ShimmerWidgets.chartShimmer(
+                baseColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
+                highlightColor: isDarkMode ? const Color(0xFF404040) : Colors.grey[100]!,
+                width: 400,
+                height: 300,
+              ),
+            );
+          }
+
+          final financialData = controller.financialData.value;
+          if (financialData == null) {
+            return Center(
+              child: Text(
+                'No data available',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                ),
+              ),
+            );
+          }
+
+          // Get real data based on selected metric
+          List<BarData> chartData = _getRealChartDataForMetric(selectedMetric, financialData);
+          
+          return TerminalBarChart(
+            title: selectedMetric,
+            data: chartData,
+            unit: '',
+            height: 270,
+            titleWidget: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  selectedMetric,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
+                  ),
+                ),
+                _buildMetricToggleButton(isDarkMode),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
   }
 
   List<BarData> _getRealChartDataForMetric(String metric, FinancialFundamentals financialData) {

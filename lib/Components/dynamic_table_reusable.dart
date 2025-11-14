@@ -727,19 +727,15 @@ class _DynamicTableState extends State<DynamicTable> {
         }
 
         var basicCell = DataCell(
-          _TruncationDetector(
-            text: rowModel.name,
-            fixedColumnWidth: widget.fixedColumnWidth,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: widget.fixedColumnWidth != null && widget.fixedColumnWidth! > 10
-                    ? widget.fixedColumnWidth! - 16 // Account for padding
-                    : double.infinity,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 0.0, right: 0),
-                child: tickerCell,
-              ),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: widget.fixedColumnWidth != null && widget.fixedColumnWidth! > 10
+                  ? widget.fixedColumnWidth! - 16 // Account for padding
+                  : double.infinity,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 0.0, right: 0),
+              child: tickerCell,
             ),
           ),
         );
@@ -893,77 +889,5 @@ class EnumValues<T> {
   Map<T, String> get reverse {
     reverseMap = map.map((k, v) => MapEntry(v, k));
     return reverseMap;
-  }
-}
-
-// Widget to detect text truncation and show tooltip only when needed
-class _TruncationDetector extends StatefulWidget {
-  final String text;
-  final Widget child;
-  final double? fixedColumnWidth;
-
-  const _TruncationDetector({
-    required this.text,
-    required this.child,
-    this.fixedColumnWidth,
-  });
-
-  @override
-  State<_TruncationDetector> createState() => _TruncationDetectorState();
-}
-
-class _TruncationDetectorState extends State<_TruncationDetector> {
-  bool _isTruncated = false;
-  final GlobalKey _childKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    // Check truncation after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkTruncation();
-    });
-  }
-
-  void _checkTruncation() {
-    if (widget.fixedColumnWidth == null || widget.fixedColumnWidth! <= 10) {
-      // If using flex, assume not truncated (or show tooltip for all)
-      return;
-    }
-
-    // Account for logo (25px) + spacing (12px) + left padding (8px)
-    // The text is in an Expanded widget, so available width is: totalWidth - logo - spacing - padding
-    final textAvailableWidth = widget.fixedColumnWidth! - 25 - 12 - 8;
-    
-    // Measure text width using TextPainter with the same style used in MainTickerCell
-    final textStyle = DashboardTextStyles.stockName;
-    final textPainter = TextPainter(
-      text: TextSpan(text: widget.text, style: textStyle),
-      maxLines: 1,
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout(maxWidth: double.infinity);
-    
-    final textWidth = textPainter.size.width;
-    
-    if (mounted) {
-      setState(() {
-        _isTruncated = textWidth > textAvailableWidth;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Use a simple conditional wrapper instead of LayoutBuilder
-    if (_isTruncated) {
-      return Tooltip(
-        key: _childKey,
-        message: widget.text,
-        waitDuration: const Duration(milliseconds: 500),
-        child: widget.child,
-      );
-    }
-    return widget.child;
   }
 }

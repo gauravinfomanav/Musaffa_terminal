@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/target_price_dialog.dart';
 
@@ -218,42 +219,10 @@ class _TargetPriceCellState extends State<TargetPriceCell> {
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-        backgroundColor: const Color(0xFF81AACE),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
+    SnackBarUtils.showSuccess(context, message);
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-        backgroundColor: Colors.red.shade600,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
+    SnackBarUtils.showError(context, message);
   }
 }

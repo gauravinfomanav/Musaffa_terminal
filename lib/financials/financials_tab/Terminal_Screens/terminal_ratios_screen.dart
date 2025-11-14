@@ -104,22 +104,33 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
 
         final columns = _buildFinancialColumns(quarterlyRatiosController.quarters);
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
-          child: FinancialExpandableTable(
-            columns: columns,
-            data: transformedData,
-            showNameColumn: false, // Don't show separate name column since we have metric column
-            rowHeight: 40,
-            headerHeight: 32,
-            indentSize: 20,
-            expandIconSize: 14,
-            considerPadding: false,
-            showYoYGrowth: true, // Enable YoY Growth column
-            showThreeYearAvg: true, // Enable 3-Year Average column
-            showTwoYearCAGR: true, // Enable 2-Year CAGR column
-            showFiveYearCAGR: true, // Enable 5-Year CAGR column
-            showStandardDeviation: true, // Enable Standard Deviation column
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12.0),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              width: 0.5,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: FinancialExpandableTable(
+              columns: columns,
+              data: transformedData,
+              showNameColumn: false, // Don't show separate name column since we have metric column
+              rowHeight: 40,
+              headerHeight: 32,
+              indentSize: 20,
+              expandIconSize: 14,
+              considerPadding: false,
+              showYoYGrowth: true, // Enable YoY Growth column
+              showThreeYearAvg: true, // Enable 3-Year Average column
+              showTwoYearCAGR: true, // Enable 2-Year CAGR column
+              showFiveYearCAGR: true, // Enable 5-Year CAGR column
+              showStandardDeviation: true, // Enable Standard Deviation column
+            ),
           ),
         );
       } else {
@@ -149,22 +160,33 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
         final transformedData = _transformAnnualRatiosData(annualData, annualRatiosController.years);
         final columns = _buildFinancialColumns(annualRatiosController.years);
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
-          child: FinancialExpandableTable(
-            columns: columns,
-            data: transformedData,
-            showNameColumn: false, // Don't show separate name column since we have metric column
-            rowHeight: 40,
-            headerHeight: 32,
-            indentSize: 20,
-            expandIconSize: 14,
-            considerPadding: false,
-            showYoYGrowth: true, // Enable YoY Growth column
-            showThreeYearAvg: true, // Enable 3-Year Average column
-            showTwoYearCAGR: true, // Enable 2-Year CAGR column
-            showFiveYearCAGR: true, // Enable 5-Year CAGR column
-            showStandardDeviation: true, // Enable Standard Deviation column
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12.0),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              width: 0.5,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: FinancialExpandableTable(
+              columns: columns,
+              data: transformedData,
+              showNameColumn: false, // Don't show separate name column since we have metric column
+              rowHeight: 40,
+              headerHeight: 32,
+              indentSize: 20,
+              expandIconSize: 14,
+              considerPadding: false,
+              showYoYGrowth: true, // Enable YoY Growth column
+              showThreeYearAvg: true, // Enable 3-Year Average column
+              showTwoYearCAGR: true, // Enable 2-Year CAGR column
+              showFiveYearCAGR: true, // Enable 5-Year CAGR column
+              showStandardDeviation: true, // Enable Standard Deviation column
+            ),
           ),
         );
       }

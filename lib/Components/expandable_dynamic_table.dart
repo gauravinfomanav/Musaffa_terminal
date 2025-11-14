@@ -405,7 +405,7 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     
     if (value == null) {
       return Text(
-        "--",
+        "-",
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
       );
@@ -441,7 +441,7 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     }
 
     return Text(
-      "--",
+      "-",
       style: DashboardTextStyles.dataCell,
       textAlign: column.alignment,
     );

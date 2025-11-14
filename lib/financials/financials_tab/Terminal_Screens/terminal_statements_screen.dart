@@ -246,52 +246,64 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
 
     final columns = _buildFinancialColumns(periods, 'Metric');
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
-          child: FinancialExpandableTable(
-            columns: columns,
-            data: transformedData,
-            showNameColumn: false,
-            rowHeight: 40,
-            headerHeight: 32,
-            indentSize: 20,
-            expandIconSize: 14,
-            considerPadding: false,
-            showYoYGrowth: true, // Enable YoY Growth column
-            showThreeYearAvg: true, // Enable 3-Year Average column
-            showTwoYearCAGR: true, // Enable 2-Year CAGR column
-            showFiveYearCAGR: true, // Enable 5-Year CAGR column
-            showStandardDeviation: true, // Enable Standard Deviation column
-          ),
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12.0),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 0.5,
         ),
-      ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: FinancialExpandableTable(
+          columns: columns,
+          data: transformedData,
+          showNameColumn: false,
+          rowHeight: 40,
+          headerHeight: 32,
+          indentSize: 20,
+          expandIconSize: 14,
+          considerPadding: false,
+          showYoYGrowth: true, // Enable YoY Growth column
+          showThreeYearAvg: true, // Enable 3-Year Average column
+          showTwoYearCAGR: true, // Enable 2-Year CAGR column
+          showFiveYearCAGR: true, // Enable 5-Year CAGR column
+          showStandardDeviation: true, // Enable Standard Deviation column
+        ),
+      ),
     );
   }
 
   Widget _buildStatementTable(RxList data, RxList<String> periods, String columnTitle) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     if (data.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: Text(
-                'No data available',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: Theme.of(context).brightness == Brightness.dark 
-                      ? const Color(0xFF9CA3AF) 
-                      : const Color(0xFF6B7280),
-                ),
-              ),
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12.0),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            width: 0.5,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            'No data available',
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
             ),
           ),
-        ],
+        ),
       );
     }
 
@@ -301,28 +313,34 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       periods,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
-          child: FinancialExpandableTable(
-            columns: columns,
-            data: transformedData,
-            showNameColumn: false,
-            rowHeight: 40,
-            headerHeight: 32,
-            indentSize: 20,
-            expandIconSize: 14,
-            considerPadding: false,
-            showYoYGrowth: true, // Enable YoY Growth column
-            showThreeYearAvg: true, // Enable 3-Year Average column
-            showTwoYearCAGR: true, // Enable 2-Year CAGR column
-            showFiveYearCAGR: true, // Enable 5-Year CAGR column
-            showStandardDeviation: true, // Enable Standard Deviation column
-          ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12.0),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 0.5,
         ),
-      ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: FinancialExpandableTable(
+          columns: columns,
+          data: transformedData,
+          showNameColumn: false,
+          rowHeight: 40,
+          headerHeight: 32,
+          indentSize: 20,
+          expandIconSize: 14,
+          considerPadding: false,
+          showYoYGrowth: true, // Enable YoY Growth column
+          showThreeYearAvg: true, // Enable 3-Year Average column
+          showTwoYearCAGR: true, // Enable 2-Year CAGR column
+          showFiveYearCAGR: true, // Enable 5-Year CAGR column
+          showStandardDeviation: true, // Enable Standard Deviation column
+        ),
+      ),
     );
   }
 

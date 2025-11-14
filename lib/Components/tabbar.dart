@@ -8,6 +8,7 @@ import 'package:musaffa_terminal/controllers/finhub_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
+import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
@@ -782,43 +783,11 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-        backgroundColor: const Color(0xFF81AACE),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
+    SnackBarUtils.showSuccess(context, message);
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-        backgroundColor: Colors.red.shade600,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
+    SnackBarUtils.showError(context, message);
   }
 
   Future<double?> _fetchStockPrice(String symbol) async {

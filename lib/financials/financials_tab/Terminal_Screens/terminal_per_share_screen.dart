@@ -174,18 +174,29 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       ));
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
-      child: ExpandableDynamicTable(
-        columns: columns,
-        data: tableData,
-        considerPadding: false,
-        showNameColumn: false, // Don't show separate name column since we have metric column
-        onRowSelect: (row) {
-          // Handle row selection and notify parent
-          print('Selected: ${row.name}');
-          widget.onMetricSelected?.call(row.name);
-        },
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12.0),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+          width: 0.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: ExpandableDynamicTable(
+          columns: columns,
+          data: tableData,
+          considerPadding: false,
+          showNameColumn: false, // Don't show separate name column since we have metric column
+          onRowSelect: (row) {
+            // Handle row selection and notify parent
+            print('Selected: ${row.name}');
+            widget.onMetricSelected?.call(row.name);
+          },
+        ),
       ),
     );
   }

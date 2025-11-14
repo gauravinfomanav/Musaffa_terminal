@@ -229,7 +229,7 @@ String modifyLeadingFractionDigits(
 }
 String getShortenedT(num? value) {
   if (value == null) {
-    return "--";
+    return "-";
   }
   num absValue = value.abs();
   if (absValue < 1000) {

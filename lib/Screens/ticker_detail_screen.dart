@@ -20,6 +20,7 @@ import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart
 import 'package:musaffa_terminal/services/live_price_service.dart';
 import 'package:musaffa_terminal/services/websocket_service.dart';
 import 'package:musaffa_terminal/models/live_price_model.dart';
+import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'dart:async';
 
 class TickerDetailScreen extends StatefulWidget {
@@ -181,43 +182,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-        backgroundColor: const Color(0xFF81AACE),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
+    SnackBarUtils.showSuccess(context, message);
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-        backgroundColor: Colors.red.shade600,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
-      ),
-    );
+    SnackBarUtils.showError(context, message);
   }
 
   @override
@@ -1593,29 +1562,32 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  // Secondary CTA - Cancel button (transparent with border)
                   OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      backgroundColor: Colors.transparent,
                       side: BorderSide(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(90),
                       ),
                     ),
                     child: Text(
                       'Cancel',
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton(
+                  // Primary CTA - Save button (filled blue)
+                  ElevatedButton(
                     onPressed: () async {
                       final noteText = noteController.text.trim();
                       if (noteText.isEmpty) {
@@ -1637,23 +1609,22 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                         _showErrorSnackBar(researchNotesController.errorMessage.value);
                       }
                     },
-                    style: OutlinedButton.styleFrom(
+                    style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      side: const BorderSide(
-                        color: Color(0xFF81AACE),
-                      ),
-                      backgroundColor: const Color(0xFF81AACE).withOpacity(0.1),
+                      backgroundColor: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(90),
                       ),
                     ),
                     child: Text(
                       'Save',
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: const Color(0xFF81AACE),
+                        color: Colors.white,
                       ),
                     ),
                   ),
