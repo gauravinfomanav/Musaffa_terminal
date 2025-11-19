@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/web_service.dart';
+import 'package:musaffa_terminal/models/trading_chart_ticker.dart';
+import 'dart:convert';
 import 'dart:io';
 
 class TradingViewWidget extends StatefulWidget {
@@ -12,6 +15,8 @@ class TradingViewWidget extends StatefulWidget {
   final TradingViewController controller;
   final double height;
   final bool showLoading;
+  final String? country;
+  final String? exchange;
 
   const TradingViewWidget({
     Key? key,
@@ -19,6 +24,8 @@ class TradingViewWidget extends StatefulWidget {
     required this.controller,
     this.height = 400,
     this.showLoading = true,
+    this.country,
+    this.exchange,
   }) : super(key: key);
 
   @override
@@ -31,12 +38,104 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   String _htmlContent = '';
   bool _isWebViewSupported = true;
   bool _isWebViewInitialized = false;
+  String _formattedSymbol = '';
+  bool _shouldShowChart = false;
+  Tickerformat? _tradingChartTicker;
 
   @override
   void initState() {
     super.initState();
     _checkPlatformSupport();
     _loadHtmlContent();
+    _prepareSymbol();
+  }
+
+  Future<void> _prepareSymbol() async {
+    String symbolStr = '';
+    
+    if (widget.country == 'US') {
+      // For US stocks, use symbol as-is
+      symbolStr = widget.symbol;
+      _shouldShowChart = true;
+      debugPrint('US stock - using symbol as-is: $symbolStr');
+    } else if (widget.country == 'IN') {
+      // For Indian stocks, lookup in bse_tickers collection
+      final mainTicker = widget.symbol.split('.').first;
+      debugPrint('Indian stock - main ticker: $mainTicker, exchange: ${widget.exchange}');
+      await _lookupTradingViewTicker(mainTicker);
+      
+      if ((_tradingChartTicker?.found ?? 0) >= 1) {
+        if (widget.exchange == 'BOM') {
+          // BSE: Use ticker from Typesense, replace - with _, prefix BSE:
+          String? ticker = _tradingChartTicker?.hits?.first.document?.ticker;
+          String? result = ticker?.replaceAll('-', '_');
+          symbolStr = "BSE:$result";
+          debugPrint('BSE stock - formatted symbol: $symbolStr');
+        } else if (widget.exchange == 'NSE') {
+          // NSE: Use main ticker, replace - with _, prefix BSE:
+          String? result = mainTicker.replaceAll('-', '_');
+          symbolStr = "BSE:$result";
+          debugPrint('NSE stock - formatted symbol: $symbolStr');
+        }
+        _shouldShowChart = true;
+      } else {
+        _shouldShowChart = false;
+        debugPrint('Indian stock not found in bse_tickers collection');
+      }
+    } else {
+      // For other countries, try to show chart
+      symbolStr = widget.symbol;
+      _shouldShowChart = true;
+      debugPrint('Other country - using symbol as-is: $symbolStr');
+    }
+    
+    _formattedSymbol = symbolStr;
+    debugPrint('Final formatted symbol: $_formattedSymbol, shouldShowChart: $_shouldShowChart');
+    
+    // Update chart if WebView is already initialized
+    if (_isWebViewInitialized && _webViewController != null && _shouldShowChart) {
+      widget.controller.updateSymbol(_formattedSymbol);
+    }
+  }
+
+  Future<void> _lookupTradingViewTicker(String mainTicker) async {
+    try {
+      String filterBy;
+      if (widget.exchange == 'BOM') {
+        filterBy = "code:=$mainTicker";
+      } else if (widget.exchange == 'NSE') {
+        filterBy = "ticker:=$mainTicker";
+      } else {
+        debugPrint('No filter for exchange: ${widget.exchange}');
+        return;
+      }
+
+      Map<String, dynamic> params = {
+        'q': '*',
+        'filter_by': filterBy,
+      };
+
+      debugPrint('Looking up TradingView ticker: $mainTicker with filter: $filterBy');
+
+      final response = await WebService.getTypesense(
+        ['collections', 'bse_tickers', 'documents', 'search'],
+        params,
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        debugPrint('Typesense response: found=${decoded['found']}, hits=${decoded['hits']?.length ?? 0}');
+        setState(() {
+          _tradingChartTicker = Tickerformat.fromJson(decoded);
+        });
+        debugPrint('Parsed ticker: ${_tradingChartTicker?.hits?.first.document?.ticker}');
+      } else {
+        debugPrint('Typesense lookup failed with status: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error looking up TradingView ticker: $e');
+      debugPrint('Stack trace: $stackTrace');
+    }
   }
 
   void _checkPlatformSupport() {
@@ -189,11 +288,11 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
 
   Future<void> _initializeChart() async {
     try {
-      if (_webViewController != null) {
+      if (_webViewController != null && _shouldShowChart && _formattedSymbol.isNotEmpty) {
         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         final theme = isDarkMode ? 'dark' : 'light';
         
-        debugPrint('Flutter: Calling initChart with symbol: ${widget.symbol}, theme: $theme, height: ${widget.height}px');
+        debugPrint('Flutter: Calling initChart with symbol: $_formattedSymbol, theme: $theme, height: ${widget.height}px');
         
         // First check if the function exists
         final functionExists = await _webViewController!.runJavaScriptReturningResult(
@@ -201,12 +300,14 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
         );
         debugPrint('Flutter: initChart function exists: $functionExists');
         
-        // Then call the function
+        // Then call the function with formatted symbol
         await _webViewController!.runJavaScript(
-          'initChart("${widget.symbol}", "$theme", "${widget.height}px");'
+          'initChart("$_formattedSymbol", "$theme", "${widget.height}px");'
         );
         
         debugPrint('Flutter: initChart called successfully');
+      } else if (!_shouldShowChart) {
+        debugPrint('Flutter: Chart not shown - symbol not found in bse_tickers collection');
       }
     } catch (e) {
       debugPrint('Error initializing chart: $e');
@@ -217,12 +318,19 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   void didUpdateWidget(TradingViewWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     
-    // Update chart if symbol changes, but only if WebView is ready
-    if (oldWidget.symbol != widget.symbol && _webViewController != null && !_isLoading) {
-      // Use a small delay to avoid rapid successive calls
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted && _webViewController != null) {
-          widget.controller.updateSymbol(widget.symbol);
+    // Update chart if symbol, country, or exchange changes
+    if ((oldWidget.symbol != widget.symbol || 
+         oldWidget.country != widget.country || 
+         oldWidget.exchange != widget.exchange) && 
+        _webViewController != null && !_isLoading) {
+      // Re-prepare symbol and update chart
+      _prepareSymbol().then((_) {
+        if (mounted && _webViewController != null && _shouldShowChart) {
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted && _webViewController != null) {
+              widget.controller.updateSymbol(_formattedSymbol);
+            }
+          });
         }
       });
     }
@@ -248,13 +356,33 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
         borderRadius: BorderRadius.circular(4),
         child: Stack(
           children: [
-            // WebView with overscan to clip gaps
-            if (_isWebViewSupported && _webViewController != null)
+            // WebView with overscan to clip gaps - only show if chart should be displayed
+            if (_isWebViewSupported && _webViewController != null && _shouldShowChart)
               Transform.scale(
                 scale: 1.02,
                 child: WebViewWidget(
                   controller: _webViewController!,
                   gestureRecognizers: _createGestureRecognizers(),
+                ),
+              ),
+            
+            // Show message if chart shouldn't be displayed (e.g., Indian stock not found in lookup)
+            if (!_shouldShowChart && widget.country == 'IN')
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Chart not available for this symbol',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                        fontSize: 14,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             

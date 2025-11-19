@@ -137,9 +137,27 @@
             
             // Extract just the ticker symbol if it contains exchange info in parentheses
             const cleanSymbol = symbol.split('(')[0].trim();
+            const upperSymbol = cleanSymbol.toUpperCase();
             
-            // For US symbols without exchange, don't add a prefix
-            // Let TradingView auto-resolve it
+            // Map common suffixes (e.g. HDFCBANK.NS) to TradingView's EXCHANGE:TICKER format
+            const suffixExchangeMap = [
+                { suffix: '.NS', exchange: 'NSE' },
+                { suffix: '.NSE', exchange: 'NSE' },
+                { suffix: '.BO', exchange: 'BSE' },
+                { suffix: '.BSE', exchange: 'BSE' }
+            ];
+            
+            for (const mapping of suffixExchangeMap) {
+                if (upperSymbol.endsWith(mapping.suffix)) {
+                    const ticker = upperSymbol.replace(mapping.suffix, '');
+                    // Try NSE:SYMBOL format first (TradingView's standard format)
+                    const formatted = `${mapping.exchange}:${ticker}`;
+                    console.log('Mapped suffix symbol to exchange format:', formatted);
+                    return formatted;
+                }
+            }
+            
+            // For US symbols (or any symbol without exchange info), let TradingView auto-resolve it
             console.log('Symbol without exchange, will auto-resolve:', cleanSymbol);
             return cleanSymbol;
         }

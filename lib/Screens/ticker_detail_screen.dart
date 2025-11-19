@@ -1184,7 +1184,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   child: TradingViewWidget(
                     symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
                     controller: tradingViewController,
-                        height: heatmapHeight,
+                    height: heatmapHeight,
+                    country: stockData.country,
+                    exchange: stockData.exchange,
                   ),
                 ),
                     const SizedBox(width: 16),
