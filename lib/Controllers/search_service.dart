@@ -18,7 +18,7 @@ class SearchService {
         "query_by_weights": "1,2",
         "prioritize_token_position": true,
         "per_page": 250,
-        "filter_by": '\$stocks_data(status:=PUBLISH&&country:=[US])',
+        "filter_by": '\$stocks_data(status:=PUBLISH&&country:=[US,IN])',
       };
 
       final etfProfileQuery = {
