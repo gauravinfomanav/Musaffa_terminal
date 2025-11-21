@@ -260,44 +260,48 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     final availableWidth =
         max(screenWidth - padding - fixedTickerWidth, 720.0);
 
-    double flexibleWidth(double fraction, double minWidth, double maxWidth) {
-      final target = availableWidth * fraction;
-      return target.clamp(minWidth, maxWidth);
+    double clampWidth(double desired, double min, double max) {
+      return desired.clamp(min, max);
     }
+
+    final titleWidth = clampWidth(availableWidth * 0.42, 280, 640);
+    final remainingWidth = availableWidth - titleWidth;
+
+    const configs = [
+      _ColumnConfig('ANALYST', 'analyst'),
+      _ColumnConfig('RESEARCH ORG', 'researchOrg'),
+      _ColumnConfig('ACTION', 'action'),
+      _ColumnConfig('CONFIDENCE', 'conviction'),
+      _ColumnConfig('TARGET', 'target', isNumeric: true),
+      _ColumnConfig('CURRENT', 'current', isNumeric: true),
+      _ColumnConfig('DATE ADDED', 'dateAdded'),
+      _ColumnConfig('SUPPORTING REPORTS', 'reports'),
+    ];
+
+    final perWidth = clampWidth(
+      remainingWidth / configs.length,
+      140,
+      260,
+    );
 
     return [
       SimpleColumn(
         label: 'ANALYST',
         fieldName: 'analyst',
-        width: flexibleWidth(0.18, 150, 260),
+        width: perWidth,
       ),
       SimpleColumn(
         label: 'TITLE',
         fieldName: 'title',
-        width: flexibleWidth(0.42, 260, 600),
+        width: titleWidth,
       ),
-      SimpleColumn(
-        label: 'RESEARCH ORG',
-        fieldName: 'researchOrg',
-        width: flexibleWidth(0.12, 140, 220),
-      ),
-      SimpleColumn(
-        label: 'ACTION',
-        fieldName: 'action',
-        width: 120,
-      ),
-      SimpleColumn(
-        label: 'CONFIDENCE',
-        fieldName: 'conviction',
-        width: flexibleWidth(0.12, 160, 240),
-      ),
-      const SimpleColumn(label: 'TARGET', fieldName: 'target', isNumeric: true, width: 110),
-      const SimpleColumn(label: 'CURRENT', fieldName: 'current', isNumeric: true, width: 110),
-      const SimpleColumn(label: 'DATE ADDED', fieldName: 'dateAdded', width: 140),
-      SimpleColumn(
-        label: 'SUPPORTING REPORTS',
-        fieldName: 'reports',
-        width: flexibleWidth(0.16, 180, 320),
+      ...configs.skip(1).map(
+        (config) => SimpleColumn(
+          label: config.label,
+          fieldName: config.fieldName,
+          width: perWidth,
+          isNumeric: config.isNumeric,
+        ),
       ),
     ];
   }
@@ -709,6 +713,14 @@ class _SecondaryPillButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ColumnConfig {
+  final String label;
+  final String fieldName;
+  final bool isNumeric;
+
+  const _ColumnConfig(this.label, this.fieldName, {this.isNumeric = false});
 }
 
 class AddTradingIdeaModal extends StatefulWidget {
