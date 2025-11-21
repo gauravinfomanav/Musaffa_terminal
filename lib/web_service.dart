@@ -102,6 +102,7 @@ class WebService {
     required List<String> path,
     Map<String, dynamic>? params,
     Map<String, dynamic>? body,
+    String? baseUrl,
   }) async {
     try {
       final headers = {
@@ -109,7 +110,7 @@ class WebService {
         HttpHeaders.acceptHeader: 'application/json',
       };
 
-      final uri = Uri.parse(_musaffaBaseUrl)
+      final uri = Uri.parse(baseUrl ?? _musaffaBaseUrl)
           .replace(pathSegments: path, queryParameters: params);
       print("url will be this: $uri");
       late http.Response response;

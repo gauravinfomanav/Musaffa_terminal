@@ -14,6 +14,7 @@ import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
+import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/web_service.dart';
@@ -119,6 +120,8 @@ class HomeTabBar extends StatelessWidget {
           const SizedBox(width: 16),
           // Stock Screener button
           _ScreenerButton(isDarkMode: isDarkMode),
+          const SizedBox(width: 8),
+          _IdeasButton(isDarkMode: isDarkMode),
           const SizedBox(width: 8),
           // Watchlist toggle button
           _WatchlistToggleButton(
@@ -659,6 +662,28 @@ class _IndexItem extends StatelessWidget {
         ),
         
       ],
+    );
+  }
+}
+
+class _IdeasButton extends StatelessWidget {
+  final bool isDarkMode;
+
+  const _IdeasButton({required this.isDarkMode});
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = isDarkMode ? const Color(0xFFFCD34D) : const Color(0xFF92400E);
+    return IconButton(
+      icon: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const TradingIdeasScreen(),
+          ),
+        );
+      },
+      tooltip: 'Ideas',
     );
   }
 }

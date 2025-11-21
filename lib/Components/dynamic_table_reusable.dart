@@ -109,6 +109,9 @@ class DynamicTable extends StatefulWidget {
     this.fixedColumnWidth,
     this.enableDragging = false,
     this.enableLivePrices = false,
+    this.zebraStripes = false,
+    this.evenRowColor,
+    this.oddRowColor,
     this.onDragStarted,
     this.onDragEnd,
   }) : super(key: key);
@@ -122,6 +125,9 @@ class DynamicTable extends StatefulWidget {
   final double? fixedColumnWidth;
   final bool enableDragging;
   final bool enableLivePrices;
+  final bool zebraStripes;
+  final Color? evenRowColor;
+  final Color? oddRowColor;
   final VoidCallback? onDragStarted;
   final VoidCallback? onDragEnd;
 
@@ -627,7 +633,8 @@ class _DynamicTableState extends State<DynamicTable> {
     // Filter rows that have at least one non-empty value
     List<SimpleRowModel> filteredRows = rowsToUse.where((row) => _hasAnyValue(row)).toList();
 
-    filteredRows.forEach((rowModel) {
+    for (int index = 0; index < filteredRows.length; index++) {
+      final rowModel = filteredRows[index];
       List<DataCell> cellArr = [];
       List<DataCell> fixedRowCellArr = [];
 
@@ -751,7 +758,10 @@ class _DynamicTableState extends State<DynamicTable> {
           ),
         );
         fixedRowCellArr.add(basicCell);
-        fixedRowLst.add(DataRow(cells: fixedRowCellArr));
+        fixedRowLst.add(DataRow(
+          color: _resolveRowColor(index),
+          cells: fixedRowCellArr,
+        ));
       }
 
       // Dynamic column cells
@@ -875,17 +885,34 @@ class _DynamicTableState extends State<DynamicTable> {
           
           cellArr.add(cell);
         });
-        dataRowLst.add(DataRow(cells: cellArr));
+        dataRowLst.add(DataRow(
+          color: _resolveRowColor(index),
+          cells: cellArr,
+        ));
       } else {
         // Add dummy row with single empty cell when no dynamic columns
-        dataRowLst.add(DataRow(cells: [DataCell(SizedBox.shrink())]));
+        dataRowLst.add(DataRow(
+          color: _resolveRowColor(index),
+          cells: [DataCell(SizedBox.shrink())],
+        ));
       }
-    });
+    }
 
     setState(() {
       dataRows = dataRowLst;
       fixedDataRows = fixedRowLst;
     });
+  }
+
+  MaterialStateProperty<Color?>? _resolveRowColor(int index) {
+    if (!widget.zebraStripes) return null;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final evenColor = widget.evenRowColor ?? Colors.transparent;
+    final oddDefault =
+        isDarkMode ? const Color(0xFF1B1F25) : const Color(0xFFF5F5F5);
+    final oddColor = widget.oddRowColor ?? oddDefault;
+    final color = index.isEven ? evenColor : oddColor;
+    return MaterialStateProperty.all(color);
   }
 
   String _formatVolume(double volume) {
