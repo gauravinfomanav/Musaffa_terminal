@@ -313,7 +313,8 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
             context,
             idea.title,
             width: widthByField['title'],
-            maxLines: 3,
+            maxLines: 2,
+            enableTooltip: true,
           ),
           'action': _buildActionWidget(
             idea.action,
@@ -416,6 +417,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     String text, {
     double? width,
     int maxLines = 2,
+    bool enableTooltip = false,
   }) {
     final display = text.isEmpty ? '--' : text.trim();
     final label = Text(
@@ -429,10 +431,29 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
       overflow: TextOverflow.ellipsis,
       softWrap: true,
     );
-    final aligned = Align(
+    Widget aligned = Align(
       alignment: Alignment.centerLeft,
       child: label,
     );
+    aligned = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: aligned,
+    );
+    if (enableTooltip && display != '--') {
+      aligned = Tooltip(
+        message: display,
+        waitDuration: const Duration(milliseconds: 300),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111827),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        textStyle: DashboardTextStyles.dataCell.copyWith(
+          color: Colors.white,
+          fontSize: 12,
+        ),
+        child: aligned,
+      );
+    }
     if (width == null) return aligned;
     return SizedBox(width: width, child: aligned);
   }
