@@ -11,17 +11,30 @@ const List<String> kTradingIdeaActions = [
   'Add',
 ];
 
+double? _parseConviction(dynamic value) {
+  if (value == null) return null;
+  if (value is num) {
+    return value.toDouble();
+  }
+  if (value is String && value.trim().isNotEmpty) {
+    return double.tryParse(value);
+  }
+  return null;
+}
+
 /// Domain model for a trading idea entry coming from the API
 class TradingIdea {
   final String id;
   final String name;
   final String title;
   final String company;
+  final String researchOrg;
   final String ticker;
   final String action;
   final num target;
   final num current;
   final List<String> supportingReports;
+  final double? conviction;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -30,11 +43,13 @@ class TradingIdea {
     required this.name,
     required this.title,
     required this.company,
+    required this.researchOrg,
     required this.ticker,
     required this.action,
     required this.target,
     required this.current,
     required this.supportingReports,
+    required this.conviction,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -45,6 +60,7 @@ class TradingIdea {
       name: json['name'] ?? '--',
       title: json['title'] ?? '--',
       company: json['company'] ?? '--',
+      researchOrg: json['r_org'] ?? '',
       ticker: json['ticker'] ?? '--',
       action: json['action'] ?? '--',
       target: json['target'] ?? 0,
@@ -54,6 +70,7 @@ class TradingIdea {
               .where((e) => e.isNotEmpty)
               .toList() ??
           const [],
+      conviction: _parseConviction(json['conviction']),
       createdAt: DateTime.tryParse(json['created_at'] ?? ''),
       updatedAt: DateTime.tryParse(json['updated_at'] ?? ''),
     );
@@ -65,11 +82,13 @@ class TradingIdea {
       'name': name,
       'title': title,
       'company': company,
+      'r_org': researchOrg,
       'ticker': ticker,
       'action': action,
       'target': target,
       'current': current,
       'supporting_reports': supportingReports,
+      'conviction': conviction,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -81,21 +100,25 @@ class CreateTradingIdeaRequest {
   final String name;
   final String title;
   final String company;
+  final String researchOrg;
   final String ticker;
   final String action;
   final num target;
   final num current;
   final List<String> supportingReports;
+  final double? conviction;
 
   CreateTradingIdeaRequest({
     required this.name,
     required this.title,
     required this.company,
+    required this.researchOrg,
     required this.ticker,
     required this.action,
     required this.target,
     required this.current,
     required this.supportingReports,
+    this.conviction,
   });
 
   Map<String, dynamic> toJson() {
@@ -103,11 +126,13 @@ class CreateTradingIdeaRequest {
       'name': name,
       'title': title,
       'company': company,
+      'r_org': researchOrg,
       'ticker': ticker,
       'action': action,
       'target': target,
       'current': current,
       'supporting_reports': supportingReports,
+      if (conviction != null) 'conviction': conviction,
     };
   }
 }
@@ -263,6 +288,7 @@ class TradingIdeasController extends GetxController {
       // Silently ignore metadata errors
     }
   }
+
 }
 
 class IdeaTickerMeta {

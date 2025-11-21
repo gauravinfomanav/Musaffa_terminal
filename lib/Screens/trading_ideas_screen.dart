@@ -255,8 +255,10 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
 
   List<SimpleColumn> _buildIdeaColumns(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final padding = LayoutConstants.screenPadding.horizontal + 64;
-    final availableWidth = max(screenWidth - padding - 320, 600.0);
+    const fixedTickerWidth = 320.0;
+    final padding = LayoutConstants.screenPadding.horizontal + 48;
+    final availableWidth =
+        max(screenWidth - padding - fixedTickerWidth, 720.0);
 
     double flexibleWidth(double fraction, double minWidth, double maxWidth) {
       final target = availableWidth * fraction;
@@ -267,21 +269,35 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
       SimpleColumn(
         label: 'ANALYST',
         fieldName: 'analyst',
-        width: flexibleWidth(0.15, 140, 220),
+        width: flexibleWidth(0.18, 150, 260),
       ),
       SimpleColumn(
         label: 'TITLE',
         fieldName: 'title',
-        width: flexibleWidth(0.35, 240, 520),
+        width: flexibleWidth(0.42, 260, 600),
       ),
-      const SimpleColumn(label: 'ACTION', fieldName: 'action'),
-      const SimpleColumn(label: 'TARGET', fieldName: 'target', isNumeric: true),
-      const SimpleColumn(label: 'CURRENT', fieldName: 'current', isNumeric: true),
-      const SimpleColumn(label: 'DATE ADDED', fieldName: 'dateAdded'),
+      SimpleColumn(
+        label: 'RESEARCH ORG',
+        fieldName: 'researchOrg',
+        width: flexibleWidth(0.12, 140, 220),
+      ),
+      SimpleColumn(
+        label: 'ACTION',
+        fieldName: 'action',
+        width: 120,
+      ),
+      SimpleColumn(
+        label: 'CONFIDENCE',
+        fieldName: 'conviction',
+        width: flexibleWidth(0.12, 160, 240),
+      ),
+      const SimpleColumn(label: 'TARGET', fieldName: 'target', isNumeric: true, width: 110),
+      const SimpleColumn(label: 'CURRENT', fieldName: 'current', isNumeric: true, width: 110),
+      const SimpleColumn(label: 'DATE ADDED', fieldName: 'dateAdded', width: 140),
       SimpleColumn(
         label: 'SUPPORTING REPORTS',
         fieldName: 'reports',
-        width: flexibleWidth(0.2, 200, 360),
+        width: flexibleWidth(0.16, 180, 320),
       ),
     ];
   }
@@ -316,9 +332,20 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
             maxLines: 2,
             enableTooltip: true,
           ),
+          'researchOrg': _wrappedTextCell(
+            context,
+            idea.researchOrg.isEmpty ? '--' : idea.researchOrg,
+            width: widthByField['researchOrg'],
+            maxLines: 2,
+          ),
           'action': _buildActionWidget(
             idea.action,
             width: widthByField['action'],
+          ),
+          'conviction': _buildConvictionCell(
+            context,
+            idea.conviction,
+            widthByField['conviction'],
           ),
           'target': _formatNumber(idea.target),
           'current': _formatNumber(idea.current),
@@ -341,6 +368,111 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
   String _formatNumber(num value) =>
       value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
 
+  Widget _buildConvictionCell(
+    BuildContext context,
+    double? conviction,
+    double? width,
+  ) {
+    if (conviction == null) {
+      return _wrappedTextCell(
+        context,
+        '--',
+        width: width,
+        maxLines: 1,
+      );
+    }
+
+    final double clamped = conviction.clamp(0, 5).toDouble();
+    final double normalized = clamped / 5;
+    final color = _convictionColor(clamped);
+    final label = _convictionLabel(clamped);
+
+    final content = Padding(
+      padding: const EdgeInsets.only(top:5.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        
+        children: [
+          Row(
+            children: [
+              Text(
+                '${clamped.toStringAsFixed(1)} / 5',
+                style: DashboardTextStyles.dataCell.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 8),
+            Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(99),
+                  color: color.withOpacity(0.12),
+                  border: Border.all(color: color.withOpacity(0.4)),
+                ),
+                child: Text(
+                  label.toUpperCase(),
+                  style: DashboardTextStyles.tickerSymbol.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: Stack(
+              children: [
+                Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF272B30)
+                        : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                FractionallySizedBox(
+                  widthFactor: normalized,
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          color.withOpacity(0.8),
+                          color,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (width != null) {
+      return SizedBox(width: width, child: content);
+    }
+    return content;
+  }
+
+  Color _convictionColor(double score) {
+    if (score >= 4) return const Color(0xFF10B981); // green
+    if (score >= 3) return const Color(0xFFFBBF24); // amber
+    return const Color(0xFFEF4444); // red
+  }
+
+  String _convictionLabel(double score) {
+    if (score >= 4.25) return 'High';
+    if (score >= 3) return 'Medium';
+    return 'Low';
+  }
+
   String _formatDate(DateTime? date) {
     if (date == null) return '--';
     return DateFormat('MMM dd, yyyy').format(date);
@@ -353,7 +485,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(99),
           border: Border.all(color: color.withOpacity(0.6), width: 0.8),
           color: color.withOpacity(0.12),
         ),
@@ -593,6 +725,7 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
   final _nameController = TextEditingController();
   final _titleController = TextEditingController();
   final _companyController = TextEditingController();
+  final _orgController = TextEditingController();
   final _tickerController = TextEditingController();
   final _targetController = TextEditingController();
   final _currentController = TextEditingController();
@@ -600,12 +733,15 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
 
   String _selectedAction = kTradingIdeaActions.first;
   bool _submitting = false;
+  bool _includeConviction = false;
+  double _convictionValue = 3.0;
 
   @override
   void dispose() {
     _nameController.dispose();
     _titleController.dispose();
     _companyController.dispose();
+    _orgController.dispose();
     _tickerController.dispose();
     _targetController.dispose();
     _currentController.dispose();
@@ -633,6 +769,9 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
         .map((e) => e.trim())
         .where((element) => element.isNotEmpty)
         .toList();
+    final conviction = _includeConviction
+        ? double.parse(_convictionValue.clamp(0, 5).toStringAsFixed(1))
+        : null;
 
     setState(() => _submitting = true);
     final success = await widget.controller.createTradingIdea(
@@ -640,11 +779,13 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
         name: _nameController.text.trim(),
         title: _titleController.text.trim(),
         company: _companyController.text.trim(),
+        researchOrg: _orgController.text.trim(),
         ticker: _tickerController.text.trim(),
         action: _selectedAction,
         target: target,
         current: current,
         supportingReports: reports,
+        conviction: conviction,
       ),
     );
     setState(() => _submitting = false);
@@ -744,6 +885,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
             Expanded(child: _buildTextField(_nameController, 'Analyst Name')),
             const SizedBox(width: 12),
             Expanded(child: _buildTextField(_titleController, 'Idea Title')),
+            const SizedBox(width: 12),
+            Expanded(child: _buildTextField(_orgController, 'Research Org / Desk')),
           ],
         ),
         const SizedBox(height: 12),
@@ -778,6 +921,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        _buildConvictionField(isDark),
         const SizedBox(height: 12),
         _buildReportsField(),
       ],
@@ -840,6 +985,87 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
         fontFamily: 'RobotoMono',
         fontFamilyFallback: ['SFMono-Regular', 'Menlo', 'monospace'],
         fontSize: 12,
+      ),
+    );
+  }
+
+  Widget _buildConvictionField(bool isDark) {
+    final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF1F2937);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF121417) : const Color(0xFFF4F5F7),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2F3338) : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Confidence Score (0 – 5)',
+                      style: TextStyle(
+                        fontFamily: 'RobotoMono',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _includeConviction
+                          ? 'Current confidence: ${_convictionValue.toStringAsFixed(1)}'
+                          : 'Optional – enable to share confidence level',
+                      style: TextStyle(
+                        fontFamily: 'RobotoMono',
+                        fontSize: 11,
+                        color: textColor.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _includeConviction,
+                onChanged: (value) {
+                  setState(() {
+                    _includeConviction = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          if (_includeConviction) ...[
+            const SizedBox(height: 8),
+            Slider(
+              value: _convictionValue,
+              onChanged: (value) {
+                setState(() => _convictionValue = value);
+              },
+              min: 0,
+              max: 5,
+              divisions: 10,
+              label: _convictionValue.toStringAsFixed(1),
+              activeColor: const Color(0xFF81AACE),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('0', style: TextStyle(fontSize: 11, color: textColor)),
+                Text('2.5', style: TextStyle(fontSize: 11, color: textColor)),
+                Text('5', style: TextStyle(fontSize: 11, color: textColor)),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
