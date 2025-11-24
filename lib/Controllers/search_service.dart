@@ -14,7 +14,7 @@ class SearchService {
         "q": query,
         "query_by": "name,ticker",
         "sort_by": "_text_match:desc,\$stocks_data(isMainTicker:desc,usdMarketCap:desc)",
-        "include_fields": "*,\$stocks_data(id,sharia_compliance,ranking,ranking_v2)",
+        "include_fields": "*,\$stocks_data(id,sharia_compliance,ranking,ranking_v2,currentPrice,current_price,previousClose,previous_close)",
         "query_by_weights": "1,2",
         "prioritize_token_position": true,
         "per_page": 250,
@@ -53,6 +53,35 @@ class SearchService {
           for (final hit in companyHits) {
             final document = hit['document'] as Map<String, dynamic>?;
             if (document != null) {
+              // Note: In response, it's 'stocks_data' (without $), $ is only for query syntax
+              final rawStocksData1 = document['stocks_data'];
+              final rawStocksData2 = document['\$stocks_data'];
+              final rawStocksData3 = document['stocksData'];
+              
+              final rawStocksData = rawStocksData1 ?? rawStocksData2 ?? rawStocksData3;
+              
+              final stocksData = rawStocksData is List && rawStocksData.isNotEmpty
+                  ? rawStocksData.first
+                  : rawStocksData;
+              
+              // Try multiple field name variations for current price (camelCase and snake_case)
+              num? price;
+              if (stocksData is Map<String, dynamic>) {
+                final currentPriceValue = stocksData['currentPrice'] ?? stocksData['current_price'];
+                final previousCloseValue = stocksData['previousClose'] ?? stocksData['previous_close'];
+                
+                final rawPrice = currentPriceValue ?? previousCloseValue;
+                
+                // Convert to num - handle int, double, or string
+                if (rawPrice != null) {
+                  if (rawPrice is num) {
+                    price = rawPrice;
+                  } else {
+                    price = double.tryParse(rawPrice.toString());
+                  }
+                }
+              }
+              
               allResults.add(TickerModel(
                 symbol: document['ticker']?.toString(),
                 companyName: document['name']?.toString(),
@@ -60,7 +89,7 @@ class SearchService {
                 countryName: document['country']?.toString(),
                 logo: document['logo']?.toString(),
                 isStock: true,
-                currentPrice: null,
+                currentPrice: price,
                 currency: document['currency']?.toString(),
               ));
             }

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
@@ -13,6 +15,7 @@ import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 
 class TradingIdeasScreen extends StatefulWidget {
   const TradingIdeasScreen({super.key});
@@ -524,7 +527,6 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
       spacing: 8,
       runSpacing: 6,
       children: List.generate(reports.length, (index) {
-        final label = 'Report ${index + 1}';
         return GestureDetector(
           onTap: () => launchUrlString(
             reports[index],
@@ -532,13 +534,10 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
           ),
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
-            child: Text(
-              label,
-              style: DashboardTextStyles.tickerSymbol.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF81AACE),
-              ),
+            child: Icon(
+              Icons.picture_as_pdf,
+              size: 20,
+              color: const Color(0xFFDC2626),
             ),
           ),
         );
@@ -723,6 +722,35 @@ class _ColumnConfig {
   const _ColumnConfig(this.label, this.fieldName, {this.isNumeric = false});
 }
 
+class _NumericInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    
+    // Allow empty string
+    if (text.isEmpty) {
+      return newValue;
+    }
+    
+    // Only allow digits and one decimal point
+    final regex = RegExp(r'^\d*\.?\d*$');
+    if (!regex.hasMatch(text)) {
+      return oldValue;
+    }
+    
+    // Count decimal points - only allow one
+    final dotCount = '.'.allMatches(text).length;
+    if (dotCount > 1) {
+      return oldValue;
+    }
+    
+    return newValue;
+  }
+}
+
 class AddTradingIdeaModal extends StatefulWidget {
   final TradingIdeasController controller;
 
@@ -745,8 +773,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
 
   String _selectedAction = kTradingIdeaActions.first;
   bool _submitting = false;
-  bool _includeConviction = false;
   double _convictionValue = 3.0;
+  String? _reportsError;
 
   @override
   void dispose() {
@@ -776,14 +804,17 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
       return;
     }
 
-    final reports = _reportsController.text
-        .split(RegExp(r'[\n,]'))
-        .map((e) => e.trim())
-        .where((element) => element.isNotEmpty)
-        .toList();
-    final conviction = _includeConviction
-        ? double.parse(_convictionValue.clamp(0, 5).toStringAsFixed(1))
-        : null;
+    final reports = _normalizeReports(_reportsController.text);
+    if (reports == null) {
+      setState(() {
+        _reportsError = 'Provide valid http/https links separated by comma or newline.';
+      });
+      return;
+    } else {
+      setState(() => _reportsError = null);
+    }
+    final conviction =
+        double.parse(_convictionValue.clamp(0, 5).toStringAsFixed(1));
 
     setState(() => _submitting = true);
     final success = await widget.controller.createTradingIdea(
@@ -812,9 +843,31 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     }
   }
 
+  List<String>? _normalizeReports(String input) {
+    if (input.trim().isEmpty) return [];
+    final entries = input
+        .split(RegExp(r'[\n,]'))
+        .map((e) => e.trim())
+        .where((element) => element.isNotEmpty)
+        .toList();
+    final invalid = entries.any((link) {
+      final uri = Uri.tryParse(link);
+      return uri == null ||
+          !uri.hasScheme ||
+          !(uri.isScheme('http') || uri.isScheme('https'));
+    });
+    if (invalid) return null;
+    return entries;
+  }
+
   void _onTickerSelected(TickerModel ticker) {
     _tickerController.text = ticker.symbol ?? ticker.ticker ?? '';
     _companyController.text = ticker.companyName ?? ticker.name ?? '';
+    if (ticker.currentPrice != null) {
+      _currentController.text = ticker.currentPrice!.toStringAsFixed(2);
+    } else {
+      _currentController.text = '';
+    }
   }
 
   @override
@@ -874,9 +927,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
         Text(
           'New Trading Idea',
           style: TextStyle(
-            fontFamily: 'RobotoMono',
-            fontFamilyFallback: const ['SFMono-Regular', 'Menlo', 'monospace'],
-            fontSize: 16,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
             color: isDark ? Colors.white : const Color(0xFF111827),
           ),
@@ -894,11 +946,17 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
       children: [
         Row(
           children: [
-            Expanded(child: _buildTextField(_nameController, 'Analyst Name')),
+            Expanded(
+                child: _buildTextField(_nameController, 'Analyst Name',
+                    onlyLetters: true)),
             const SizedBox(width: 12),
-            Expanded(child: _buildTextField(_titleController, 'Idea Title')),
+            Expanded(
+                child: _buildTextField(_titleController, 'Idea Title',
+                    onlyLetters: true)),
             const SizedBox(width: 12),
-            Expanded(child: _buildTextField(_orgController, 'Research Org / Desk')),
+            Expanded(
+                child: _buildTextField(_orgController, 'Research Org / Desk',
+                    onlyLetters: true)),
           ],
         ),
         const SizedBox(height: 12),
@@ -911,7 +969,7 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
         Row(
           children: [
             Expanded(
-              child: _buildDropdownField(),
+              child: _buildDropdownField(isDark),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -920,6 +978,7 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
                 'Target Price',
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                numericOnly: true,
               ),
             ),
             const SizedBox(width: 12),
@@ -929,6 +988,7 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
                 'Current Price',
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                numericOnly: true,
               ),
             ),
           ],
@@ -941,11 +1001,12 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     );
   }
 
-  Widget _buildDropdownField() {
+  Widget _buildDropdownField(bool isDark) {
     return DropdownButtonFormField<String>(
       value: _selectedAction,
       decoration: _fieldDecoration('Action'),
       icon: const Icon(Icons.keyboard_arrow_down),
+      dropdownColor: isDark ? const Color(0xFF111315) : Colors.white,
       items: kTradingIdeaActions
           .map(
             (action) => DropdownMenuItem(
@@ -953,8 +1014,7 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
               child: Text(
                 action,
                 style: const TextStyle(
-                  fontFamily: 'RobotoMono',
-                  fontFamilyFallback: ['SFMono-Regular', 'Menlo', 'monospace'],
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
                   fontSize: 13,
                 ),
               ),
@@ -970,17 +1030,49 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
   }
 
   Widget _buildTextField(TextEditingController controller, String label,
-      {TextInputType keyboardType = TextInputType.text}) {
+      {TextInputType keyboardType = TextInputType.text,
+      bool onlyLetters = false,
+      bool numericOnly = false,
+      bool readOnly = false,
+      Widget? suffix}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      validator: (value) =>
-          value == null || value.trim().isEmpty ? 'Required field' : null,
-      decoration: _fieldDecoration(label),
+      readOnly: readOnly,
+      autovalidateMode: AutovalidateMode.disabled,
+      inputFormatters: [
+        if (onlyLetters)
+          FilteringTextInputFormatter.allow(RegExp(r"[A-Za-z\s&.,'\-]")),
+        if (numericOnly)
+          _NumericInputFormatter(),
+      ],
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Required field';
+        }
+        if (onlyLetters &&
+            !RegExp(r"^[A-Za-z\s&.,'\-]+$").hasMatch(value.trim())) {
+          return 'Only alphabetic characters are allowed';
+        }
+        if (numericOnly) {
+          final trimmed = value.trim();
+          if (trimmed.isEmpty) {
+            return 'Required field';
+          }
+          // Allow intermediate states like "5." but validate final number
+          if (trimmed != '.' && double.tryParse(trimmed) == null) {
+            return 'Enter a valid number';
+          }
+        }
+        return null;
+      },
+      decoration: suffix != null
+          ? _fieldDecoration(label).copyWith(suffixIcon: suffix)
+          : _fieldDecoration(label),
       style: const TextStyle(
-        fontFamily: 'RobotoMono',
-        fontFamilyFallback: ['SFMono-Regular', 'Menlo', 'monospace'],
+        fontFamily: Constants.FONT_DEFAULT_NEW,
         fontSize: 13,
+        height: 1.2,
       ),
     );
   }
@@ -992,11 +1084,11 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
       maxLines: 4,
       decoration: _fieldDecoration(
             'Supporting Reports (comma or newline separated links)',
-          ),
+          ).copyWith(errorText: _reportsError),
       style: const TextStyle(
-        fontFamily: 'RobotoMono',
-        fontFamilyFallback: ['SFMono-Regular', 'Menlo', 'monospace'],
-        fontSize: 12,
+        fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontSize: 13,
+        height: 1.2,
       ),
     );
   }
@@ -1025,58 +1117,48 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
                     Text(
                       'Confidence Score (0 – 5)',
                       style: TextStyle(
-                        fontFamily: 'RobotoMono',
-                        fontSize: 13,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontSize: 13,
+        height: 1.2,
                         fontWeight: FontWeight.w600,
                         color: textColor,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _includeConviction
-                          ? 'Current confidence: ${_convictionValue.toStringAsFixed(1)}'
-                          : 'Optional – enable to share confidence level',
+                      'Current: ${_convictionValue.toStringAsFixed(1)}',
                       style: TextStyle(
-                        fontFamily: 'RobotoMono',
-                        fontSize: 11,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontSize: 13,
+        height: 1.2,
                         color: textColor.withOpacity(0.7),
                       ),
                     ),
                   ],
                 ),
               ),
-              Switch(
-                value: _includeConviction,
-                onChanged: (value) {
-                  setState(() {
-                    _includeConviction = value;
-                  });
-                },
-              ),
             ],
           ),
-          if (_includeConviction) ...[
-            const SizedBox(height: 8),
-            Slider(
-              value: _convictionValue,
-              onChanged: (value) {
-                setState(() => _convictionValue = value);
-              },
-              min: 0,
-              max: 5,
-              divisions: 10,
-              label: _convictionValue.toStringAsFixed(1),
-              activeColor: const Color(0xFF81AACE),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('0', style: TextStyle(fontSize: 11, color: textColor)),
-                Text('2.5', style: TextStyle(fontSize: 11, color: textColor)),
-                Text('5', style: TextStyle(fontSize: 11, color: textColor)),
-              ],
-            ),
-          ],
+          const SizedBox(height: 8),
+          Slider(
+            value: _convictionValue,
+            onChanged: (value) {
+              setState(() => _convictionValue = value);
+            },
+            min: 0,
+            max: 5,
+            divisions: 10,
+            label: _convictionValue.toStringAsFixed(1),
+            activeColor: const Color(0xFF81AACE),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('0', style: TextStyle(fontSize: 11, color: textColor)),
+              Text('2.5', style: TextStyle(fontSize: 11, color: textColor)),
+              Text('5', style: TextStyle(fontSize: 11, color: textColor)),
+            ],
+          ),
         ],
       ),
     );
@@ -1086,9 +1168,9 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(
-        fontFamily: 'RobotoMono',
-        fontFamilyFallback: ['SFMono-Regular', 'Menlo', 'monospace'],
-        fontSize: 12,
+       fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontSize: 13,
+        height: 1.2,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4),
@@ -1122,17 +1204,30 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
   final FocusNode _searchFocusNode = FocusNode();
   List<TickerModel> _results = [];
   bool _isSearching = false;
+  Timer? _debounceTimer;
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
+  void _onQueryChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      _performSearch(query);
+    });
+  }
+
   Future<void> _performSearch(String query) async {
+    if (!mounted) return;
     if (query.trim().isEmpty) {
-      setState(() => _results = []);
+      setState(() {
+        _results = [];
+        _isSearching = false;
+      });
       return;
     }
 
@@ -1140,11 +1235,13 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
 
     try {
       final matches = await SearchService.searchStocks(query.trim());
+      if (!mounted) return;
       setState(() {
         _results = matches;
         _isSearching = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _results = [];
         _isSearching = false;
@@ -1170,7 +1267,7 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
         TextField(
           controller: _searchController,
           focusNode: _searchFocusNode,
-          onChanged: _performSearch,
+          onChanged: _onQueryChanged,
           decoration: InputDecoration(
             labelText: 'Search ticker / company',
             prefixIcon: const Icon(Icons.search, size: 18),
@@ -1187,54 +1284,83 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
           ),
         ),
         const SizedBox(height: 8),
-        if (_isSearching)
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: LinearProgressIndicator(),
-          )
-        else if (_results.isNotEmpty)
-          Container(
-            constraints: const BoxConstraints(maxHeight: 180),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF111315) : Colors.white,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
-                width: 1,
-              ),
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _results.length,
-              itemBuilder: (_, index) {
-                final ticker = _results[index];
-                return ListTile(
-                  dense: true,
-                  title: Text(
-                    ticker.symbol ?? ticker.ticker ?? '',
-                    style: const TextStyle(
-                      fontFamily: 'RobotoMono',
-                      fontFamilyFallback: ['SFMono-Regular', 'Menlo', 'monospace'],
-                      fontSize: 12,
-                    ),
-                  ),
-                  subtitle: Text(
-                    ticker.companyName ?? ticker.name ?? '',
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _buildResultsPanel(isDark),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultsPanel(bool isDark) {
+    final showPanel = _isSearching || _results.isNotEmpty;
+    if (!showPanel) return const SizedBox.shrink();
+
+    return Container(
+      key: ValueKey('${_isSearching}_${_results.length}'),
+      height: 180,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111315) : Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
+      child: _isSearching
+          ? ShimmerWidgets.NewlistItem(
+              index: 0,
+              avatarSize: 40,
+              titleWidth: 120,
+              titleHeight: 16,
+              subtitleWidth: 180,
+              subtitleHeight: 14,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              baseColor: isDark ? const Color(0xFF1F2530) : Colors.grey[200],
+              highlightColor: isDark ? const Color(0xFF2A2F33) : Colors.grey[100],
+            )
+          : _results.isNotEmpty
+              ? ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: _results.length,
+                  itemBuilder: (_, index) {
+                    final ticker = _results[index];
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        ticker.symbol ?? ticker.ticker ?? '',
+                        style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        ticker.companyName ?? ticker.name ?? '',
+                        style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF9CA3AF)
+                              : const Color(0xFF6B7280),
+                        ),
+                      ),
+                      onTap: () => _handleSelection(ticker),
+                    );
+                  },
+                )
+              : Center(
+                  child: Text(
+                    'No matches found.',
                     style: TextStyle(
-                      fontFamily: 'RobotoMono',
-                      fontFamilyFallback: const ['SFMono-Regular', 'Menlo', 'monospace'],
-                      fontSize: 11,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      fontSize: 12,
                       color: isDark
                           ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF6B7280),
+                          : const Color(0xFF4B5563),
                     ),
                   ),
-                  onTap: () => _handleSelection(ticker),
-                );
-              },
-            ),
-          ),
-      ],
+                ),
     );
   }
 }
