@@ -15,6 +15,7 @@ import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
+import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/web_service.dart';
@@ -122,6 +123,8 @@ class HomeTabBar extends StatelessWidget {
           _ScreenerButton(isDarkMode: isDarkMode),
           const SizedBox(width: 8),
           _IdeasButton(isDarkMode: isDarkMode),
+          const SizedBox(width: 8),
+          _PortfolioButton(isDarkMode: isDarkMode),
           const SizedBox(width: 8),
           // Watchlist toggle button
           _WatchlistToggleButton(
@@ -684,6 +687,28 @@ class _IdeasButton extends StatelessWidget {
         );
       },
       tooltip: 'Ideas',
+    );
+  }
+}
+
+class _PortfolioButton extends StatelessWidget {
+  final bool isDarkMode;
+
+  const _PortfolioButton({required this.isDarkMode});
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF1E40AF);
+    return IconButton(
+      icon: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const PortfolioIdeaScreen(),
+          ),
+        );
+      },
+      tooltip: 'Portfolio Idea',
     );
   }
 }
