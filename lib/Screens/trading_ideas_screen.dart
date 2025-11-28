@@ -87,7 +87,8 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA),
+      backgroundColor:
+          isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA),
       body: GestureDetector(
         onTap: () {
           if (_isWatchlistOpen) {
@@ -191,7 +192,8 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
 
   Widget _buildIdeasCard(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
+    final borderColor =
+        isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
     final cardColor = isDark ? const Color(0xFF151718) : Colors.white;
 
     return Obx(() {
@@ -218,7 +220,8 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
             child: Text(
               'No trading ideas published yet.',
               style: DashboardTextStyles.noData.copyWith(
-                color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                color:
+                    isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
               ),
             ),
           ),
@@ -260,8 +263,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     const fixedTickerWidth = 320.0;
     final padding = LayoutConstants.screenPadding.horizontal + 48;
-    final availableWidth =
-        max(screenWidth - padding - fixedTickerWidth, 720.0);
+    final availableWidth = max(screenWidth - padding - fixedTickerWidth, 720.0);
 
     double clampWidth(double desired, double min, double max) {
       return desired.clamp(min, max);
@@ -299,21 +301,21 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
         width: titleWidth,
       ),
       ...configs.skip(1).map(
-        (config) => SimpleColumn(
-          label: config.label,
-          fieldName: config.fieldName,
-          width: perWidth,
-          isNumeric: config.isNumeric,
-        ),
-      ),
+            (config) => SimpleColumn(
+              label: config.label,
+              fieldName: config.fieldName,
+              width: perWidth,
+              isNumeric: config.isNumeric,
+            ),
+          ),
     ];
   }
 
   List<SimpleRowModel> _mapIdeasToRows(
-      BuildContext context,
-      List<TradingIdea> ideas,
-      List<SimpleColumn> columns,
-      ) {
+    BuildContext context,
+    List<TradingIdea> ideas,
+    List<SimpleColumn> columns,
+  ) {
     final widthByField = <String, double?>{
       for (final column in columns) column.fieldName: column.width
     };
@@ -395,10 +397,9 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     final label = _convictionLabel(clamped);
 
     final content = Padding(
-      padding: const EdgeInsets.only(top:5.0),
+      padding: const EdgeInsets.only(top: 5.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        
         children: [
           Row(
             children: [
@@ -409,10 +410,10 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-            Container(
+              Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(99),
+                  borderRadius: BorderRadius.circular(99),
                   color: color.withOpacity(0.12),
                   border: Border.all(color: color.withOpacity(0.4)),
                 ),
@@ -729,24 +730,24 @@ class _NumericInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     final text = newValue.text;
-    
+
     // Allow empty string
     if (text.isEmpty) {
       return newValue;
     }
-    
+
     // Only allow digits and one decimal point
     final regex = RegExp(r'^\d*\.?\d*$');
     if (!regex.hasMatch(text)) {
       return oldValue;
     }
-    
+
     // Count decimal points - only allow one
     final dotCount = '.'.allMatches(text).length;
     if (dotCount > 1) {
       return oldValue;
     }
-    
+
     return newValue;
   }
 }
@@ -800,14 +801,16 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     final current = num.tryParse(_currentController.text);
 
     if (target == null || current == null) {
-      SnackBarUtils.showError(context, 'Target and current prices must be numeric.');
+      SnackBarUtils.showError(
+          context, 'Target and current prices must be numeric.');
       return;
     }
 
     final reports = _normalizeReports(_reportsController.text);
     if (reports == null) {
       setState(() {
-        _reportsError = 'Provide valid http/https links separated by comma or newline.';
+        _reportsError =
+            'Provide valid http/https links separated by comma or newline.';
       });
       return;
     } else {
@@ -935,7 +938,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
         ),
         IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: Icon(Icons.close, color: isDark ? Colors.white70 : Colors.black87),
+          icon: Icon(Icons.close,
+              color: isDark ? Colors.white70 : Colors.black87),
         ),
       ],
     );
@@ -1043,8 +1047,7 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
       inputFormatters: [
         if (onlyLetters)
           FilteringTextInputFormatter.allow(RegExp(r"[A-Za-z\s&.,'\-]")),
-        if (numericOnly)
-          _NumericInputFormatter(),
+        if (numericOnly) _NumericInputFormatter(),
       ],
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -1083,8 +1086,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
       minLines: 3,
       maxLines: 4,
       decoration: _fieldDecoration(
-            'Supporting Reports (comma or newline separated links)',
-          ).copyWith(errorText: _reportsError),
+        'Supporting Reports (comma or newline separated links)',
+      ).copyWith(errorText: _reportsError),
       style: const TextStyle(
         fontFamily: Constants.FONT_DEFAULT_NEW,
         fontSize: 13,
@@ -1094,7 +1097,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
   }
 
   Widget _buildConvictionField(bool isDark) {
-    final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF1F2937);
+    final textColor =
+        isDark ? const Color(0xFFE5E7EB) : const Color(0xFF1F2937);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1118,8 +1122,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
                       'Confidence Score (0 – 5)',
                       style: TextStyle(
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
+                        fontSize: 13,
+                        height: 1.2,
                         fontWeight: FontWeight.w600,
                         color: textColor,
                       ),
@@ -1129,8 +1133,8 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
                       'Current: ${_convictionValue.toStringAsFixed(1)}',
                       style: TextStyle(
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
+                        fontSize: 13,
+                        height: 1.2,
                         color: textColor.withOpacity(0.7),
                       ),
                     ),
@@ -1168,7 +1172,7 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(
-       fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamily: Constants.FONT_DEFAULT_NEW,
         fontSize: 13,
         height: 1.2,
       ),
@@ -1274,7 +1278,8 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(4),
-              borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
+              borderSide:
+                  const BorderSide(color: Color(0xFF81AACE), width: 1.5),
             ),
           ),
           style: const TextStyle(
@@ -1317,7 +1322,8 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
               subtitleHeight: 14,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               baseColor: isDark ? const Color(0xFF1F2530) : Colors.grey[200],
-              highlightColor: isDark ? const Color(0xFF2A2F33) : Colors.grey[100],
+              highlightColor:
+                  isDark ? const Color(0xFF2A2F33) : Colors.grey[100],
             )
           : _results.isNotEmpty
               ? ListView.builder(
@@ -1364,4 +1370,3 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
     );
   }
 }
-

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
@@ -7,6 +8,9 @@ import 'package:intl/intl.dart';
 const double _kFieldGap = 16.0;
 const double _kSectionGap = 24.0;
 const double _kCompactGap = 12.0;
+const EdgeInsets _kFieldPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 14);
+const double _kMinCapital = 50000;
+const double _kMaxCapital = 2000000;
 
 /// Model for a portfolio leg (single stock in portfolio)
 class PortfolioLeg {
@@ -109,11 +113,15 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   final _initialCapitalController = TextEditingController();
   final _portfolioNameController = TextEditingController();
   final _objectiveController = TextEditingController();
+  final _rateOfReturnController = TextEditingController();
 
   String _selectedRiskProfile = 'Moderate';
   String _selectedHorizon = '5 Years';
   String _selectedStrategy = 'Growth';
   String _selectedBenchmark = 'NIFTY 50';
+  double _capitalSliderValue = 100000;
+  double _horizonSliderValue = 3;
+  double _rateOfReturnValue = 12.0; // Expected rate of return in percentage
 
   // Section B: Holdings
   final List<PortfolioLeg> _legs = [];
@@ -146,8 +154,16 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   @override
   void initState() {
     super.initState();
-    _initialCapitalController.text = '100000';
     _totalCapital = 100000.0;
+    _capitalSliderValue = _totalCapital.clamp(_kMinCapital, _kMaxCapital);
+    // Format initial capital value
+    final formatted = NumberFormat('#,##,###').format(_totalCapital.toInt());
+    _initialCapitalController.text = formatted;
+    // Set initial rate of return
+    _rateOfReturnController.text = _rateOfReturnValue.toStringAsFixed(1);
+    final horizonIndex = _horizons.indexOf(_selectedHorizon);
+    _horizonSliderValue =
+        (horizonIndex >= 0 ? horizonIndex : 0).toDouble();
     _addLeg(); 
   }
 
@@ -234,9 +250,19 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   }
 
   void _updateCapital(String value) {
-    final capital = double.tryParse(value.replaceAll(',', '')) ?? 0.0;
+    final cleanValue = value.replaceAll(',', '').trim();
+    if (cleanValue.isEmpty) {
+      setState(() {
+        _totalCapital = _kMinCapital;
+        _capitalSliderValue = _kMinCapital;
+      });
+      return;
+    }
+    final capital = double.tryParse(cleanValue) ?? 0.0;
+    final clamped = capital.clamp(_kMinCapital, _kMaxCapital);
     setState(() {
-      _totalCapital = capital;
+      _totalCapital = clamped;
+      _capitalSliderValue = clamped; // Update slider to exact position
       _recalculateAllocations();
     });
   }
@@ -244,6 +270,35 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   void _recalculateAllocations() {
     _allocatedAmount = _legs.fold(0.0, (sum, leg) => sum + leg.allocationAmount);
     setState(() {});
+  }
+
+  void _updateRateOfReturn(String value) {
+    final rate = double.tryParse(value) ?? 0.0;
+    final minRate = 8.0;
+    final maxRate = 30.0;
+    final clamped = rate.clamp(minRate, maxRate);
+    setState(() {
+      _rateOfReturnValue = clamped;
+      // Update slider position
+      if (rate != clamped) {
+        _rateOfReturnController.text = clamped.toStringAsFixed(1);
+      }
+    });
+  }
+
+  void _onCapitalSliderChanged(double value) {
+    final clamped = value.clamp(_kMinCapital, _kMaxCapital);
+    setState(() {
+      _capitalSliderValue = clamped;
+      _totalCapital = clamped;
+      // Update text field with formatted value
+      final formatted = NumberFormat('#,##,###').format(clamped.toInt());
+      _initialCapitalController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+      _recalculateAllocations();
+    });
   }
 
   String _formatCurrency(double amount) {
@@ -270,6 +325,9 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
         children: [
           // Section A: Client & Goal Context
           _buildSectionA(isDark, borderColor),
+          const SizedBox(height: 24),
+          // Sliders and Chart Container
+          _buildSlidersAndChartContainer(context, isDark, borderColor),
           const SizedBox(height: 24),
           // Allocation Progress Bar
           _buildAllocationProgressBar(isDark),
@@ -341,36 +399,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
           ],
         ),
         const SizedBox(height: _kFieldGap),
-        // Row 2: Investment Horizon, Initial Capital, Strategy
-        Row(
-          children: [
-            Expanded(
-              child: _buildDropdown(
-                'Investment Horizon',
-                _horizons,
-                _selectedHorizon,
-                (value) => setState(() => _selectedHorizon = value ?? _selectedHorizon),
-                isDark: isDark,
-              ),
-            ),
-            const SizedBox(width: _kFieldGap),
-            Expanded(
-              child: _buildCapitalInput(isDark),
-            ),
-            const SizedBox(width: _kFieldGap),
-            Expanded(
-              child: _buildDropdown(
-                'Strategy Type',
-                _strategies,
-                _selectedStrategy,
-                (value) => setState(() => _selectedStrategy = value ?? _selectedStrategy),
-                isDark: isDark,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: _kFieldGap),
-        // Row 3: Portfolio Name, Benchmark, Objective
+        // Row 2: Portfolio Name, Strategy Type, Benchmark
         Row(
           children: [
             Expanded(
@@ -384,6 +413,16 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
             const SizedBox(width: _kFieldGap),
             Expanded(
               child: _buildDropdown(
+                'Strategy Type',
+                _strategies,
+                _selectedStrategy,
+                (value) => setState(() => _selectedStrategy = value ?? _selectedStrategy),
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: _kFieldGap),
+            Expanded(
+              child: _buildDropdown(
                 'Benchmark',
                 _benchmarks,
                 _selectedBenchmark,
@@ -391,13 +430,118 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 isDark: isDark,
               ),
             ),
-            const SizedBox(width: _kFieldGap),
-            Expanded(
-              child: _buildTextField(
-                _objectiveController,
-                'Objective',
-                isDark: isDark,
-                hintText: 'Enter portfolio objective',
+          ],
+        ),
+        const SizedBox(height: _kFieldGap),
+        _buildTextField(
+          _objectiveController,
+          'Objective',
+          isDark: isDark,
+          hintText: 'Enter portfolio objective',
+        ),
+      ],
+    );
+  }
+
+  // Calculate estimated returns using compound interest
+  double _calculateEstimatedReturns() {
+    final principal = _totalCapital;
+    final years = _getYearsFromHorizon(_selectedHorizon);
+    final rate = _rateOfReturnValue / 100;
+    
+    // Compound interest formula: A = P(1 + r)^t
+    final totalValue = principal * math.pow(1 + rate, years);
+    return totalValue - principal; // Returns only
+  }
+
+  double _getYearsFromHorizon(String horizon) {
+    if (horizon.contains('6 Months')) return 0.5;
+    if (horizon.contains('1 Year')) return 1.0;
+    if (horizon.contains('3 Years')) return 3.0;
+    if (horizon.contains('5 Years')) return 5.0;
+    if (horizon.contains('7 Years')) return 7.0;
+    if (horizon.contains('10 Years')) return 10.0;
+    return 5.0; // Default
+  }
+
+
+  Widget _buildSliderItem({
+    required BuildContext context,
+    required bool isDark,
+    required String label,
+    required String value,
+    required String minLabel,
+    required String maxLabel,
+    required double sliderValue,
+    required double min,
+    required double max,
+    required int divisions,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF111827),
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF81AACE),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: const Color(0xFF81AACE),
+            inactiveTrackColor:
+                isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
+            thumbColor: Colors.white,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            overlayColor: const Color(0xFF81AACE).withOpacity(0.15),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            trackHeight: 4,
+          ),
+          child: Slider(
+            value: sliderValue,
+            min: min,
+            max: max,
+            divisions: divisions,
+            label: value,
+            onChanged: onChanged,
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              minLabel,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 11,
+                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+              ),
+            ),
+            Text(
+              maxLabel,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 11,
+                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
               ),
             ),
           ],
@@ -406,32 +550,304 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     );
   }
 
-  Widget _buildCapitalInput(bool isDark) {
-    return TextField(
-      controller: _initialCapitalController,
-      keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[\d,]')),
-        _CurrencyInputFormatter(),
-      ],
-      onChanged: (value) => _updateCapital(value),
-      decoration: _fieldDecoration(
-        'Initial Capital',
-        hintText: 'Enter amount',
-        isDark: isDark,
-      ).copyWith(
-        prefixText: '₹ ',
-        prefixStyle: TextStyle(
-          color: isDark ? Colors.white : const Color(0xFF111827),
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: 13,
+  Widget _buildCapitalSliderItem(BuildContext context, bool isDark) {
+    final valueLabel = _formatCurrency(_capitalSliderValue);
+    final minLabel = _formatCurrency(_kMinCapital);
+    final maxLabel = _formatCurrency(_kMaxCapital);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Initial Capital',
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF111827),
+              ),
+            ),
+            Text(
+              valueLabel,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF81AACE),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 12),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: const Color(0xFF81AACE),
+            inactiveTrackColor:
+                isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
+            thumbColor: Colors.white,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            overlayColor: const Color(0xFF81AACE).withOpacity(0.15),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            trackHeight: 4,
+          ),
+          child: Slider(
+            value: _capitalSliderValue,
+            min: _kMinCapital,
+            max: _kMaxCapital,
+            label: valueLabel,
+            onChanged: _onCapitalSliderChanged,
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              minLabel,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 11,
+                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+              ),
+            ),
+            Text(
+              maxLabel,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 11,
+                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              flex: 1,
+              child: TextField(
+                controller: _initialCapitalController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d,]')),
+                  _CurrencyInputFormatter(),
+                ],
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : const Color(0xFF111827),
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Enter Amount',
+                  labelStyle: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                  ),
+                  prefixText: '₹ ',
+                  prefixStyle: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF111827),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  hintText: 'Enter amount',
+                  hintStyle: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(
+                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(
+                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
+                  ),
+                ),
+                onChanged: _updateCapital,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 1,
+              child: TextField(
+                controller: _rateOfReturnController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
+                ],
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : const Color(0xFF111827),
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Expected Rate of Return',
+                  labelStyle: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                  ),
+                  suffixText: '%',
+                  suffixStyle: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  hintText: 'e.g., 8.5',
+                  hintStyle: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(
+                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(
+                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
+                  ),
+                ),
+                onChanged: _updateRateOfReturn,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRateOfReturnSliderItem(BuildContext context, bool isDark) {
+    final minRate = 8.0;
+    final maxRate = 30.0;
+    final currentRate = _rateOfReturnValue.toStringAsFixed(1);
+
+    return _buildSliderItem(
+      context: context,
+      isDark: isDark,
+      label: 'Expected Rate of Return',
+      value: '$currentRate %',
+      minLabel: '${minRate.toStringAsFixed(0)}%',
+      maxLabel: '${maxRate.toStringAsFixed(0)}%',
+      sliderValue: _rateOfReturnValue,
+      min: minRate,
+      max: maxRate,
+      divisions: ((maxRate - minRate) * 2).round(),
+      onChanged: (value) {
+        setState(() {
+          _rateOfReturnValue = value;
+          // Update text field
+          _rateOfReturnController.text = value.toStringAsFixed(1);
+        });
+      },
+    );
+  }
+
+  Widget _buildSlidersAndChartContainer(BuildContext context, bool isDark, Color borderColor) {
+    final estimatedReturns = _calculateEstimatedReturns();
+    final investedAmount = _totalCapital;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF121417) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1),
       ),
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        color: isDark ? Colors.white : const Color(0xFF111827),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left side: Sliders
+          Expanded(
+            flex: 1,
+            child: _buildCombinedSlidersContent(context, isDark),
+          ),
+          const SizedBox(width: 32),
+          // Right side: Chart and Legend
+          Expanded(
+            flex: 1,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Use container width for better responsiveness
+                final availableWidth = constraints.maxWidth;
+                final chartDimension = (availableWidth * 0.75).clamp(250.0, 380.0);
+                
+                return Center(
+                  child: SizedBox(
+                    width: chartDimension,
+                    height: chartDimension,
+                    child: _AnimatedDonutChart(
+                      investedAmount: investedAmount,
+                      estimatedReturns: estimatedReturns,
+                      isDark: isDark,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildCombinedSlidersContent(BuildContext context, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Investment Horizon
+        _buildSliderItem(
+          context: context,
+          isDark: isDark,
+          label: 'Investment Horizon',
+          value: _horizons[_horizonSliderValue.round().clamp(0, _horizons.length - 1)],
+          minLabel: _horizons.first,
+          maxLabel: _horizons.last,
+          sliderValue: _horizonSliderValue,
+          min: 0,
+          max: (_horizons.length - 1).toDouble(),
+          divisions: _horizons.length - 1,
+          onChanged: (value) {
+            final index = value.round().clamp(0, _horizons.length - 1);
+            setState(() {
+              _horizonSliderValue = index.toDouble();
+              _selectedHorizon = _horizons[index];
+            });
+          },
+        ),
+        const SizedBox(height: 24),
+        // Initial Capital
+        _buildCapitalSliderItem(context, isDark),
+        const SizedBox(height: 24),
+        // Expected Rate of Return
+        _buildRateOfReturnSliderItem(context, isDark),
+      ],
     );
   }
 
@@ -641,8 +1057,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
               decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: _kFieldPadding,
                 hintText: '--',
                 hintStyle: TextStyle(
                   fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -737,8 +1152,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
               decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: _kFieldPadding,
                 hintText: '--',
                 hintStyle: TextStyle(
                   fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -797,8 +1211,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
               decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: _kFieldPadding,
                 hintText: '--',
                 hintStyle: TextStyle(
                   fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -845,8 +1258,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
               decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: _kFieldPadding,
                 hintText: '--',
                 hintStyle: TextStyle(
                   fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -938,8 +1350,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
               decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: _kFieldPadding,
                 hintText: '--',
                 hintStyle: TextStyle(
                   fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -987,8 +1398,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
         color: isDark ? Colors.white : const Color(0xFF111827),
       ),
       decoration: InputDecoration(
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        contentPadding: _kFieldPadding,
         hintText: '--',
         hintStyle: TextStyle(
           fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -1159,20 +1569,32 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   }
 
   InputDecoration _fieldDecoration(String label, {String? hintText, bool isDark = false}) {
+    final labelColor = isDark ? Colors.white : const Color(0xFF111827);
+    final baseLabelStyle = TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontSize: 13,
+      height: 1.2,
+      color: labelColor,
+    );
+
     return InputDecoration(
       labelText: label,
       hintText: hintText,
-      labelStyle: const TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
-      ),
+      labelStyle: baseLabelStyle,
+      floatingLabelStyle: baseLabelStyle,
       hintStyle: TextStyle(
         fontFamily: Constants.FONT_DEFAULT_NEW,
         fontSize: 13,
-        color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+        color: isDark ? const Color(0xFF8F9BB3) : const Color(0xFF6B7280),
       ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: BorderSide(
+          color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
+        ),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4),
         borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
@@ -1187,11 +1609,13 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
     String? hintText,
+    ValueChanged<String>? onChanged,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      onChanged: onChanged,
       decoration: _fieldDecoration(label, hintText: hintText, isDark: isDark),
       style: TextStyle(
         fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -1374,6 +1798,413 @@ class _PrimaryPillButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// Animated Donut Chart Widget
+class _AnimatedDonutChart extends StatefulWidget {
+  final double investedAmount;
+  final double estimatedReturns;
+  final bool isDark;
+
+  const _AnimatedDonutChart({
+    required this.investedAmount,
+    required this.estimatedReturns,
+    required this.isDark,
+  });
+
+  @override
+  State<_AnimatedDonutChart> createState() => _AnimatedDonutChartState();
+}
+
+class _AnimatedDonutChartState extends State<_AnimatedDonutChart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  late Tween<double> _investedAmountTween;
+  late Tween<double> _estimatedReturnsTween;
+  double _previousInvestedAmount = 0;
+  double _previousEstimatedReturns = 0;
+  Offset? _mousePosition;
+  String? _hoveredSegment;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousInvestedAmount = widget.investedAmount;
+    _previousEstimatedReturns = widget.estimatedReturns;
+    
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _investedAmountTween = Tween<double>(
+      begin: _previousInvestedAmount,
+      end: widget.investedAmount,
+    );
+    
+    _estimatedReturnsTween = Tween<double>(
+      begin: _previousEstimatedReturns,
+      end: widget.estimatedReturns,
+    );
+    
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    );
+    
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedDonutChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.investedAmount != widget.investedAmount ||
+        oldWidget.estimatedReturns != widget.estimatedReturns) {
+      // Update previous values to current animated values
+      _previousInvestedAmount = _investedAmountTween.evaluate(_animation);
+      _previousEstimatedReturns = _estimatedReturnsTween.evaluate(_animation);
+      
+      // Create new tweens from current animated values to new target values
+      _investedAmountTween = Tween<double>(
+        begin: _previousInvestedAmount,
+        end: widget.investedAmount,
+      );
+      
+      _estimatedReturnsTween = Tween<double>(
+        begin: _previousEstimatedReturns,
+        end: widget.estimatedReturns,
+      );
+      
+      // Reset and restart animation
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _formatCurrency(double amount) {
+    final formatter = NumberFormat('#,##,###');
+    return '₹${formatter.format(amount)}';
+  }
+
+  String? _getHoveredSegment(Offset position, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 * 0.85;
+    final innerRadius = radius * 0.7;
+    
+    // Calculate distance from center
+    final dx = position.dx - center.dx;
+    final dy = position.dy - center.dy;
+    final distance = math.sqrt(dx * dx + dy * dy);
+    
+    // Check if mouse is within donut ring
+    if (distance < innerRadius || distance > radius) {
+      return null;
+    }
+    
+    // Calculate angle
+    double angle = math.atan2(dy, dx);
+    // Normalize to 0-2π range starting from top
+    angle = (angle + math.pi / 2 + 2 * math.pi) % (2 * math.pi);
+    
+    final currentInvested = _investedAmountTween.evaluate(_animation);
+    final currentReturns = _estimatedReturnsTween.evaluate(_animation);
+    final total = currentInvested + currentReturns;
+    
+    if (total == 0) return null;
+    
+    final investedAngle = (currentInvested / total) * 2 * math.pi;
+    
+    if (angle <= investedAngle) {
+      return 'invested';
+    } else {
+      return 'returns';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        final currentInvested = _investedAmountTween.evaluate(_animation);
+        final currentReturns = _estimatedReturnsTween.evaluate(_animation);
+        
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return MouseRegion(
+              onHover: (event) {
+                setState(() {
+                  _mousePosition = event.localPosition;
+                  _hoveredSegment = _getHoveredSegment(
+                    event.localPosition,
+                    Size(constraints.maxWidth, constraints.maxHeight),
+                  );
+                });
+              },
+              onExit: (event) {
+                setState(() {
+                  _mousePosition = null;
+                  _hoveredSegment = null;
+                });
+              },
+              child: Stack(
+                children: [
+                  CustomPaint(
+                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                    painter: _DonutChartPainter(
+                      investedAmount: currentInvested,
+                      estimatedReturns: currentReturns,
+                      isDark: widget.isDark,
+                    ),
+                  ),
+                  if (_hoveredSegment != null && _mousePosition != null)
+                    _buildPositionedTooltip(
+                      mousePosition: _mousePosition!,
+                      constraints: constraints,
+                      segment: _hoveredSegment!,
+                      investedAmount: currentInvested,
+                      estimatedReturns: currentReturns,
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPositionedTooltip({
+    required Offset mousePosition,
+    required BoxConstraints constraints,
+    required String segment,
+    required double investedAmount,
+    required double estimatedReturns,
+  }) {
+    final tooltipWidth = 140.0;
+    final tooltipHeight = 60.0;
+    
+    // Calculate position, keeping tooltip within bounds
+    double left = mousePosition.dx + 15;
+    double top = mousePosition.dy - tooltipHeight / 2;
+    
+    // Adjust if tooltip goes outside right edge
+    if (left + tooltipWidth > constraints.maxWidth) {
+      left = mousePosition.dx - tooltipWidth - 15;
+    }
+    
+    // Adjust if tooltip goes outside left edge
+    if (left < 0) {
+      left = 10;
+    }
+    
+    // Adjust if tooltip goes outside top edge
+    if (top < 0) {
+      top = 10;
+    }
+    
+    // Adjust if tooltip goes outside bottom edge
+    if (top + tooltipHeight > constraints.maxHeight) {
+      top = constraints.maxHeight - tooltipHeight - 10;
+    }
+    
+    return Positioned(
+      left: left,
+      top: top,
+      child: _buildTooltip(
+        segment: segment,
+        investedAmount: investedAmount,
+        estimatedReturns: estimatedReturns,
+      ),
+    );
+  }
+
+  Widget _buildTooltip({
+    required String segment,
+    required double investedAmount,
+    required double estimatedReturns,
+  }) {
+    final isDark = widget.isDark;
+    String label;
+    String value;
+    Color color;
+    
+    if (segment == 'invested') {
+      label = 'Invested Amount';
+      value = _formatCurrency(investedAmount);
+      color = const Color(0xFFFB923C);
+    } else {
+      label = 'Est. Returns';
+      value = _formatCurrency(estimatedReturns);
+      color = const Color(0xFF81AACE);
+    }
+    
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1F2530) : Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 11,
+                    color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF111827),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Donut Chart Painter
+class _DonutChartPainter extends CustomPainter {
+  final double investedAmount;
+  final double estimatedReturns;
+  final bool isDark;
+
+  _DonutChartPainter({
+    required this.investedAmount,
+    required this.estimatedReturns,
+    required this.isDark,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 * 0.85;
+    final innerRadius = radius * 0.7; // Donut hole size
+
+    final total = investedAmount + estimatedReturns;
+    if (total == 0) return;
+
+    // Colors
+    const investedColor = Color(0xFFFB923C); // Orange
+    const returnsColor = Color(0xFF81AACE); // Blue
+    final backgroundColor = isDark ? const Color(0xFF121417) : const Color(0xFFF4F5F7);
+
+    double startAngle = -math.pi / 2; // Start from top
+
+    // Draw invested amount (orange) as donut segment
+    if (investedAmount > 0) {
+      final investedSweep = (investedAmount / total) * 2 * math.pi;
+      final investedPaint = Paint()
+        ..color = investedColor
+        ..style = PaintingStyle.fill;
+
+      // Draw outer arc
+      final outerRect = Rect.fromCircle(center: center, radius: radius);
+      final innerRect = Rect.fromCircle(center: center, radius: innerRadius);
+      
+      // Create path for donut segment
+      final path = Path()
+        ..arcTo(outerRect, startAngle, investedSweep, false)
+        ..arcTo(innerRect, startAngle + investedSweep, -investedSweep, false)
+        ..close();
+
+      canvas.drawPath(path, investedPaint);
+      startAngle += investedSweep;
+    }
+
+    // Draw estimated returns (blue) as donut segment
+    if (estimatedReturns > 0) {
+      final returnsSweep = (estimatedReturns / total) * 2 * math.pi;
+      final returnsPaint = Paint()
+        ..color = returnsColor
+        ..style = PaintingStyle.fill;
+
+      // Draw outer arc
+      final outerRect = Rect.fromCircle(center: center, radius: radius);
+      final innerRect = Rect.fromCircle(center: center, radius: innerRadius);
+      
+      // Create path for donut segment
+      final path = Path()
+        ..arcTo(outerRect, startAngle, returnsSweep, false)
+        ..arcTo(innerRect, startAngle + returnsSweep, -returnsSweep, false)
+        ..close();
+
+      canvas.drawPath(path, returnsPaint);
+    }
+
+    // Draw separator line between segments
+    if (investedAmount > 0 && estimatedReturns > 0) {
+      final borderPaint = Paint()
+        ..color = backgroundColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+
+      final borderAngle = -math.pi / 2 + (investedAmount / total) * 2 * math.pi;
+      canvas.drawLine(
+        Offset(
+          center.dx + math.cos(borderAngle) * innerRadius,
+          center.dy + math.sin(borderAngle) * innerRadius,
+        ),
+        Offset(
+          center.dx + math.cos(borderAngle) * radius,
+          center.dy + math.sin(borderAngle) * radius,
+        ),
+        borderPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
+    return oldDelegate.investedAmount != investedAmount ||
+        oldDelegate.estimatedReturns != estimatedReturns ||
+        oldDelegate.isDark != isDark;
   }
 }
 
