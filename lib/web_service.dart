@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
-enum HttpMethod { GET, POST, PUT, DELETE }
+enum HttpMethod { GET, POST, PUT, DELETE, PATCH }
 
 enum ApiStatus { SUCCESS, FAIL, EXCEPTION }
 
@@ -135,6 +135,13 @@ class WebService {
           break;
         case HttpMethod.DELETE:
           response = await http.delete(uri, headers: headers);
+          break;
+        case HttpMethod.PATCH:
+          response = await http.patch(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          );
           break;
       }
 

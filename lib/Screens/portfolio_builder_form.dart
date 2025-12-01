@@ -1,14 +1,22 @@
 import 'dart:math' as math;
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
+import 'package:musaffa_terminal/models/portfolio_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:intl/intl.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Controllers/search_service.dart';
+import 'package:musaffa_terminal/Controllers/portfolio_controller.dart';
+import 'package:musaffa_terminal/web_service.dart';
 
 const double _kFieldGap = 16.0;
 const double _kSectionGap = 24.0;
 const double _kCompactGap = 12.0;
-const EdgeInsets _kFieldPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 14);
 const double _kMinCapital = 50000;
 const double _kMaxCapital = 2000000;
 
@@ -24,11 +32,13 @@ class PortfolioLeg {
   double? upsidePercent;
   double allocationPercent;
   double allocationAmount;
-  int? quantity;
+  double? quantity;
   String? researchSource;
   int confidence; // 0-5 stars
   String? notes;
   TickerModel? tickerModel;
+  double? marketCap;
+  double? peRatio;
 
   PortfolioLeg({
     this.ticker,
@@ -45,6 +55,8 @@ class PortfolioLeg {
     this.confidence = 3,
     this.notes,
     this.tickerModel,
+    this.marketCap,
+    this.peRatio,
   }) {
     _calculateDerivedFields();
   }
@@ -61,7 +73,7 @@ class PortfolioLeg {
     allocationPercent = percent;
     allocationAmount = (percent * totalCapital) / 100;
     if (currentPrice != null && currentPrice! > 0) {
-      quantity = (allocationAmount / currentPrice!).round();
+      quantity = allocationAmount / currentPrice!;
     }
     _calculateDerivedFields();
   }
@@ -70,7 +82,7 @@ class PortfolioLeg {
     allocationAmount = amount;
     allocationPercent = totalCapital > 0 ? (amount / totalCapital) * 100 : 0.0;
     if (currentPrice != null && currentPrice! > 0) {
-      quantity = (allocationAmount / currentPrice!).round();
+      quantity = allocationAmount / currentPrice!;
     }
     _calculateDerivedFields();
   }
@@ -83,9 +95,22 @@ class PortfolioLeg {
     sector = model.sectorname ?? '';
     currentPrice = model.currentPrice?.toDouble();
     _calculateDerivedFields();
-    if (allocationPercent > 0 && currentPrice != null && currentPrice! > 0) {
-      quantity = (allocationAmount / currentPrice!).round();
+    // Recalculate amount if quantity is set
+    if (quantity != null && quantity! > 0 && currentPrice != null) {
+      allocationAmount = currentPrice! * quantity!;
     }
+  }
+
+  void updateQuantity(double qty, double totalCapital) {
+    quantity = qty;
+    if (currentPrice != null && currentPrice! > 0 && qty > 0) {
+      allocationAmount = currentPrice! * qty;
+      allocationPercent = totalCapital > 0 ? (allocationAmount / totalCapital) * 100 : 0.0;
+    } else {
+      allocationAmount = 0.0;
+      allocationPercent = 0.0;
+    }
+    _calculateDerivedFields();
   }
 }
 
@@ -94,12 +119,14 @@ class PortfolioBuilderForm extends StatefulWidget {
   final VoidCallback? onCancel;
   final VoidCallback? onSaveDraft;
   final VoidCallback? onSavePortfolio;
+  final Portfolio? initialPortfolio; // For editing existing portfolio
 
   const PortfolioBuilderForm({
     super.key,
     this.onCancel,
     this.onSaveDraft,
     this.onSavePortfolio,
+    this.initialPortfolio,
   });
 
   @override
@@ -118,26 +145,27 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   String _selectedRiskProfile = 'Moderate';
   String _selectedHorizon = '5 Years';
   String _selectedStrategy = 'Growth';
-  String _selectedBenchmark = 'NIFTY 50';
+  String _selectedBenchmark = 'US 500';
   double _capitalSliderValue = 100000;
   double _horizonSliderValue = 3;
-  double _rateOfReturnValue = 12.0; // Expected rate of return in percentage
+  double _rateOfReturnValue = 12.0; // Expected rate of return in percentage (range: 1-30)
 
   // Section B: Holdings
   final List<PortfolioLeg> _legs = [];
   final Map<int, TextEditingController> _tickerControllers = {};
   final Map<int, TextEditingController> _companyControllers = {};
   final Map<int, TextEditingController> _targetPriceControllers = {};
+  final Map<int, TextEditingController> _quantityControllers = {};
   final Map<int, TextEditingController> _allocationPercentControllers = {};
   final Map<int, TextEditingController> _allocationAmountControllers = {};
   final Map<int, TextEditingController> _notesControllers = {};
 
   // Section C: Supporting Information
   final _commentaryController = TextEditingController();
-  final _referenceDocsController = TextEditingController();
 
   double _totalCapital = 0.0;
   double _allocatedAmount = 0.0;
+  String? _portfolioId; // Track portfolio ID when editing
 
   final List<String> _riskProfiles = [
     'Conservative',
@@ -149,22 +177,124 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   ];
   final List<String> _horizons = ['6 Months', '1 Year', '3 Years', '5 Years', '7 Years', '10 Years'];
   final List<String> _strategies = ['Growth', 'Value', 'Dividend', 'Thematic', 'Balanced'];
-  final List<String> _benchmarks = ['NIFTY 50', 'Bank Nifty', 'S&P 500', 'Custom'];
+  final List<String> _benchmarks = ['US 500', 'S&P 500', 'NASDAQ', 'Dow Jones', 'Bank Nifty', 'Custom'];
  
   @override
   void initState() {
     super.initState();
+    
+    // If editing, populate form with existing portfolio data
+    if (widget.initialPortfolio != null) {
+      _populateFormForEdit(widget.initialPortfolio!);
+    } else {
+      // New portfolio - set defaults
     _totalCapital = 100000.0;
     _capitalSliderValue = _totalCapital.clamp(_kMinCapital, _kMaxCapital);
-    // Format initial capital value
-    final formatted = NumberFormat('#,##,###').format(_totalCapital.toInt());
-    _initialCapitalController.text = formatted;
-    // Set initial rate of return
-    _rateOfReturnController.text = _rateOfReturnValue.toStringAsFixed(1);
+      // Format initial capital value
+      final formatted = NumberFormat('#,##,###', 'en_US').format(_totalCapital.toInt());
+      _initialCapitalController.text = formatted;
+      // Set initial rate of return
+      _rateOfReturnController.text = _rateOfReturnValue.toStringAsFixed(1);
     final horizonIndex = _horizons.indexOf(_selectedHorizon);
     _horizonSliderValue =
         (horizonIndex >= 0 ? horizonIndex : 0).toDouble();
     _addLeg(); 
+    }
+  }
+
+  void _populateFormForEdit(Portfolio portfolio) {
+    _portfolioId = portfolio.id;
+    
+    // Populate text fields
+    _portfolioNameController.text = portfolio.portfolioName;
+    _clientNameController.text = portfolio.clientName;
+    if (portfolio.clientAge != null) {
+      _ageController.text = portfolio.clientAge.toString();
+    }
+    if (portfolio.objective != null) {
+      _objectiveController.text = portfolio.objective!;
+    }
+    if (portfolio.commentary != null) {
+      _commentaryController.text = portfolio.commentary!;
+    }
+    
+    // Populate dropdowns
+    if (portfolio.riskProfile != null && _riskProfiles.contains(portfolio.riskProfile)) {
+      _selectedRiskProfile = portfolio.riskProfile!;
+    }
+    if (portfolio.strategyType != null && _strategies.contains(portfolio.strategyType)) {
+      _selectedStrategy = portfolio.strategyType!;
+    }
+    if (portfolio.benchmark != null && _benchmarks.contains(portfolio.benchmark)) {
+      _selectedBenchmark = portfolio.benchmark!;
+    }
+    if (portfolio.investmentHorizon != null && _horizons.contains(portfolio.investmentHorizon)) {
+      _selectedHorizon = portfolio.investmentHorizon!;
+      final horizonIndex = _horizons.indexOf(_selectedHorizon);
+      _horizonSliderValue = (horizonIndex >= 0 ? horizonIndex : 0).toDouble();
+    }
+    
+    // Populate capital and rate of return
+    _totalCapital = portfolio.initialCapital;
+    _capitalSliderValue = _totalCapital.clamp(_kMinCapital, _kMaxCapital);
+    final formatted = NumberFormat('#,##,###', 'en_US').format(_totalCapital.toInt());
+    _initialCapitalController.text = formatted;
+    
+    if (portfolio.expectedRateOfReturn != null) {
+      _rateOfReturnValue = portfolio.expectedRateOfReturn!;
+      _rateOfReturnController.text = _rateOfReturnValue.toStringAsFixed(1);
+    }
+    
+    // Populate holdings
+    _legs.clear();
+    for (var controller in _tickerControllers.values) controller.dispose();
+    for (var controller in _companyControllers.values) controller.dispose();
+    for (var controller in _targetPriceControllers.values) controller.dispose();
+    for (var controller in _quantityControllers.values) controller.dispose();
+    for (var controller in _allocationPercentControllers.values) controller.dispose();
+    for (var controller in _allocationAmountControllers.values) controller.dispose();
+    for (var controller in _notesControllers.values) controller.dispose();
+    _tickerControllers.clear();
+    _companyControllers.clear();
+    _targetPriceControllers.clear();
+    _quantityControllers.clear();
+    _allocationPercentControllers.clear();
+    _allocationAmountControllers.clear();
+    _notesControllers.clear();
+    
+    for (int i = 0; i < portfolio.holdings.length; i++) {
+      final holding = portfolio.holdings[i];
+      final leg = PortfolioLeg(
+        ticker: holding.ticker,
+        company: holding.company,
+        exchange: holding.exchange,
+        sector: holding.sector,
+        currentPrice: holding.currentPrice,
+        targetPrice: holding.targetPrice,
+        quantity: holding.quantity.toDouble(),
+        allocationPercent: holding.allocationPercent,
+        allocationAmount: holding.allocationAmount,
+        marketCap: holding.marketCap,
+        peRatio: holding.peRatio,
+        notes: holding.notes,
+      );
+      _legs.add(leg);
+      
+      _tickerControllers[i] = TextEditingController(text: holding.ticker);
+      _companyControllers[i] = TextEditingController(text: holding.company ?? '');
+      _targetPriceControllers[i] = TextEditingController(text: holding.targetPrice.toStringAsFixed(2));
+      _quantityControllers[i] = TextEditingController(text: holding.quantity.toStringAsFixed(2));
+      _allocationPercentControllers[i] = TextEditingController(text: holding.allocationPercent.toStringAsFixed(2));
+      _allocationAmountControllers[i] = TextEditingController(text: holding.allocationAmount.toStringAsFixed(2));
+      _notesControllers[i] = TextEditingController(text: holding.notes ?? '');
+    }
+    
+    // If no holdings, add one empty leg
+    if (_legs.isEmpty) {
+      _addLeg();
+    }
+    
+    _recalculateAllocations();
   }
 
   @override
@@ -175,10 +305,10 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     _portfolioNameController.dispose();
     _objectiveController.dispose();
     _commentaryController.dispose();
-    _referenceDocsController.dispose();
     for (var controller in _tickerControllers.values) controller.dispose();
     for (var controller in _companyControllers.values) controller.dispose();
     for (var controller in _targetPriceControllers.values) controller.dispose();
+    for (var controller in _quantityControllers.values) controller.dispose();
     for (var controller in _allocationPercentControllers.values) controller.dispose();
     for (var controller in _allocationAmountControllers.values) controller.dispose();
     for (var controller in _notesControllers.values) controller.dispose();
@@ -192,6 +322,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
       _tickerControllers[index] = TextEditingController();
       _companyControllers[index] = TextEditingController();
       _targetPriceControllers[index] = TextEditingController();
+      _quantityControllers[index] = TextEditingController();
       _allocationPercentControllers[index] = TextEditingController();
       _allocationAmountControllers[index] = TextEditingController();
       _notesControllers[index] = TextEditingController();
@@ -205,22 +336,27 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
       _tickerControllers.remove(index);
       _companyControllers.remove(index);
       _targetPriceControllers.remove(index);
+      _quantityControllers.remove(index);
       _allocationPercentControllers.remove(index);
       _allocationAmountControllers.remove(index);
       _notesControllers.remove(index);
       
+      // Reindex controllers
       final keys = _tickerControllers.keys.toList()..sort();
       final newTickerControllers = <int, TextEditingController>{};
       final newCompanyControllers = <int, TextEditingController>{};
       final newTargetPriceControllers = <int, TextEditingController>{};
+      final newQuantityControllers = <int, TextEditingController>{};
       final newAllocationPercentControllers = <int, TextEditingController>{};
       final newAllocationAmountControllers = <int, TextEditingController>{};
       final newNotesControllers = <int, TextEditingController>{};
+      
       for (int i = 0; i < keys.length; i++) {
         if (keys[i] > index) {
           newTickerControllers[i] = _tickerControllers[keys[i]]!;
           newCompanyControllers[i] = _companyControllers[keys[i]]!;
           newTargetPriceControllers[i] = _targetPriceControllers[keys[i]]!;
+          newQuantityControllers[i] = _quantityControllers[keys[i]]!;
           newAllocationPercentControllers[i] = _allocationPercentControllers[keys[i]]!;
           newAllocationAmountControllers[i] = _allocationAmountControllers[keys[i]]!;
           newNotesControllers[i] = _notesControllers[keys[i]]!;
@@ -228,26 +364,33 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
           newTickerControllers[i] = _tickerControllers[keys[i]]!;
           newCompanyControllers[i] = _companyControllers[keys[i]]!;
           newTargetPriceControllers[i] = _targetPriceControllers[keys[i]]!;
+          newQuantityControllers[i] = _quantityControllers[keys[i]]!;
           newAllocationPercentControllers[i] = _allocationPercentControllers[keys[i]]!;
           newAllocationAmountControllers[i] = _allocationAmountControllers[keys[i]]!;
           newNotesControllers[i] = _notesControllers[keys[i]]!;
         }
       }
+      
       _tickerControllers.clear();
       _companyControllers.clear();
       _targetPriceControllers.clear();
+      _quantityControllers.clear();
       _allocationPercentControllers.clear();
       _allocationAmountControllers.clear();
       _notesControllers.clear();
+      
       _tickerControllers.addAll(newTickerControllers);
       _companyControllers.addAll(newCompanyControllers);
       _targetPriceControllers.addAll(newTargetPriceControllers);
+      _quantityControllers.addAll(newQuantityControllers);
       _allocationPercentControllers.addAll(newAllocationPercentControllers);
       _allocationAmountControllers.addAll(newAllocationAmountControllers);
       _notesControllers.addAll(newNotesControllers);
+      
       _recalculateAllocations();
     });
   }
+
 
   void _updateCapital(String value) {
     final cleanValue = value.replaceAll(',', '').trim();
@@ -272,14 +415,211 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     setState(() {});
   }
 
+  // Convert PortfolioLeg to PortfolioHolding
+  List<PortfolioHolding> _convertLegsToHoldings() {
+    return _legs.where((leg) {
+      // Only include legs with required fields
+      return leg.ticker != null && 
+             leg.ticker!.isNotEmpty &&
+             leg.currentPrice != null && 
+             leg.currentPrice! > 0 &&
+             leg.targetPrice != null &&
+             leg.targetPrice! > 0 &&
+             leg.quantity != null &&
+             leg.quantity! > 0;
+    }).map((leg) {
+      return PortfolioHolding(
+        ticker: leg.ticker ?? '',
+        company: leg.company,
+        exchange: leg.exchange,
+        sector: leg.sector,
+        currentPrice: leg.currentPrice ?? 0.0,
+        targetPrice: leg.targetPrice ?? 0.0,
+        quantity: (leg.quantity ?? 0).round(), // Round to int for API
+        allocationPercent: leg.allocationPercent,
+        allocationAmount: leg.allocationAmount,
+        marketCap: leg.marketCap,
+        peRatio: leg.peRatio,
+        notes: leg.notes,
+      );
+    }).toList();
+  }
+
+  // Save draft portfolio
+  Future<void> _handleSaveDraft() async {
+    final portfolioName = _portfolioNameController.text.trim();
+    if (portfolioName.isEmpty) {
+      SnackBarUtils.showError(context, 'Portfolio name is required');
+      return;
+    }
+
+    final controller = Get.put(PortfolioController());
+    final holdings = _convertLegsToHoldings();
+
+    final portfolio = _portfolioId != null
+        ? await controller.updatePortfolio(
+            portfolioId: _portfolioId!,
+            portfolioName: portfolioName,
+            clientName: _clientNameController.text.trim().isNotEmpty 
+                ? _clientNameController.text.trim() 
+                : null,
+            initialCapital: _totalCapital > 0 ? _totalCapital : null,
+            holdings: holdings.isNotEmpty ? holdings : null,
+            clientAge: _ageController.text.trim().isNotEmpty 
+                ? int.tryParse(_ageController.text.trim()) 
+                : null,
+            riskProfile: _selectedRiskProfile,
+            strategyType: _selectedStrategy,
+            benchmark: _selectedBenchmark,
+            objective: _objectiveController.text.trim().isNotEmpty 
+                ? _objectiveController.text.trim() 
+                : null,
+            investmentHorizon: _selectedHorizon,
+            expectedRateOfReturn: _rateOfReturnValue,
+            commentary: _commentaryController.text.trim().isNotEmpty 
+                ? _commentaryController.text.trim() 
+                : null,
+          )
+        : await controller.saveDraft(
+      portfolioName: portfolioName,
+      clientName: _clientNameController.text.trim().isNotEmpty 
+          ? _clientNameController.text.trim() 
+          : null,
+      initialCapital: _totalCapital > 0 ? _totalCapital : null,
+      holdings: holdings.isNotEmpty ? holdings : null,
+      clientAge: _ageController.text.trim().isNotEmpty 
+          ? int.tryParse(_ageController.text.trim()) 
+          : null,
+      riskProfile: _selectedRiskProfile,
+      strategyType: _selectedStrategy,
+      benchmark: _selectedBenchmark,
+      objective: _objectiveController.text.trim().isNotEmpty 
+          ? _objectiveController.text.trim() 
+          : null,
+      investmentHorizon: _selectedHorizon,
+      expectedRateOfReturn: _rateOfReturnValue,
+      commentary: _commentaryController.text.trim().isNotEmpty 
+          ? _commentaryController.text.trim() 
+          : null,
+    );
+
+    if (portfolio != null) {
+      // Refresh draft portfolios list
+      await controller.fetchDraftPortfolios();
+      SnackBarUtils.showSuccess(context, 'Draft saved successfully');
+      if (widget.onSaveDraft != null) {
+        widget.onSaveDraft!();
+      }
+    } else {
+      final errorMsg = controller.saveError.value.isNotEmpty 
+          ? controller.saveError.value 
+          : 'Failed to save draft';
+      SnackBarUtils.showError(context, errorMsg);
+    }
+  }
+
+  // Save active portfolio
+  Future<void> _handleSavePortfolio() async {
+    final portfolioName = _portfolioNameController.text.trim();
+    if (portfolioName.isEmpty) {
+      SnackBarUtils.showError(context, 'Portfolio name is required');
+      return;
+    }
+
+    final clientName = _clientNameController.text.trim();
+    if (clientName.isEmpty) {
+      SnackBarUtils.showError(context, 'Client name is required');
+      return;
+    }
+
+    if (_totalCapital <= 0) {
+      SnackBarUtils.showError(context, 'Initial capital must be greater than 0');
+      return;
+    }
+
+    final holdings = _convertLegsToHoldings();
+    if (holdings.isEmpty) {
+      SnackBarUtils.showError(context, 'At least one holding is required');
+      return;
+    }
+
+    final controller = Get.put(PortfolioController());
+    final portfolio = _portfolioId != null
+        ? await controller.updatePortfolio(
+            portfolioId: _portfolioId!,
+            portfolioName: portfolioName,
+            clientName: clientName,
+            initialCapital: _totalCapital,
+            holdings: holdings,
+            clientAge: _ageController.text.trim().isNotEmpty 
+                ? int.tryParse(_ageController.text.trim()) 
+                : null,
+            riskProfile: _selectedRiskProfile,
+            strategyType: _selectedStrategy,
+            benchmark: _selectedBenchmark,
+            objective: _objectiveController.text.trim().isNotEmpty 
+                ? _objectiveController.text.trim() 
+                : null,
+            investmentHorizon: _selectedHorizon,
+            expectedRateOfReturn: _rateOfReturnValue,
+            commentary: _commentaryController.text.trim().isNotEmpty 
+                ? _commentaryController.text.trim() 
+                : null,
+          )
+        : await controller.createPortfolio(
+      portfolioName: portfolioName,
+      clientName: clientName,
+      initialCapital: _totalCapital,
+      holdings: holdings,
+      clientAge: _ageController.text.trim().isNotEmpty 
+          ? int.tryParse(_ageController.text.trim()) 
+          : null,
+      riskProfile: _selectedRiskProfile,
+      strategyType: _selectedStrategy,
+      benchmark: _selectedBenchmark,
+      objective: _objectiveController.text.trim().isNotEmpty 
+          ? _objectiveController.text.trim() 
+          : null,
+      investmentHorizon: _selectedHorizon,
+      expectedRateOfReturn: _rateOfReturnValue,
+      commentary: _commentaryController.text.trim().isNotEmpty 
+          ? _commentaryController.text.trim() 
+          : null,
+    );
+
+    if (portfolio != null) {
+      // Refresh active portfolios list
+      await controller.fetchActivePortfolios();
+      SnackBarUtils.showSuccess(context, 'Portfolio saved successfully');
+      if (widget.onSavePortfolio != null) {
+        widget.onSavePortfolio!();
+      }
+    } else {
+      final errorMsg = controller.saveError.value.isNotEmpty 
+          ? controller.saveError.value 
+          : 'Failed to save portfolio';
+      SnackBarUtils.showError(context, errorMsg);
+    }
+  }
+
   void _updateRateOfReturn(String value) {
-    final rate = double.tryParse(value) ?? 0.0;
-    final minRate = 8.0;
+    // Allow empty value while user is typing
+    if (value.isEmpty) {
+      return; // Don't update anything, let user continue typing
+    }
+    
+    final rate = double.tryParse(value);
+    if (rate == null) {
+      return; // Invalid input, don't update
+    }
+    
+    final minRate = 1.0;
     final maxRate = 30.0;
     final clamped = rate.clamp(minRate, maxRate);
+    
     setState(() {
       _rateOfReturnValue = clamped;
-      // Update slider position
+      // Only update text field if value was clamped (out of range)
       if (rate != clamped) {
         _rateOfReturnController.text = clamped.toStringAsFixed(1);
       }
@@ -292,7 +632,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
       _capitalSliderValue = clamped;
       _totalCapital = clamped;
       // Update text field with formatted value
-      final formatted = NumberFormat('#,##,###').format(clamped.toInt());
+      final formatted = NumberFormat('#,##,###', 'en_US').format(clamped.toInt());
       _initialCapitalController.value = TextEditingValue(
         text: formatted,
         selection: TextSelection.collapsed(offset: formatted.length),
@@ -302,8 +642,91 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   }
 
   String _formatCurrency(double amount) {
-    final formatter = NumberFormat('#,##,###');
-    return '₹${formatter.format(amount)}';
+    final formatter = NumberFormat('#,##,###', 'en_US');
+    return '\$${formatter.format(amount)}';
+  }
+
+  InputDecoration _tableFieldDecoration(bool isDark, {String hintText = '--'}) {
+    final baseFill = isDark ? const Color(0xFF1B1F25) : const Color(0xFFF4F6F8);
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(
+        fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontSize: 11,
+        color: isDark ? const Color(0xFF8B91A1) : const Color(0xFF9CA3AF),
+      ),
+      filled: true,
+      fillColor: baseFill,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      isDense: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+
+  String _formatMarketCap(double marketCap) {
+    if (marketCap >= 1000000000) {
+      return '\$${(marketCap / 1000000000).toStringAsFixed(2)}B';
+    } else if (marketCap >= 1000000) {
+      return '\$${(marketCap / 1000000).toStringAsFixed(2)}M';
+    } else if (marketCap >= 1000) {
+      return '\$${(marketCap / 1000).toStringAsFixed(2)}K';
+    }
+    return '\$${marketCap.toStringAsFixed(2)}';
+  }
+
+  Future<void> _fetchStockData(int index, String ticker) async {
+    if (ticker.isEmpty) return;
+    
+    try {
+      final response = await WebService.getTypesense([
+        'collections', 'stocks_data', 'documents', 'search'
+      ], {
+        'q': '*',
+        'filter_by': 'id:=[`$ticker`]',
+        'include_fields': 'id,usdMarketCap,peTTM',
+        'per_page': '1',
+      });
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final hits = (data['hits'] as List?) ?? [];
+        
+        if (hits.isNotEmpty) {
+          final document = hits[0]['document'] as Map<String, dynamic>?;
+          if (document != null) {
+            setState(() {
+              final marketCapValue = document['usdMarketCap'];
+              final peValue = document['peTTM'];
+              
+              if (marketCapValue != null) {
+                _legs[index].marketCap = (marketCapValue is num) 
+                    ? marketCapValue.toDouble() 
+                    : double.tryParse(marketCapValue.toString());
+              }
+              
+              if (peValue != null) {
+                _legs[index].peRatio = (peValue is num) 
+                    ? peValue.toDouble() 
+                    : double.tryParse(peValue.toString());
+              }
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Silently handle errors
+    }
   }
 
   @override
@@ -333,7 +756,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
           _buildAllocationProgressBar(isDark),
           const SizedBox(height: 24),
           // Section B: Holdings Table
-          _buildSectionB(isDark, borderColor),
+          _buildHoldingsTableSection(isDark, borderColor),
           const SizedBox(height: 24),
           // Section C: Supporting Information
           _buildSectionC(isDark, borderColor),
@@ -647,7 +1070,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                     fontSize: 12,
                     color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
                   ),
-                  prefixText: '₹ ',
+                  prefixText: '\$ ',
                   prefixStyle: TextStyle(
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontSize: 13,
@@ -735,6 +1158,27 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                   ),
                 ),
                 onChanged: _updateRateOfReturn,
+                onEditingComplete: () {
+                  // When user finishes editing, validate and set minimum if empty
+                  if (_rateOfReturnController.text.isEmpty) {
+                    setState(() {
+                      _rateOfReturnValue = 1.0;
+                      _rateOfReturnController.text = '1.0';
+                    });
+                  } else {
+                    // Validate the current value
+                    final rate = double.tryParse(_rateOfReturnController.text);
+                    if (rate != null) {
+                      final clamped = rate.clamp(1.0, 30.0);
+                      if (rate != clamped) {
+                        setState(() {
+                          _rateOfReturnValue = clamped;
+                          _rateOfReturnController.text = clamped.toStringAsFixed(1);
+                        });
+                      }
+                    }
+                  }
+                },
               ),
             ),
           ],
@@ -744,7 +1188,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   }
 
   Widget _buildRateOfReturnSliderItem(BuildContext context, bool isDark) {
-    final minRate = 8.0;
+    final minRate = 1.0;
     final maxRate = 30.0;
     final currentRate = _rateOfReturnValue.toStringAsFixed(1);
 
@@ -830,17 +1274,17 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
           minLabel: _horizons.first,
           maxLabel: _horizons.last,
           sliderValue: _horizonSliderValue,
-          min: 0,
+            min: 0,
           max: (_horizons.length - 1).toDouble(),
           divisions: _horizons.length - 1,
-          onChanged: (value) {
+            onChanged: (value) {
             final index = value.round().clamp(0, _horizons.length - 1);
-            setState(() {
-              _horizonSliderValue = index.toDouble();
+              setState(() {
+                _horizonSliderValue = index.toDouble();
               _selectedHorizon = _horizons[index];
-            });
-          },
-        ),
+              });
+            },
+          ),
         const SizedBox(height: 24),
         // Initial Capital
         _buildCapitalSliderItem(context, isDark),
@@ -863,7 +1307,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121417) : const Color(0xFFF9FAFB),
+        color: isDark ? const Color(0xFF121417) : Colors.white,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
@@ -896,21 +1340,31 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
             ],
           ),
         const SizedBox(height: _kCompactGap),
-          ClipRRect(
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(
+              begin: 0.0,
+              end: percentage / 100,
+            ),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+            builder: (context, animatedValue, child) {
+              return ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: percentage / 100,
+                  value: animatedValue.clamp(0.0, 1.0),
               minHeight: 8,
               backgroundColor: isDark ? const Color(0xFF1F2530) : const Color(0xFFE5E7EB),
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionB(bool isDark, Color borderColor) {
+  Widget _buildHoldingsTableSection(bool isDark, Color borderColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -918,7 +1372,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Holdings Table',
+              'Holdings',
               style: TextStyle(
                 fontFamily: Constants.FONT_DEFAULT_NEW,
                 fontSize: 16,
@@ -935,213 +1389,154 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
           ],
         ),
         const SizedBox(height: _kSectionGap),
-        // Scrollable table with all columns
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF121417) : const Color(0xFFF9FAFB),
+            color: isDark ? const Color(0xFF121417) : Colors.white,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: borderColor),
           ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: _buildHoldingsTable(isDark, borderColor),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: _buildHoldingsTable(isDark),
         ),
       ],
     );
   }
 
-  Widget _buildHoldingsTable(bool isDark, Color borderColor) {
-    const columnWidths = {
-      'ticker': 120.0,
-      'company': 180.0,
-      'exchange': 100.0,
-      'sector': 120.0,
-      'action': 100.0,
-      'current': 100.0,
-      'target': 100.0,
-      'upside': 100.0,
-      'allocation_pct': 100.0,
-      'amount': 120.0,
-      'qty': 100.0,
-      'source': 100.0,
-      'confidence': 120.0,
-      'notes': 150.0,
-      'remove': 60.0,
-    };
-
-    return DataTable(
-      headingRowColor: WidgetStateProperty.all(
-        isDark ? const Color(0xFF1F2530) : const Color(0xFFE5E7EB),
-      ),
-      dataRowColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return isDark ? const Color(0xFF2A2F33) : const Color(0xFFF3F4F6);
-        }
-        return Colors.transparent;
-      }),
-      headingTextStyle: TextStyle(
+  Widget _buildHoldingsTable(bool isDark) {
+    if (_legs.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Text(
+            'No holdings added yet. Click "Add Stock" to get started.',
+            style: TextStyle(
         fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: isDark ? Colors.white : const Color(0xFF111827),
-      ),
-      dataTextStyle: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 12,
-        color: isDark ? Colors.white : const Color(0xFF111827),
-      ),
-      columns: [
-        _buildDataColumn('Ticker', columnWidths['ticker']!),
-        _buildDataColumn('Company', columnWidths['company']!),
-        _buildDataColumn('Exchange', columnWidths['exchange']!),
-        _buildDataColumn('Sector', columnWidths['sector']!),
-        _buildDataColumn('Action', columnWidths['action']!),
-        _buildDataColumn('Current', columnWidths['current']!),
-        _buildDataColumn('Target', columnWidths['target']!),
-        _buildDataColumn('Upside %', columnWidths['upside']!),
-        _buildDataColumn('Alloc %', columnWidths['allocation_pct']!),
-        _buildDataColumn('Amount (₹)', columnWidths['amount']!),
-        _buildDataColumn('Qty', columnWidths['qty']!),
-        _buildDataColumn('Source', columnWidths['source']!),
-        _buildDataColumn('Confidence', columnWidths['confidence']!),
-        _buildDataColumn('Notes', columnWidths['notes']!),
-        _buildDataColumn('', columnWidths['remove']!),
-      ],
-      rows: List.generate(_legs.length, (index) {
-        return _buildHoldingsRow(index, isDark);
-      }),
-    );
-  }
-
-  DataColumn _buildDataColumn(String label, double width) {
-    return DataColumn(
-      label: SizedBox(
-        width: width,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+            ),
           ),
         ),
-      ),
+      );
+    }
+
+    final columns = [
+      SimpleColumn(label: 'TICKER', fieldName: 'ticker', width: 120),
+      SimpleColumn(label: 'COMPANY', fieldName: 'company', width: 180),
+      SimpleColumn(label: 'EXCHANGE', fieldName: 'exchange', width: 100),
+      SimpleColumn(label: 'CURRENT', fieldName: 'current', isNumeric: true, width: 100),
+      SimpleColumn(label: 'TARGET', fieldName: 'target', isNumeric: true, width: 100),
+      SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 120),
+      SimpleColumn(label: 'P/E', fieldName: 'peRatio', isNumeric: true, width: 100),
+      SimpleColumn(label: 'ALLOC %', fieldName: 'allocPct', isNumeric: true, width: 100),
+      SimpleColumn(label: 'AMOUNT', fieldName: 'amount', isNumeric: true, width: 120),
+      SimpleColumn(label: 'QTY', fieldName: 'qty', isNumeric: true, width: 100),
+      SimpleColumn(label: '', fieldName: 'remove', width: 60),
+    ];
+
+    final rows = _legs.asMap().entries.map((entry) {
+      final index = entry.key;
+      final leg = entry.value;
+      return SimpleRowModel(
+        symbol: leg.ticker ?? '--',
+        name: leg.company ?? '--',
+        logo: leg.tickerModel?.logo,
+        price: leg.currentPrice,
+        fields: {
+          'ticker': _buildTickerSearchCell(index, isDark),
+          'company': leg.company ?? '--',
+          'exchange': leg.exchange ?? '--',
+          'current': leg.currentPrice != null ? '\$${leg.currentPrice!.toStringAsFixed(2)}' : '--',
+          'target': _buildTargetPriceCell(index, isDark),
+          'marketCap': leg.marketCap != null ? _formatMarketCap(leg.marketCap!) : '--',
+          'peRatio': leg.peRatio != null ? leg.peRatio!.toStringAsFixed(2) : '--',
+          'allocPct': leg.allocationPercent > 0 ? '${leg.allocationPercent.toStringAsFixed(2)}%' : '--',
+          'amount': leg.allocationAmount > 0 ? _formatCurrency(leg.allocationAmount) : '--',
+          'qty': _buildQuantityCell(index, isDark),
+          'remove': _buildRemoveButton(index, isDark),
+        },
+      );
+    }).toList();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.all(12),
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: DynamicTable(
+              columns: columns,
+              rows: rows,
+              showFixedColumn: true,
+              considerPadding: false,
+              columnSpacing: 20,
+              horizontalMargin: 0,
+              fixedColumnWidth: 320,
+              enableLivePrices: false,
+              zebraStripes: false,
+              evenRowColor: Colors.transparent,
+              oddRowColor: Colors.transparent,
+            ),
+          ),
+        );
+      },
     );
   }
 
-  DataRow _buildHoldingsRow(int index, bool isDark) {
+  Widget _buildTickerSearchCell(int index, bool isDark) {
     final leg = _legs[index];
-    final actions = ['Buy', 'Hold', 'Sell', 'Reduce'];
-    final sources = ['ICICI', 'HDFC', 'Axis', 'Morgan Stanley', 'Custom'];
-
-    return DataRow(
-      cells: [
-        // Ticker - Search field (compact)
-        DataCell(
-          SizedBox(
+    final hasTicker = leg.ticker != null && leg.ticker!.isNotEmpty;
+    
+    // If ticker is selected, show read-only text
+    if (hasTicker) {
+      return SizedBox(
             width: 120,
-            child: _buildCompactTickerSearch(index, isDark),
-          ),
-        ),
-        // Company
-        DataCell(
-          SizedBox(
-            width: 180,
-            child: TextField(
-              controller: _companyControllers[index],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Text(
+            leg.ticker ?? '--',
               style: TextStyle(
                 fontFamily: Constants.FONT_DEFAULT_NEW,
                 fontSize: 12,
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
-              decoration: InputDecoration(
-                contentPadding: _kFieldPadding,
-                hintText: '--',
-                hintStyle: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 11,
-                  color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-                ),
-              ),
-            ),
           ),
         ),
-        // Exchange - Badge
-        DataCell(
-          SizedBox(
-            width: 100,
-            child: _buildBadge(leg.exchange ?? '--', isDark),
-          ),
-        ),
-        // Sector
-        DataCell(
-          SizedBox(
-            width: 120,
-            child: Text(
-              leg.sector ?? '--',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-              ),
-            ),
-          ),
-        ),
-        // Action - Dropdown
-        DataCell(
-          SizedBox(
-            width: 100,
-            child: DropdownButton<String>(
-              value: leg.action,
-              isDense: true,
-              isExpanded: true,
-              underline: const SizedBox(),
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
-              items: actions.map((action) {
-                return DropdownMenuItem(
-                  value: action,
-                  child: _buildActionBadge(action, isDark),
-                );
-              }).toList(),
-              onChanged: (value) {
+      );
+    }
+    
+    // Otherwise show search field
+    return _TickerSearchCell(
+      index: index,
+      isDark: isDark,
+      controller: _tickerControllers[index]!,
+      companyController: _companyControllers[index]!,
+      onTickerSelected: (ticker) async {
                 setState(() {
-                  leg.action = value ?? 'Buy';
-                });
-              },
-            ),
-          ),
-        ),
-        // Current Price
-        DataCell(
-          SizedBox(
+          _legs[index].updateTicker(ticker);
+          _tickerControllers[index]!.text = ticker.symbol ?? ticker.ticker ?? '';
+          _companyControllers[index]!.text = ticker.companyName ?? ticker.name ?? '';
+          // If quantity is already set, recalculate allocation
+          if (_legs[index].quantity != null && _legs[index].quantity! > 0) {
+            _legs[index].updateQuantity(_legs[index].quantity!, _totalCapital);
+            _quantityControllers[index]!.text = _legs[index].quantity!.toStringAsFixed(2);
+          }
+          _recalculateAllocations();
+        });
+        // Fetch market cap and P/E data
+        await _fetchStockData(index, ticker.symbol ?? ticker.ticker ?? '');
+      },
+    );
+  }
+
+  Widget _buildTargetPriceCell(int index, bool isDark) {
+    final leg = _legs[index];
+    return SizedBox(
             width: 100,
-            child: Text(
-              leg.currentPrice != null ? '₹${leg.currentPrice!.toStringAsFixed(2)}' : '--',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-              ),
-            ),
-          ),
-        ),
-        // Target Price - Editable
-        DataCell(
-          SizedBox(
-            width: 100,
+      height: 60,
+      child: Center(
             child: TextField(
-              controller: _targetPriceControllers[index],
+          controller: _targetPriceControllers[index]!,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
@@ -1151,20 +1546,8 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 fontSize: 12,
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
-              decoration: InputDecoration(
-                contentPadding: _kFieldPadding,
-                hintText: '--',
-                hintStyle: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 11,
-                  color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-                ),
-              ),
+          decoration: _tableFieldDecoration(isDark),
+          textAlignVertical: TextAlignVertical.center,
               onChanged: (value) {
                 final price = double.tryParse(value);
                 if (price != null) {
@@ -1176,32 +1559,18 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
               },
             ),
           ),
-        ),
-        // Upside % - Auto-calculated
-        DataCell(
-          SizedBox(
+    );
+  }
+
+  Widget _buildQuantityCell(int index, bool isDark) {
+    final leg = _legs[index];
+    return SizedBox(
             width: 100,
-            child: Text(
-              leg.upsidePercent != null
-                  ? '${leg.upsidePercent! >= 0 ? '+' : ''}${leg.upsidePercent!.toStringAsFixed(2)}%'
-                  : '--',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: leg.upsidePercent != null && leg.upsidePercent! >= 0
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-              ),
-            ),
-          ),
-        ),
-        // Allocation % - Editable
-        DataCell(
-          SizedBox(
-            width: 100,
+      height: 60,
+      child: Center(
             child: TextField(
-              controller: _allocationPercentControllers[index],
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+          controller: _quantityControllers[index]!,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
               ],
@@ -1210,284 +1579,40 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 fontSize: 12,
                 color: isDark ? Colors.white : const Color(0xFF111827),
               ),
-              decoration: InputDecoration(
-                contentPadding: _kFieldPadding,
-                hintText: '--',
-                hintStyle: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 11,
-                  color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                ),
-                suffixText: '%',
-                suffixStyle: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 10,
-                  color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-                ),
-              ),
+          decoration: _tableFieldDecoration(isDark),
+          textAlignVertical: TextAlignVertical.center,
               onChanged: (value) {
-                final percent = double.tryParse(value);
-                if (percent != null) {
+            if (value.isEmpty) {
                   setState(() {
-                    leg.updateAllocationPercent(percent, _totalCapital);
+                leg.updateQuantity(0, _totalCapital);
+                    _recalculateAllocations();
+                  });
+              return;
+            }
+            final qty = double.tryParse(value);
+            if (qty != null && qty >= 0) {
+                  setState(() {
+                leg.updateQuantity(qty, _totalCapital);
                     _recalculateAllocations();
                   });
                 }
               },
             ),
           ),
-        ),
-        // Amount (₹) - Auto-calculated or editable
-        DataCell(
-          SizedBox(
-            width: 120,
-            child: TextField(
-              controller: _allocationAmountControllers[index],
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
-              ],
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
-              decoration: InputDecoration(
-                contentPadding: _kFieldPadding,
-                hintText: '--',
-                hintStyle: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 11,
-                  color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                ),
-                prefixText: '₹ ',
-                prefixStyle: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 10,
-                  color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-                ),
-              ),
-              onChanged: (value) {
-                final amount = double.tryParse(value);
-                if (amount != null) {
-                  setState(() {
-                    leg.updateAllocationAmount(amount, _totalCapital);
-                    _recalculateAllocations();
-                  });
-                }
-              },
-            ),
-          ),
-        ),
-        // Quantity - Auto-calculated
-        DataCell(
-          SizedBox(
-            width: 100,
-            child: Text(
-              leg.quantity?.toString() ?? '--',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-              ),
-            ),
-          ),
-        ),
-        // Source - Dropdown
-        DataCell(
-          SizedBox(
-            width: 100,
-            child: DropdownButton<String>(
-              value: leg.researchSource ?? sources.first,
-              isDense: true,
-              isExpanded: true,
-              underline: const SizedBox(),
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
-              items: sources.map((source) {
-                return DropdownMenuItem(
-                  value: source,
-                  child: _buildBadge(source, isDark),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  leg.researchSource = value;
-                });
-              },
-            ),
-          ),
-        ),
-        // Confidence - Star rating
-        DataCell(
-          SizedBox(
-            width: 120,
-            child: _buildStarRating(index, isDark),
-          ),
-        ),
-        // Notes
-        DataCell(
-          SizedBox(
-            width: 150,
-            child: TextField(
-              controller: _notesControllers[index],
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
-              decoration: InputDecoration(
-                contentPadding: _kFieldPadding,
-                hintText: '--',
-                hintStyle: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 11,
-                  color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  leg.notes = value;
-                });
-              },
-            ),
-          ),
-        ),
-        // Remove button
-        DataCell(
-          SizedBox(
+    );
+  }
+
+  Widget _buildRemoveButton(int index, bool isDark) {
+    if (_legs.length <= 1) {
+      return const SizedBox(width: 60);
+    }
+    return SizedBox(
             width: 60,
             child: IconButton(
               icon: const Icon(Icons.remove_circle_outline, size: 20),
               color: const Color(0xFFEF4444),
               onPressed: () => _removeLeg(index),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompactTickerSearch(int index, bool isDark) {
-    // This will be a compact version - for now using simple text field
-    // Full ticker search can be implemented later
-    return TextField(
-      controller: _tickerControllers[index],
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 12,
-        height: 1.2,
-        color: isDark ? Colors.white : const Color(0xFF111827),
-      ),
-      decoration: InputDecoration(
-        contentPadding: _kFieldPadding,
-        hintText: '--',
-        hintStyle: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: 11,
-          color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
-          borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-        ),
-      ),
-      onChanged: (value) {
-        setState(() {
-          _legs[index].ticker = value;
-        });
-      },
-    );
-  }
-
-  Widget _buildBadge(String text, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2530) : const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: 11,
-          color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionBadge(String action, bool isDark) {
-    Color color;
-    switch (action.toLowerCase()) {
-      case 'buy':
-        color = const Color(0xFF10B981);
-        break;
-      case 'sell':
-      case 'reduce':
-        color = const Color(0xFFEF4444);
-        break;
-      default:
-        color = const Color(0xFFEAB308);
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        action,
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStarRating(int index, bool isDark) {
-    final leg = _legs[index];
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (starIndex) {
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              leg.confidence = starIndex + 1;
-            });
-          },
-          child: Icon(
-            starIndex < leg.confidence ? Icons.star : Icons.star_border,
-            size: 16,
-            color: starIndex < leg.confidence
-                ? const Color(0xFFFCD34D)
-                : (isDark ? const Color(0xFF4B5563) : const Color(0xFF9CA3AF)),
-          ),
-        );
-      }),
     );
   }
 
@@ -1520,52 +1645,43 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
             color: isDark ? Colors.white : const Color(0xFF111827),
           ),
         ),
-        const SizedBox(height: _kFieldGap),
-        TextField(
-          controller: _referenceDocsController,
-          maxLines: 2,
-          decoration: _fieldDecoration(
-            'Reference Documents (comma or newline separated)',
-            hintText: 'https://example.com/report1.pdf, https://example.com/report2.pdf',
-            isDark: isDark,
-          ),
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 13,
-            height: 1.2,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
-        ),
       ],
     );
   }
 
   Widget _buildActionButtons(bool isDark) {
+    // Get or create controller
+    final controller = Get.put(PortfolioController());
+    
+    return Obx(() {
+      final isSaving = controller.isSaving.value;
+      
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         _SecondaryPillButton(
           label: 'Cancel',
           icon: Icons.close,
-          onTap: widget.onCancel,
+            onTap: isSaving ? null : widget.onCancel,
           isDarkMode: isDark,
         ),
             const SizedBox(width: _kFieldGap),
         _SecondaryPillButton(
-          label: 'Save Draft',
-          icon: Icons.save_outlined,
-          onTap: widget.onSaveDraft,
+            label: isSaving ? 'Saving...' : 'Save Draft',
+            icon: isSaving ? null : Icons.save_outlined,
+            onTap: isSaving ? null : _handleSaveDraft,
           isDarkMode: isDark,
         ),
         const SizedBox(width: _kFieldGap),
         _PrimaryPillButton(
-          label: 'Save Portfolio',
-          icon: Icons.check,
-          onTap: widget.onSavePortfolio,
+            label: isSaving ? 'Saving...' : 'Save Portfolio',
+            icon: isSaving ? null : Icons.check,
+            onTap: isSaving ? null : _handleSavePortfolio,
           isDarkMode: isDark,
         ),
       ],
     );
+    });
   }
 
   InputDecoration _fieldDecoration(String label, {String? hintText, bool isDark = false}) {
@@ -1732,7 +1848,7 @@ class _CurrencyInputFormatter extends TextInputFormatter {
     if (cleanText.isEmpty) return newValue;
     final number = int.tryParse(cleanText);
     if (number == null) return oldValue;
-    final formatted = NumberFormat('#,##,###').format(number);
+    final formatted = NumberFormat('#,##,###', 'en_US').format(number);
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
@@ -1889,11 +2005,6 @@ class _AnimatedDonutChartState extends State<_AnimatedDonutChart>
     super.dispose();
   }
 
-  String _formatCurrency(double amount) {
-    final formatter = NumberFormat('#,##,###');
-    return '₹${formatter.format(amount)}';
-  }
-
   String? _getHoveredSegment(Offset position, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2 * 0.85;
@@ -2025,6 +2136,11 @@ class _AnimatedDonutChartState extends State<_AnimatedDonutChart>
         estimatedReturns: estimatedReturns,
       ),
     );
+  }
+
+  String _formatCurrency(double amount) {
+    final formatter = NumberFormat('#,##,###', 'en_US');
+    return '\$${formatter.format(amount)}';
   }
 
   Widget _buildTooltip({
@@ -2205,6 +2321,219 @@ class _DonutChartPainter extends CustomPainter {
     return oldDelegate.investedAmount != investedAmount ||
         oldDelegate.estimatedReturns != estimatedReturns ||
         oldDelegate.isDark != isDark;
+  }
+}
+
+// Ticker Search Cell for Holdings Table
+class _TickerSearchCell extends StatefulWidget {
+  final int index;
+  final bool isDark;
+  final TextEditingController controller;
+  final TextEditingController companyController;
+  final ValueChanged<TickerModel> onTickerSelected;
+
+  const _TickerSearchCell({
+    required this.index,
+    required this.isDark,
+    required this.controller,
+    required this.companyController,
+    required this.onTickerSelected,
+  });
+
+  @override
+  State<_TickerSearchCell> createState() => _TickerSearchCellState();
+}
+
+class _TickerSearchCellState extends State<_TickerSearchCell> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  List<TickerModel> _results = [];
+  bool _isSearching = false;
+  Timer? _debounceTimer;
+  OverlayEntry? _overlayEntry;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _debounceTimer?.cancel();
+    _removeOverlay();
+    super.dispose();
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  void _onQueryChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      _performSearch(query);
+    });
+  }
+
+  Future<void> _performSearch(String query) async {
+    if (!mounted) return;
+    if (query.trim().isEmpty) {
+      setState(() {
+        _results = [];
+        _isSearching = false;
+      });
+      _removeOverlay();
+      return;
+    }
+
+    setState(() => _isSearching = true);
+
+    try {
+      final matches = await SearchService.searchStocks(query.trim());
+      if (!mounted) return;
+      setState(() {
+        _results = matches;
+        _isSearching = false;
+      });
+      _showResultsOverlay();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _results = [];
+        _isSearching = false;
+      });
+      _removeOverlay();
+    }
+  }
+
+  void _showResultsOverlay() {
+    _removeOverlay();
+    if (_results.isEmpty && !_isSearching) return;
+
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final size = renderBox.size;
+    final offset = renderBox.localToGlobal(Offset.zero);
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: offset.dx,
+        top: offset.dy + size.height + 4,
+        width: 300,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: widget.isDark ? const Color(0xFF111315) : Colors.white,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: widget.isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
+              ),
+            ),
+            child: _isSearching
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _results.isEmpty
+                    ? const SizedBox.shrink()
+                    : ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: _results.length,
+                        itemBuilder: (_, index) {
+                          final ticker = _results[index];
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              ticker.symbol ?? ticker.ticker ?? '',
+                              style: TextStyle(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: widget.isDark ? Colors.white : const Color(0xFF111827),
+                              ),
+                            ),
+                            subtitle: Text(
+                              ticker.companyName ?? ticker.name ?? '',
+                              style: TextStyle(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                                fontSize: 11,
+                                color: widget.isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () {
+                              widget.onTickerSelected(ticker);
+                              _searchController.text = ticker.symbol ?? ticker.ticker ?? '';
+                              _results = [];
+                              _removeOverlay();
+                              _searchFocusNode.unfocus();
+                              setState(() {});
+                            },
+                          );
+                        },
+                      ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fillColor =
+        widget.isDark ? const Color(0xFF1B1F25) : const Color(0xFFF4F6F8);
+    return SizedBox(
+      width: 120,
+      child: TextField(
+        controller: _searchController,
+        focusNode: _searchFocusNode,
+        onChanged: _onQueryChanged,
+        onTap: () {
+          if (_results.isNotEmpty || _isSearching) {
+            _showResultsOverlay();
+          }
+        },
+        style: TextStyle(
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+          fontSize: 12,
+          color: widget.isDark ? Colors.white : const Color(0xFF111827),
+        ),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: fillColor,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          hintText: 'Search...',
+          hintStyle: TextStyle(
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            fontSize: 11,
+            color: widget.isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: BorderSide(
+              color: widget.isDark
+                  ? const Color(0xFF81AACE).withOpacity(0.4)
+                  : const Color(0xFF3B82F6).withOpacity(0.3),
+              width: 1.2,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

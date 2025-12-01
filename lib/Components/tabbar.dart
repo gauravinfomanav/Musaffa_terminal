@@ -702,13 +702,28 @@ class _PortfolioButton extends StatelessWidget {
     return IconButton(
       icon: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
       onPressed: () {
+        // Check if we're already on the portfolio screen
+        bool isOnPortfolio = false;
+        context.visitAncestorElements((element) {
+          if (element.widget is PortfolioIdeaScreen) {
+            isOnPortfolio = true;
+            return false; // Stop traversing
+          }
+          return true; // Continue traversing
+        });
+        
+        // Don't navigate if already on portfolio screen
+        if (isOnPortfolio) {
+          return;
+        }
+        
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => const PortfolioIdeaScreen(),
           ),
         );
       },
-      tooltip: 'Portfolio Idea',
+      tooltip: 'Portfolios',
     );
   }
 }

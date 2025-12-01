@@ -641,38 +641,57 @@ class _DynamicTableState extends State<DynamicTable> {
       // Fixed column cell (Company info)
       if (widget.showFixedColumn) {
 
-        Widget tickerCell = MainTickerCell(
-          model: TickerCellModel(
-            currency: rowModel.currency ?? 'USD',
-            tickerName: rowModel.symbol,
-            companyName: rowModel.name,
-            currentPrice: rowModel.price,
-            percentchange: rowModel.changePercent,
-            logoUrl: rowModel.logo,
-            halalRate: null,
-            ranking: null,
-            hideBadge: true, // Hide the halal badge for top movers
-            country: 'US',
-            isStock: true,
-            mainTicker: rowModel.symbol,
-            showLockOnStars: false,
-            stock: TickerModel(
-              symbol: rowModel.symbol,
-              name: rowModel.name,
-              companyName: rowModel.name,
-              logo: rowModel.logo,
-              currentPrice: rowModel.price,
-              percentChange: rowModel.changePercent,
+        Widget tickerCell;
+        
+        // If logo is null and symbol is empty, use simple text-only cell (for portfolios)
+        if (rowModel.logo == null && rowModel.symbol.isEmpty) {
+          tickerCell = Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                rowModel.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DashboardTextStyles.stockName,
+              ),
+            ),
+          );
+        } else {
+          // Use MainTickerCell for stocks/ETFs with logos
+          tickerCell = MainTickerCell(
+            model: TickerCellModel(
               currency: rowModel.currency ?? 'USD',
+              tickerName: rowModel.symbol,
+              companyName: rowModel.name,
+              currentPrice: rowModel.price,
+              percentchange: rowModel.changePercent,
+              logoUrl: rowModel.logo,
+              halalRate: null,
+              ranking: null,
+              hideBadge: true, // Hide the halal badge for top movers
+              country: 'US',
               isStock: true,
               mainTicker: rowModel.symbol,
-              ticker: rowModel.symbol,
+              showLockOnStars: false,
+              stock: TickerModel(
+                symbol: rowModel.symbol,
+                name: rowModel.name,
+                companyName: rowModel.name,
+                logo: rowModel.logo,
+                currentPrice: rowModel.price,
+                percentChange: rowModel.changePercent,
+                currency: rowModel.currency ?? 'USD',
+                isStock: true,
+                mainTicker: rowModel.symbol,
+                ticker: rowModel.symbol,
+              ),
             ),
-          ),
-          showBottomBorder: false,
-          horizontalSpacing: 6,
-          verticalSpacing: 4,
-        );
+            showBottomBorder: false,
+            horizontalSpacing: 6,
+            verticalSpacing: 4,
+          );
+        }
 
         // Wrap with Draggable if dragging is enabled
         if (widget.enableDragging) {
