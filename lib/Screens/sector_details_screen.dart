@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
+import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/services/sector_mapping_service.dart';
 import 'package:musaffa_terminal/Controllers/sector_stocks_controller.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
@@ -1113,6 +1114,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   ),
                 ),
               ),
+              // Global FAB Overlay
+              const GlobalFABOverlay(),
           ],
         ),
       ),

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
+import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Controllers/etf_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
@@ -165,6 +166,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 ),
               ),
             ),
+          // Global FAB Overlay
+          const GlobalFABOverlay(),
         ],
       ),
     );

@@ -17,6 +17,7 @@ import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/web_service.dart';
 
@@ -43,22 +44,45 @@ class HomeTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(FinhubController());
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final fabController = Get.find<FloatingActionButtonsController>();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.06),
-            blurRadius: isDarkMode ? 8 : 12,
-            offset: const Offset(0, 2),
+    return DragTarget<FABType>(
+      onWillAccept: (data) => data != null,
+      onAccept: (type) {
+        // When FAB is dropped on tabbar, remove it (icon will reappear)
+        try {
+          final fab = fabController.fabs.firstWhere((fab) => fab.type == type);
+          fabController.removeFAB(fab.id);
+        } catch (e) {
+          // FAB not found, ignore
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: candidateData.isNotEmpty
+                ? (isDarkMode 
+                    ? const Color(0xFF2D4A6B).withOpacity(0.8)
+                    : const Color(0xFFDBEAFE).withOpacity(0.8))
+                : (isDarkMode ? const Color(0xFF1A1A1A) : Colors.white),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.06),
+                blurRadius: isDarkMode ? 8 : 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: candidateData.isNotEmpty
+                ? Border.all(
+                    color: isDarkMode ? const Color(0xFF4A9EFF) : const Color(0xFF2563EB),
+                    width: 2,
+                  )
+                : null,
           ),
-        ],
-      ),
-              child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
             // Back button first if it exists
             if (showBackButton) ...[
               GestureDetector(
@@ -119,21 +143,58 @@ class HomeTabBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Stock Screener button
-          _ScreenerButton(isDarkMode: isDarkMode),
-          const SizedBox(width: 8),
-          _IdeasButton(isDarkMode: isDarkMode),
-          const SizedBox(width: 8),
-          _PortfolioButton(isDarkMode: isDarkMode),
-          const SizedBox(width: 8),
-          // Watchlist toggle button
+          // Stock Screener button (only show if not a FAB)
+          Obx(() {
+            final fabController = Get.find<FloatingActionButtonsController>();
+            if (fabController.shouldHideInTabbar(FABType.screener)) {
+              return const SizedBox.shrink();
+            }
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ScreenerButton(isDarkMode: isDarkMode),
+                const SizedBox(width: 8),
+              ],
+            );
+          }),
+          // Ideas button (only show if not a FAB)
+          Obx(() {
+            final fabController = Get.find<FloatingActionButtonsController>();
+            if (fabController.shouldHideInTabbar(FABType.ideas)) {
+              return const SizedBox.shrink();
+            }
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _IdeasButton(isDarkMode: isDarkMode),
+                const SizedBox(width: 8),
+              ],
+            );
+          }),
+          // Portfolio button (only show if not a FAB)
+          Obx(() {
+            final fabController = Get.find<FloatingActionButtonsController>();
+            if (fabController.shouldHideInTabbar(FABType.portfolio)) {
+              return const SizedBox.shrink();
+            }
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _PortfolioButton(isDarkMode: isDarkMode),
+                const SizedBox(width: 8),
+              ],
+            );
+          }),
+          // Watchlist toggle button (always visible, not draggable)
           _WatchlistToggleButton(
             isOpen: isWatchlistOpen,
             onToggle: onWatchlistToggle,
             isDarkMode: isDarkMode,
           ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -677,16 +738,46 @@ class _IdeasButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconColor = isDarkMode ? const Color(0xFFFCD34D) : const Color(0xFF92400E);
-    return IconButton(
-      icon: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
-      onPressed: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const TradingIdeasScreen(),
-          ),
-        );
+    final fabController = Get.find<FloatingActionButtonsController>();
+    
+    return Draggable<FABType>(
+      data: FABType.ideas,
+      onDragEnd: (details) {
+        // When drag ends anywhere on screen, create FAB
+        fabController.addFAB(FABType.ideas);
       },
-      tooltip: 'Ideas',
+      feedback: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: IconButton(
+          icon: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
+          onPressed: null,
+          tooltip: 'Ideas',
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const TradingIdeasScreen(),
+            ),
+          );
+        },
+        tooltip: 'Ideas',
+      ),
     );
   }
 }
@@ -699,31 +790,61 @@ class _PortfolioButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconColor = isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF1E40AF);
-    return IconButton(
-      icon: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
-      onPressed: () {
-        // Check if we're already on the portfolio screen
-        bool isOnPortfolio = false;
-        context.visitAncestorElements((element) {
-          if (element.widget is PortfolioIdeaScreen) {
-            isOnPortfolio = true;
-            return false; // Stop traversing
-          }
-          return true; // Continue traversing
-        });
-        
-        // Don't navigate if already on portfolio screen
-        if (isOnPortfolio) {
-          return;
-        }
-        
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const PortfolioIdeaScreen(),
-          ),
-        );
+    final fabController = Get.find<FloatingActionButtonsController>();
+    
+    return Draggable<FABType>(
+      data: FABType.portfolio,
+      onDragEnd: (details) {
+        // When drag ends anywhere on screen, create FAB
+        fabController.addFAB(FABType.portfolio);
       },
-      tooltip: 'Portfolios',
+      feedback: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: IconButton(
+          icon: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
+          onPressed: null,
+          tooltip: 'Portfolios',
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
+        onPressed: () {
+          // Check if we're already on the portfolio screen
+          bool isOnPortfolio = false;
+          context.visitAncestorElements((element) {
+            if (element.widget is PortfolioIdeaScreen) {
+              isOnPortfolio = true;
+              return false; // Stop traversing
+            }
+            return true; // Continue traversing
+          });
+          
+          // Don't navigate if already on portfolio screen
+          if (isOnPortfolio) {
+            return;
+          }
+          
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const PortfolioIdeaScreen(),
+            ),
+          );
+        },
+        tooltip: 'Portfolios',
+      ),
     );
   }
 }
@@ -912,99 +1033,104 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
         });
       },
       builder: (context, candidateData, rejectedData) {
-        return MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: GestureDetector(
-            onTap: _onTap,
-            child: AnimatedBuilder(
-              animation: _scaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      maxWidth: 48,
-                      minHeight: 40,
-                      maxHeight: 48,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _isDragOver
+        // Watchlist button is NOT draggable - it stays in tabbar
+        return _buildButtonContent();
+      },
+    );
+  }
+
+  Widget _buildButtonContent() {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: _onTap,
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: 40,
+                  maxWidth: 48,
+                  minHeight: 40,
+                  maxHeight: 48,
+                ),
+                decoration: BoxDecoration(
+                  color: _isDragOver
+                      ? (widget.isDarkMode 
+                          ? const Color(0xFF81AACE).withOpacity(0.2)
+                          : const Color(0xFF81AACE).withOpacity(0.1))
+                      : widget.isOpen 
                           ? (widget.isDarkMode 
-                              ? const Color(0xFF81AACE).withOpacity(0.2)
-                              : const Color(0xFF81AACE).withOpacity(0.1))
-                          : widget.isOpen 
+                              ? const Color(0xFF2D2D2D)
+                              : const Color(0xFFF9FAFB))
+                          : (_isHovered 
                               ? (widget.isDarkMode 
-                                  ? const Color(0xFF2D2D2D)
-                                  : const Color(0xFFF9FAFB))
-                              : (_isHovered 
-                                  ? (widget.isDarkMode 
-                                      ? const Color(0xFF2D2D2D).withOpacity(0.8)
-                                      : const Color(0xFFE5E7EB).withOpacity(0.9))
-                                  : Colors.transparent),
-                      borderRadius: BorderRadius.circular(6),
-                      border: _isDragOver
-                          ? Border.all(
-                              color: widget.isDarkMode 
-                                  ? const Color(0xFF81AACE)
-                                  : const Color(0xFF81AACE),
-                              width: 2,
-                            )
-                          : null,
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Active indicator line
-                        if (widget.isOpen)
-                          Positioned(
-                            left: 2,
-                            child: Container(
-                              width: 2,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: widget.isDarkMode 
-                                    ? const Color(0xFF81AACE)
-                                    : const Color(0xFF81AACE),
-                                borderRadius: BorderRadius.circular(1),
-                              ),
-                            ),
+                                  ? const Color(0xFF2D2D2D).withOpacity(0.8)
+                                  : const Color(0xFFE5E7EB).withOpacity(0.9))
+                              : Colors.transparent),
+                  borderRadius: BorderRadius.circular(6),
+                  border: _isDragOver
+                      ? Border.all(
+                          color: widget.isDarkMode 
+                              ? const Color(0xFF81AACE)
+                              : const Color(0xFF81AACE),
+                          width: 2,
+                        )
+                      : null,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Active indicator line
+                    if (widget.isOpen)
+                      Positioned(
+                        left: 2,
+                        child: Container(
+                          width: 2,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: widget.isDarkMode 
+                                ? const Color(0xFF81AACE)
+                                : const Color(0xFF81AACE),
+                            borderRadius: BorderRadius.circular(1),
                           ),
-                        
-                        // Icon
-                          _isDragOver
-                            ? Icon(
-                                Icons.add_circle_outline,
-                          size: 18,
-                                color: widget.isDarkMode 
-                                  ? const Color(0xFF81AACE)
-                                    : const Color(0xFF81AACE),
-                              )
-                            : SvgPicture.asset(
-                                'resources/bookmark.svg',
-                                width: 22,
-                                height: 20,
-                                colorFilter: ColorFilter.mode(
-                                  widget.isOpen
+                        ),
+                      ),
+                    
+                    // Icon
+                    _isDragOver
+                        ? Icon(
+                            Icons.add_circle_outline,
+                            size: 18,
+                            color: widget.isDarkMode 
+                                ? const Color(0xFF81AACE)
+                                : const Color(0xFF81AACE),
+                          )
+                        : SvgPicture.asset(
+                            'resources/bookmark.svg',
+                            width: 22,
+                            height: 20,
+                            colorFilter: ColorFilter.mode(
+                              widget.isOpen
                                   ? (widget.isDarkMode 
                                       ? const Color(0xFFE0E0E0)
                                       : const Color(0xFF374151))
                                   : (widget.isDarkMode 
                                       ? const Color(0xFF9CA3AF)
                                       : const Color(0xFF6B7280)),
-                                  BlendMode.srcIn,
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -1081,56 +1207,129 @@ class _ScreenerButtonState extends State<_ScreenerButton>
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: _onTap,
-        child: AnimatedBuilder(
-          animation: _scaleAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _scaleAnimation.value,
-              child: Container(
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  maxWidth: 48,
-                  minHeight: 40,
-                  maxHeight: 48,
+    final fabController = Get.find<FloatingActionButtonsController>();
+    
+    return Draggable<FABType>(
+      data: FABType.screener,
+      onDragEnd: (details) {
+        // When drag ends anywhere on screen, create FAB
+        fabController.addFAB(FABType.screener);
+      },
+      feedback: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: widget.isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Center(
+            child: SvgPicture.asset(
+              'resources/finance_mode.svg',
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(
+                widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                BlendMode.srcIn,
+              ),
+            ),
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: Container(
+            constraints: const BoxConstraints(
+              minWidth: 40,
+              maxWidth: 48,
+              minHeight: 40,
+              maxHeight: 48,
+            ),
+            decoration: BoxDecoration(
+              color: _isHovered 
+                  ? (widget.isDarkMode 
+                      ? const Color(0xFF2D2D2D).withOpacity(0.8)
+                      : const Color(0xFFE5E7EB).withOpacity(0.9))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: SvgPicture.asset(
+                  'resources/finance_mode.svg',
+                  fit: BoxFit.contain,
+                  width: 24,
+                  height: 24,
+                  colorFilter: ColorFilter.mode(
+                    widget.isDarkMode 
+                        ? const Color(0xFF9CA3AF)
+                        : const Color(0xFF6B7280),
+                    BlendMode.srcIn,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: _isHovered 
-                      ? (widget.isDarkMode 
-                          ? const Color(0xFF2D2D2D).withOpacity(0.8)
-                          : const Color(0xFFE5E7EB).withOpacity(0.9))
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: SvgPicture.asset(
-                      'resources/finance_mode.svg',
-                      fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: _onTap,
+          child: AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    maxWidth: 48,
+                    minHeight: 40,
+                    maxHeight: 48,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _isHovered 
+                        ? (widget.isDarkMode 
+                            ? const Color(0xFF2D2D2D).withOpacity(0.8)
+                            : const Color(0xFFE5E7EB).withOpacity(0.9))
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: SizedBox(
                       width: 24,
                       height: 24,
-                      colorFilter: ColorFilter.mode(
-                        _isHovered
-                      ? (widget.isDarkMode 
-                          ? const Color(0xFFE0E0E0)
-                          : const Color(0xFF374151))
-                      : (widget.isDarkMode 
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF6B7280)),
-                        BlendMode.srcIn,
+                      child: SvgPicture.asset(
+                        'resources/finance_mode.svg',
+                        fit: BoxFit.contain,
+                        width: 24,
+                        height: 24,
+                        colorFilter: ColorFilter.mode(
+                          _isHovered
+                          ? (widget.isDarkMode 
+                              ? const Color(0xFFE0E0E0)
+                              : const Color(0xFF374151))
+                          : (widget.isDarkMode 
+                              ? const Color(0xFF9CA3AF)
+                              : const Color(0xFF6B7280)),
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

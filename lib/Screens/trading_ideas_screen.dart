@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
+import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Controllers/trading_ideas_controller.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
@@ -143,6 +144,8 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
                   ),
                 ),
               ),
+              // Global FAB Overlay
+              const GlobalFABOverlay(),
           ],
         ),
       ),

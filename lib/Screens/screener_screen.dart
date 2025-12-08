@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
@@ -408,6 +409,8 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       ),
                     ),
                   ),
+                // Global FAB Overlay
+                const GlobalFABOverlay(),
               ],
             ),
           );

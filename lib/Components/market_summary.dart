@@ -188,43 +188,65 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                                 ),
                               ),
                             ),
-                            Flexible(
+                            Expanded(
                               child: Container(
+                                width: scrollableAreaWidth,
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).brightness ==
                                           Brightness.dark
                                       ? const Color(0xFF2D2D2D)
                                       : Colors.white,
                                 ),
-                                child: Scrollbar(
-                                  controller: _scrollController,
-                                  thickness: 4,
-                                  thumbVisibility: true,
-                                  child: SingleChildScrollView(
-                                    controller: _scrollController,
-                                    scrollDirection: Axis.horizontal,
-                                    child: DataTable(
-                                      headingRowHeight: 24,
-                                      horizontalMargin: 0,
-                                      columnSpacing: dynamicSpacing,
-                                      dataRowMinHeight: 20,
-                                      dataRowMaxHeight: dataRowMaxHeight,
-                                      columns: controller.dataCols,
-                                      rows: controller.dataRows,
-                                      dividerThickness: borderWidth,
-                                      showBottomBorder: false,
-                                      border: TableBorder(
-                                        bottom: BorderSide.none,
-                                        top: BorderSide.none,
-                                        verticalInside: BorderSide.none,
-                                        horizontalInside: BorderSide(
-                                          color: borderColor,
-                                          width: borderWidth,
+                                child: scrollableAreaWidth > minWidthNeeded
+                                    ? DataTable(
+                                        headingRowHeight: 24,
+                                        horizontalMargin: 0,
+                                        columnSpacing: dynamicSpacing,
+                                        dataRowMinHeight: 20,
+                                        dataRowMaxHeight: dataRowMaxHeight,
+                                        columns: controller.dataCols,
+                                        rows: controller.dataRows,
+                                        dividerThickness: borderWidth,
+                                        showBottomBorder: false,
+                                        border: TableBorder(
+                                          bottom: BorderSide.none,
+                                          top: BorderSide.none,
+                                          verticalInside: BorderSide.none,
+                                          horizontalInside: BorderSide(
+                                            color: borderColor,
+                                            width: borderWidth,
+                                          ),
+                                        ),
+                                      )
+                                    : Scrollbar(
+                                        controller: _scrollController,
+                                        thickness: 4,
+                                        thumbVisibility: true,
+                                        child: SingleChildScrollView(
+                                          controller: _scrollController,
+                                          scrollDirection: Axis.horizontal,
+                                          child: DataTable(
+                                            headingRowHeight: 24,
+                                            horizontalMargin: 0,
+                                            columnSpacing: dynamicSpacing,
+                                            dataRowMinHeight: 20,
+                                            dataRowMaxHeight: dataRowMaxHeight,
+                                            columns: controller.dataCols,
+                                            rows: controller.dataRows,
+                                            dividerThickness: borderWidth,
+                                            showBottomBorder: false,
+                                            border: TableBorder(
+                                              bottom: BorderSide.none,
+                                              top: BorderSide.none,
+                                              verticalInside: BorderSide.none,
+                                              horizontalInside: BorderSide(
+                                                color: borderColor,
+                                                width: borderWidth,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                ),
                               ),
                             ),
                           ],

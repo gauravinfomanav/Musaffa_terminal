@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
@@ -134,6 +135,8 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
                   ),
                 ),
               ),
+              // Global FAB Overlay
+              const GlobalFABOverlay(),
           ],
         ),
       ),

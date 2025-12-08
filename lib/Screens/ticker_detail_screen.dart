@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Components/simple_news_widget.dart';
 import 'package:musaffa_terminal/Components/recommendation_widget.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
+import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Components/add_to_watchlist_button.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
@@ -372,6 +373,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 ),
               ),
             ),
+          // Global FAB Overlay
+          const GlobalFABOverlay(),
         ],
       ),
     );
