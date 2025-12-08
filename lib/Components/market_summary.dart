@@ -145,20 +145,19 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       // Responsive spacing between columns
                       final columnSpacing = isLargeScreen ? 42.0 : 15.0;
 
-                      return Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isDarkMode 
-                                ? const Color(0xFF2D2D2D)
-                                : Colors.white,
-                            border: Border.all(color: containerBorderColor, width: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      return Container(
+                        width: availableWidth, // Use full available width
+                        decoration: BoxDecoration(
+                          color: isDarkMode 
+                              ? const Color(0xFF2D2D2D)
+                              : Colors.white,
+                          border: Border.all(color: containerBorderColor, width: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        padding: EdgeInsets.all(8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max, // Changed from min to max
+                          crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                             Container(
                               constraints: BoxConstraints(
@@ -229,7 +228,6 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                               ),
                             ),
                           ],
-                        ),
                         ),
                       );
                     },
