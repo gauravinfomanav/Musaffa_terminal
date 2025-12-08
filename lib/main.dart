@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Screens/main_screen.dart';
 import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
+import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'services/websocket_service.dart';
 import 'services/live_price_service.dart';
@@ -49,5 +50,7 @@ class AppBinding extends Bindings {
     Get.put<FloatingActionButtonsController>(FloatingActionButtonsController(), permanent: true);
     // Initialize global watchlist service
     Get.put<GlobalWatchlistService>(GlobalWatchlistService(), permanent: true);
+    // Initialize notes controller
+    Get.put<NotesController>(NotesController(), permanent: true);
   }
 }

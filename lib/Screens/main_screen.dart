@@ -186,7 +186,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildResponsiveMainContent(BoxConstraints constraints) {
+ Widget _buildResponsiveMainContent(BoxConstraints constraints) {
     final screenWidth = constraints.maxWidth;
     
     if (screenWidth < 1000) {
@@ -196,7 +196,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     }
   }
 
-  Widget _buildVerticalLayout() {
+
+
+Widget _buildVerticalLayout() {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Padding(
@@ -208,87 +210,29 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             const SizedBox(height: 12),            
             Builder(
               builder: (context) {
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    final availableWidth = constraints.maxWidth - LayoutConstants.SCREEN_COMPONENTS_PADDING;
-                    final minTableWidth = availableWidth * 0.3; // Minimum 30% for table
-                    final maxTableWidth = availableWidth * 0.7; // Maximum 70% for table
-                    
-                    // Initialize to exactly 50% on first build
-                    if (_tableWidth == null && availableWidth > 0) {
-                      _tableWidth = availableWidth / 2; // Exactly 50%
-                    }
-                    
-                    // Use 50% as default if not yet initialized, otherwise use current value
-                    final currentTableWidth = _tableWidth ?? (availableWidth / 2);
-                    final tableWidth = currentTableWidth.clamp(minTableWidth, maxTableWidth);
-                    final chartWidth = availableWidth - tableWidth;
-                    
-                    return Stack(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Resizable Table
-                            SizedBox(
-                              width: tableWidth,
-                              child: MarketSummaryDynamicTable(),
-                            ),
-                            SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
-                            // Resizable Chart
-                            SizedBox(
-                              width: chartWidth,
-                              child: DynamicHeightTradingView(
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Resize handle between table and chart
-                        Positioned(
-                          left: tableWidth,
-                          top: 0,
-                          bottom: 0,
-                          child: GestureDetector(
-                            onHorizontalDragStart: (_) => setState(() => _isDraggingTableChartDivider = true),
-                            onHorizontalDragUpdate: (details) {
-                              setState(() {
-                                final currentWidth = _tableWidth ?? (availableWidth / 2);
-                                _tableWidth = (currentWidth + details.delta.dx).clamp(minTableWidth, maxTableWidth);
-                              });
-                            },
-                            onHorizontalDragEnd: (_) => setState(() => _isDraggingTableChartDivider = false),
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.resizeColumn,
-                              onEnter: (_) => setState(() => _isHoveringTableChartDivider = true),
-                              onExit: (_) => setState(() => _isHoveringTableChartDivider = false),
-                              child: Container(
-                                width: LayoutConstants.SCREEN_COMPONENTS_PADDING,
-                                color: Colors.transparent,
-                                child: Center(
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 150),
-                                    width: _isHoveringTableChartDivider || _isDraggingTableChartDivider ? 4.0 : 2.0,
-                                    height: _isHoveringTableChartDivider || _isDraggingTableChartDivider ? 60.0 : 30.0,
-                                    decoration: BoxDecoration(
-                                      color: _isHoveringTableChartDivider || _isDraggingTableChartDivider
-                                          ? (Theme.of(context).brightness == Brightness.dark 
-                                              ? const Color(0xFF4A9EFF) 
-                                              : const Color(0xFF2563EB))
-                                          : (Theme.of(context).brightness == Brightness.dark 
-                                              ? const Color(0xFF404040).withOpacity(0.3)
-                                              : const Color(0xFFE5E7EB).withOpacity(0.5)),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                final screenWidth = MediaQuery.of(context).size.width;
+                // Calculate available width after padding and spacing
+                // Available width = screenWidth - (left padding + right padding + spacing between widgets)
+                final availableWidth = screenWidth - (2 * LayoutConstants.SCREEN_PADDING) - LayoutConstants.SCREEN_COMPONENTS_PADDING;
+                final widgetWidth = availableWidth / 2;
+                
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Table always takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: MarketSummaryDynamicTable(),
+                    ),
+                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    // TradingView widget also takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: DynamicHeightTradingView(
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -314,87 +258,28 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             
             Builder(
               builder: (context) {
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    final availableWidth = constraints.maxWidth - LayoutConstants.SCREEN_COMPONENTS_PADDING;
-                    final minTableWidth = availableWidth * 0.3; // Minimum 30% for table
-                    final maxTableWidth = availableWidth * 0.7; // Maximum 70% for table
-                    
-                    // Initialize to exactly 50% on first build
-                    if (_tableWidth == null && availableWidth > 0) {
-                      _tableWidth = availableWidth / 2; // Exactly 50%
-                    }
-                    
-                    // Use 50% as default if not yet initialized, otherwise use current value
-                    final currentTableWidth = _tableWidth ?? (availableWidth / 2);
-                    final tableWidth = currentTableWidth.clamp(minTableWidth, maxTableWidth);
-                    final chartWidth = availableWidth - tableWidth;
-                    
-                    return Stack(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Resizable Table
-                            SizedBox(
-                              width: tableWidth,
-                              child: MarketSummaryDynamicTable(),
-                            ),
-                            SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
-                            // Resizable Chart
-                            SizedBox(
-                              width: chartWidth,
-                              child: DynamicHeightTradingView(
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Resize handle between table and chart
-                        Positioned(
-                          left: tableWidth,
-                          top: 0,
-                          bottom: 0,
-                          child: GestureDetector(
-                            onHorizontalDragStart: (_) => setState(() => _isDraggingTableChartDivider = true),
-                            onHorizontalDragUpdate: (details) {
-                              setState(() {
-                                final currentWidth = _tableWidth ?? (availableWidth / 2);
-                                _tableWidth = (currentWidth + details.delta.dx).clamp(minTableWidth, maxTableWidth);
-                              });
-                            },
-                            onHorizontalDragEnd: (_) => setState(() => _isDraggingTableChartDivider = false),
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.resizeColumn,
-                              onEnter: (_) => setState(() => _isHoveringTableChartDivider = true),
-                              onExit: (_) => setState(() => _isHoveringTableChartDivider = false),
-                              child: Container(
-                                width: LayoutConstants.SCREEN_COMPONENTS_PADDING,
-                                color: Colors.transparent,
-                                child: Center(
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 150),
-                                    width: _isHoveringTableChartDivider || _isDraggingTableChartDivider ? 4.0 : 2.0,
-                                    height: _isHoveringTableChartDivider || _isDraggingTableChartDivider ? 60.0 : 30.0,
-                                    decoration: BoxDecoration(
-                                      color: _isHoveringTableChartDivider || _isDraggingTableChartDivider
-                                          ? (Theme.of(context).brightness == Brightness.dark 
-                                              ? const Color(0xFF4A9EFF) 
-                                              : const Color(0xFF2563EB))
-                                          : (Theme.of(context).brightness == Brightness.dark 
-                                              ? const Color(0xFF404040).withOpacity(0.3)
-                                              : const Color(0xFFE5E7EB).withOpacity(0.5)),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                // Calculate available width after padding and spacing
+                // Available width = screenWidth - (left padding + right padding + spacing between widgets)
+                final availableWidth = screenWidth - (2 * LayoutConstants.SCREEN_PADDING) - LayoutConstants.SCREEN_COMPONENTS_PADDING;
+                final widgetWidth = availableWidth / 2;
+                
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Table always takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: MarketSummaryDynamicTable(),
+                    ),
+                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+                    // TradingView widget also takes exactly half of available width
+                    SizedBox(
+                      width: widgetWidth,
+                      child: DynamicHeightTradingView(
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -407,6 +292,21 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
   }
 
+
+
+  int _calculateMarketSummaryFlex(double screenWidth) {
+    if (screenWidth < 1200) return 2;
+    if (screenWidth < 1600) return 3;
+    if (screenWidth < 2000) return 4;
+    return 5;
+  }
+
+  int _calculateMarketIndicesFlex(double screenWidth) {
+    if (screenWidth < 1200) return 3;
+    if (screenWidth < 1600) return 3;
+    if (screenWidth < 2000) return 3;
+    return 3;
+  }
 
   Widget _buildHeatmapHub(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -619,6 +519,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         ),
       ],
     );
+  }
+
+  EdgeInsets _calculateResponsivePadding(double screenWidth) {
+    final padding = (screenWidth * 0.01).clamp(8.0, 24.0);
+    return EdgeInsets.all(padding);
   }
 
   double _calculateResponsiveSidebarWidth(double screenWidth) {

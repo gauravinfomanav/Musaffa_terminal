@@ -52,7 +52,7 @@ class FloatingActionButtonsController extends GetxController {
     // Position new FABs bottom-right, stacked vertically
     final existingCount = _fabs.length;
     final spacing = 70.0; // Space between FABs
-    final bottomOffset = 80.0; // Distance from bottom
+    final bottomOffset = 16.0; // Distance from bottom (matches notes FAB)
     final rightOffset = 24.0; // Distance from right
     
     final position = Offset(
