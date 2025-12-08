@@ -300,8 +300,15 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
   }
 
   Widget _buildCustomDropdown(WatchlistController controller, bool isDarkMode) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final dropdownHeight = screenHeight * 0.6;
+    // Calculate dynamic height based on number of watchlists
+    // Each item is approximately 60px tall (padding + text + spacing)
+    const double itemHeight = 60.0;
+    const double padding = 8.0; // Top and bottom padding
+    const double maxHeight = 400.0; // Maximum height to prevent too tall dropdowns
+    const double minHeight = 100.0; // Minimum height for at least 1 item
+    
+    final itemCount = controller.watchlists.length;
+    final calculatedHeight = (itemCount * itemHeight + padding).clamp(minHeight, maxHeight);
     
     // Get the width of the dropdown button
     double? dropdownWidth;
@@ -333,7 +340,7 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
                 opacity: value,
                 child: Container(
                   width: calculatedWidth,
-                  height: dropdownHeight,
+                  height: calculatedHeight,
                   decoration: BoxDecoration(
                     color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(6),
