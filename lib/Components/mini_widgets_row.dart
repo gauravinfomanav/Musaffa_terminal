@@ -305,7 +305,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
                     {
-                        "symbol": "NASDAQ:NDX",
+                        "symbol": "PEPPERSTONE:XAUUSD",
                         "chartOnly": false,
                         "dateRange": "12M",
                         "noTimeScale": false,

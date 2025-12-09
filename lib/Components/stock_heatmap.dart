@@ -385,6 +385,12 @@ class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage>
     _watchlistService.toggleWatchlist();
   }
 
+  void _closeWatchlist() {
+    if (_watchlistService.isWatchlistOpen.value) {
+      _watchlistService.closeWatchlist();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -439,7 +445,7 @@ class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage>
             }
             return Positioned.fill(
               child: GestureDetector(
-                onTap: _toggleWatchlist,
+                onTap: _closeWatchlist,
                 child: Container(
                   color: Colors.black.withOpacity(0.3),
                   child: Row(
@@ -449,7 +455,7 @@ class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage>
                         onTap: () {},
                         child: WatchlistSidebar(
                           isDarkMode: isDarkMode,
-                          onClose: _toggleWatchlist,
+                          onClose: _closeWatchlist,
                         ),
                       ),
                     ],
@@ -477,6 +483,13 @@ class EtfHeatmapFullScreenPage extends StatefulWidget {
 class _EtfHeatmapFullScreenPageState extends State<EtfHeatmapFullScreenPage> {
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   void _toggleWatchlist() => _watchlistService.toggleWatchlist();
+
+  void _closeWatchlist() {
+    if (_watchlistService.isWatchlistOpen.value) {
+      _watchlistService.closeWatchlist();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -518,35 +531,23 @@ class _EtfHeatmapFullScreenPageState extends State<EtfHeatmapFullScreenPage> {
             }
             return Positioned.fill(
               child: GestureDetector(
-                onTap: _toggleWatchlist,
+                onTap: _closeWatchlist,
                 child: Container(
                   color: Colors.black.withOpacity(0.3),
                   child: Row(children: [
                     Expanded(child: Container()),
                     GestureDetector(
                       onTap: () {},
-                      child: WatchlistSidebar(isDarkMode: isDarkMode, onClose: _toggleWatchlist),
+                      child: WatchlistSidebar(
+                        isDarkMode: isDarkMode,
+                        onClose: _closeWatchlist,
+                      ),
                     ),
                   ]),
                 ),
               ),
             );
           }),
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleWatchlist,
-                child: Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Row(children: [
-                    Expanded(child: Container()),
-                    GestureDetector(
-                      onTap: () {},
-                      child: WatchlistSidebar(isDarkMode: isDarkMode, onClose: _toggleWatchlist),
-                    ),
-                  ]),
-                ),
-              ),
-            ),
         ]),
       ),
     );
@@ -701,6 +702,13 @@ class CryptoHeatmapFullScreenPage extends StatefulWidget {
 class _CryptoHeatmapFullScreenPageState extends State<CryptoHeatmapFullScreenPage> {
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   void _toggleWatchlist() => _watchlistService.toggleWatchlist();
+
+  void _closeWatchlist() {
+    if (_watchlistService.isWatchlistOpen.value) {
+      _watchlistService.closeWatchlist();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -742,35 +750,23 @@ class _CryptoHeatmapFullScreenPageState extends State<CryptoHeatmapFullScreenPag
             }
             return Positioned.fill(
               child: GestureDetector(
-                onTap: _toggleWatchlist,
+                onTap: _closeWatchlist,
                 child: Container(
                   color: Colors.black.withOpacity(0.3),
                   child: Row(children: [
                     Expanded(child: Container()),
                     GestureDetector(
                       onTap: () {},
-                      child: WatchlistSidebar(isDarkMode: isDarkMode, onClose: _toggleWatchlist),
+                      child: WatchlistSidebar(
+                        isDarkMode: isDarkMode,
+                        onClose: _closeWatchlist,
+                      ),
                     ),
                   ]),
                 ),
               ),
             );
           }),
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleWatchlist,
-                child: Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Row(children: [
-                    Expanded(child: Container()),
-                    GestureDetector(
-                      onTap: () {},
-                      child: WatchlistSidebar(isDarkMode: isDarkMode, onClose: _toggleWatchlist),
-                    ),
-                  ]),
-                ),
-              ),
-            ),
         ]),
       ),
     );
@@ -786,6 +782,13 @@ class ForexCrossRatesFullScreenPage extends StatefulWidget {
 class _ForexCrossRatesFullScreenPageState extends State<ForexCrossRatesFullScreenPage> {
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   void _toggleWatchlist() => _watchlistService.toggleWatchlist();
+
+  void _closeWatchlist() {
+    if (_watchlistService.isWatchlistOpen.value) {
+      _watchlistService.closeWatchlist();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -827,14 +830,17 @@ class _ForexCrossRatesFullScreenPageState extends State<ForexCrossRatesFullScree
             }
             return Positioned.fill(
               child: GestureDetector(
-                onTap: _toggleWatchlist,
+                onTap: _closeWatchlist,
                 child: Container(
                   color: Colors.black.withOpacity(0.3),
                   child: Row(children: [
                     Expanded(child: Container()),
                     GestureDetector(
                       onTap: () {},
-                      child: WatchlistSidebar(isDarkMode: isDarkMode, onClose: _toggleWatchlist),
+                      child: WatchlistSidebar(
+                        isDarkMode: isDarkMode,
+                        onClose: _closeWatchlist,
+                      ),
                     ),
                   ]),
                 ),

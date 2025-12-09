@@ -125,6 +125,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         debugPrint('Typesense response: found=${decoded['found']}, hits=${decoded['hits']?.length ?? 0}');
+        if (!mounted) return;
         setState(() {
           _tradingChartTicker = Tickerformat.fromJson(decoded);
         });
@@ -211,6 +212,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
           onWebResourceError: (error) {
             debugPrint('WebView resource error: ${error.description}, URL: ${error.url}');
             // If there's an error, fall back to alternative display
+            if (!mounted) return;
             setState(() {
               _isWebViewSupported = false;
             });
@@ -242,6 +244,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
       debugPrint('WebView initialized successfully');
     } catch (e) {
       debugPrint('Error initializing WebView: $e');
+      if (!mounted) return;
       setState(() {
         _isWebViewSupported = false;
       });
@@ -261,6 +264,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
       }
     } catch (e) {
       debugPrint('Error loading HTML content: $e');
+      if (!mounted) return;
       setState(() {
         _isWebViewSupported = false;
       });
@@ -268,6 +272,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   }
 
   void _onPageFinished() {
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });

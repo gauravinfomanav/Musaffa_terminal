@@ -140,7 +140,7 @@ class CreateTradingIdeaRequest {
 /// Controller responsible for fetching and creating trading ideas
 class TradingIdeasController extends GetxController {
   TradingIdeasController({String? baseUrl})
-      : _baseUrl = baseUrl ?? 'http://localhost:3000';
+      : _baseUrl = baseUrl ?? 'https://terminal.musaffa.us';
 
   final String _baseUrl;
   final RxList<TradingIdea> ideas = <TradingIdea>[].obs;

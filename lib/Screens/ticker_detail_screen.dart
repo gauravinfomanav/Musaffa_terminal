@@ -52,6 +52,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   double? _livePrice;
   double? _previousPrice;
   StreamSubscription<Map<String, LivePriceData>>? _priceStreamSubscription;
+  StreamSubscription? _stockDataSubscription;
+  StreamSubscription? _watchlistStocksSubscription;
+  bool _isDisposing = false;
 
   @override
   void initState() {
@@ -66,7 +69,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     _webSocketService = Get.find<WebSocketService>();
     
     // Listen to watchlist changes to update button state
-    watchlistController.watchlistStocks.listen((_) {
+    _watchlistStocksSubscription =
+        watchlistController.watchlistStocks.listen((_) {
       _checkIfStockInWatchlist();
     });
     
@@ -85,8 +89,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   
   void _setupLivePrices(String ticker) {
     // Store initial price from Typesense
-    controller.stockData.listen((stockData) {
+    _stockDataSubscription?.cancel();
+    _stockDataSubscription = controller.stockData.listen((stockData) {
       if (stockData != null && stockData.currentPrice != null) {
+        if (!mounted || _isDisposing) return;
         if (mounted) {
           setState(() {
             _previousPrice = stockData.currentPrice!.toDouble();
@@ -104,6 +110,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     _priceStreamSubscription?.cancel();
     _priceStreamSubscription = _webSocketService.priceStream.listen(
       (livePrices) {
+        if (!mounted || _isDisposing) return;
         if (mounted) {
           final livePriceData = livePrices[ticker];
           if (livePriceData != null) {
@@ -122,7 +129,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
   @override
   void dispose() {
+    _isDisposing = true;
     _priceStreamSubscription?.cancel();
+    _stockDataSubscription?.cancel();
+    _watchlistStocksSubscription?.cancel();
     final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
     if (ticker.isNotEmpty) {
       _livePriceService.removeVisibleTickers([ticker]);
@@ -172,6 +182,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       }
     }
     
+    if (!mounted || _isDisposing) return;
     if (mounted) {
       setState(() {
         _isInWatchlist = isInCurrentWatchlist || isInAnyWatchlist;
