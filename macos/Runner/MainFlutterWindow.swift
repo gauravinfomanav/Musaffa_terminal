@@ -58,4 +58,21 @@ class MainFlutterWindow: NSWindow {
     // Check specific error types
     
   }
+  
+  // Override performClose to intercept Cmd+W
+  override func performClose(_ sender: Any?) {
+    // Don't close the window, let Flutter handle Cmd+W for watchlist toggle
+    // If you want to close the window, call super.performClose(sender)
+  }
+  
+  // Override keyDown to handle Cmd+W before it triggers window closing
+  override func keyDown(with event: NSEvent) {
+    // Check for Cmd+W
+    if event.modifierFlags.contains(.command) && event.keyCode == 13 { // 13 is 'W' key
+      // Send the event to Flutter to handle
+      self.contentViewController?.keyDown(with: event)
+      return
+    }
+    super.keyDown(with: event)
+  }
 }

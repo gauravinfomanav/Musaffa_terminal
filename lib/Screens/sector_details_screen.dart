@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/services/sector_mapping_service.dart';
@@ -25,7 +26,7 @@ class SectorDetailsScreen extends StatefulWidget {
 class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   late WatchlistController watchlistController;
   late SectorStocksController sectorStocksController;
-  bool _isWatchlistOpen = false;
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   List<String>? _mappedSectors;
 
   @override
@@ -63,14 +64,10 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   }
 
   void _toggleWatchlist() {
-    setState(() {
-      _isWatchlistOpen = !_isWatchlistOpen;
-      
-      // When opening the watchlist, reset to default watchlist
-      if (_isWatchlistOpen) {
-        watchlistController.resetToDefaultWatchlist();
-      }
-    });
+    if (!_watchlistService.isWatchlistOpen.value) {
+      watchlistController.resetToDefaultWatchlist();
+    }
+    _watchlistService.toggleWatchlist();
   }
 
   Widget _buildCombinedMetricsContainer() {
@@ -994,19 +991,17 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           : const Color(0xFFFAFAFA),
       body: GestureDetector(
         onTap: () {
-          if (_isWatchlistOpen) {
-            setState(() {
-              _isWatchlistOpen = false;
-            });
+          if (_watchlistService.isWatchlistOpen.value) {
+            _watchlistService.closeWatchlist();
           }
         },
         child: Stack(
           children: [
             Column(
               children: [
-                HomeTabBar(
+                Obx(() => HomeTabBar(
                   showBackButton: true,
-                  isWatchlistOpen: _isWatchlistOpen,
+                  isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
                   onWatchlistToggle: _toggleWatchlist,
                   onThemeToggle: () {
                     final currentTheme = Theme.of(context).brightness;
@@ -1016,7 +1011,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                           : ThemeMode.dark,
                     );
                   },
-                ),
+                )),
               Expanded(
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
@@ -1101,8 +1096,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             ],
           ),
             // Watchlist Sidebar
-            if (_isWatchlistOpen)
-              Positioned(
+            Obx(() {
+              if (!_watchlistService.isWatchlistOpen.value) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
                 right: 0,
                 top: 0,
                 bottom: 0,
@@ -1110,10 +1108,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   onTap: () {}, // Prevent closing when tapping on sidebar itself
                   child: WatchlistSidebar(
                     isDarkMode: isDarkMode,
-                    onClose: () => setState(() => _isWatchlistOpen = false),
+                    onClose: () => _watchlistService.closeWatchlist(),
                   ),
                 ),
-              ),
+              );
+            }),
               // Global FAB Overlay
               const GlobalFABOverlay(),
           ],

@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Screens/main_screen.dart';
 import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
 import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/utils/global_keyboard_shortcuts.dart';
 import 'services/websocket_service.dart';
 import 'services/live_price_service.dart';
 import 'services/fcm_service.dart';
@@ -23,19 +24,21 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Infomanav Terminal',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.light,
+    return GlobalKeyboardShortcutsWrapper(
+      child: GetMaterialApp(
+        title: 'Infomanav Terminal',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          brightness: Brightness.light,
+        ),
+        darkTheme: ThemeData(
+          primarySwatch: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        themeMode: ThemeMode.light, // Set default to light mode
+        home: const MainScreen(),
+        initialBinding: AppBinding(),
       ),
-      darkTheme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.dark,
-      ),
-      themeMode: ThemeMode.light, // Set default to light mode
-      home: const MainScreen(),
-      initialBinding: AppBinding(),
     );
   }
 }

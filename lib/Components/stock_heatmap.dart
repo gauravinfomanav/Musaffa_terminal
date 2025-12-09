@@ -3,6 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -378,12 +379,10 @@ class StockHeatmapFullScreenPage extends StatefulWidget {
 }
 
 class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage> {
-  bool _isWatchlistOpen = false;
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
 
   void _toggleWatchlist() {
-    setState(() {
-      _isWatchlistOpen = !_isWatchlistOpen;
-    });
+    _watchlistService.toggleWatchlist();
   }
 
   @override
@@ -393,19 +392,17 @@ class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage>
       backgroundColor: isDarkMode ? const Color(0xFF0F1115) : Colors.white,
       body: GestureDetector(
         onTap: () {
-          if (_isWatchlistOpen) {
-            setState(() {
-              _isWatchlistOpen = false;
-            });
+          if (_watchlistService.isWatchlistOpen.value) {
+            _watchlistService.closeWatchlist();
           }
         },
         child: Stack(
         children: [
           Column(
             children: [
-              HomeTabBar(
+              Obx(() => HomeTabBar(
                 showBackButton: true,
-                isWatchlistOpen: _isWatchlistOpen,
+                isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
                 onWatchlistToggle: _toggleWatchlist,
                 onThemeToggle: () {
                   final currentTheme = Theme.of(context).brightness;
@@ -413,7 +410,7 @@ class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage>
                     currentTheme == Brightness.dark ? ThemeMode.light : ThemeMode.dark,
                   );
                 },
-              ),
+              )),
               // Heatmap fills remaining height below the tab bar
               Expanded(
                 child: LayoutBuilder(
@@ -436,8 +433,11 @@ class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage>
           ),
 
           // Watchlist sidebar overlay
-          if (_isWatchlistOpen)
-            Positioned.fill(
+          Obx(() {
+            if (!_watchlistService.isWatchlistOpen.value) {
+              return const SizedBox.shrink();
+            }
+            return Positioned.fill(
               child: GestureDetector(
                 onTap: _toggleWatchlist,
                 child: Container(
@@ -456,7 +456,8 @@ class _StockHeatmapFullScreenPageState extends State<StockHeatmapFullScreenPage>
                   ),
                 ),
               ),
-            ),
+            );
+          }),
         ],
         ),
       ),
@@ -474,26 +475,26 @@ class EtfHeatmapFullScreenPage extends StatefulWidget {
 }
 
 class _EtfHeatmapFullScreenPageState extends State<EtfHeatmapFullScreenPage> {
-  bool _isWatchlistOpen = false;
-  void _toggleWatchlist() => setState(() => _isWatchlistOpen = !_isWatchlistOpen);
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
+  void _toggleWatchlist() => _watchlistService.toggleWatchlist();
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: isDarkMode ? const Color(0xFF0F1115) : Colors.white,
       body: GestureDetector(
-        onTap: () { if (_isWatchlistOpen) setState(() => _isWatchlistOpen = false); },
+        onTap: () { if (_watchlistService.isWatchlistOpen.value) _watchlistService.closeWatchlist(); },
         child: Stack(children: [
           Column(children: [
-            HomeTabBar(
+            Obx(() => HomeTabBar(
               showBackButton: true,
-              isWatchlistOpen: _isWatchlistOpen,
+              isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
               onWatchlistToggle: _toggleWatchlist,
               onThemeToggle: () {
                 final currentTheme = Theme.of(context).brightness;
                 Get.changeThemeMode(currentTheme == Brightness.dark ? ThemeMode.light : ThemeMode.dark);
               },
-            ),
+            )),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -511,7 +512,26 @@ class _EtfHeatmapFullScreenPageState extends State<EtfHeatmapFullScreenPage> {
               ),
             ),
           ]),
-          if (_isWatchlistOpen)
+          Obx(() {
+            if (!_watchlistService.isWatchlistOpen.value) {
+              return const SizedBox.shrink();
+            }
+            return Positioned.fill(
+              child: GestureDetector(
+                onTap: _toggleWatchlist,
+                child: Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: Row(children: [
+                    Expanded(child: Container()),
+                    GestureDetector(
+                      onTap: () {},
+                      child: WatchlistSidebar(isDarkMode: isDarkMode, onClose: _toggleWatchlist),
+                    ),
+                  ]),
+                ),
+              ),
+            );
+          }),
             Positioned.fill(
               child: GestureDetector(
                 onTap: _toggleWatchlist,
@@ -679,26 +699,26 @@ class CryptoHeatmapFullScreenPage extends StatefulWidget {
 }
 
 class _CryptoHeatmapFullScreenPageState extends State<CryptoHeatmapFullScreenPage> {
-  bool _isWatchlistOpen = false;
-  void _toggleWatchlist() => setState(() => _isWatchlistOpen = !_isWatchlistOpen);
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
+  void _toggleWatchlist() => _watchlistService.toggleWatchlist();
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: isDarkMode ? const Color(0xFF0F1115) : Colors.white,
       body: GestureDetector(
-        onTap: () { if (_isWatchlistOpen) setState(() => _isWatchlistOpen = false); },
+        onTap: () { if (_watchlistService.isWatchlistOpen.value) _watchlistService.closeWatchlist(); },
         child: Stack(children: [
           Column(children: [
-            HomeTabBar(
+            Obx(() => HomeTabBar(
               showBackButton: true,
-              isWatchlistOpen: _isWatchlistOpen,
+              isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
               onWatchlistToggle: _toggleWatchlist,
               onThemeToggle: () {
                 final currentTheme = Theme.of(context).brightness;
                 Get.changeThemeMode(currentTheme == Brightness.dark ? ThemeMode.light : ThemeMode.dark);
               },
-            ),
+            )),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -716,7 +736,26 @@ class _CryptoHeatmapFullScreenPageState extends State<CryptoHeatmapFullScreenPag
               ),
             ),
           ]),
-          if (_isWatchlistOpen)
+          Obx(() {
+            if (!_watchlistService.isWatchlistOpen.value) {
+              return const SizedBox.shrink();
+            }
+            return Positioned.fill(
+              child: GestureDetector(
+                onTap: _toggleWatchlist,
+                child: Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: Row(children: [
+                    Expanded(child: Container()),
+                    GestureDetector(
+                      onTap: () {},
+                      child: WatchlistSidebar(isDarkMode: isDarkMode, onClose: _toggleWatchlist),
+                    ),
+                  ]),
+                ),
+              ),
+            );
+          }),
             Positioned.fill(
               child: GestureDetector(
                 onTap: _toggleWatchlist,
@@ -745,26 +784,26 @@ class ForexCrossRatesFullScreenPage extends StatefulWidget {
 }
 
 class _ForexCrossRatesFullScreenPageState extends State<ForexCrossRatesFullScreenPage> {
-  bool _isWatchlistOpen = false;
-  void _toggleWatchlist() => setState(() => _isWatchlistOpen = !_isWatchlistOpen);
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
+  void _toggleWatchlist() => _watchlistService.toggleWatchlist();
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: isDarkMode ? const Color(0xFF0F1115) : Colors.white,
       body: GestureDetector(
-        onTap: () { if (_isWatchlistOpen) setState(() => _isWatchlistOpen = false); },
+        onTap: () { if (_watchlistService.isWatchlistOpen.value) _watchlistService.closeWatchlist(); },
         child: Stack(children: [
           Column(children: [
-            HomeTabBar(
+            Obx(() => HomeTabBar(
               showBackButton: true,
-              isWatchlistOpen: _isWatchlistOpen,
+              isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
               onWatchlistToggle: _toggleWatchlist,
               onThemeToggle: () {
                 final currentTheme = Theme.of(context).brightness;
                 Get.changeThemeMode(currentTheme == Brightness.dark ? ThemeMode.light : ThemeMode.dark);
               },
-            ),
+            )),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -782,8 +821,11 @@ class _ForexCrossRatesFullScreenPageState extends State<ForexCrossRatesFullScree
               ),
             ),
           ]),
-          if (_isWatchlistOpen)
-            Positioned.fill(
+          Obx(() {
+            if (!_watchlistService.isWatchlistOpen.value) {
+              return const SizedBox.shrink();
+            }
+            return Positioned.fill(
               child: GestureDetector(
                 onTap: _toggleWatchlist,
                 child: Container(
@@ -797,7 +839,8 @@ class _ForexCrossRatesFullScreenPageState extends State<ForexCrossRatesFullScree
                   ]),
                 ),
               ),
-            ),
+            );
+          }),
         ]),
       ),
     );

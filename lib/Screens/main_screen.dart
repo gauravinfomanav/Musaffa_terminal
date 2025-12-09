@@ -12,6 +12,7 @@ import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -21,7 +22,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
-  bool _isWatchlistOpen = false;
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   bool _showSplash = true;
   late AnimationController _watchlistAnimationController;
   late Animation<Offset> _watchlistSlideAnimation;
@@ -55,6 +56,31 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic,
     ));
+    
+    // Listen to global watchlist service changes
+    _watchlistService.isWatchlistOpen.listen((isOpen) {
+      if (!mounted) return;
+      
+      if (isOpen) {
+        // Ensure animation starts from beginning
+        if (_watchlistAnimationController.isCompleted) {
+          _watchlistAnimationController.reset();
+        } else if (!_watchlistAnimationController.isAnimating && _watchlistAnimationController.value != 0.0) {
+          _watchlistAnimationController.reset();
+        }
+        // Wait for widget to be in tree, then animate in
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _watchlistService.isWatchlistOpen.value) {
+            _watchlistAnimationController.forward();
+          }
+        });
+      } else {
+        // Reverse animation when closing
+        if (_watchlistAnimationController.value > 0.0 && !_watchlistAnimationController.isAnimating) {
+          _watchlistAnimationController.reverse();
+        }
+      }
+    });
   }
 
   void _hideSplash() async {
@@ -73,30 +99,20 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   }
 
   void _toggleWatchlist() {
-    if (_isWatchlistOpen) {
-      // Closing: animate out first, then remove widget
+    final watchlistController = Get.find<WatchlistController>();
+    
+    if (_watchlistService.isWatchlistOpen.value) {
+      // Closing: animate out first, then close
       _watchlistAnimationController.reverse().then((_) {
         if (mounted) {
-          setState(() {
-            _isWatchlistOpen = false;
-          });
+          _watchlistService.closeWatchlist();
         }
       });
     } else {
-      // Opening: add widget first, then animate in
-      setState(() {
-        _isWatchlistOpen = true;
-        final watchlistController = Get.find<WatchlistController>();
-        watchlistController.resetToDefaultWatchlist();
-      });
-      // Reset animation to start position, then animate in
-      _watchlistAnimationController.reset();
-      // Start animation after widget is in tree
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _isWatchlistOpen) {
-          _watchlistAnimationController.forward();
-        }
-      });
+      // Opening: reset to default watchlist first
+      watchlistController.resetToDefaultWatchlist();
+      // Then open (animation will sync via listener)
+      _watchlistService.openWatchlist();
     }
   }
 
@@ -113,8 +129,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 // Main content
                 Column(
                   children: [
-                    HomeTabBar(
-                      isWatchlistOpen: _isWatchlistOpen,
+                    Obx(() => HomeTabBar(
+                      isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
                       onWatchlistToggle: _toggleWatchlist,
                       onThemeToggle: () {
                         final currentTheme = Theme.of(context).brightness;
@@ -124,14 +140,17 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                               : ThemeMode.dark,
                         );
                       },
-                    ),
+                    )),
                     Expanded(
                       child: _buildResponsiveMainContent(constraints),
                     ),
                   ],
                 ),
-                if (_isWatchlistOpen)
-                  Positioned.fill(
+                Obx(() {
+                  if (!_watchlistService.isWatchlistOpen.value) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned.fill(
                     child: GestureDetector(
                       onTap: _toggleWatchlist,
                       child: Container(
@@ -152,7 +171,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                         ),
                       ),
                     ),
-                  ),
+                  );
+                }),
               // Splash overlay
               if (_showSplash)
                 Positioned.fill(

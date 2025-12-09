@@ -13,6 +13,7 @@ import 'package:musaffa_terminal/models/etfs_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 
 class EtfDetailsScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -30,7 +31,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   late WatchlistController watchlistController;
   late EtfDetailsController controller;
   late TradingViewController tradingViewController;
-  bool _isWatchlistOpen = false;
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
 
   @override
   void initState() {
@@ -53,15 +54,10 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   }
 
   void _toggleWatchlist() {
-    setState(() {
-      _isWatchlistOpen = !_isWatchlistOpen;
-      
-      // When opening the watchlist, reset to default watchlist
-      if (_isWatchlistOpen) {
-        final watchlistController = Get.find<WatchlistController>();
-        watchlistController.resetToDefaultWatchlist();
-      }
-    });
+    if (!_watchlistService.isWatchlistOpen.value) {
+      watchlistController.resetToDefaultWatchlist();
+    }
+    _watchlistService.toggleWatchlist();
   }
 
   String _formatSymbolForTradingView(EtfsData etfData) {
@@ -90,9 +86,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
         children: [
           Column(
             children: [
-              HomeTabBar(
+              Obx(() => HomeTabBar(
                 showBackButton: true,
-                isWatchlistOpen: _isWatchlistOpen,
+                isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
                 onWatchlistToggle: _toggleWatchlist,
                 onThemeToggle: () {
                   final currentTheme = Theme.of(context).brightness;
@@ -102,7 +98,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                         : ThemeMode.dark,
                   );
                 },
-              ),
+              )),
               
               Expanded(
                 child: Obx(() {
@@ -143,8 +139,11 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           ),
           
           // Watchlist sidebar overlay
-          if (_isWatchlistOpen)
-            Positioned.fill(
+          Obx(() {
+            if (!_watchlistService.isWatchlistOpen.value) {
+              return const SizedBox.shrink();
+            }
+            return Positioned.fill(
               child: GestureDetector(
                 onTap: _toggleWatchlist,
                 child: Container(
@@ -165,7 +164,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   ),
                 ),
               ),
-            ),
+            );
+          }),
           // Global FAB Overlay
           const GlobalFABOverlay(),
         ],

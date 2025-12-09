@@ -20,6 +20,7 @@ import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/live_price_service.dart';
 import 'package:musaffa_terminal/services/websocket_service.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/models/live_price_model.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'dart:async';
@@ -42,8 +43,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late ResearchNotesController researchNotesController;
   late LivePriceService _livePriceService;
   late WebSocketService _webSocketService;
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
-  bool _isWatchlistOpen = false;
   bool _isInWatchlist = false;
   bool _isNotesPanelOpen = false;
   
@@ -144,14 +145,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   }
 
   void _toggleWatchlist() {
-    setState(() {
-      _isWatchlistOpen = !_isWatchlistOpen;
-      
-      // When opening the watchlist, reset to default watchlist
-      if (_isWatchlistOpen) {
-        watchlistController.resetToDefaultWatchlist();
-      }
-    });
+    // When opening the watchlist, reset to default watchlist
+    if (!_watchlistService.isWatchlistOpen.value) {
+      watchlistController.resetToDefaultWatchlist();
+    }
+    _watchlistService.toggleWatchlist();
   }
 
   void _checkIfStockInWatchlist() {
@@ -202,9 +200,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         children: [
           Column(
             children: [
-              HomeTabBar(
+              Obx(() => HomeTabBar(
                 showBackButton: true,
-                isWatchlistOpen: _isWatchlistOpen,
+                isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
                 onWatchlistToggle: _toggleWatchlist,
                 onThemeToggle: () {
                   final currentTheme = Theme.of(context).brightness;
@@ -214,7 +212,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                         : ThemeMode.dark,
                   );
                 },
-              ),
+              )),
               
               // Action Buttons
               Container(
@@ -350,8 +348,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           ),
           
           // Watchlist sidebar overlay - positioned relative to entire screen
-          if (_isWatchlistOpen)
-            Positioned.fill(
+          Obx(() {
+            if (!_watchlistService.isWatchlistOpen.value) {
+              return const SizedBox.shrink();
+            }
+            return Positioned.fill(
               child: GestureDetector(
                 onTap: _toggleWatchlist, // Close when tapping outside
                 child: Container(
@@ -372,7 +373,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   ),
                 ),
               ),
-            ),
+            );
+          }),
           // Global FAB Overlay
           const GlobalFABOverlay(),
         ],

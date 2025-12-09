@@ -8,6 +8,7 @@ import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/Controllers/portfolio_controller.dart';
 import 'package:musaffa_terminal/models/portfolio_model.dart';
 import 'package:musaffa_terminal/Screens/portfolio_builder_form.dart';
@@ -21,7 +22,7 @@ class PortfolioIdeaScreen extends StatefulWidget {
 
 class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTickerProviderStateMixin {
   late final WatchlistController _watchlistController;
-  bool _isWatchlistOpen = false;
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   bool _isNewIdeaExpanded = false;
   late TabController _tabController;
   int _selectedTabIndex = 0;
@@ -60,12 +61,10 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
   }
 
   void _toggleWatchlist() {
-    setState(() {
-      _isWatchlistOpen = !_isWatchlistOpen;
-      if (_isWatchlistOpen) {
-        _watchlistController.resetToDefaultWatchlist();
-      }
-    });
+    if (!_watchlistService.isWatchlistOpen.value) {
+      _watchlistController.resetToDefaultWatchlist();
+    }
+    _watchlistService.toggleWatchlist();
   }
 
   void _toggleNewIdeaForm() {
@@ -82,17 +81,17 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
       backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA),
       body: GestureDetector(
         onTap: () {
-          if (_isWatchlistOpen) {
-            setState(() => _isWatchlistOpen = false);
+          if (_watchlistService.isWatchlistOpen.value) {
+            _watchlistService.closeWatchlist();
           }
         },
         child: Stack(
           children: [
             Column(
               children: [
-                HomeTabBar(
+                Obx(() => HomeTabBar(
                   showBackButton: true,
-                  isWatchlistOpen: _isWatchlistOpen,
+                  isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
                   onWatchlistToggle: _toggleWatchlist,
                   onThemeToggle: () {
                     final currentTheme = Theme.of(context).brightness;
@@ -102,7 +101,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
                           : ThemeMode.dark,
                     );
                   },
-                ),
+                )),
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
@@ -122,8 +121,11 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
                 ),
               ],
             ),
-            if (_isWatchlistOpen)
-              Positioned(
+            Obx(() {
+              if (!_watchlistService.isWatchlistOpen.value) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
                 right: 0,
                 top: 0,
                 bottom: 0,
@@ -131,10 +133,11 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
                   onTap: () {},
                   child: WatchlistSidebar(
                     isDarkMode: isDark,
-                    onClose: () => setState(() => _isWatchlistOpen = false),
+                    onClose: () => _watchlistService.closeWatchlist(),
                   ),
                 ),
-              ),
+              );
+            }),
               // Global FAB Overlay
               const GlobalFABOverlay(),
           ],

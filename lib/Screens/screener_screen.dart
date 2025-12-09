@@ -9,6 +9,7 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/Controllers/filter_controller.dart';
 import 'package:musaffa_terminal/Controllers/screener_strategy_controller.dart';
 import 'package:musaffa_terminal/models/filter_config.dart';
@@ -26,7 +27,7 @@ class ScreenerScreen extends StatefulWidget {
 }
 
 class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
-  bool _isWatchlistOpen = false;
+  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
   late TabController _tabController;
   String _selectedCategory = "Descriptive";
   late FilterController filterController;
@@ -146,14 +147,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   bool get wantKeepAlive => true;
 
   void _toggleWatchlist() {
-    setState(() {
-      _isWatchlistOpen = !_isWatchlistOpen;
-      
-      if (_isWatchlistOpen) {
-        final watchlistController = Get.find<WatchlistController>();
-        watchlistController.resetToDefaultWatchlist();
-      }
-    });
+    if (!_watchlistService.isWatchlistOpen.value) {
+      final watchlistController = Get.find<WatchlistController>();
+      watchlistController.resetToDefaultWatchlist();
+    }
+    _watchlistService.toggleWatchlist();
   }
 
   void _applyFilters() {
@@ -351,21 +349,19 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         builder: (context, constraints) {
           return GestureDetector(
             onTap: () {
-              if (_isWatchlistOpen) {
-                setState(() {
-                  _isWatchlistOpen = false;
-                });
+              if (_watchlistService.isWatchlistOpen.value) {
+                _watchlistService.closeWatchlist();
               }
             },
             child: Stack(
               children: [
                 Column(
                   children: [
-                    HomeTabBar(
+                    Obx(() => HomeTabBar(
                       showBackButton: true,
                       onWatchlistToggle: _toggleWatchlist,
-                      isWatchlistOpen: _isWatchlistOpen,
-                    ),
+                      isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
+                    )),
                   
                   Expanded(
                     child: SingleChildScrollView(
@@ -396,8 +392,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                 ],
               ),
               
-                if (_isWatchlistOpen)
-                  Positioned(
+                Obx(() {
+                  if (!_watchlistService.isWatchlistOpen.value) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned(
                     right: 0,
                     top: 0,
                     bottom: 0,
@@ -405,10 +404,11 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
                       onTap: () {}, // Prevent closing when tapping on sidebar itself
                       child: WatchlistSidebar(
                         isDarkMode: isDarkMode,
-                        onClose: () => setState(() => _isWatchlistOpen = false),
+                        onClose: () => _watchlistService.closeWatchlist(),
                       ),
                     ),
-                  ),
+                  );
+                }),
                 // Global FAB Overlay
                 const GlobalFABOverlay(),
               ],
