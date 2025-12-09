@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.
 import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
+import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
 import 'package:musaffa_terminal/utils/global_keyboard_shortcuts.dart';
 import 'services/websocket_service.dart';
 import 'services/live_price_service.dart';
@@ -56,6 +57,8 @@ class AppBinding extends Bindings {
     Get.put<GlobalWatchlistService>(GlobalWatchlistService(), permanent: true);
     // Initialize global search service
     Get.put<GlobalSearchService>(GlobalSearchService(), permanent: true);
+    // Initialize table column preferences service
+    Get.put<TableColumnPreferencesService>(TableColumnPreferencesService(), permanent: true);
     // Initialize notes controller
     Get.put<NotesController>(NotesController(), permanent: true);
   }

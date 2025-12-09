@@ -8,6 +8,7 @@ import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/live_price_model.dart';
 import 'package:musaffa_terminal/services/live_price_service.dart';
 import 'package:musaffa_terminal/services/websocket_service.dart';
+import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
@@ -114,6 +115,8 @@ class DynamicTable extends StatefulWidget {
     this.oddRowColor,
     this.onDragStarted,
     this.onDragEnd,
+    this.tableId,
+    this.enableColumnCustomization = false,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -130,6 +133,8 @@ class DynamicTable extends StatefulWidget {
   final Color? oddRowColor;
   final VoidCallback? onDragStarted;
   final VoidCallback? onDragEnd;
+  final String? tableId; // Unique identifier for this table instance
+  final bool enableColumnCustomization; // Enable column customization features
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -150,6 +155,12 @@ class _DynamicTableState extends State<DynamicTable> {
   StreamSubscription<Map<String, dynamic>>? _priceStreamSubscription;
   int _updateCounter = 0;
   Color? _defaultTextColor; // Store default text color to avoid context access during dispose
+  
+  // Column customization
+  List<SimpleColumn> _customizedColumns = [];
+  TableColumnPreferencesService? _prefsService;
+  int? _draggedColumnIndex;
+  int? _dropTargetIndex;
 
   @override
   void initState() {
@@ -162,6 +173,13 @@ class _DynamicTableState extends State<DynamicTable> {
       }
     });
     
+    // Initialize column customization
+    if (widget.enableColumnCustomization && widget.tableId != null) {
+      _initializeColumnCustomization();
+    } else {
+      _customizedColumns = List.from(widget.columns);
+    }
+    
     // Initialize live price services
     if (widget.enableLivePrices) {
       _livePriceService = Get.find<LivePriceService>();
@@ -170,6 +188,71 @@ class _DynamicTableState extends State<DynamicTable> {
     }
     
     super.initState();
+  }
+  
+  void _initializeColumnCustomization() {
+    if (widget.tableId == null) return;
+    
+    _prefsService = Get.find<TableColumnPreferencesService>();
+    final prefs = _prefsService!.getColumnPreferences(widget.tableId!);
+    
+    if (prefs != null) {
+      // Load saved column order
+      final columnOrder = (prefs['columnOrder'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList();
+      
+      // Reorder columns based on saved order
+      if (columnOrder != null && columnOrder.isNotEmpty) {
+        _customizedColumns = [];
+        final columnMap = {for (var col in widget.columns) col.fieldName: col};
+        
+        // Add columns in saved order
+        for (var fieldName in columnOrder) {
+          if (columnMap.containsKey(fieldName)) {
+            _customizedColumns.add(columnMap[fieldName]!);
+          }
+        }
+        
+        // Add any new columns that weren't in saved order
+        for (var col in widget.columns) {
+          if (!columnOrder.contains(col.fieldName)) {
+            _customizedColumns.add(col);
+          }
+        }
+      } else {
+        _customizedColumns = List.from(widget.columns);
+      }
+    } else {
+      // No saved preferences, use defaults
+      _customizedColumns = List.from(widget.columns);
+    }
+  }
+  
+  Future<void> _saveColumnPreferences() async {
+    if (widget.tableId == null || _prefsService == null) return;
+    
+    // Save all columns as visible (no hide functionality)
+    final visibleColumns = _customizedColumns.map((col) => col.fieldName).toList();
+    final columnOrder = _customizedColumns.map((col) => col.fieldName).toList();
+    
+    await _prefsService!.saveColumnPreferences(
+      widget.tableId!,
+      visibleColumns,
+      columnOrder,
+    );
+  }
+  
+  void _onColumnReordered(int oldIndex, int newIndex) {
+    if (oldIndex == newIndex) return;
+    
+    setState(() {
+      final column = _customizedColumns.removeAt(oldIndex);
+      _customizedColumns.insert(newIndex, column);
+    });
+    
+    // Save preferences automatically
+    _saveColumnPreferences();
   }
 
   @override
@@ -405,8 +488,14 @@ class _DynamicTableState extends State<DynamicTable> {
       ));
     }
 
+    // Use customized columns if customization is enabled, otherwise use original
+    final columnsToUse = widget.enableColumnCustomization 
+        ? _customizedColumns
+        : widget.columns;
+
     // Dynamic columns
-    widget.columns.forEach((column) {
+    for (int index = 0; index < columnsToUse.length; index++) {
+      final column = columnsToUse[index];
       // Check if this is a price column that needs fixed width
       final isPriceColumn = column.fieldName == 'price' || 
                            column.fieldName == 'currentPrice' || 
@@ -428,7 +517,6 @@ class _DynamicTableState extends State<DynamicTable> {
         ),
       );
       
-      
       if (isPriceColumn) {
         headerLabel = SizedBox(
           width: 65,
@@ -444,11 +532,19 @@ class _DynamicTableState extends State<DynamicTable> {
         );
       }
       
+      // Make header draggable if customization is enabled
+      if (widget.enableColumnCustomization) {
+        headerLabel = _buildDraggableColumnHeader(
+          headerLabel: headerLabel,
+          columnIndex: index,
+        );
+      }
+      
       var dataColumn = DataColumn(
         label: headerLabel,
       );
       lst.add(dataColumn);
-    });
+    }
 
     setState(() {
       dataCols = lst;
@@ -470,7 +566,7 @@ class _DynamicTableState extends State<DynamicTable> {
           horizontal: widget.considerPadding == true ? 16 : 0),
       child: Row(
         children: [
-          if (widget.showFixedColumn)
+              if (widget.showFixedColumn)
             // Use fixed pixel width if provided and > 10, otherwise use flex
             widget.fixedColumnWidth != null && widget.fixedColumnWidth! > 10
                 ? SizedBox(
@@ -602,6 +698,106 @@ class _DynamicTableState extends State<DynamicTable> {
           ),
         ],
       ),
+    );
+  }
+  
+  Widget _buildDraggableColumnHeader({
+    required Widget headerLabel,
+    required int columnIndex,
+  }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDragging = _draggedColumnIndex == columnIndex;
+    
+    return DragTarget<int>(
+      onWillAccept: (data) {
+        if (data == null) return false;
+        setState(() {
+          _dropTargetIndex = columnIndex;
+        });
+        return true;
+      },
+      onLeave: (data) {
+        setState(() {
+          _dropTargetIndex = null;
+        });
+      },
+      onAccept: (draggedIndex) {
+        if (draggedIndex != columnIndex) {
+          _onColumnReordered(draggedIndex, columnIndex);
+        }
+        setState(() {
+          _draggedColumnIndex = null;
+          _dropTargetIndex = null;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isDropTarget = _dropTargetIndex == columnIndex && candidateData.isNotEmpty;
+        
+        return Stack(
+          children: [
+            if (isDropTarget)
+              Positioned.fill(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(
+                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Draggable<int>(
+              data: columnIndex,
+              feedback: Material(
+                elevation: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+                      width: 1,
+                    ),
+                  ),
+                  child: headerLabel,
+                ),
+              ),
+              childWhenDragging: Opacity(
+                opacity: 0.3,
+                child: headerLabel,
+              ),
+              onDragStarted: () {
+                setState(() {
+                  _draggedColumnIndex = columnIndex;
+                });
+              },
+              onDragEnd: (details) {
+                setState(() {
+                  _draggedColumnIndex = null;
+                  _dropTargetIndex = null;
+                });
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.grab,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: isDragging 
+                        ? (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7))
+                        : Colors.transparent,
+                  ),
+                  child: headerLabel,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -784,8 +980,13 @@ class _DynamicTableState extends State<DynamicTable> {
       }
 
       // Dynamic column cells
-      if (widget.columns.isNotEmpty) {
-        widget.columns.forEach((column) {
+      // Use customized columns if customization is enabled, otherwise use original
+      final columnsToUse = widget.enableColumnCustomization 
+          ? _customizedColumns
+          : widget.columns;
+      
+      if (columnsToUse.isNotEmpty) {
+        columnsToUse.forEach((column) {
           final fieldValue = rowModel.fields[column.fieldName];
           
           DataCell cell;

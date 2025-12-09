@@ -817,6 +817,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           Padding(
             padding: const EdgeInsets.all(12),
             child: DynamicTable(
+              tableId: 'sector_details_stocks_table',
+              enableColumnCustomization: true,
               columns: const [
                 SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
                 SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
@@ -959,6 +961,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           const SizedBox(height: 12),
           // Table
           DynamicTable(
+            tableId: 'sector_details_${title.toLowerCase().replaceAll(' ', '_')}_table',
+            enableColumnCustomization: true,
             columns: const [
               SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
               SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
