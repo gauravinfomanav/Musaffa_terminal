@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 
@@ -13,6 +14,10 @@ class ToggleWatchlistIntent extends Intent {
 
 class ToggleNotesIntent extends Intent {
   const ToggleNotesIntent();
+}
+
+class FocusSearchIntent extends Intent {
+  const FocusSearchIntent();
 }
 
 /// Global keyboard shortcuts wrapper widget
@@ -43,6 +48,13 @@ class GlobalKeyboardShortcutsWrapper extends StatelessWidget {
         if (defaultTargetPlatform != TargetPlatform.macOS)
           LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyN):
               const ToggleNotesIntent(),
+        // Cmd+F on Mac, Ctrl+F on Windows/Linux - Focus Search
+        if (defaultTargetPlatform == TargetPlatform.macOS)
+          LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyF):
+              const FocusSearchIntent(),
+        if (defaultTargetPlatform != TargetPlatform.macOS)
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
+              const FocusSearchIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -57,6 +69,13 @@ class GlobalKeyboardShortcutsWrapper extends StatelessWidget {
             onInvoke: (ToggleNotesIntent intent) {
               print('🎹 ToggleNotesIntent invoked');
               _handleToggleNotes();
+              return null;
+            },
+          ),
+          FocusSearchIntent: CallbackAction<FocusSearchIntent>(
+            onInvoke: (FocusSearchIntent intent) {
+              print('🎹 FocusSearchIntent invoked');
+              _handleFocusSearch();
               return null;
             },
           ),
@@ -83,6 +102,12 @@ class GlobalKeyboardShortcutsWrapper extends StatelessWidget {
                   : keyboard.isControlPressed && 
                     event.logicalKey == LogicalKeyboardKey.keyN;
 
+              final isSearchShortcut = isMac
+                  ? keyboard.isMetaPressed && 
+                    event.logicalKey == LogicalKeyboardKey.keyF
+                  : keyboard.isControlPressed && 
+                    event.logicalKey == LogicalKeyboardKey.keyF;
+
               if (isWatchlistShortcut) {
                 print('🎹 Cmd+W detected in onKeyEvent handler');
                 _handleToggleWatchlist();
@@ -90,6 +115,10 @@ class GlobalKeyboardShortcutsWrapper extends StatelessWidget {
               } else if (isNotesShortcut) {
                 print('🎹 Cmd+N detected in onKeyEvent handler');
                 _handleToggleNotes();
+                return KeyEventResult.handled;
+              } else if (isSearchShortcut) {
+                print('🎹 Cmd+F detected in onKeyEvent handler');
+                _handleFocusSearch();
                 return KeyEventResult.handled;
               }
             }
@@ -139,6 +168,21 @@ class GlobalKeyboardShortcutsWrapper extends StatelessWidget {
       print('✅ Notes toggled via keyboard shortcut');
     } catch (e) {
       print('❌ Error toggling notes via keyboard: $e');
+    }
+  }
+
+  static void _handleFocusSearch() {
+    try {
+      if (!Get.isRegistered<GlobalSearchService>()) {
+        print('GlobalSearchService not registered yet');
+        return;
+      }
+      
+      final searchService = Get.find<GlobalSearchService>();
+      searchService.focusSearchField();
+      print('✅ Search field focused via keyboard shortcut');
+    } catch (e) {
+      print('❌ Error focusing search field via keyboard: $e');
     }
   }
 }

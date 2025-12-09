@@ -19,6 +19,7 @@ import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/web_service.dart';
 
 
@@ -225,10 +226,18 @@ class _SearchFieldState extends State<_SearchField> {
   void initState() {
     super.initState();
     _focusNode = FocusNode();
+    // Register the focus node with global service
+    if (Get.isRegistered<GlobalSearchService>()) {
+      Get.find<GlobalSearchService>().registerSearchFocusNode(_focusNode);
+    }
   }
 
   @override
   void dispose() {
+    // Unregister the focus node
+    if (Get.isRegistered<GlobalSearchService>()) {
+      Get.find<GlobalSearchService>().unregisterSearchFocusNode();
+    }
     _searchController.dispose();
     _focusNode.dispose();
     _removeOverlay();
