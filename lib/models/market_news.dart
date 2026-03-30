@@ -29,7 +29,7 @@ class MarketNews {
     image = json['Image'];
     source = json['Source'];
     summary = json['Summary'];
-    uRL = json['URL'];
+    uRL = json['URL'] ?? json['Url'] ?? json['url'] ?? json['Link'] ?? json['link'];
     id = json['id'];
   }
 
