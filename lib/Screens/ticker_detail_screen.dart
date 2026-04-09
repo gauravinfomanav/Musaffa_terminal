@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Components/simple_news_widget.dart';
+import 'package:musaffa_terminal/Components/super_investors_section.dart';
 import 'package:musaffa_terminal/Components/recommendation_widget.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
@@ -1288,6 +1289,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               ),
                 );
               },
+            ),
+            const SizedBox(height: 16),
+            // Super Investors Section
+            SuperInvestorsSection(
+              symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
             ),
             const SizedBox(height: 16),
             // News Section

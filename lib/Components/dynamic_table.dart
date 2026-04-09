@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 // Simple data model for table rows
 class TableRowData {
@@ -42,6 +43,19 @@ class DynamicTable extends StatefulWidget {
     this.considerPadding = true,
     this.rowHeight = 64,
     this.headerHeight = 30,
+    this.headerTextColor,
+    this.cellTextColor,
+    this.nameColumnBackgroundColor,
+    this.useChangeColors = true,
+    this.nameColumnWidth,
+    this.fontFamily,
+    this.headerFontSize = 12,
+    this.cellFontSize = 12,
+    this.headerFontWeight = FontWeight.w500,
+    this.cellFontWeight = FontWeight.w500,
+    this.nameFontSize = 12,
+    this.nameFontWeight = FontWeight.w500,
+    this.disableHoverHighlight = false,
   }) : super(key: key);
 
   final List<TableColumn> columns;
@@ -51,6 +65,19 @@ class DynamicTable extends StatefulWidget {
   final bool considerPadding;
   final double rowHeight;
   final double headerHeight;
+  final Color? headerTextColor;
+  final Color? cellTextColor;
+  final Color? nameColumnBackgroundColor;
+  final bool useChangeColors;
+  final double? nameColumnWidth;
+  final String? fontFamily;
+  final double headerFontSize;
+  final double cellFontSize;
+  final FontWeight headerFontWeight;
+  final FontWeight cellFontWeight;
+  final double nameFontSize;
+  final FontWeight nameFontWeight;
+  final bool disableHoverHighlight;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -109,67 +136,77 @@ class _DynamicTableState extends State<DynamicTable> {
   }
 
   Widget _buildNameColumn() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: _increaseShadow
-                ? Colors.black.withOpacity(0.03)
-                : Colors.transparent,
-            blurRadius: _increaseShadow ? 4 : 0,
-            spreadRadius: 0,
-            blurStyle: BlurStyle.inner,
-            offset: const Offset(4, 0),
-          ),
-        ],
-      ),
-      child: DataTable(
-        showCheckboxColumn: false,
-        headingRowHeight: widget.headerHeight,
-        horizontalMargin: 0,
-        dataRowMinHeight: widget.rowHeight,
-        dataRowMaxHeight: widget.rowHeight,
-        columns: [
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                "Name",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xff81AACE),
-                  fontWeight: FontWeight.w500,
+    return SizedBox(
+      width: widget.nameColumnWidth,
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.nameColumnBackgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+          boxShadow: [
+            BoxShadow(
+              color: _increaseShadow
+                  ? Colors.black.withOpacity(0.03)
+                  : Colors.transparent,
+              blurRadius: _increaseShadow ? 4 : 0,
+              spreadRadius: 0,
+              blurStyle: BlurStyle.inner,
+              offset: const Offset(4, 0),
+            ),
+          ],
+        ),
+        child: DataTable(
+          showCheckboxColumn: false,
+          dataRowColor: widget.disableHoverHighlight
+              ? MaterialStateProperty.all(Colors.transparent)
+              : null,
+          headingRowHeight: widget.headerHeight,
+          horizontalMargin: 0,
+          dataRowMinHeight: widget.rowHeight,
+          dataRowMaxHeight: widget.rowHeight,
+          columns: [
+            DataColumn(
+              label: Expanded(
+                child: Text(
+                  "Name",
+                  style: TextStyle(
+                    fontSize: widget.headerFontSize,
+                    color: widget.headerTextColor ?? const Color(0xff81AACE),
+                    fontWeight: widget.headerFontWeight,
+                    fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-        rows: widget.data.map((row) {
-          return DataRow(
-            cells: [
-              DataCell(
-                Padding(
-                  padding: const EdgeInsets.only(right: 30.0),
-                  child: BasicTickerCell(
-                    model: BasicCellModel(
-                      logo: row.logo,
-                      symbol: row.symbol,
-                      name: row.name,
+          ],
+          rows: widget.data.map((row) {
+            return DataRow(
+              cells: [
+                DataCell(
+                  Padding(
+                    padding: const EdgeInsets.only(right: 30.0),
+                    child: BasicTickerCell(
+                      model: BasicCellModel(
+                        logo: row.logo,
+                        symbol: row.symbol,
+                        name: row.name,
+                        nameFontSize: widget.nameFontSize,
+                        nameFontWeight: widget.nameFontWeight,
+                        fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
+                      ),
                     ),
                   ),
+                  onTap: () => widget.onRowSelect?.call(row),
                 ),
-                onTap: () => widget.onRowSelect?.call(row),
-              ),
-            ],
-          );
-        }).toList(),
-        dividerThickness: 0,
-        border: TableBorder(
-          bottom: BorderSide.none,
-          verticalInside: BorderSide.none,
-          horizontalInside: BorderSide(
-            color: Theme.of(context).primaryColorLight,
-            width: 0.8,
+              ],
+            );
+          }).toList(),
+          dividerThickness: 0,
+          border: TableBorder(
+            bottom: BorderSide.none,
+            verticalInside: BorderSide.none,
+            horizontalInside: BorderSide(
+              color: Theme.of(context).primaryColorLight,
+              width: 0.8,
+            ),
           ),
         ),
       ),
@@ -190,6 +227,9 @@ class _DynamicTableState extends State<DynamicTable> {
           ),
           child: DataTable(
             showCheckboxColumn: false,
+            dataRowColor: widget.disableHoverHighlight
+                ? MaterialStateProperty.all(Colors.transparent)
+                : null,
             headingRowHeight: widget.headerHeight,
             horizontalMargin: 0,
             dataRowMinHeight: widget.rowHeight,
@@ -200,9 +240,10 @@ class _DynamicTableState extends State<DynamicTable> {
                   child: Text(
                     column.title,
                     style: TextStyle(
-                      fontSize: 12,
-                      color: const Color(0xff81AACE),
-                      fontWeight: FontWeight.w500,
+                      fontSize: widget.headerFontSize,
+                      color: widget.headerTextColor ?? const Color(0xff81AACE),
+                      fontWeight: widget.headerFontWeight,
+                      fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
                     ),
                   ),
                 ),
@@ -237,40 +278,60 @@ class _DynamicTableState extends State<DynamicTable> {
     final value = row.data[column.key];
     
     if (value == null) {
-      return const Text("-");
+      return Text(
+        '-',
+        style: TextStyle(
+          fontSize: widget.cellFontSize,
+          color: widget.cellTextColor ?? Theme.of(context).primaryColor,
+          fontWeight: widget.cellFontWeight,
+          fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
+        ),
+      );
     }
 
     if (value is num) {
       return Text(
         value.toString(),
         style: TextStyle(
-          fontSize: 14,
-          color: Theme.of(context).primaryColor,
-          fontWeight: FontWeight.w500,
+          fontSize: widget.cellFontSize,
+          color: widget.cellTextColor ?? Theme.of(context).primaryColor,
+          fontWeight: widget.cellFontWeight,
+          fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
         ),
       );
     }
 
     if (value is String) {
       // Check if it's a change value (starts with + or -)
-      Color textColor = Theme.of(context).primaryColor;
-      if (value.startsWith('+')) {
-        textColor = Colors.green;
-      } else if (value.startsWith('-')) {
-        textColor = Colors.red;
+      Color textColor = widget.cellTextColor ?? Theme.of(context).primaryColor;
+      if (widget.useChangeColors) {
+        if (value.startsWith('+')) {
+          textColor = Colors.green;
+        } else if (value.startsWith('-')) {
+          textColor = Colors.red;
+        }
       }
       
       return Text(
         value,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: widget.cellFontSize,
           color: textColor,
-          fontWeight: FontWeight.w500,
+          fontWeight: widget.cellFontWeight,
+          fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
         ),
       );
     }
 
-    return const Text("-");
+    return Text(
+      '-',
+      style: TextStyle(
+        fontSize: widget.cellFontSize,
+        color: widget.cellTextColor ?? Theme.of(context).primaryColor,
+        fontWeight: widget.cellFontWeight,
+        fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
+      ),
+    );
   }
 }
 
@@ -280,6 +341,7 @@ class BasicCellModel {
   final String? name;
   final double? nameFontSize;
   final FontWeight? nameFontWeight;
+  final String? fontFamily;
 
   BasicCellModel({
     this.logo,
@@ -287,6 +349,7 @@ class BasicCellModel {
     this.name,
     this.nameFontSize = 14,
     this.nameFontWeight = FontWeight.w500,
+    this.fontFamily,
   });
 }
 
@@ -300,10 +363,7 @@ class BasicTickerCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String symbol = model.symbol ?? "";
-    if (symbol.length > 15) {
-      symbol = symbol.substring(0, 15) + "...";
-    }
+    final String symbol = model.symbol ?? "";
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -329,7 +389,8 @@ class BasicTickerCell extends StatelessWidget {
                       style: TextStyle(
                         fontSize: model.nameFontSize,
                         fontWeight: model.nameFontWeight,
-                        fontFamily: 'Poppins',
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontFamily: model.fontFamily ?? Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
                   ),
@@ -341,8 +402,8 @@ class BasicTickerCell extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey[600],
-                        fontFamily: 'Poppins',
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontFamily: model.fontFamily ?? Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
                 ],
