@@ -10,8 +10,11 @@ import 'package:musaffa_terminal/services/sector_mapping_service.dart';
 import 'package:musaffa_terminal/Controllers/sector_stocks_controller.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
+import 'package:musaffa_terminal/models/ticker_model.dart';
+import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 
 class SectorDetailsScreen extends StatefulWidget {
@@ -769,34 +772,44 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   }
 
   Widget _buildStocksTable() {
-    // Convert StocksData to SimpleRowModel for the table
-    List<SimpleRowModel> rows = sectorStocksController.sectorStocks.map((stock) {
-      final isPositive = (stock.priceChange1DPercent ?? 0) >= 0;
-      final changeColor = isPositive ? Colors.green.shade600 : Colors.red.shade600;
-      
-      return SimpleRowModel(
-        symbol: stock.ticker ?? '',
-        name: sectorStocksController.companyNamesMap[stock.ticker] ?? stock.companySymbol ?? stock.ticker ?? '',
-        logo: sectorStocksController.logoMap[stock.ticker],
-        price: stock.currentPrice,
-        changePercent: stock.priceChange1DPercent,
-        currency: stock.currency ?? 'USD',
-        fields: {
-          'ticker': stock.ticker ?? '--',
-          'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
-          'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
-          'changeAmount': stock.change1D != null ? '\$${stock.change1D!.toStringAsFixed(2)}' : '--',
-          'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
-          'sector': stock.sector ?? '--',
-          'industry': stock.industry ?? '--',
+    final rows = sectorStocksController.sectorStocks.map((stock) {
+      final symbol = stock.ticker ?? '--';
+      final companyName = sectorStocksController.companyNamesMap[stock.ticker] ??
+          stock.companySymbol ??
+          stock.ticker ??
+          '--';
+
+      return DynamicTableRow(
+        id: symbol,
+        data: {
+          'ticker': symbol,
+          'company': companyName,
+          'logo': sectorStocksController.logoMap[stock.ticker],
+          'price': stock.currentPrice != null
+              ? '\$${stock.currentPrice!.toStringAsFixed(2)}'
+              : '--',
+          'change': stock.priceChange1DPercent != null
+              ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%'
+              : '--',
+          'changeAmount': stock.change1D != null
+              ? '\$${stock.change1D!.toStringAsFixed(2)}'
+              : '--',
+          'marketCap': stock.usdMarketCap != null
+              ? getShortenedT(stock.usdMarketCap! * 1000000)
+              : '--',
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
+          'sector': stock.sector ?? '--',
           'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
-          'week52High': stock.d52WeekHigh != null ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}' : '--',
-          'week52Low': stock.d52WeekLow != null ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}' : '--',
-          'avgVol10d': stock.avgVolume10days != null ? getShortenedT(stock.avgVolume10days!) : '--',
+          'week52High': stock.d52WeekHigh != null
+              ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}'
+              : '--',
+          'week52Low': stock.d52WeekLow != null
+              ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}'
+              : '--',
+          'avgVol10d': stock.avgVolume10days != null
+              ? getShortenedT(stock.avgVolume10days!)
+              : '--',
         },
-        changeColor: changeColor,
-        isPositive: isPositive,
       );
     }).toList();
 
@@ -816,33 +829,62 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           // Table
           Padding(
             padding: const EdgeInsets.all(12),
-            child: DynamicTable(
-              tableId: 'sector_details_stocks_table',
-              enableColumnCustomization: true,
+            child: DynamicTableFromWeb(
+              title: 'Sector Stocks',
+              subtitle: 'Sortable and searchable sector stock list',
+              showTickerCell: true,
+              tickerKey: 'ticker',
+              companyKey: 'company',
+              logoKey: 'logo',
+              tickerHeaderLabel: 'Ticker',
               columns: const [
-                SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-                SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-                SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
-                SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
-                SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
-                SimpleColumn(label: 'SECTOR', fieldName: 'sector', isNumeric: false),
-                SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
-                SimpleColumn(label: '52W HIGH', fieldName: 'week52High', isNumeric: true),
-                SimpleColumn(label: '52W LOW', fieldName: 'week52Low', isNumeric: true),
-                SimpleColumn(label: 'AVG VOL 10D', fieldName: 'avgVol10d', isNumeric: true),
+                DynamicTableColumn(key: 'price', label: 'Price', sortable: true),
+                DynamicTableColumn(key: 'change', label: 'Change %', sortable: true),
+                DynamicTableColumn(key: 'changeAmount', label: 'Change \$', sortable: true),
+                DynamicTableColumn(key: 'marketCap', label: 'MKT CAP', sortable: true),
+                DynamicTableColumn(key: 'volume', label: 'Volume', sortable: true),
+                DynamicTableColumn(key: 'sector', label: 'Sector', sortable: true),
+                DynamicTableColumn(key: 'beta', label: 'Beta', sortable: true),
+                DynamicTableColumn(key: 'week52High', label: '52W High', sortable: true),
+                DynamicTableColumn(key: 'week52Low', label: '52W Low', sortable: true),
+                DynamicTableColumn(key: 'avgVol10d', label: 'Avg Vol 10D', sortable: true),
               ],
               rows: rows,
-              showFixedColumn: true,
-              considerPadding: false,
-              columnSpacing: 16, 
-              fixedColumnWidth: 300, 
-              enableDragging: true,
-              enableLivePrices: true,
-              onDragStarted: () {
-                // Drag started
-              },
-              onDragEnd: () {
-                // Drag ended
+              searchable: true,
+              paginated: false,
+              enableColumnVisibilityToggle: true,
+              enableColumnFilters: false,
+              stickyHeader: true,
+              maxHeight: 560,
+              onTickerTap: (row) {
+                final ticker = row.data['ticker']?.toString() ?? '';
+                if (ticker.isEmpty || ticker == '--') return;
+
+                final companyName = row.data['company']?.toString() ?? ticker;
+                final logo = row.data['logo']?.toString();
+                final stock = sectorStocksController.allSectorStocks.firstWhereOrNull(
+                  (s) => (s.ticker ?? '').toUpperCase() == ticker.toUpperCase(),
+                );
+
+                final tickerModel = TickerModel(
+                  symbol: ticker,
+                  ticker: ticker,
+                  mainTicker: ticker,
+                  name: companyName,
+                  companyName: companyName,
+                  logo: (logo != null && logo.isNotEmpty) ? logo : null,
+                  currentPrice: stock?.currentPrice,
+                  percentChange: stock?.priceChange1DPercent,
+                  currency: stock?.currency ?? 'USD',
+                  isStock: true,
+                );
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TickerDetailScreen(ticker: tickerModel),
+                  ),
+                );
               },
             ),
           ),
