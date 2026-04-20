@@ -1021,6 +1021,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             fixedColumnWidth: 300,
             enableDragging: false,
             enableLivePrices: true,
+            // enableColumnCustomization: true,
+            // tableId: 'top_gainers_losers_table',
           ),
         ],
       ),

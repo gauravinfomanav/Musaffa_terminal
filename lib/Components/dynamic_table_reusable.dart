@@ -3,12 +3,15 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/ticker_cell.dart';
+import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
+import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/models/ticker_cell_model.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/live_price_model.dart';
 import 'package:musaffa_terminal/services/live_price_service.dart';
 import 'package:musaffa_terminal/services/websocket_service.dart';
 import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
@@ -117,6 +120,7 @@ class DynamicTable extends StatefulWidget {
     this.onDragEnd,
     this.tableId,
     this.enableColumnCustomization = false,
+    this.onTickerTap,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -135,6 +139,7 @@ class DynamicTable extends StatefulWidget {
   final VoidCallback? onDragEnd;
   final String? tableId; // Unique identifier for this table instance
   final bool enableColumnCustomization; // Enable column customization features
+  final Function(DynamicTableRow)? onTickerTap;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -153,7 +158,6 @@ class _DynamicTableState extends State<DynamicTable> {
   late WebSocketService _webSocketService;
   List<SimpleRowModel> _enrichedRows = [];
   StreamSubscription<Map<String, dynamic>>? _priceStreamSubscription;
-  int _updateCounter = 0;
   Color? _defaultTextColor; // Store default text color to avoid context access during dispose
   
   // Column customization
@@ -308,7 +312,6 @@ class _DynamicTableState extends State<DynamicTable> {
           try {
           setState(() {
             _enrichedRows = _updateRowsWithLivePrices(widget.rows, livePrices);
-            _updateCounter++;
               // Regenerate table data with updated prices (only if still mounted)
               if (mounted) {
             generateDataRows();
@@ -554,149 +557,105 @@ class _DynamicTableState extends State<DynamicTable> {
 
   @override
   Widget build(BuildContext context) {
-    generateCols();
-    generateDataRows();
-    
-    // Match market summary border styling
-    final borderWidth = 0.2;
-    final borderColor = Theme.of(context).primaryColorLight;
-    
-    return Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: widget.considerPadding == true ? 16 : 0),
-      child: Row(
-        children: [
-              if (widget.showFixedColumn)
-            // Use fixed pixel width if provided and > 10, otherwise use flex
-            widget.fixedColumnWidth != null && widget.fixedColumnWidth! > 10
-                ? SizedBox(
-                    width: widget.fixedColumnWidth,
-                    child: ClipRect(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade800
-                              : Colors.white,
-                        ),
-                        child: DataTable(
-                          key: ValueKey('fixed_$_updateCounter'),
-                          showCheckboxColumn: false,
-                          headingRowHeight: 24,
-                          horizontalMargin: 0,
-                          dataRowMinHeight: 48,
-                          dataRowMaxHeight: 48,
-                          columnSpacing: 0,
-                          columns: fixedDataCols,
-                          rows: fixedDataRows,
-                          dividerThickness: borderWidth,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.transparent, width: 0),
-                          ),
-                          border: TableBorder(
-                            bottom: BorderSide.none,
-                            top: BorderSide.none,
-                            verticalInside: BorderSide.none,
-                            horizontalInside: BorderSide(
-                              color: borderColor,
-                              width: borderWidth,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                : Expanded(
-                    flex: widget.fixedColumnWidth?.toInt() ?? 3,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade800
-                            : Colors.white,
-                      ),
-                      child: DataTable(
-                        key: ValueKey('fixed_$_updateCounter'),
-                        showCheckboxColumn: false,
-                        headingRowHeight: 24,
-                        horizontalMargin: 0,
-                        dataRowMinHeight: 48,
-                        dataRowMaxHeight: 48,
-                        columns: fixedDataCols,
-                        rows: fixedDataRows,
-                        dividerThickness: borderWidth,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.transparent, width: 0),
-                        ),
-                        border: TableBorder(
-                          bottom: BorderSide.none,
-                          top: BorderSide.none,
-                          verticalInside: BorderSide.none,
-                          horizontalInside: BorderSide(
-                            color: borderColor,
-                            width: borderWidth,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Container(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade800
-                      : Colors.white,
-                  child: Scrollbar(
-                    controller: sController,
-                    thickness: 4,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller: sController,
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth,
-                        ),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            dividerColor: Colors.transparent,
-                          ),
-                          child: DataTable(
-                          key: ValueKey('table_$_updateCounter'),
-                          showCheckboxColumn: false,
-                          headingRowHeight: 24,
-                          horizontalMargin: widget.horizontalMargin,
-                          columnSpacing: widget.columnSpacing,
-                          dataRowMinHeight: 48,
-                          dataRowMaxHeight: 48,
-                          columns: dataCols.isNotEmpty
-                              ? dataCols
-                              : [DataColumn(label: SizedBox.shrink())],
-                          rows: dataRows.isNotEmpty
-                              ? dataRows
-                              : [DataRow(cells: [DataCell(SizedBox.shrink())])],
-                          dividerThickness: borderWidth,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.transparent, width: 0),
-                          ),
-                          border: TableBorder(
-                            bottom: BorderSide.none,
-                            top: BorderSide.none,
-                            verticalInside: BorderSide.none,
-                            horizontalInside: BorderSide(
-                              color: borderColor,
-                              width: borderWidth,
-                            ),
-                          ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+    final rowsToUse = widget.enableLivePrices && _enrichedRows.isNotEmpty
+        ? _enrichedRows
+        : widget.rows;
+
+    final filteredRows = rowsToUse.where((row) => _hasAnyValue(row)).toList();
+
+    final columnsToUse = widget.enableColumnCustomization
+        ? (_customizedColumns.isNotEmpty ? _customizedColumns : widget.columns)
+        : widget.columns;
+
+    final mappedColumns = columnsToUse
+        .map(
+          (col) => DynamicTableColumn(
+            key: col.fieldName,
+            label: col.label,
+            width: col.width,
+            sortable: true,
+            align: col.isNumeric ? TextAlign.right : TextAlign.left,
           ),
-        ],
+        )
+        .toList();
+
+    final mappedRows = filteredRows.map((row) {
+      final data = <String, dynamic>{...row.fields};
+      data['_ticker_symbol'] = row.symbol;
+      data['_company_name'] = row.name;
+      data['_logo_url'] = row.logo;
+      data['_is_stock'] = row.fields['isStock'] is bool ? row.fields['isStock'] : true;
+
+      if (!data.containsKey('price') && row.price != null) {
+        data['price'] = '\$${row.price!.toStringAsFixed(2)}';
+      }
+
+      return DynamicTableRow(
+        id: row.symbol.isNotEmpty ? row.symbol : row.name,
+        data: data,
+      );
+    }).toList();
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.considerPadding == true ? 16 : 0,
+      ),
+      child: DynamicTableFromWeb(
+        columns: mappedColumns,
+        rows: mappedRows,
+        paginated: false,
+        selectable: false,
+        showTickerCell: widget.showFixedColumn,
+        tickerKey: '_ticker_symbol',
+        companyKey: '_company_name',
+        logoKey: '_logo_url',
+        tickerHeaderLabel: 'COMPANY',
+        enableColumnVisibilityToggle: widget.enableColumnCustomization,
+        enableColumnReorder: widget.enableColumnCustomization,
+        enableColumnPinning: true,
+        stickyHeader: true,
+        onTickerTap: widget.onTickerTap ?? (row) {
+          final ticker = row.data['_ticker_symbol']?.toString() ?? '';
+          if (ticker.isEmpty || ticker == '--') return;
+
+          final companyName = row.data['_company_name']?.toString() ?? ticker;
+          final logo = row.data['_logo_url']?.toString();
+          final isStock = row.data['_is_stock'] == false ? false : true;
+          final priceValue = row.data['price'];
+          final currentPrice = priceValue is num
+              ? priceValue
+              : double.tryParse(
+                  priceValue?.toString().replaceAll(RegExp(r'[^\d.-]'), '') ?? '',
+                );
+          final changeValue = row.data['changePercent'];
+          final percentChange = changeValue is num
+              ? changeValue
+              : double.tryParse(
+                  changeValue?.toString().replaceAll(RegExp(r'[^\d.-]'), '') ?? '',
+                );
+
+          final tickerModel = TickerModel(
+            symbol: ticker,
+            ticker: ticker,
+            mainTicker: ticker,
+            name: companyName,
+            companyName: companyName,
+            logo: (logo != null && logo.isNotEmpty) ? logo : null,
+            currentPrice: currentPrice,
+            percentChange: percentChange,
+            currency: row.data['currency']?.toString() ?? 'USD',
+            isStock: isStock,
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => isStock
+                  ? TickerDetailScreen(ticker: tickerModel)
+                  : EtfDetailsScreen(ticker: tickerModel),
+            ),
+          );
+        },
       ),
     );
   }

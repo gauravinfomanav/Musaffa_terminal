@@ -1476,6 +1476,8 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
               zebraStripes: false,
               evenRowColor: Colors.transparent,
               oddRowColor: Colors.transparent,
+              enableColumnCustomization: true,
+              tableId: 'portfolio_builder_holdings_table',
             ),
           ),
         );

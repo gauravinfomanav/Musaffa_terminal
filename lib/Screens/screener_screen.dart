@@ -867,6 +867,8 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
             fixedColumnWidth: 300,
             enableDragging: false,
             enableLivePrices: true,
+            enableColumnCustomization: true,
+            tableId: 'screener_results_table',
           ),
           
           const SizedBox(height: 12),

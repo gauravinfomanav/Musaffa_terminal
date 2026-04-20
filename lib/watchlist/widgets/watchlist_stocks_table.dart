@@ -380,6 +380,8 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         horizontalMargin: 8,
         fixedColumnWidth: 1.5, // Flex value for fixed column (smaller = less space)
         enableLivePrices: true,
+        enableColumnCustomization: true,
+        tableId: 'watchlist_stocks_table',
       ),
     );
   }

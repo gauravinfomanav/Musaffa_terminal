@@ -113,6 +113,8 @@ class _TopMoversWidgetState extends State<TopMoversWidget> {
               considerPadding: false,
               enableDragging: true,
               enableLivePrices: true,
+              enableColumnCustomization: true,
+              tableId: 'top_movers_table',
               onDragStarted: () {
                 print('Drag started on top mover');
               },

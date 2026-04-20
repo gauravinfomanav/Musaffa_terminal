@@ -374,6 +374,8 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
       zebraStripes: true,
       evenRowColor: Colors.transparent,
       oddRowColor: isDark ? const Color(0xFF14171C) : const Color(0xFFF5F6F8),
+      enableColumnCustomization: true,
+      tableId: 'portfolio_ideas_table',
     );
   }
 

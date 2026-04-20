@@ -1194,6 +1194,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
               fixedColumnWidth: 300,
               enableDragging: true,
               enableLivePrices: true,
+              enableColumnCustomization: true,
+              tableId: 'etf_holdings_table',
               onDragStarted: () {
                 // Drag started
               },

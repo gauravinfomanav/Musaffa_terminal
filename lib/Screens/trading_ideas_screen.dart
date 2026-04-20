@@ -249,6 +249,8 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
             evenRowColor: Colors.transparent,
             oddRowColor:
                 isDark ? const Color(0xFF14171C) : const Color(0xFFF5F6F8),
+            enableColumnCustomization: true,
+            tableId: 'trading_ideas_table',
           ),
         );
       }

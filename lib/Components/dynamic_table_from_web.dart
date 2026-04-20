@@ -375,17 +375,21 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       tooltip: 'Column actions',
       onSelected: (value) => _applyColumnAction(col, value),
       position: PopupMenuPosition.under,
-      constraints: const BoxConstraints(minWidth: 210),
+      constraints: const BoxConstraints(minWidth: 180),
       color: Colors.white,
       elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
       ),
-      child: Icon(
-        Icons.more_vert,
-        size: 16,
-        color: iconColor,
+      padding: EdgeInsets.zero,
+      child: Padding(
+        padding: EdgeInsets.zero,
+        child: Icon(
+          Icons.more_vert,
+          size: 16,
+          color: iconColor,
+        ),
       ),
       itemBuilder: (context) => [
         menuItem(value: 'sort_asc', icon: Icons.north, label: 'Sort Ascending', enabled: col.sortable),
@@ -602,22 +606,31 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                               )
                             : null,
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              col.label,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: headerTextColor,
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                            Expanded(
+                              child: Text(
+                                col.label,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: headerTextColor,
+                                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            _buildColumnActionMenu(
-                              context,
-                              col,
-                              headerTextColor,
+                            const SizedBox(width: 4),
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: _buildColumnActionMenu(
+                                context,
+                                col,
+                                headerTextColor,
+                              ),
                             ),
                           ],
                         ),
@@ -693,16 +706,18 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             child: AnimatedOpacity(
               opacity: 1.0,
               duration: const Duration(milliseconds: 150),
-              child: Text(
-                value?.toString() ?? '--',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 13,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                ),
-              ),
+              child: value is Widget
+                  ? value
+                  : Text(
+                      value?.toString() ?? '--',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 13,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
             ),
           ),
         ),
