@@ -11,6 +11,7 @@ import 'package:musaffa_terminal/utils/utils.dart';
 class DynamicTableColumn {
   final String key;
   final String label;
+  final Widget? headerWidget;
   final double? width;
   final bool sortable;
   final bool filterable;
@@ -25,6 +26,7 @@ class DynamicTableColumn {
   const DynamicTableColumn({
     required this.key,
     required this.label,
+    this.headerWidget,
     this.width,
     this.sortable = true,
     this.filterable = false,
@@ -108,6 +110,20 @@ class DynamicTableFromWeb extends StatefulWidget {
   final String? logoKey;
   final String tickerHeaderLabel;
   final Function(DynamicTableRow)? onTickerTap;
+  final double headingRowHeight;
+  final double dataRowMinHeight;
+  final double dataRowMaxHeight;
+  final double horizontalMargin;
+  final double? columnSpacing;
+  final double? dividerThickness;
+  final TableBorder? tableBorder;
+  final bool showBottomBorder;
+  final bool useOuterContainer;
+  final bool showColumnActionMenu;
+  final bool showColumnResizeHandle;
+  final bool enforceColumnWidths;
+  final List<String> initialPinnedLeftColumnKeys;
+  final List<String> initialPinnedRightColumnKeys;
 
   const DynamicTableFromWeb({
     Key? key,
@@ -141,13 +157,28 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.onPageChange,
     this.loading = false,
     this.emptyStateTitle = 'No records found',
-    this.emptyStateDescription = 'Try adjusting filters or searching with different keywords.',
+    this.emptyStateDescription =
+        'Try adjusting filters or searching with different keywords.',
     this.showTickerCell = false,
     this.tickerKey = 'ticker',
     this.companyKey = 'company',
     this.logoKey,
     this.tickerHeaderLabel = 'Ticker',
     this.onTickerTap,
+    this.headingRowHeight = 44,
+    this.dataRowMinHeight = 48,
+    this.dataRowMaxHeight = 48,
+    this.horizontalMargin = 24,
+    this.columnSpacing,
+    this.dividerThickness,
+    this.tableBorder,
+    this.showBottomBorder = false,
+    this.useOuterContainer = true,
+    this.showColumnActionMenu = true,
+    this.showColumnResizeHandle = true,
+    this.enforceColumnWidths = true,
+    this.initialPinnedLeftColumnKeys = const <String>[],
+    this.initialPinnedRightColumnKeys = const <String>[],
   }) : super(key: key);
 
   @override
@@ -184,6 +215,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _sortState = widget.sortState;
     _horizontalScrollController = ScrollController();
     _verticalScrollController = ScrollController();
+    _pinnedLeftColumns.addAll(widget.initialPinnedLeftColumnKeys);
+    _pinnedRightColumns.addAll(widget.initialPinnedRightColumnKeys);
   }
 
   @override
@@ -212,7 +245,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
     // Apply column filters
     if (widget.enableColumnFilters &&
-        _columnFilterValues.values.any((v) => v != null && v.toString().trim().isNotEmpty)) {
+        _columnFilterValues.values
+            .any((v) => v != null && v.toString().trim().isNotEmpty)) {
       filtered = filtered.where((row) {
         return widget.columns.where((col) => col.filterable).every((col) {
           final filterVal = _columnFilterValues[col.key];
@@ -328,7 +362,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           _pinnedLeftColumns.remove(col.key);
           _pinnedRightColumns.remove(col.key);
           break;
-        
       }
     });
   }
@@ -338,8 +371,12 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     DynamicTableColumn col,
     Color iconColor,
   ) {
-    final isPinned =
-        _pinnedLeftColumns.contains(col.key) || _pinnedRightColumns.contains(col.key);
+    if (!widget.showColumnActionMenu) {
+      return const SizedBox.shrink();
+    }
+
+    final isPinned = _pinnedLeftColumns.contains(col.key) ||
+        _pinnedRightColumns.contains(col.key);
     PopupMenuItem<String> menuItem({
       required String value,
       required IconData icon,
@@ -354,13 +391,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             Icon(
               icon,
               size: 16,
-              color: enabled ? const Color(0xFF1F2937) : const Color(0xFFD1D5DB),
+              color:
+                  enabled ? const Color(0xFF1F2937) : const Color(0xFFD1D5DB),
             ),
             const SizedBox(width: 10),
             Text(
               label,
               style: TextStyle(
-                color: enabled ? const Color(0xFF111827) : const Color(0xFFD1D5DB),
+                color:
+                    enabled ? const Color(0xFF111827) : const Color(0xFFD1D5DB),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -392,17 +431,37 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         ),
       ),
       itemBuilder: (context) => [
-        menuItem(value: 'sort_asc', icon: Icons.north, label: 'Sort Ascending', enabled: col.sortable),
-        menuItem(value: 'sort_desc', icon: Icons.south, label: 'Sort Descending', enabled: col.sortable),
-        menuItem(value: 'pin_left', icon: Icons.push_pin_outlined, label: 'Pin Left', enabled: widget.enableColumnPinning),
-        menuItem(value: 'pin_right', icon: Icons.push_pin_outlined, label: 'Pin Right', enabled: widget.enableColumnPinning),
-        menuItem(value: 'unpin', icon: Icons.vertical_align_center, label: 'Unpin', enabled: widget.enableColumnPinning && isPinned),
-        
+        menuItem(
+            value: 'sort_asc',
+            icon: Icons.north,
+            label: 'Sort Ascending',
+            enabled: col.sortable),
+        menuItem(
+            value: 'sort_desc',
+            icon: Icons.south,
+            label: 'Sort Descending',
+            enabled: col.sortable),
+        menuItem(
+            value: 'pin_left',
+            icon: Icons.push_pin_outlined,
+            label: 'Pin Left',
+            enabled: widget.enableColumnPinning),
+        menuItem(
+            value: 'pin_right',
+            icon: Icons.push_pin_outlined,
+            label: 'Pin Right',
+            enabled: widget.enableColumnPinning),
+        menuItem(
+            value: 'unpin',
+            icon: Icons.vertical_align_center,
+            label: 'Unpin',
+            enabled: widget.enableColumnPinning && isPinned),
       ],
     );
   }
 
-  Widget _buildTickerCell(DynamicTableRow row, Color textColor, Color mutedColor) {
+  Widget _buildTickerCell(
+      DynamicTableRow row, Color textColor, Color mutedColor) {
     final ticker = row.data[widget.tickerKey]?.toString() ?? '--';
     final company = row.data[widget.companyKey]?.toString() ?? '--';
     final logoUrl = widget.logoKey != null
@@ -463,9 +522,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     DynamicTableColumn col,
     Color mutedColor,
   ) {
-    const borderColor = Color(0xFFF1F5F9);
     const headerTextColor = Color(0xFF475569);
-    final resolvedWidth = _resolveColumnWidth(col);
+    final resolvedWidth =
+        widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
 
     return DataColumn(
       label: Tooltip(
@@ -555,20 +614,23 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               ),
               child: MouseRegion(
                 onHover: (_) {
-                  if (_draggingColumnKey != null && _draggingColumnKey != col.key) {
+                  if (_draggingColumnKey != null &&
+                      _draggingColumnKey != col.key) {
                     setState(() {
                       _dragOverColumnKey = col.key;
                     });
                   }
                 },
                 onExit: (_) {
-                  if (_dragOverColumnKey == col.key && _draggingColumnKey != null) {
+                  if (_dragOverColumnKey == col.key &&
+                      _draggingColumnKey != null) {
                     setState(() {
                       _dragOverColumnKey = null;
                     });
                   }
                 },
-                cursor: col.sortable ? SystemMouseCursors.click : MouseCursor.defer,
+                cursor:
+                    col.sortable ? SystemMouseCursors.click : MouseCursor.defer,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: col.sortable
@@ -577,11 +639,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                             if (_sortState?.key == col.key) {
                               _sortState = SortState(
                                 key: col.key,
-                                direction:
-                                    _sortState!.direction == 'asc' ? 'desc' : 'asc',
+                                direction: _sortState!.direction == 'asc'
+                                    ? 'desc'
+                                    : 'asc',
                               );
                             } else {
-                              _sortState = SortState(key: col.key, direction: 'asc');
+                              _sortState =
+                                  SortState(key: col.key, direction: 'asc');
                             }
                           });
                           widget.onSortChange?.call(
@@ -590,97 +654,116 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                           );
                         }
                       : null,
-                child: SizedBox(
-                  width: resolvedWidth,
-                  child: Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        decoration: isDragOver
-                            ? BoxDecoration(
-                                color: const Color(0xFF3B82F6).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(4),
-                              )
-                            : null,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                col.label,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: headerTextColor,
-                                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  child: SizedBox(
+                    width: resolvedWidth,
+                    child: Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
+                          decoration: isDragOver
+                              ? BoxDecoration(
+                                  color:
+                                      const Color(0xFF3B82F6).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(4),
+                                )
+                              : null,
+                          child: Stack(
+                            children: [
+                              Align(
+                                alignment: Alignment.center,
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    right: widget.showColumnActionMenu ? 28 : 0,
+                                  ),
+                                  child: col.headerWidget ??
+                                      Text(
+                                        col.label,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: headerTextColor,
+                                          fontFamily:
+                                              Constants.FONT_DEFAULT_NEW,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: _buildColumnActionMenu(
-                                context,
-                                col,
-                                headerTextColor,
-                              ),
-                            ),
-                          ],
+                              if (widget.showColumnActionMenu)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: _buildColumnActionMenu(
+                                      context,
+                                      col,
+                                      headerTextColor,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.resizeColumn,
-                          onEnter: (_) {
-                            setState(() {
-                              _hoveredResizeColumnKey = col.key;
-                            });
-                          },
-                          onExit: (_) {
-                            if (_hoveredResizeColumnKey == col.key) {
-                              setState(() {
-                                _hoveredResizeColumnKey = null;
-                              });
-                            }
-                          },
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onHorizontalDragUpdate: (details) {
-                              final minWidth = _getNaturalMinWidth(col);
-                              final currentWidth =
-                                  _columnWidths[col.key] ?? col.width ?? minWidth;
-                              final nextWidth =
-                                  (currentWidth + details.delta.dx)
-                                      .clamp(minWidth, double.infinity)
-                                      .toDouble();
-                              setState(() {
-                                _columnWidths[col.key] = nextWidth;
-                              });
-                            },
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 120),
-                              opacity: _hoveredResizeColumnKey == col.key ? 1 : 1,
-                              child: Container(
-                                width: 1,
-                                color: const Color.fromARGB(255, 172, 173, 174),
+                        if (widget.showColumnResizeHandle &&
+                            widget.enforceColumnWidths)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.resizeColumn,
+                              onEnter: (_) {
+                                setState(() {
+                                  _hoveredResizeColumnKey = col.key;
+                                });
+                              },
+                              onExit: (_) {
+                                if (_hoveredResizeColumnKey == col.key) {
+                                  setState(() {
+                                    _hoveredResizeColumnKey = null;
+                                  });
+                                }
+                              },
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onHorizontalDragUpdate: (details) {
+                                  final minWidth = _getNaturalMinWidth(col);
+                                  final currentWidth = _columnWidths[col.key] ??
+                                      col.width ??
+                                      minWidth;
+                                  final nextWidth =
+                                      (currentWidth + details.delta.dx)
+                                          .clamp(minWidth, double.infinity)
+                                          .toDouble();
+                                  setState(() {
+                                    _columnWidths[col.key] = nextWidth;
+                                  });
+                                },
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 120),
+                                  opacity: _hoveredResizeColumnKey == col.key
+                                      ? 1
+                                      : 1,
+                                  child: Container(
+                                    width: 1,
+                                    color: const Color.fromARGB(
+                                        255, 172, 173, 174),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
                 ),
               ),
             );
@@ -697,7 +780,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   ) {
     return columns.map((col) {
       final value = row.data[col.key];
-      final resolvedWidth = _resolveColumnWidth(col);
+      final resolvedWidth =
+          widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
       return DataCell(
         SizedBox(
           width: resolvedWidth,
@@ -743,9 +827,14 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     }
 
     return DataTable(
-      headingRowHeight: 44,
-      dataRowMinHeight: 48,
-      dataRowMaxHeight: 48,
+      headingRowHeight: widget.headingRowHeight,
+      dataRowMinHeight: widget.dataRowMinHeight,
+      dataRowMaxHeight: widget.dataRowMaxHeight,
+      horizontalMargin: widget.horizontalMargin,
+      columnSpacing: widget.columnSpacing,
+      dividerThickness: widget.dividerThickness,
+      showBottomBorder: widget.showBottomBorder,
+      border: widget.tableBorder,
       headingRowColor: const MaterialStatePropertyAll(Color(0xFFF5F7FA)),
       columns: [
         if (includeSelectable)
@@ -839,12 +928,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         );
       },
       transitionBuilder: (widget, animation) {
-        final fade = CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic);
-        final size = CurvedAnimation(parent: animation, curve: Curves.easeInOutCubicEmphasized);
+        final fade =
+            CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic);
+        final size = CurvedAnimation(
+            parent: animation, curve: Curves.easeInOutCubicEmphasized);
         final slide = Tween<Offset>(
           begin: const Offset(0.012, 0),
           end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubicEmphasized));
+        ).animate(CurvedAnimation(
+            parent: animation, curve: Curves.easeInOutCubicEmphasized));
 
         return FadeTransition(
           opacity: fade,
@@ -877,8 +969,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       switchInCurve: Curves.easeInOutCubicEmphasized,
       switchOutCurve: Curves.easeInOutCubic,
       transitionBuilder: (widget, animation) {
-        final fade = CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic);
-        final size = CurvedAnimation(parent: animation, curve: Curves.easeInOutCubicEmphasized);
+        final fade =
+            CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic);
+        final size = CurvedAnimation(
+            parent: animation, curve: Curves.easeInOutCubicEmphasized);
         return FadeTransition(
           opacity: fade,
           child: SizeTransition(
@@ -907,28 +1001,37 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF111827) : Colors.white;
     const borderColor = Color(0xFFF1F5F9);
-    final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-    final mutedColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final textColor =
+        isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+    final mutedColor =
+        isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
 
     final filteredRows = _getFilteredRows();
     final sortedRows = _getSortedRows(filteredRows);
 
     final pages = widget.paginated
-        ? (sortedRows.length / widget.pageSize).ceil().clamp(1, double.infinity).toInt()
+        ? (sortedRows.length / widget.pageSize)
+            .ceil()
+            .clamp(1, double.infinity)
+            .toInt()
         : 1;
     final safePage = _currentPage.clamp(1, pages);
     final paginatedRows = widget.paginated
-        ? sortedRows.skip((safePage - 1) * widget.pageSize).take(widget.pageSize).toList()
+        ? sortedRows
+            .skip((safePage - 1) * widget.pageSize)
+            .take(widget.pageSize)
+            .toList()
         : sortedRows;
 
     final allVisibleColumns = _columnOrder
-      .map((key) => widget.columns.firstWhereOrNull((c) => c.key == key))
-      .whereType<DynamicTableColumn>()
-      .where((c) => _visibleColumns.contains(c.key))
-      .toList();
+        .map((key) => widget.columns.firstWhereOrNull((c) => c.key == key))
+        .whereType<DynamicTableColumn>()
+        .where((c) => _visibleColumns.contains(c.key))
+        .toList();
 
-    final leftPinnedColumns =
-        allVisibleColumns.where((c) => _pinnedLeftColumns.contains(c.key)).toList();
+    final leftPinnedColumns = allVisibleColumns
+        .where((c) => _pinnedLeftColumns.contains(c.key))
+        .toList();
     final centerColumns = allVisibleColumns
         .where(
           (c) =>
@@ -936,8 +1039,270 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               !_pinnedRightColumns.contains(c.key),
         )
         .toList();
-    final rightPinnedColumns =
-        allVisibleColumns.where((c) => _pinnedRightColumns.contains(c.key)).toList();
+    final rightPinnedColumns = allVisibleColumns
+        .where((c) => _pinnedRightColumns.contains(c.key))
+        .toList();
+
+    final tableContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Toolbar
+        if (widget.title != null ||
+            widget.subtitle != null ||
+            widget.enableColumnVisibilityToggle ||
+            widget.toolbar != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: borderColor)),
+            ),
+            child: Row(
+              children: [
+                // Title & Subtitle
+                if (widget.title != null || widget.subtitle != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.title != null)
+                        Text(
+                          widget.title!,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
+                      if (widget.subtitle != null)
+                        Text(
+                          widget.subtitle!,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: mutedColor,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
+                    ],
+                  ),
+                const Spacer(),
+                if (widget.enableColumnVisibilityToggle && widget.title != null)
+                  const SizedBox(width: 12),
+                // Columns visibility toggle
+                if (widget.enableColumnVisibilityToggle)
+                  ColumnVisibilityButton(
+                    columns: widget.columns,
+                    visibleColumns: _visibleColumns,
+                    onColumnToggle: (key) {
+                      setState(() {
+                        if (_visibleColumns.contains(key)) {
+                          _visibleColumns.remove(key);
+                        } else {
+                          _visibleColumns.add(key);
+                        }
+                      });
+                    },
+                    isDark: isDark,
+                  ),
+                // Custom toolbar
+                if (widget.toolbar != null) widget.toolbar!,
+              ],
+            ),
+          ),
+        // Table
+        if (widget.loading)
+          SizedBox(
+            height: widget.maxHeight ?? 320,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Loading...',
+                    style: TextStyle(color: mutedColor),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (paginatedRows.isEmpty)
+          SizedBox(
+            height: widget.maxHeight ?? 320,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox, size: 48, color: mutedColor),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.emptyStateTitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: mutedColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.emptyStateDescription,
+                    style: TextStyle(fontSize: 12, color: mutedColor),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: widget.maxHeight,
+            child: SingleChildScrollView(
+              controller: _verticalScrollController,
+              scrollDirection: Axis.vertical,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPinnedSectionSlot(
+                    slotKey: 'left',
+                    visible: widget.selectable ||
+                        widget.showTickerCell ||
+                        leftPinnedColumns.isNotEmpty,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        border: Border(
+                          right: BorderSide(color: borderColor),
+                        ),
+                      ),
+                      child: _buildAnimatedTableSection(
+                        key: ValueKey<String>(
+                          'left:${leftPinnedColumns.map((c) => c.key).join('|')}:${widget.selectable}:${widget.showTickerCell}',
+                        ),
+                        child: _buildTableSection(
+                          context: context,
+                          columns: leftPinnedColumns,
+                          rows: paginatedRows,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          includeSelectable: widget.selectable,
+                          includeTicker: widget.showTickerCell,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: AnimatedSize(
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeInOutCubicEmphasized,
+                      alignment: Alignment.topLeft,
+                      child: centerColumns.isNotEmpty
+                          ? Scrollbar(
+                              controller: _horizontalScrollController,
+                              thumbVisibility: true,
+                              trackVisibility: false,
+                              scrollbarOrientation: ScrollbarOrientation.bottom,
+                              child: SingleChildScrollView(
+                                controller: _horizontalScrollController,
+                                scrollDirection: Axis.horizontal,
+                                child: _buildAnimatedTableSection(
+                                  key: ValueKey<String>(
+                                    'center:${centerColumns.map((c) => c.key).join('|')}',
+                                  ),
+                                  child: _buildTableSection(
+                                    context: context,
+                                    columns: centerColumns,
+                                    rows: paginatedRows,
+                                    textColor: textColor,
+                                    mutedColor: mutedColor,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
+                  _buildPinnedSectionSlot(
+                    slotKey: 'right',
+                    visible: rightPinnedColumns.isNotEmpty,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        border: Border(
+                          left: BorderSide(color: borderColor),
+                        ),
+                      ),
+                      child: _buildAnimatedTableSection(
+                        key: ValueKey<String>(
+                          'right:${rightPinnedColumns.map((c) => c.key).join('|')}',
+                        ),
+                        child: _buildTableSection(
+                          context: context,
+                          columns: rightPinnedColumns,
+                          rows: paginatedRows,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        // Pagination
+        if (widget.paginated && paginatedRows.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: borderColor)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Showing ${(safePage - 1) * widget.pageSize + 1}–${(safePage * widget.pageSize).clamp(0, sortedRows.length)} of ${sortedRows.length}',
+                  style: TextStyle(fontSize: 13, color: mutedColor),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.chevron_left, color: mutedColor),
+                      onPressed: safePage > 1
+                          ? () {
+                              setState(() => _currentPage--);
+                              widget.onPageChange?.call(_currentPage);
+                            }
+                          : null,
+                    ),
+                    Text(
+                      '$safePage / $pages',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.chevron_right, color: mutedColor),
+                      onPressed: safePage < pages
+                          ? () {
+                              setState(() => _currentPage++);
+                              widget.onPageChange?.call(_currentPage);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+
+    if (!widget.useOuterContainer) {
+      return tableContent;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -945,258 +1310,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Toolbar
-          if (widget.title != null || widget.subtitle != null || widget.enableColumnVisibilityToggle || widget.toolbar != null)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: borderColor)),
-              ),
-              child: Row(
-                children: [
-                  // Title & Subtitle
-                  if (widget.title != null || widget.subtitle != null)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (widget.title != null)
-                          Text(
-                            widget.title!,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: textColor,
-                              fontFamily: Constants.FONT_DEFAULT_NEW,
-                            ),
-                          ),
-                        if (widget.subtitle != null)
-                          Text(
-                            widget.subtitle!,
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: mutedColor,
-                              fontFamily: Constants.FONT_DEFAULT_NEW,
-                            ),
-                          ),
-                      ],
-                    ),
-                  const Spacer(),
-                  if (widget.enableColumnVisibilityToggle && widget.title != null) const SizedBox(width: 12),
-                  // Columns visibility toggle
-                  if (widget.enableColumnVisibilityToggle)
-                    ColumnVisibilityButton(
-                      columns: widget.columns,
-                      visibleColumns: _visibleColumns,
-                      onColumnToggle: (key) {
-                        setState(() {
-                          if (_visibleColumns.contains(key)) {
-                            _visibleColumns.remove(key);
-                          } else {
-                            _visibleColumns.add(key);
-                          }
-                        });
-                      },
-                      isDark: isDark,
-                    ),
-                  // Custom toolbar
-                  if (widget.toolbar != null) widget.toolbar!,
-                ],
-              ),
-            ),
-          // Table
-          if (widget.loading)
-            SizedBox(
-              height: widget.maxHeight ?? 320,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Loading...',
-                      style: TextStyle(color: mutedColor),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else if (paginatedRows.isEmpty)
-            SizedBox(
-              height: widget.maxHeight ?? 320,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.inbox, size: 48, color: mutedColor),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.emptyStateTitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: mutedColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.emptyStateDescription,
-                      style: TextStyle(fontSize: 12, color: mutedColor),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            SizedBox(
-              height: widget.maxHeight,
-              child: SingleChildScrollView(
-                controller: _verticalScrollController,
-                scrollDirection: Axis.vertical,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPinnedSectionSlot(
-                      slotKey: 'left',
-                      visible: widget.selectable ||
-                          widget.showTickerCell ||
-                          leftPinnedColumns.isNotEmpty,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: bgColor,
-                          border: Border(
-                            right: BorderSide(color: borderColor),
-                          ),
-                        ),
-                        child: _buildAnimatedTableSection(
-                          key: ValueKey<String>(
-                            'left:${leftPinnedColumns.map((c) => c.key).join('|')}:${widget.selectable}:${widget.showTickerCell}',
-                          ),
-                          child: _buildTableSection(
-                            context: context,
-                            columns: leftPinnedColumns,
-                            rows: paginatedRows,
-                            textColor: textColor,
-                            mutedColor: mutedColor,
-                            includeSelectable: widget.selectable,
-                            includeTicker: widget.showTickerCell,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: AnimatedSize(
-                        duration: const Duration(milliseconds: 320),
-                        curve: Curves.easeInOutCubicEmphasized,
-                        alignment: Alignment.topLeft,
-                        child: centerColumns.isNotEmpty
-                            ? Scrollbar(
-                                controller: _horizontalScrollController,
-                                thumbVisibility: true,
-                                trackVisibility: false,
-                                scrollbarOrientation: ScrollbarOrientation.bottom,
-                                child: SingleChildScrollView(
-                                  controller: _horizontalScrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  child: _buildAnimatedTableSection(
-                                    key: ValueKey<String>(
-                                      'center:${centerColumns.map((c) => c.key).join('|')}',
-                                    ),
-                                    child: _buildTableSection(
-                                      context: context,
-                                      columns: centerColumns,
-                                      rows: paginatedRows,
-                                      textColor: textColor,
-                                      mutedColor: mutedColor,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ),
-                    _buildPinnedSectionSlot(
-                      slotKey: 'right',
-                      visible: rightPinnedColumns.isNotEmpty,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: bgColor,
-                          border: Border(
-                            left: BorderSide(color: borderColor),
-                          ),
-                        ),
-                        child: _buildAnimatedTableSection(
-                          key: ValueKey<String>(
-                            'right:${rightPinnedColumns.map((c) => c.key).join('|')}',
-                          ),
-                          child: _buildTableSection(
-                            context: context,
-                            columns: rightPinnedColumns,
-                            rows: paginatedRows,
-                            textColor: textColor,
-                            mutedColor: mutedColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          // Pagination
-          if (widget.paginated && paginatedRows.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: borderColor)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Showing ${(safePage - 1) * widget.pageSize + 1}–${(safePage * widget.pageSize).clamp(0, sortedRows.length)} of ${sortedRows.length}',
-                    style: TextStyle(fontSize: 13, color: mutedColor),
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.chevron_left, color: mutedColor),
-                        onPressed: safePage > 1
-                            ? () {
-                                setState(() => _currentPage--);
-                                widget.onPageChange?.call(_currentPage);
-                              }
-                            : null,
-                      ),
-                      Text(
-                        '$safePage / $pages',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.chevron_right, color: mutedColor),
-                        onPressed: safePage < pages
-                            ? () {
-                                setState(() => _currentPage++);
-                                widget.onPageChange?.call(_currentPage);
-                              }
-                            : null,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
+      child: tableContent,
     );
   }
 }
@@ -1261,8 +1375,10 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
       builder: (context) {
         final isDark = widget.isDark;
         final backgroundColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
-        final borderColor = isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-        final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+        final borderColor =
+            isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+        final textColor =
+            isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
 
         return Stack(
           children: [
@@ -1313,7 +1429,8 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         shrinkWrap: true,
                         children: widget.columns.map((col) {
-                          final isVisible = _overlayVisibleColumns.contains(col.key);
+                          final isVisible =
+                              _overlayVisibleColumns.contains(col.key);
                           return InkWell(
                             onTap: () {
                               if (isVisible) {

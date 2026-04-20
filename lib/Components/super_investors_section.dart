@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:musaffa_terminal/Components/dynamic_table.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/models/super_investor_model.dart';
 import 'package:musaffa_terminal/services/super_investor_service.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
@@ -90,39 +90,21 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
     }
   }
 
-  List<TableColumn> _buildColumns() {
-    return [
-      TableColumn(key: 'transactionType', title: 'Txn'),
-      TableColumn(key: 'share', title: 'Current Shares'),
-      TableColumn(key: 'previousShares', title: 'Previous Shares'),
-      TableColumn(key: 'change', title: 'Change(shares)'),
-      TableColumn(key: 'value', title: 'Value'),
-      TableColumn(key: 'avgPrice', title: 'Avg Price'),
-      TableColumn(key: 'valueChange', title: 'Value Change'),
-      TableColumn(key: 'percentage', title: 'Portfolio %'),
-      TableColumn(key: 'percentageChange', title: 'Change %'),
-      TableColumn(key: 'trend', title: 'Trend'),
-      TableColumn(key: 'convictionLevel', title: 'Conviction'),
-      
-    ];
-  }
 
-  List<TableRowData> _buildRows(List<MergedSuperInvestor> investors) {
+  List<SimpleRowModel> _buildRows(List<MergedSuperInvestor> investors) {
     return investors.asMap().entries.map((entry) {
-      final index = entry.key;
+      // Removed old index variable
       final investor = entry.value;
       final managerName =
           (investor.manager == null || investor.manager!.isEmpty)
               ? 'Unknown Manager'
               : investor.manager!;
 
-      return TableRowData(
-        id: '${widget.symbol}_$index',
-        // Keep first column simple: show only manager name.
+      return SimpleRowModel(
         symbol: managerName,
         name: '',
         logo: null,
-        data: {
+        fields: {
           'transactionType': investor.transactionType ?? '--',
           'share': _formatShareCount(investor.share),
           'previousShares': _formatShareCount(investor.previousShares),
@@ -145,10 +127,6 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final nameColumnWidth = screenWidth <= 1512 ? 240.0 : 320.0;
-    final headingColor = isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-    final tableHeaderColor =
-        isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final tableCellColor = isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
     final actionColor = isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
 
     return FutureBuilder<List<MergedSuperInvestor>>(
@@ -169,7 +147,19 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
         }
 
         final rows = _buildRows(investors);
-        final columns = _buildColumns();
+          final columns = [
+            SimpleColumn(label: 'TXN', fieldName: 'transactionType', width: 70),
+            SimpleColumn(label: 'CURRENT SHARES', fieldName: 'share', isNumeric: true),
+            SimpleColumn(label: 'PREVIOUS SHARES', fieldName: 'previousShares', isNumeric: true),
+            SimpleColumn(label: 'CHANGE (SHARES)', fieldName: 'change', isNumeric: true),
+            SimpleColumn(label: 'VALUE', fieldName: 'value', isNumeric: true),
+            SimpleColumn(label: 'AVG PRICE', fieldName: 'avgPrice', isNumeric: true),
+            SimpleColumn(label: 'VALUE CHANGE', fieldName: 'valueChange', isNumeric: true),
+            SimpleColumn(label: 'PORTFOLIO %', fieldName: 'percentage', isNumeric: true),
+            SimpleColumn(label: 'CHANGE %', fieldName: 'percentageChange', isNumeric: true),
+            SimpleColumn(label: 'TREND', fieldName: 'trend', width: 80),
+            SimpleColumn(label: 'CONVICTION', fieldName: 'convictionLevel', width: 90),
+          ];
         final hasMoreRows = rows.length > _collapsedRowLimit;
         final visibleRows =
             hasMoreRows && !_isExpanded ? rows.take(_collapsedRowLimit).toList() : rows;
@@ -199,7 +189,7 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: headingColor,
+                          color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827),
                           fontFamily: Constants.FONT_DEFAULT_NEW,
                         ),
                       ),
@@ -215,24 +205,15 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
                 curve: Curves.easeInOutCubic,
                 child: DynamicTable(
                   columns: columns,
-                  data: visibleRows,
-                  showNameColumn: true,
+                  rows: visibleRows,
+                  showFixedColumn: true,
                   considerPadding: false,
-                  nameColumnWidth: nameColumnWidth,
-                rowHeight: 48,
-                headerHeight: 32,
-                  headerTextColor: tableHeaderColor,
-                  cellTextColor: tableCellColor,
-                  nameColumnBackgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                  disableHoverHighlight: true,
-                  useChangeColors: true,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                headerFontSize: 12,
-                headerFontWeight: FontWeight.w500,
-                cellFontSize: 14,
-                cellFontWeight: FontWeight.w400,
-                nameFontSize: 14,
-                nameFontWeight: FontWeight.w400,
+                  columnSpacing: 16,
+                  fixedColumnWidth: nameColumnWidth,
+                  enableLivePrices: false,
+                  zebraStripes: false,
+                  enableColumnCustomization: true,
+                  tableId: 'super_investors_table',
                 ),
               ),
               if (hasMoreRows) ...[

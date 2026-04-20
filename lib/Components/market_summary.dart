@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -15,7 +18,6 @@ class MarketSummaryDynamicTable extends StatefulWidget {
 }
 
 class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
-  final ScrollController _scrollController = ScrollController();
   late MarketSummaryController controller;
 
   @override
@@ -26,8 +28,97 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
     super.dispose();
+  }
+
+  String _extractTextFromWidget(Widget widget) {
+    if (widget is Text) {
+      return widget.data ?? widget.textSpan?.toPlainText() ?? '';
+    }
+    if (widget is Padding && widget.child != null) {
+      return _extractTextFromWidget(widget.child!);
+    }
+    if (widget is Container && widget.child != null) {
+      return _extractTextFromWidget(widget.child!);
+    }
+    if (widget is Align && widget.child != null) {
+      return _extractTextFromWidget(widget.child!);
+    }
+    if (widget is Center && widget.child != null) {
+      return _extractTextFromWidget(widget.child!);
+    }
+    return '';
+  }
+
+  List<DynamicTableColumn> _mapToDynamicColumns({
+    required double fixedSectorColumnWidth,
+    required double periodColumnWidth,
+  }) {
+    final columns = <DynamicTableColumn>[];
+
+    if (controller.fixedDataCols.isNotEmpty) {
+      final fixedColumn = controller.fixedDataCols.first;
+      columns.add(
+        DynamicTableColumn(
+          key: 'sector',
+          label: _extractTextFromWidget(fixedColumn.label),
+          headerWidget: fixedColumn.label,
+          width: fixedSectorColumnWidth,
+          sortable: true,
+          searchable: false,
+          pinnable: true,
+        ),
+      );
+    }
+
+    for (var i = 0; i < controller.dataCols.length; i++) {
+      final column = controller.dataCols[i];
+      columns.add(
+        DynamicTableColumn(
+          key: 'period_$i',
+          label: _extractTextFromWidget(column.label),
+          headerWidget: column.label,
+          width: periodColumnWidth,
+          sortable: true,
+          searchable: false,
+          pinnable: true,
+        ),
+      );
+    }
+
+    return columns;
+  }
+
+  List<DynamicTableRow> _mapToDynamicRows() {
+    final rows = <DynamicTableRow>[];
+    final rowCount =
+        math.min(controller.fixedDataRows.length, controller.dataRows.length);
+
+    for (var rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+      final fixedRowCells = controller.fixedDataRows[rowIndex].cells;
+      final dataRowCells = controller.dataRows[rowIndex].cells;
+
+      final rowData = <String, dynamic>{
+        'sector': fixedRowCells.isNotEmpty ? fixedRowCells.first.child : '--',
+      };
+
+      for (var colIndex = 0;
+          colIndex < controller.dataCols.length;
+          colIndex++) {
+        rowData['period_$colIndex'] = colIndex < dataRowCells.length
+            ? dataRowCells[colIndex].child
+            : '--';
+      }
+
+      rows.add(
+        DynamicTableRow(
+          id: 'market_summary_row_$rowIndex',
+          data: rowData,
+        ),
+      );
+    }
+
+    return rows;
   }
 
   @override
@@ -48,7 +139,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade600, size: 16),
+                    Icon(Icons.error_outline,
+                        color: Colors.red.shade600, size: 16),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -62,7 +154,6 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
             }
             return SizedBox.shrink();
           }),
-          
           Obx(() {
             if (controller.isLoading.value) {
               return _buildShimmerLoader();
@@ -79,7 +170,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                 children: [
                   Row(
                     children: [
-                      Text(                        
+                      Text(
                         "Previous day closing data",
                         textAlign: TextAlign.start,
                         style: DashboardTextStyles.titleSmall.copyWith(
@@ -87,169 +178,109 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                               ? Colors.white
                               : DashboardTextStyles.newtextcolor,
                         ),
-                        
-                       
                       ),
                     ],
                   ),
                   SizedBox(height: 12),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      // Get available width for the table
                       final availableWidth = constraints.maxWidth;
-                      final fixedColumnWidth =
-                          180.0; // Fixed "Sector" column width
+                      const fixedColumnWidth = 180.0;
                       final scrollableAreaWidth =
                           availableWidth - fixedColumnWidth;
 
-                      // Determine row height based on screen width
                       final screenWidth = MediaQuery.of(context).size.width;
                       final bool isLargeScreen = screenWidth >= 1600;
-                      final double dataRowMaxHeight =
-                          isLargeScreen ? 33.0 : 28.0;
+                      final dataRowMaxHeight = isLargeScreen ? 33.0 : 28.0;
 
-                      // Calculate minimum width needed for 6 columns with base spacing
                       final baseColumnSpacing = 10.0;
-                      final numColumns =
-                          6; // 1D, 1W, 1M, 3M, 6M, 1Y
-                      final estimatedColumnWidth =
-                          80.0; // Estimated width per column
-                      final minWidthNeeded = (numColumns * estimatedColumnWidth) +
-                          ((numColumns - 1) * baseColumnSpacing);
+                      const numColumns = 6;
+                      const estimatedColumnWidth = 80.0;
+                      final minWidthNeeded =
+                          (numColumns * estimatedColumnWidth) +
+                              ((numColumns - 1) * baseColumnSpacing);
 
-                      // Calculate dynamic spacing to fill available space
                       double dynamicSpacing;
                       if (scrollableAreaWidth > minWidthNeeded) {
-                        // We have extra space - increase spacing
-                        final extraSpace =
-                            scrollableAreaWidth - minWidthNeeded;
-                        final additionalSpacing =
-                            extraSpace / (numColumns - 1);
-                        dynamicSpacing =
-                            baseColumnSpacing + additionalSpacing;
-                        // Cap maximum spacing at 50px for readability
+                        final extraSpace = scrollableAreaWidth - minWidthNeeded;
+                        final additionalSpacing = extraSpace / (numColumns - 1);
+                        dynamicSpacing = baseColumnSpacing + additionalSpacing;
                         dynamicSpacing =
                             dynamicSpacing.clamp(baseColumnSpacing, 50.0);
                       } else {
-                        // Use base spacing if not enough space
                         dynamicSpacing = baseColumnSpacing;
                       }
 
                       final borderWidth = isLargeScreen ? 0.2 : 0.2;
-                      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                      final isDarkMode =
+                          Theme.of(context).brightness == Brightness.dark;
                       final borderColor = Theme.of(context).primaryColorLight;
-                      // Border color for the container (same as mini_widgets_row)
-                      final containerBorderColor = isDarkMode 
-                          ? const Color(0xFF505050) 
+                      final containerBorderColor = isDarkMode
+                          ? const Color(0xFF505050)
                           : const Color(0xFFD1D5DB);
-                      // Responsive spacing between columns
                       final columnSpacing = isLargeScreen ? 42.0 : 15.0;
+                      final dynamicColumns = _mapToDynamicColumns(
+                        fixedSectorColumnWidth:
+                            fixedColumnWidth + columnSpacing,
+                        periodColumnWidth: estimatedColumnWidth,
+                      );
+                      final dynamicRows = _mapToDynamicRows();
+
+                      final calculatedTableHeight =
+                          24 + (dynamicRows.length * dataRowMaxHeight) + 1;
+                      final tableMaxHeight = calculatedTableHeight < 60
+                          ? 60.0
+                          : calculatedTableHeight;
 
                       return Container(
-                        width: availableWidth, // Use full available width
+                        width: availableWidth,
                         decoration: BoxDecoration(
-                          color: isDarkMode 
+                          color: isDarkMode
                               ? const Color(0xFF2D2D2D)
                               : Colors.white,
-                          border: Border.all(color: containerBorderColor, width: 0.1),
+                          border: Border.all(
+                              color: containerBorderColor, width: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         padding: EdgeInsets.all(8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max, // Changed from min to max
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                            Container(
-                              constraints: BoxConstraints(
-                                minWidth: fixedColumnWidth + columnSpacing,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? const Color(0xFF2D2D2D)
-                                    : Colors.white,
-                              ),
-                              child: DataTable(
-                                headingRowHeight: 24,
-                                horizontalMargin: 0,
-                                dataRowMinHeight: 20,
-                                dataRowMaxHeight: dataRowMaxHeight,
-                                columns: controller.fixedDataCols,
-                                rows: controller.fixedDataRows,
-                                dividerThickness: borderWidth,
-                                border: TableBorder(
-                                  bottom: BorderSide.none,
-                                  top: BorderSide.none,
-                                  verticalInside: BorderSide.none,
-                                  horizontalInside: BorderSide(
-                                    color: borderColor,
-                                    width: borderWidth,
-                                  ),
-                                ),
-                              ),
+                        child: DynamicTableFromWeb(
+                          columns: dynamicColumns,
+                          rows: dynamicRows,
+                          title: null,
+                          subtitle: null,
+                          paginated: false,
+                          selectable: false,
+                          searchable: false,
+                          showTickerCell: false,
+                          toolbar: null,
+                          loading: controller.isLoading.value,
+                          maxHeight: tableMaxHeight,
+                          enableColumnVisibilityToggle: false,
+                          enableColumnReorder: true,
+                          enableColumnPinning: true,
+                          enableRowReorder: false,
+                          showSortIndicators: false,
+                          headingRowHeight: 24,
+                          dataRowMinHeight: 20,
+                          dataRowMaxHeight: dataRowMaxHeight,
+                          horizontalMargin: 0,
+                          columnSpacing: dynamicSpacing,
+                          dividerThickness: borderWidth,
+                          showBottomBorder: false,
+                          tableBorder: TableBorder(
+                            bottom: BorderSide.none,
+                            top: BorderSide.none,
+                            verticalInside: BorderSide.none,
+                            horizontalInside: BorderSide(
+                              color: borderColor,
+                              width: borderWidth,
                             ),
-                            Expanded(
-                              child: Container(
-                                width: scrollableAreaWidth,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? const Color(0xFF2D2D2D)
-                                      : Colors.white,
-                                ),
-                                child: scrollableAreaWidth > minWidthNeeded
-                                    ? DataTable(
-                                        headingRowHeight: 24,
-                                        horizontalMargin: 0,
-                                        columnSpacing: dynamicSpacing,
-                                        dataRowMinHeight: 20,
-                                        dataRowMaxHeight: dataRowMaxHeight,
-                                        columns: controller.dataCols,
-                                        rows: controller.dataRows,
-                                        dividerThickness: borderWidth,
-                                        showBottomBorder: false,
-                                        border: TableBorder(
-                                          bottom: BorderSide.none,
-                                          top: BorderSide.none,
-                                          verticalInside: BorderSide.none,
-                                          horizontalInside: BorderSide(
-                                            color: borderColor,
-                                            width: borderWidth,
-                                          ),
-                                        ),
-                                      )
-                                    : Scrollbar(
-                                        controller: _scrollController,
-                                        thickness: 4,
-                                        thumbVisibility: true,
-                                        child: SingleChildScrollView(
-                                          controller: _scrollController,
-                                          scrollDirection: Axis.horizontal,
-                                          child: DataTable(
-                                            headingRowHeight: 24,
-                                            horizontalMargin: 0,
-                                            columnSpacing: dynamicSpacing,
-                                            dataRowMinHeight: 20,
-                                            dataRowMaxHeight: dataRowMaxHeight,
-                                            columns: controller.dataCols,
-                                            rows: controller.dataRows,
-                                            dividerThickness: borderWidth,
-                                            showBottomBorder: false,
-                                            border: TableBorder(
-                                              bottom: BorderSide.none,
-                                              top: BorderSide.none,
-                                              verticalInside: BorderSide.none,
-                                              horizontalInside: BorderSide(
-                                                color: borderColor,
-                                                width: borderWidth,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ],
+                          ),
+                          useOuterContainer: false,
+                          showColumnActionMenu: true,
+                          showColumnResizeHandle: true,
+                          enforceColumnWidths: true,
+                          initialPinnedLeftColumnKeys: const <String>['sector'],
                         ),
                       );
                     },
@@ -265,8 +296,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
 
   Widget _buildShimmerLoader() {
     return Column(
-      children: List.generate(15, (index) => 
-        Padding(
+      children: List.generate(
+        15,
+        (index) => Padding(
           padding: EdgeInsets.only(bottom: 4),
           child: Row(
             children: [
@@ -277,8 +309,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
               SizedBox(width: 4),
               Expanded(
                 child: Row(
-                  children: List.generate(6, (colIndex) => 
-                    Padding(
+                  children: List.generate(
+                    6,
+                    (colIndex) => Padding(
                       padding: EdgeInsets.only(right: 4),
                       child: ShimmerWidgets.box(
                         height: 20,
