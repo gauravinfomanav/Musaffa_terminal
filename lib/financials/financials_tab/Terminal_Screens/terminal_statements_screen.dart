@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
-import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_annual.dart' as annual;
-import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_quarterly.dart' as quarterly;
+import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_annual.dart'
+    as annual;
+import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_quarterly.dart'
+    as quarterly;
 import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -19,40 +22,78 @@ class TerminalStatementsScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<TerminalStatementsScreen> createState() => _TerminalStatementsScreenState();
+  State<TerminalStatementsScreen> createState() =>
+      _TerminalStatementsScreenState();
 }
 
 class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
-  
   // Single controllers for annual and quarterly
   late annual.FinancialStatementsController annualController;
   late quarterly.FinancialStatementsQuarterlyController quarterlyController;
-  
+
   // Data storage for each statement type
-  final RxList<annual.FinancialStatementModel> annualIncomeData = <annual.FinancialStatementModel>[].obs;
-  final RxList<annual.FinancialStatementModel> annualBalanceData = <annual.FinancialStatementModel>[].obs;
-  final RxList<annual.FinancialStatementModel> annualCashflowData = <annual.FinancialStatementModel>[].obs;
-  
-  final RxList<quarterly.FinancialStatementModel> quarterlyIncomeData = <quarterly.FinancialStatementModel>[].obs;
-  final RxList<quarterly.FinancialStatementModel> quarterlyBalanceData = <quarterly.FinancialStatementModel>[].obs;
-  final RxList<quarterly.FinancialStatementModel> quarterlyCashflowData = <quarterly.FinancialStatementModel>[].obs;
-  
+  final RxList<annual.FinancialStatementModel> annualIncomeData =
+      <annual.FinancialStatementModel>[].obs;
+  final RxList<annual.FinancialStatementModel> annualBalanceData =
+      <annual.FinancialStatementModel>[].obs;
+  final RxList<annual.FinancialStatementModel> annualCashflowData =
+      <annual.FinancialStatementModel>[].obs;
+
+  final RxList<quarterly.FinancialStatementModel> quarterlyIncomeData =
+      <quarterly.FinancialStatementModel>[].obs;
+  final RxList<quarterly.FinancialStatementModel> quarterlyBalanceData =
+      <quarterly.FinancialStatementModel>[].obs;
+  final RxList<quarterly.FinancialStatementModel> quarterlyCashflowData =
+      <quarterly.FinancialStatementModel>[].obs;
+
   final RxList<String> annualYears = <String>[].obs;
   final RxList<String> quarterlyQuarters = <String>[].obs;
-  
+
   final RxBool isLoading = true.obs;
+
+  double _getResponsiveStatementsColumnSpacing(List<String> periods) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Mirrors this screen's outer layout: container margin (12+12) and inner padding (12+12).
+    final usableWidth = (screenWidth - 48).clamp(0, double.infinity).toDouble();
+
+    const metricColumnWidth = 200.0;
+    const periodColumnWidth = 80.0;
+    const derivedStatColumnsCount = 5;
+    const derivedStatColumnWidth = 110.0;
+
+    final centerColumnCount = periods.length + derivedStatColumnsCount;
+    if (centerColumnCount <= 1) {
+      return 40;
+    }
+
+    final centerColumnsWidth =
+        (periods.length * periodColumnWidth) +
+        (derivedStatColumnsCount * derivedStatColumnWidth);
+
+    final availableCenterWidth = (usableWidth - metricColumnWidth)
+        .clamp(0, double.infinity)
+        .toDouble();
+
+    final spacingSlots = centerColumnCount - 1;
+    final calculatedSpacing =
+        (availableCenterWidth - centerColumnsWidth) / spacingSlots;
+
+    return calculatedSpacing.clamp(40, 100).toDouble();
+  }
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize single controllers
     annualController = Get.put(annual.FinancialStatementsController());
-    quarterlyController = Get.put(quarterly.FinancialStatementsQuarterlyController());
-    
+    quarterlyController =
+        Get.put(quarterly.FinancialStatementsQuarterlyController());
+
     // Fetch all data
     _fetchAllData();
-    
+
     // Initialize peer comparison
     _initializePeerComparison();
   }
@@ -62,19 +103,21 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     try {
       // Get peer comparison controller
       final peerController = Get.find<PeerComparisonController>();
-      
+
       // Wait a bit for data to load
       await Future.delayed(Duration(seconds: 1));
-      
+
       // Get actual sector/industry from stock details controller
       final stockDetailsController = Get.find<StockDetailsController>();
       final stockData = stockDetailsController.stockData.value;
-      
+
       if (stockData != null) {
         await peerController.fetchPeerStocks(
           currentStockTicker: widget.symbol,
-          sector: stockData.musaffaSector ?? 'Technology', // Use actual sector or fallback
-          industry: stockData.musaffaIndustry ?? 'Software', // Use actual industry or fallback
+          sector: stockData.musaffaSector ??
+              'Technology', // Use actual sector or fallback
+          industry: stockData.musaffaIndustry ??
+              'Software', // Use actual industry or fallback
           country: stockData.country ?? 'US', // Use actual country or fallback
           limit: 5,
         );
@@ -95,17 +138,28 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
 
   Future<void> _fetchAllData() async {
     isLoading.value = true;
-    
+
     try {
       // Create separate controller instances for each statement type
-      final annualIncomeController = Get.put(annual.FinancialStatementsController(), tag: 'annual_income');
-      final annualBalanceController = Get.put(annual.FinancialStatementsController(), tag: 'annual_balance');
-      final annualCashflowController = Get.put(annual.FinancialStatementsController(), tag: 'annual_cashflow');
-      
-      final quarterlyIncomeController = Get.put(quarterly.FinancialStatementsQuarterlyController(), tag: 'quarterly_income');
-      final quarterlyBalanceController = Get.put(quarterly.FinancialStatementsQuarterlyController(), tag: 'quarterly_balance');
-      final quarterlyCashflowController = Get.put(quarterly.FinancialStatementsQuarterlyController(), tag: 'quarterly_cashflow');
-      
+      final annualIncomeController =
+          Get.put(annual.FinancialStatementsController(), tag: 'annual_income');
+      final annualBalanceController = Get.put(
+          annual.FinancialStatementsController(),
+          tag: 'annual_balance');
+      final annualCashflowController = Get.put(
+          annual.FinancialStatementsController(),
+          tag: 'annual_cashflow');
+
+      final quarterlyIncomeController = Get.put(
+          quarterly.FinancialStatementsQuarterlyController(),
+          tag: 'quarterly_income');
+      final quarterlyBalanceController = Get.put(
+          quarterly.FinancialStatementsQuarterlyController(),
+          tag: 'quarterly_balance');
+      final quarterlyCashflowController = Get.put(
+          quarterly.FinancialStatementsQuarterlyController(),
+          tag: 'quarterly_cashflow');
+
       // Fetch all data in parallel
       await Future.wait([
         annualIncomeController.fetchFinancialReport(widget.symbol, 'ic'),
@@ -115,18 +169,18 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
         quarterlyBalanceController.fetchFinancialReport(widget.symbol, 'bs'),
         quarterlyCashflowController.fetchFinancialReport(widget.symbol, 'cf'),
       ]);
-      
+
       // Store the data
       annualIncomeData.assignAll(annualIncomeController.financialData);
       annualBalanceData.assignAll(annualBalanceController.financialData);
       annualCashflowData.assignAll(annualCashflowController.financialData);
       annualYears.assignAll(annualIncomeController.years);
-      
+
       quarterlyIncomeData.assignAll(quarterlyIncomeController.financialData);
       quarterlyBalanceData.assignAll(quarterlyBalanceController.financialData);
-      quarterlyCashflowData.assignAll(quarterlyCashflowController.financialData);
+      quarterlyCashflowData
+          .assignAll(quarterlyCashflowController.financialData);
       quarterlyQuarters.assignAll(quarterlyIncomeController.quarters);
-      
     } finally {
       isLoading.value = false;
     }
@@ -138,7 +192,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       if (isLoading.value) {
         return _buildLoadingShimmer();
       }
-      
+
       if (widget.isQuarterly) {
         return _buildQuarterlyTables();
       } else {
@@ -210,7 +264,8 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     );
   }
 
-  Widget _buildCombinedBalanceSheetAndCashFlowTable(RxList balanceData, RxList cashflowData, RxList<String> periods) {
+  Widget _buildCombinedBalanceSheetAndCashFlowTable(
+      RxList balanceData, RxList cashflowData, RxList<String> periods) {
     if (balanceData.isEmpty && cashflowData.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,8 +278,8 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: Theme.of(context).brightness == Brightness.dark 
-                      ? const Color(0xFF9CA3AF) 
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF9CA3AF)
                       : const Color(0xFF6B7280),
                 ),
               ),
@@ -239,15 +294,19 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     combinedData.addAll(balanceData);
     combinedData.addAll(cashflowData);
 
-    final transformedData = FinancialDataTransformer.transformFinancialStatements(
+    final transformedData =
+        FinancialDataTransformer.transformFinancialStatements(
       combinedData,
       periods,
     );
 
+    final responsiveColumnSpacing =
+        _getResponsiveStatementsColumnSpacing(periods);
+
     final columns = _buildFinancialColumns(periods, 'Metric');
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12.0),
       decoration: BoxDecoration(
@@ -260,28 +319,37 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: FinancialExpandableTable(
+        child: DynamicTableFromWeb(
           columns: columns,
-          data: transformedData,
-          showNameColumn: false,
+          rows: _mapFinancialRowsToDynamicRows(transformedData),
+          paginated: false,
+          selectable: false,
+          showTickerCell: false,
+          enableColumnFilters: false,
+          loading: isLoading.value,
           rowHeight: 40,
           headerHeight: 32,
           indentSize: 20,
-          expandIconSize: 14,
           considerPadding: false,
-          showYoYGrowth: true, // Enable YoY Growth column
-          showThreeYearAvg: true, // Enable 3-Year Average column
-          showTwoYearCAGR: true, // Enable 2-Year CAGR column
-          showFiveYearCAGR: true, // Enable 5-Year CAGR column
-          showStandardDeviation: true, // Enable Standard Deviation column
+          showNameColumn: false,
+          showYoYGrowth: true,
+          showThreeYearAvg: true,
+          showTwoYearCAGR: true,
+          showFiveYearCAGR: true,
+          showStandardDeviation: true,
+          compactPinnedLayout: true,
+          autoPinStatColumns: false,
+          showPinnedSectionDividers: false,
+          columnSpacing: responsiveColumnSpacing,
         ),
       ),
     );
   }
 
-  Widget _buildStatementTable(RxList data, RxList<String> periods, String columnTitle) {
+  Widget _buildStatementTable(
+      RxList data, RxList<String> periods, String columnTitle) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     if (data.isEmpty) {
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -290,7 +358,8 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
           color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            color:
+                isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
             width: 0.5,
           ),
         ),
@@ -300,7 +369,9 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              color: isDarkMode
+                  ? const Color(0xFF9CA3AF)
+                  : const Color(0xFF6B7280),
             ),
           ),
         ),
@@ -308,10 +379,14 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     }
 
     final columns = _buildFinancialColumns(periods, columnTitle);
-    final transformedData = FinancialDataTransformer.transformFinancialStatements(
+    final transformedData =
+        FinancialDataTransformer.transformFinancialStatements(
       data,
       periods,
     );
+
+    final responsiveColumnSpacing =
+        _getResponsiveStatementsColumnSpacing(periods);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -325,45 +400,74 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: FinancialExpandableTable(
+        child: DynamicTableFromWeb(
           columns: columns,
-          data: transformedData,
-          showNameColumn: false,
+          rows: _mapFinancialRowsToDynamicRows(transformedData),
+          paginated: false,
+          selectable: false,
+          showTickerCell: false,
+          enableColumnFilters: false,
+          loading: isLoading.value,
           rowHeight: 40,
           headerHeight: 32,
           indentSize: 20,
-          expandIconSize: 14,
           considerPadding: false,
-          showYoYGrowth: true, // Enable YoY Growth column
-          showThreeYearAvg: true, // Enable 3-Year Average column
-          showTwoYearCAGR: true, // Enable 2-Year CAGR column
-          showFiveYearCAGR: true, // Enable 5-Year CAGR column
-          showStandardDeviation: true, // Enable Standard Deviation column
+          showNameColumn: false,
+          showYoYGrowth: true,
+          showThreeYearAvg: true,
+          showTwoYearCAGR: true,
+          showFiveYearCAGR: true,
+          showStandardDeviation: true,
+          compactPinnedLayout: true,
+          autoPinStatColumns: false,
+          showPinnedSectionDividers: false,
+          columnSpacing: responsiveColumnSpacing,
         ),
       ),
     );
   }
 
-  List<FinancialExpandableColumn> _buildFinancialColumns(List<String> periods, String title) {
-    List<FinancialExpandableColumn> columns = [
-      FinancialExpandableColumn(
+  List<DynamicTableColumn> _buildFinancialColumns(
+      List<String> periods, String title) {
+    List<DynamicTableColumn> columns = [
+      DynamicTableColumn(
         key: 'metric',
-        title: title,
+        label: title,
         width: 200,
-        alignment: TextAlign.left,
+        align: TextAlign.left,
+        sortable: false,
       ),
     ];
 
     columns.addAll(periods.map((period) {
-      return FinancialExpandableColumn(
+      return DynamicTableColumn(
         key: period,
-        title: period,
+        label: period,
         width: 80,
-        isNumeric: true,
-        alignment: TextAlign.right,
+        align: TextAlign.center,
+        sortable: true,
       );
     }));
 
     return columns;
+  }
+
+  List<DynamicTableRow> _mapFinancialRowsToDynamicRows(
+    List<FinancialExpandableRowData> rows, {
+    int level = 0,
+  }) {
+    return rows.map((row) {
+      final children = row.children == null
+          ? null
+          : _mapFinancialRowsToDynamicRows(row.children!, level: level + 1);
+      return DynamicTableRow(
+        id: row.id,
+        data: row.data,
+        isExpandable: row.isExpandable,
+        isExpanded: row.isExpanded,
+        children: children,
+        level: row.level > 0 ? row.level : level,
+      );
+    }).toList();
   }
 }

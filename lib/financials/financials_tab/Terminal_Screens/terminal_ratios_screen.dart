@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_annual_controller.dart';
@@ -27,17 +28,48 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
   late RatiosController annualRatiosController;
   late QuarterlyRatiosController quarterlyRatiosController;
 
+  double _getResponsiveRatiosColumnSpacing(List<String> periods) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Mirrors this screen's outer layout: container margin (12+12) and inner padding (12+12).
+    final usableWidth = (screenWidth - 48).clamp(0, double.infinity).toDouble();
+
+    const metricColumnWidth = 200.0;
+    const periodColumnWidth = 80.0;
+    const derivedStatColumnsCount = 5;
+    const derivedStatColumnWidth = 110.0;
+
+    final centerColumnCount = periods.length + derivedStatColumnsCount;
+    if (centerColumnCount <= 1) {
+      return 40;
+    }
+
+    final centerColumnsWidth =
+        (periods.length * periodColumnWidth) +
+        (derivedStatColumnsCount * derivedStatColumnWidth);
+
+    final availableCenterWidth = (usableWidth - metricColumnWidth)
+        .clamp(0, double.infinity)
+        .toDouble();
+
+    final spacingSlots = centerColumnCount - 1;
+    final calculatedSpacing =
+        (availableCenterWidth - centerColumnsWidth) / spacingSlots;
+
+    return calculatedSpacing.clamp(40, 100).toDouble();
+  }
+
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize ratios controllers
     annualRatiosController = Get.put(RatiosController());
     annualRatiosController.fetchRatio(widget.symbol);
-    
+
     quarterlyRatiosController = Get.put(QuarterlyRatiosController());
     quarterlyRatiosController.fetchQuarterlyRatios(widget.symbol);
-    
+
     // Initialize peer comparison
     _initializePeerComparison();
   }
@@ -47,22 +79,24 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     try {
       // Get peer comparison controller
       final peerController = Get.find<PeerComparisonController>();
-      
+
       // Wait a bit for data to load
       await Future.delayed(Duration(seconds: 1));
-      
+
       // Get actual sector/industry from stock details controller
       final stockDetailsController = Get.find<StockDetailsController>();
       final stockData = stockDetailsController.stockData.value;
       if (stockData != null) {
         await peerController.fetchPeerStocks(
           currentStockTicker: widget.symbol,
-          sector: stockData.musaffaSector ?? '', // Use actual sector or fallback
-          industry: stockData.musaffaIndustry ?? '', // Use actual industry or fallback
+          sector:
+              stockData.musaffaSector ?? '', // Use actual sector or fallback
+          industry: stockData.musaffaIndustry ??
+              '', // Use actual industry or fallback
           country: stockData.country ?? 'US', // Use actual country or fallback
           limit: 5,
         );
-      } 
+      }
     } catch (e) {
       print('Error initializing peer comparison in ratios: $e');
     }
@@ -71,18 +105,19 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Obx(() {
       if (widget.isQuarterly) {
         // Show Quarterly Ratios
         if (quarterlyRatiosController.isLoading.value) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
             child: ShimmerWidgets.perShareTableShimmer(),
           );
         }
 
-        if (!quarterlyRatiosController.processingComplete.value || 
+        if (!quarterlyRatiosController.processingComplete.value ||
             quarterlyRatiosController.tableData.isEmpty) {
           return Center(
             child: Text(
@@ -90,7 +125,9 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                color: isDarkMode
+                    ? const Color(0xFF9CA3AF)
+                    : const Color(0xFF6B7280),
               ),
             ),
           );
@@ -101,8 +138,12 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
           quarterlyRatiosController.tableData,
           quarterlyRatiosController.quarters,
         );
+        final responsiveColumnSpacing =
+            _getResponsiveRatiosColumnSpacing(
+                quarterlyRatiosController.quarters);
 
-        final columns = _buildFinancialColumns(quarterlyRatiosController.quarters);
+        final columns =
+            _buildFinancialColumns(quarterlyRatiosController.quarters);
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -110,26 +151,36 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              color: isDarkMode
+                  ? const Color(0xFF404040)
+                  : const Color(0xFFE5E7EB),
               width: 0.5,
             ),
           ),
           child: Padding(
             padding: const EdgeInsets.all(12.0),
-            child: FinancialExpandableTable(
+            child: DynamicTableFromWeb(
               columns: columns,
-              data: transformedData,
-              showNameColumn: false, // Don't show separate name column since we have metric column
+              rows: _mapFinancialRowsToDynamicRows(transformedData),
+              paginated: false,
+              selectable: false,
+              showTickerCell: false,
+              enableColumnFilters: false,
+              loading: quarterlyRatiosController.isLoading.value,
               rowHeight: 40,
               headerHeight: 32,
               indentSize: 20,
-              expandIconSize: 14,
               considerPadding: false,
-              showYoYGrowth: true, // Enable YoY Growth column
-              showThreeYearAvg: true, // Enable 3-Year Average column
-              showTwoYearCAGR: true, // Enable 2-Year CAGR column
-              showFiveYearCAGR: true, // Enable 5-Year CAGR column
-              showStandardDeviation: true, // Enable Standard Deviation column
+              showNameColumn: false,
+              showYoYGrowth: true,
+              showThreeYearAvg: true,
+              showTwoYearCAGR: true,
+              showFiveYearCAGR: true,
+              showStandardDeviation: true,
+              compactPinnedLayout: true,
+              autoPinStatColumns: false,
+              showPinnedSectionDividers: false,
+              columnSpacing: responsiveColumnSpacing,
             ),
           ),
         );
@@ -137,7 +188,8 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
         // Show Annual Ratios
         if (annualRatiosController.isLoading.value) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 0.0),
             child: ShimmerWidgets.perShareTableShimmer(),
           );
         }
@@ -150,14 +202,19 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                color: isDarkMode
+                    ? const Color(0xFF9CA3AF)
+                    : const Color(0xFF6B7280),
               ),
             ),
           );
         }
 
         // Transform annual data for the new table
-        final transformedData = _transformAnnualRatiosData(annualData, annualRatiosController.years);
+        final transformedData = _transformAnnualRatiosData(
+            annualData, annualRatiosController.years);
+        final responsiveColumnSpacing =
+          _getResponsiveRatiosColumnSpacing(annualRatiosController.years);
         final columns = _buildFinancialColumns(annualRatiosController.years);
 
         return Container(
@@ -166,26 +223,36 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
             color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              color: isDarkMode
+                  ? const Color(0xFF404040)
+                  : const Color(0xFFE5E7EB),
               width: 0.5,
             ),
           ),
           child: Padding(
             padding: const EdgeInsets.all(12.0),
-            child: FinancialExpandableTable(
+            child: DynamicTableFromWeb(
               columns: columns,
-              data: transformedData,
-              showNameColumn: false, // Don't show separate name column since we have metric column
+              rows: transformedData,
+              paginated: false,
+              selectable: false,
+              showTickerCell: false,
+              enableColumnFilters: false,
+              loading: annualRatiosController.isLoading.value,
               rowHeight: 40,
               headerHeight: 32,
               indentSize: 20,
-              expandIconSize: 14,
               considerPadding: false,
-              showYoYGrowth: true, // Enable YoY Growth column
-              showThreeYearAvg: true, // Enable 3-Year Average column
-              showTwoYearCAGR: true, // Enable 2-Year CAGR column
-              showFiveYearCAGR: true, // Enable 5-Year CAGR column
-              showStandardDeviation: true, // Enable Standard Deviation column
+              showNameColumn: false,
+              showYoYGrowth: true,
+              showThreeYearAvg: true,
+              showTwoYearCAGR: true,
+              showFiveYearCAGR: true,
+              showStandardDeviation: true,
+              compactPinnedLayout: true,
+              autoPinStatColumns: false,
+              showPinnedSectionDividers: false,
+              columnSpacing: responsiveColumnSpacing,
             ),
           ),
         );
@@ -193,30 +260,50 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     });
   }
 
-  List<FinancialExpandableColumn> _buildFinancialColumns(List<String> periods) {
-    List<FinancialExpandableColumn> columns = [
-      FinancialExpandableColumn(
+  List<DynamicTableColumn> _buildFinancialColumns(List<String> periods) {
+    List<DynamicTableColumn> columns = [
+      DynamicTableColumn(
         key: 'metric',
-        title: 'Metric',
+        label: 'Metric',
         width: 200,
-        alignment: TextAlign.left,
+        align: TextAlign.left,
+        sortable: false,
       ),
     ];
 
     columns.addAll(periods.map((period) {
-      return FinancialExpandableColumn(
+      return DynamicTableColumn(
         key: period,
-        title: period,
+        label: period,
         width: 80,
-        isNumeric: true,
-        alignment: TextAlign.right,
+        align: TextAlign.center,
+        sortable: true,
       );
     }));
 
     return columns;
   }
 
-  List<FinancialExpandableRowData> _transformAnnualRatiosData(
+  List<DynamicTableRow> _mapFinancialRowsToDynamicRows(
+    List<FinancialExpandableRowData> rows, {
+    int level = 0,
+  }) {
+    return rows.map((row) {
+      final children = row.children == null
+          ? null
+          : _mapFinancialRowsToDynamicRows(row.children!, level: level + 1);
+      return DynamicTableRow(
+        id: row.id,
+        data: row.data,
+        isExpandable: row.isExpandable,
+        isExpanded: row.isExpanded,
+        children: children,
+        level: row.level > 0 ? row.level : level,
+      );
+    }).toList();
+  }
+
+  List<DynamicTableRow> _transformAnnualRatiosData(
     Map<String, Map<String, double?>> annualData,
     List<String> years,
   ) {
@@ -281,47 +368,49 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
 
       // Calculate YoY Growth
       data['yoy_growth'] = _calculateYoYGrowth(annualData[metric], years);
-      
+
       // Calculate 3-Year Average
-      data['three_year_avg'] = _calculateThreeYearAverage(annualData[metric], years);
-      
+      data['three_year_avg'] =
+          _calculateThreeYearAverage(annualData[metric], years);
+
       // Calculate 2-Year CAGR
       data['two_year_cagr'] = _calculateTwoYearCAGR(annualData[metric], years);
-      
-      // Calculate 5-Year CAGR
-      data['five_year_cagr'] = _calculateFiveYearCAGR(annualData[metric], years);
-      
-      // Calculate Standard Deviation of Growth Rates
-      data['standard_deviation'] = _calculateStandardDeviation(annualData[metric], years);
 
-      return FinancialExpandableRowData(
+      // Calculate 5-Year CAGR
+      data['five_year_cagr'] =
+          _calculateFiveYearCAGR(annualData[metric], years);
+
+      // Calculate Standard Deviation of Growth Rates
+      data['standard_deviation'] =
+          _calculateStandardDeviation(annualData[metric], years);
+
+      return DynamicTableRow(
         id: metric,
-        name: displayNames[metric] ?? metric,
         data: {
           'metric': displayNames[metric] ?? metric,
           ...data,
         },
-        level: 0,
       );
     }).toList();
   }
 
   // Calculate Year-on-Year Growth for ratios
-  String _calculateYoYGrowth(Map<String, double?>? metricData, List<String> years) {
+  String _calculateYoYGrowth(
+      Map<String, double?>? metricData, List<String> years) {
     if (metricData == null || years.length < 2) return '-';
-    
+
     String currentYear = years.last;
     String previousYear = years[years.length - 2];
-    
+
     double? current = metricData[currentYear];
     double? previous = metricData[previousYear];
-    
+
     if (current == null || previous == null || previous == 0) {
       return '-';
     }
-    
+
     double growth = ((current - previous) / previous) * 100;
-    
+
     // Format with + or - sign
     if (growth > 0) {
       return '+${growth.toStringAsFixed(1)}%';
@@ -333,45 +422,47 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
   }
 
   // Calculate 3-Year Average for ratios
-  String _calculateThreeYearAverage(Map<String, double?>? metricData, List<String> years) {
+  String _calculateThreeYearAverage(
+      Map<String, double?>? metricData, List<String> years) {
     if (metricData == null || years.length < 3) return '-';
-    
+
     // Get the last 3 years
     List<String> lastThreeYears = years.skip(years.length - 3).toList();
     List<double> values = [];
-    
+
     for (String year in lastThreeYears) {
       double? value = metricData[year];
       if (value != null) {
         values.add(value);
       }
     }
-    
+
     if (values.isEmpty) return '-';
-    
+
     double average = values.reduce((a, b) => a + b) / values.length;
     return average.toStringAsFixed(2);
   }
 
   // Calculate 2-Year CAGR for ratios
-  String _calculateTwoYearCAGR(Map<String, double?>? metricData, List<String> years) {
+  String _calculateTwoYearCAGR(
+      Map<String, double?>? metricData, List<String> years) {
     if (metricData == null || years.length < 2) return '-';
-    
+
     // Get the last 2 years
     List<String> lastTwoYears = years.skip(years.length - 2).toList();
     String oldestYear = lastTwoYears.first;
     String latestYear = lastTwoYears.last;
-    
+
     double? oldestValue = metricData[oldestYear];
     double? latestValue = metricData[latestYear];
-    
+
     if (oldestValue == null || latestValue == null || oldestValue <= 0) {
       return '-';
     }
-    
+
     // Calculate CAGR: (Latest Year / Oldest Year)^(1/2) - 1
     double cagr = pow(latestValue / oldestValue, 1.0 / 2.0) - 1.0;
-    
+
     // Format as percentage with + or - sign
     if (cagr > 0) {
       return '+${(cagr * 100).toStringAsFixed(1)}%';
@@ -383,64 +474,66 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
   }
 
   // Calculate Standard Deviation of Growth Rates for ratios
-  String _calculateStandardDeviation(Map<String, double?>? metricData, List<String> years) {
+  String _calculateStandardDeviation(
+      Map<String, double?>? metricData, List<String> years) {
     if (metricData == null || years.length < 2) return '-';
-    
+
     List<double> growthRates = [];
-    
+
     // Calculate year-over-year growth rates
     for (int i = 1; i < years.length; i++) {
       String currentYear = years[i];
       String previousYear = years[i - 1];
-      
+
       double? currentValue = metricData[currentYear];
       double? previousValue = metricData[previousYear];
-      
+
       if (currentValue == null || previousValue == null || previousValue == 0) {
         continue;
       }
-      
+
       // Calculate growth rate: (Current - Previous) / Previous
       double growthRate = (currentValue - previousValue) / previousValue;
       growthRates.add(growthRate);
     }
-    
+
     if (growthRates.length < 2) return '-';
-    
+
     // Calculate mean
     double mean = growthRates.reduce((a, b) => a + b) / growthRates.length;
-    
+
     // Calculate variance
-    double variance = growthRates
-        .map((rate) => pow(rate - mean, 2))
-        .reduce((a, b) => a + b) / growthRates.length;
-    
+    double variance =
+        growthRates.map((rate) => pow(rate - mean, 2)).reduce((a, b) => a + b) /
+            growthRates.length;
+
     // Calculate standard deviation
     double standardDeviation = sqrt(variance);
-    
+
     // Format as percentage
     return '${(standardDeviation * 100).toStringAsFixed(1)}%';
   }
 
   // Calculate 5-Year CAGR for ratios
-  String _calculateFiveYearCAGR(Map<String, double?>? metricData, List<String> years) {
+  String _calculateFiveYearCAGR(
+      Map<String, double?>? metricData, List<String> years) {
     if (metricData == null || years.length < 5) return '-';
-    
+
     // Get the first and last 5 years
     List<String> lastFiveYears = years.skip(years.length - 5).toList();
     String oldestYear = lastFiveYears.first;
     String latestYear = lastFiveYears.last;
-    
+
     double? oldestValue = metricData[oldestYear];
     double? latestValue = metricData[latestYear];
-    
+
     if (oldestValue == null || latestValue == null || oldestValue <= 0) {
       return '-';
     }
-    
+
     // Calculate CAGR: (Latest Year / Oldest Year)^(1/5) - 1
     double cagr = pow(latestValue / oldestValue, 1.0 / 5.0) - 1.0;
-    
+
     // Format as percentage with + or - sign
     if (cagr > 0) {
       return '+${(cagr * 100).toStringAsFixed(1)}%';
@@ -450,5 +543,4 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       return '0.0%';
     }
   }
-
 }

@@ -45,12 +45,40 @@ class DynamicTableRow {
   final String id;
   final Map<String, dynamic> data;
   final bool? isSelectable;
+  final bool isExpandable;
+  final bool isExpanded;
+  final List<DynamicTableRow>? children;
+  final int level;
 
   const DynamicTableRow({
     required this.id,
     required this.data,
     this.isSelectable = true,
+    this.isExpandable = false,
+    this.isExpanded = false,
+    this.children,
+    this.level = 0,
   });
+
+  DynamicTableRow copyWith({
+    String? id,
+    Map<String, dynamic>? data,
+    bool? isSelectable,
+    bool? isExpandable,
+    bool? isExpanded,
+    List<DynamicTableRow>? children,
+    int? level,
+  }) {
+    return DynamicTableRow(
+      id: id ?? this.id,
+      data: data ?? this.data,
+      isSelectable: isSelectable ?? this.isSelectable,
+      isExpandable: isExpandable ?? this.isExpandable,
+      isExpanded: isExpanded ?? this.isExpanded,
+      children: children ?? this.children,
+      level: level ?? this.level,
+    );
+  }
 }
 
 /// Sort state
@@ -124,6 +152,20 @@ class DynamicTableFromWeb extends StatefulWidget {
   final bool enforceColumnWidths;
   final List<String> initialPinnedLeftColumnKeys;
   final List<String> initialPinnedRightColumnKeys;
+  final bool showYoYGrowth;
+  final bool showThreeYearAvg;
+  final bool showTwoYearCAGR;
+  final bool showFiveYearCAGR;
+  final bool showStandardDeviation;
+  final double indentSize;
+  final bool considerPadding;
+  final bool showNameColumn;
+  final double? rowHeight;
+  final double? headerHeight;
+  final bool compactPinnedLayout;
+  final bool autoPinMetricColumn;
+  final bool autoPinStatColumns;
+  final bool showPinnedSectionDividers;
 
   const DynamicTableFromWeb({
     Key? key,
@@ -179,6 +221,20 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.enforceColumnWidths = true,
     this.initialPinnedLeftColumnKeys = const <String>[],
     this.initialPinnedRightColumnKeys = const <String>[],
+    this.showYoYGrowth = false,
+    this.showThreeYearAvg = false,
+    this.showTwoYearCAGR = false,
+    this.showFiveYearCAGR = false,
+    this.showStandardDeviation = false,
+    this.indentSize = 20,
+    this.considerPadding = false,
+    this.showNameColumn = true,
+    this.rowHeight,
+    this.headerHeight,
+    this.compactPinnedLayout = false,
+    this.autoPinMetricColumn = true,
+    this.autoPinStatColumns = true,
+    this.showPinnedSectionDividers = true,
   }) : super(key: key);
 
   @override
@@ -202,11 +258,12 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   final Set<String> _pinnedLeftColumns = <String>{};
   final Set<String> _pinnedRightColumns = <String>{};
   final Map<String, double> _naturalMinWidths = <String, double>{};
+  final Set<String> _expandedRowIds = <String>{};
 
   @override
   void initState() {
     super.initState();
-    _columnOrder = widget.columns.map((c) => c.key).toList();
+    _columnOrder = _getEffectiveColumns().map((c) => c.key).toList();
     _visibleColumns = Set.from(_columnOrder);
     _selectedRowIds = <String>{};
     _columnFilterValues = <String, dynamic>{};
@@ -217,6 +274,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _verticalScrollController = ScrollController();
     _pinnedLeftColumns.addAll(widget.initialPinnedLeftColumnKeys);
     _pinnedRightColumns.addAll(widget.initialPinnedRightColumnKeys);
+    _initializeExpandedRows(widget.rows);
   }
 
   @override
@@ -228,8 +286,31 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     if (oldWidget.currentPage != widget.currentPage) {
       _currentPage = widget.currentPage;
     }
-    if (oldWidget.columns != widget.columns) {
+    if (oldWidget.columns != widget.columns ||
+        oldWidget.showYoYGrowth != widget.showYoYGrowth ||
+        oldWidget.showThreeYearAvg != widget.showThreeYearAvg ||
+        oldWidget.showTwoYearCAGR != widget.showTwoYearCAGR ||
+        oldWidget.showFiveYearCAGR != widget.showFiveYearCAGR ||
+        oldWidget.showStandardDeviation != widget.showStandardDeviation) {
+      final effectiveKeys = _getEffectiveColumns().map((c) => c.key).toSet();
+      final nextOrder = <String>[];
+      for (final key in _columnOrder) {
+        if (effectiveKeys.contains(key)) {
+          nextOrder.add(key);
+        }
+      }
+      for (final col in _getEffectiveColumns()) {
+        if (!nextOrder.contains(col.key)) {
+          nextOrder.add(col.key);
+        }
+      }
+      _columnOrder = nextOrder;
+      _visibleColumns = _visibleColumns.intersection(effectiveKeys);
+      _visibleColumns.addAll(nextOrder);
       _naturalMinWidths.clear();
+    }
+    if (oldWidget.rows != widget.rows) {
+      _initializeExpandedRows(widget.rows);
     }
   }
 
@@ -238,6 +319,106 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
     super.dispose();
+  }
+
+  List<DynamicTableColumn> _getEffectiveColumns() {
+    final columns = <DynamicTableColumn>[...widget.columns];
+    final existingKeys = columns.map((c) => c.key).toSet();
+
+    DynamicTableColumn statColumn(String key, String label) {
+      return DynamicTableColumn(
+        key: key,
+        label: label,
+        width: 110,
+        sortable: true,
+        searchable: false,
+        pinnable: true,
+        align: TextAlign.center,
+      );
+    }
+
+    if (widget.showYoYGrowth && !existingKeys.contains('yoy_growth')) {
+      columns.add(statColumn('yoy_growth', 'YoY Growth'));
+    }
+    if (widget.showThreeYearAvg && !existingKeys.contains('three_year_avg')) {
+      columns.add(statColumn('three_year_avg', '3-Year Avg'));
+    }
+    if (widget.showTwoYearCAGR && !existingKeys.contains('two_year_cagr')) {
+      columns.add(statColumn('two_year_cagr', '2Y CAGR'));
+    }
+    if (widget.showFiveYearCAGR && !existingKeys.contains('five_year_cagr')) {
+      columns.add(statColumn('five_year_cagr', '5Y CAGR'));
+    }
+    if (widget.showStandardDeviation &&
+        !existingKeys.contains('standard_deviation')) {
+      columns.add(statColumn('standard_deviation', 'Std Dev'));
+    }
+
+    return columns;
+  }
+
+  Set<String> _getEnabledStatColumnKeys() {
+    final keys = <String>{};
+    if (widget.showYoYGrowth) keys.add('yoy_growth');
+    if (widget.showThreeYearAvg) keys.add('three_year_avg');
+    if (widget.showTwoYearCAGR) keys.add('two_year_cagr');
+    if (widget.showFiveYearCAGR) keys.add('five_year_cagr');
+    if (widget.showStandardDeviation) keys.add('standard_deviation');
+    return keys;
+  }
+
+  double get _effectiveHeadingRowHeight =>
+      widget.headerHeight ?? widget.headingRowHeight;
+
+  double get _effectiveDataRowHeight =>
+      widget.rowHeight ?? widget.dataRowMaxHeight;
+
+  void _initializeExpandedRows(List<DynamicTableRow> rows) {
+    void collect(List<DynamicTableRow> input) {
+      for (final row in input) {
+        if (row.isExpandable && row.isExpanded) {
+          _expandedRowIds.add(row.id);
+        }
+        if (row.children != null && row.children!.isNotEmpty) {
+          collect(row.children!);
+        }
+      }
+    }
+
+    _expandedRowIds.clear();
+    collect(rows);
+  }
+
+  void _toggleRowExpansion(DynamicTableRow row) {
+    if (!row.isExpandable) return;
+    setState(() {
+      if (_expandedRowIds.contains(row.id)) {
+        _expandedRowIds.remove(row.id);
+      } else {
+        _expandedRowIds.add(row.id);
+      }
+    });
+  }
+
+  List<DynamicTableRow> _flattenRows(List<DynamicTableRow> rows,
+      {int level = 0}) {
+    final flattened = <DynamicTableRow>[];
+
+    for (final row in rows) {
+      final currentLevel = row.level > 0 ? row.level : level;
+      final normalized = row.copyWith(level: currentLevel);
+      flattened.add(normalized);
+
+      if (normalized.isExpandable &&
+          normalized.children != null &&
+          normalized.children!.isNotEmpty &&
+          _expandedRowIds.contains(normalized.id)) {
+        flattened.addAll(
+            _flattenRows(normalized.children!, level: currentLevel + 1));
+      }
+    }
+
+    return flattened;
   }
 
   List<DynamicTableRow> _getFilteredRows() {
@@ -265,11 +446,19 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
   List<DynamicTableRow> _getSortedRows(List<DynamicTableRow> rows) {
     if (_sortState == null) return rows;
-    final sortCol =
-        widget.columns.firstWhereOrNull((c) => c.key == _sortState!.key);
+    final sortCol = _getEffectiveColumns()
+        .firstWhereOrNull((c) => c.key == _sortState!.key);
     if (sortCol == null) return rows;
 
+    return _sortRowsRecursively(rows, sortCol);
+  }
+
+  List<DynamicTableRow> _sortRowsRecursively(
+    List<DynamicTableRow> rows,
+    DynamicTableColumn sortCol,
+  ) {
     final sorted = [...rows];
+
     sorted.sort((a, b) {
       final aVal = _extractComparableValue(a.data[sortCol.key]);
       final bVal = _extractComparableValue(b.data[sortCol.key]);
@@ -280,7 +469,14 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       final cmp = _compareValues(aVal, bVal);
       return _sortState!.direction == 'asc' ? cmp : -cmp;
     });
-    return sorted;
+
+    return sorted.map((row) {
+      final children = row.children;
+      if (children == null || children.isEmpty) {
+        return row;
+      }
+      return row.copyWith(children: _sortRowsRecursively(children, sortCol));
+    }).toList();
   }
 
   dynamic _extractComparableValue(dynamic value) {
@@ -824,11 +1020,52 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     DynamicTableRow row,
     List<DynamicTableColumn> columns,
     Color textColor,
+    String? expanderColumnKey,
   ) {
     return columns.map((col) {
       final value = row.data[col.key];
       final resolvedWidth =
           widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
+      final cellText = value?.toString() ?? '--';
+      final defaultCell = value is Widget
+          ? value
+          : Text(
+              cellText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: col.align,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 13,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+              ),
+            );
+
+      final isExpanderColumn =
+          expanderColumnKey != null && col.key == expanderColumnKey;
+
+      final content = isExpanderColumn
+          ? Padding(
+              padding: EdgeInsets.only(left: row.level * widget.indentSize),
+              child: Row(
+                children: [
+                  if (row.isExpandable)
+                    Icon(
+                      _expandedRowIds.contains(row.id)
+                          ? Icons.keyboard_arrow_down
+                          : Icons.keyboard_arrow_right,
+                      size: 16,
+                      color: textColor,
+                    )
+                  else
+                    const SizedBox(width: 16),
+                  const SizedBox(width: 4),
+                  Expanded(child: defaultCell),
+                ],
+              ),
+            )
+          : defaultCell;
+
       return DataCell(
         SizedBox(
           width: resolvedWidth,
@@ -837,22 +1074,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             child: AnimatedOpacity(
               opacity: 1.0,
               duration: const Duration(milliseconds: 150),
-              child: value is Widget
-                  ? value
-                  : Text(
-                      value?.toString() ?? '--',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 13,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
+              child: content,
             ),
           ),
         ),
         onTap: () {
+          if (isExpanderColumn && row.isExpandable) {
+            _toggleRowExpansion(row);
+            return;
+          }
           widget.onRowDoubleClick?.call(row);
         },
       );
@@ -865,6 +1095,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required List<DynamicTableRow> rows,
     required Color textColor,
     required Color mutedColor,
+    required String? expanderColumnKey,
     bool includeSelectable = false,
     bool includeTicker = false,
   }) {
@@ -874,9 +1105,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     }
 
     return DataTable(
-      headingRowHeight: widget.headingRowHeight,
-      dataRowMinHeight: widget.dataRowMinHeight,
-      dataRowMaxHeight: widget.dataRowMaxHeight,
+      headingRowHeight: _effectiveHeadingRowHeight,
+      dataRowMinHeight: widget.rowHeight ?? widget.dataRowMinHeight,
+      dataRowMaxHeight: _effectiveDataRowHeight,
       horizontalMargin: widget.horizontalMargin,
       columnSpacing: widget.columnSpacing,
       dividerThickness: widget.dividerThickness,
@@ -949,7 +1180,12 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                   widget.onRowDoubleClick?.call(row);
                 },
               ),
-            ..._buildRowCellsForColumns(row, columns, textColor),
+            ..._buildRowCellsForColumns(
+              row,
+              columns,
+              textColor,
+              expanderColumnKey,
+            ),
           ],
         );
       }).toList(),
@@ -1053,42 +1289,61 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final mutedColor =
         isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
 
+    final effectiveColumns = _getEffectiveColumns();
     final filteredRows = _getFilteredRows();
     final sortedRows = _getSortedRows(filteredRows);
+    final flattenedRows = _flattenRows(sortedRows);
 
     final pages = widget.paginated
-        ? (sortedRows.length / widget.pageSize)
+        ? (flattenedRows.length / widget.pageSize)
             .ceil()
             .clamp(1, double.infinity)
             .toInt()
         : 1;
     final safePage = _currentPage.clamp(1, pages);
     final paginatedRows = widget.paginated
-        ? sortedRows
+        ? flattenedRows
             .skip((safePage - 1) * widget.pageSize)
             .take(widget.pageSize)
             .toList()
-        : sortedRows;
+        : flattenedRows;
 
     final allVisibleColumns = _columnOrder
-        .map((key) => widget.columns.firstWhereOrNull((c) => c.key == key))
+        .map((key) => effectiveColumns.firstWhereOrNull((c) => c.key == key))
         .whereType<DynamicTableColumn>()
         .where((c) => _visibleColumns.contains(c.key))
         .toList();
 
+    final metricKeys = allVisibleColumns
+        .where((c) => c.key == 'metric')
+        .map((c) => c.key)
+        .toSet();
+    final statKeys = _getEnabledStatColumnKeys();
+    final effectiveLeftPinned = <String>{
+      ..._pinnedLeftColumns,
+      if (widget.autoPinMetricColumn) ...metricKeys,
+    };
+    final effectiveRightPinned = <String>{
+      ..._pinnedRightColumns,
+      if (widget.autoPinStatColumns) ...statKeys,
+    };
+
     final leftPinnedColumns = allVisibleColumns
-        .where((c) => _pinnedLeftColumns.contains(c.key))
+        .where((c) => effectiveLeftPinned.contains(c.key))
         .toList();
     final centerColumns = allVisibleColumns
         .where(
           (c) =>
-              !_pinnedLeftColumns.contains(c.key) &&
-              !_pinnedRightColumns.contains(c.key),
+              !effectiveLeftPinned.contains(c.key) &&
+              !effectiveRightPinned.contains(c.key),
         )
         .toList();
     final rightPinnedColumns = allVisibleColumns
-        .where((c) => _pinnedRightColumns.contains(c.key))
+        .where((c) => effectiveRightPinned.contains(c.key))
         .toList();
+
+    final expanderColumnKey =
+        allVisibleColumns.isNotEmpty ? allVisibleColumns.first.key : null;
 
     final tableContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1137,7 +1392,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 // Columns visibility toggle
                 if (widget.enableColumnVisibilityToggle)
                   ColumnVisibilityButton(
-                    columns: widget.columns,
+                    columns: effectiveColumns,
                     visibleColumns: _visibleColumns,
                     onColumnToggle: (key) {
                       setState(() {
@@ -1207,6 +1462,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               controller: _verticalScrollController,
               scrollDirection: Axis.vertical,
               child: Row(
+                mainAxisSize: widget.compactPinnedLayout
+                    ? MainAxisSize.min
+                    : MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildPinnedSectionSlot(
@@ -1217,9 +1475,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: bgColor,
-                        border: Border(
-                          right: BorderSide(color: borderColor),
-                        ),
+                        border: widget.showPinnedSectionDividers
+                            ? Border(
+                                right: BorderSide(color: borderColor),
+                              )
+                            : null,
                       ),
                       child: _buildAnimatedTableSection(
                         key: ValueKey<String>(
@@ -1231,52 +1491,93 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                           rows: paginatedRows,
                           textColor: textColor,
                           mutedColor: mutedColor,
+                          expanderColumnKey: expanderColumnKey,
                           includeSelectable: widget.selectable,
                           includeTicker: widget.showTickerCell,
                         ),
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: AnimatedSize(
-                      duration: const Duration(milliseconds: 320),
-                      curve: Curves.easeInOutCubicEmphasized,
-                      alignment: Alignment.topLeft,
-                      child: centerColumns.isNotEmpty
-                          ? Scrollbar(
-                              controller: _horizontalScrollController,
-                              thumbVisibility: true,
-                              trackVisibility: false,
-                              scrollbarOrientation: ScrollbarOrientation.bottom,
-                              child: SingleChildScrollView(
+                  if (widget.compactPinnedLayout)
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: AnimatedSize(
+                        duration: const Duration(milliseconds: 320),
+                        curve: Curves.easeInOutCubicEmphasized,
+                        alignment: Alignment.topLeft,
+                        child: centerColumns.isNotEmpty
+                            ? Scrollbar(
                                 controller: _horizontalScrollController,
-                                scrollDirection: Axis.horizontal,
-                                child: _buildAnimatedTableSection(
-                                  key: ValueKey<String>(
-                                    'center:${centerColumns.map((c) => c.key).join('|')}',
-                                  ),
-                                  child: _buildTableSection(
-                                    context: context,
-                                    columns: centerColumns,
-                                    rows: paginatedRows,
-                                    textColor: textColor,
-                                    mutedColor: mutedColor,
+                                thumbVisibility: true,
+                                trackVisibility: false,
+                                scrollbarOrientation:
+                                    ScrollbarOrientation.bottom,
+                                child: SingleChildScrollView(
+                                  controller: _horizontalScrollController,
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildAnimatedTableSection(
+                                    key: ValueKey<String>(
+                                      'center:${centerColumns.map((c) => c.key).join('|')}',
+                                    ),
+                                    child: _buildTableSection(
+                                      context: context,
+                                      columns: centerColumns,
+                                      rows: paginatedRows,
+                                      textColor: textColor,
+                                      mutedColor: mutedColor,
+                                      expanderColumnKey: expanderColumnKey,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: AnimatedSize(
+                        duration: const Duration(milliseconds: 320),
+                        curve: Curves.easeInOutCubicEmphasized,
+                        alignment: Alignment.topLeft,
+                        child: centerColumns.isNotEmpty
+                            ? Scrollbar(
+                                controller: _horizontalScrollController,
+                                thumbVisibility: true,
+                                trackVisibility: false,
+                                scrollbarOrientation:
+                                    ScrollbarOrientation.bottom,
+                                child: SingleChildScrollView(
+                                  controller: _horizontalScrollController,
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildAnimatedTableSection(
+                                    key: ValueKey<String>(
+                                      'center:${centerColumns.map((c) => c.key).join('|')}',
+                                    ),
+                                    child: _buildTableSection(
+                                      context: context,
+                                      columns: centerColumns,
+                                      rows: paginatedRows,
+                                      textColor: textColor,
+                                      mutedColor: mutedColor,
+                                      expanderColumnKey: expanderColumnKey,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
                     ),
-                  ),
                   _buildPinnedSectionSlot(
                     slotKey: 'right',
                     visible: rightPinnedColumns.isNotEmpty,
                     child: Container(
                       decoration: BoxDecoration(
                         color: bgColor,
-                        border: Border(
-                          left: BorderSide(color: borderColor),
-                        ),
+                        border: widget.showPinnedSectionDividers
+                            ? Border(
+                                left: BorderSide(color: borderColor),
+                              )
+                            : null,
                       ),
                       child: _buildAnimatedTableSection(
                         key: ValueKey<String>(
@@ -1288,6 +1589,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                           rows: paginatedRows,
                           textColor: textColor,
                           mutedColor: mutedColor,
+                          expanderColumnKey: expanderColumnKey,
                         ),
                       ),
                     ),
@@ -1307,7 +1609,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Showing ${(safePage - 1) * widget.pageSize + 1}–${(safePage * widget.pageSize).clamp(0, sortedRows.length)} of ${sortedRows.length}',
+                  'Showing ${(safePage - 1) * widget.pageSize + 1}–${(safePage * widget.pageSize).clamp(0, flattenedRows.length)} of ${flattenedRows.length}',
                   style: TextStyle(fontSize: 13, color: mutedColor),
                 ),
                 Row(
@@ -1347,8 +1649,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       ],
     );
 
+    final paddedTableContent = widget.considerPadding
+        ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: tableContent,
+          )
+        : tableContent;
+
     if (!widget.useOuterContainer) {
-      return tableContent;
+      return paddedTableContent;
     }
 
     return Container(
@@ -1357,7 +1666,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: tableContent,
+      child: paddedTableContent,
     );
   }
 }
