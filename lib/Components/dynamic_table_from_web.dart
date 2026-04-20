@@ -271,21 +271,68 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
     final sorted = [...rows];
     sorted.sort((a, b) {
-      final aVal = a.data[sortCol.key];
-      final bVal = b.data[sortCol.key];
+      final aVal = _extractComparableValue(a.data[sortCol.key]);
+      final bVal = _extractComparableValue(b.data[sortCol.key]);
       if (aVal == null && bVal == null) return 0;
       if (aVal == null) return 1;
       if (bVal == null) return -1;
 
-      int cmp;
-      if (aVal is num && bVal is num) {
-        cmp = aVal.compareTo(bVal);
-      } else {
-        cmp = aVal.toString().compareTo(bVal.toString());
-      }
+      final cmp = _compareValues(aVal, bVal);
       return _sortState!.direction == 'asc' ? cmp : -cmp;
     });
     return sorted;
+  }
+
+  dynamic _extractComparableValue(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = _parseNumericString(value);
+      return parsed ?? value.toLowerCase();
+    }
+    if (value is Text) {
+      final text = value.data ?? value.textSpan?.toPlainText();
+      if (text == null) return null;
+      final parsed = _parseNumericString(text);
+      return parsed ?? text.toLowerCase();
+    }
+    if (value is Padding) {
+      return _extractComparableValue(value.child);
+    }
+    if (value is Align) {
+      return _extractComparableValue(value.child);
+    }
+    if (value is Center) {
+      return _extractComparableValue(value.child);
+    }
+    if (value is Container) {
+      return _extractComparableValue(value.child);
+    }
+    if (value is SizedBox) {
+      return _extractComparableValue(value.child);
+    }
+    if (value is GestureDetector) {
+      return _extractComparableValue(value.child);
+    }
+    return value.toString().toLowerCase();
+  }
+
+  double? _parseNumericString(String value) {
+    final normalized = value
+        .replaceAll(',', '')
+        .replaceAll('%', '')
+        .replaceAll('\$', '')
+        .replaceAll('−', '-')
+        .trim();
+    if (normalized.isEmpty) return null;
+    return double.tryParse(normalized);
+  }
+
+  int _compareValues(dynamic a, dynamic b) {
+    if (a is num && b is num) {
+      return a.compareTo(b);
+    }
+    return a.toString().compareTo(b.toString());
   }
 
   double _getNaturalMinWidth(DynamicTableColumn col) {
