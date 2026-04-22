@@ -13,11 +13,13 @@ import 'package:musaffa_terminal/utils/constants.dart';
 class TerminalRatiosScreen extends StatefulWidget {
   final String symbol;
   final bool isQuarterly;
+  final String? title;
 
   const TerminalRatiosScreen({
     Key? key,
     required this.symbol,
     this.isQuarterly = false,
+    this.title,
   }) : super(key: key);
 
   @override
@@ -160,6 +162,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
           child: Padding(
             padding: const EdgeInsets.all(12.0),
             child: DynamicTableFromWeb(
+              title: widget.title,
               columns: columns,
               rows: _mapFinancialRowsToDynamicRows(transformedData),
               paginated: false,
@@ -232,6 +235,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
           child: Padding(
             padding: const EdgeInsets.all(12.0),
             child: DynamicTableFromWeb(
+              title: widget.title,
               columns: columns,
               rows: transformedData,
               paginated: false,

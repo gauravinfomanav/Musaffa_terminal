@@ -106,6 +106,13 @@ class DynamicTable extends StatefulWidget {
     Key? key,
     required this.columns,
     required this.rows,
+    this.title,
+    this.subtitle,
+    this.showOuterShadow = false,
+    this.outerBoxShadow,
+    this.sortState,
+    this.onSortChange,
+    this.toolbar,
     this.showFixedColumn = true,
     this.considerPadding = true,
     this.columnSpacing = 6,
@@ -121,10 +128,22 @@ class DynamicTable extends StatefulWidget {
     this.tableId,
     this.enableColumnCustomization = false,
     this.onTickerTap,
+    this.centerCellContent = false,
+    this.compactHeaderText = false,
+    this.showColumnActionMenu = true,
+    this.showColumnResizeHandle = true,
+    this.resizeHandleIndicatorHeight = 14,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
   final List<SimpleRowModel> rows;
+  final String? title;
+  final String? subtitle;
+  final bool showOuterShadow;
+  final List<BoxShadow>? outerBoxShadow;
+  final SortState? sortState;
+  final Function(String, String)? onSortChange;
+  final Widget? toolbar;
   final bool showFixedColumn;
   final bool considerPadding;
   final double columnSpacing;
@@ -140,6 +159,11 @@ class DynamicTable extends StatefulWidget {
   final String? tableId; // Unique identifier for this table instance
   final bool enableColumnCustomization; // Enable column customization features
   final Function(DynamicTableRow)? onTickerTap;
+  final bool centerCellContent;
+  final bool compactHeaderText;
+  final bool showColumnActionMenu;
+  final bool showColumnResizeHandle;
+  final double resizeHandleIndicatorHeight;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -275,6 +299,36 @@ class _DynamicTableState extends State<DynamicTable> {
   @override
   void didUpdateWidget(DynamicTable oldWidget) {
     init();
+
+    // Keep customized columns in sync when incoming columns/table context changes.
+    if (widget.enableColumnCustomization && widget.tableId != null) {
+      if (oldWidget.tableId != widget.tableId) {
+        _initializeColumnCustomization();
+      } else if (oldWidget.columns != widget.columns) {
+        final columnMap = {for (var col in widget.columns) col.fieldName: col};
+        final nextColumns = <SimpleColumn>[];
+
+        // Preserve current visual order for columns that still exist.
+        for (var col in _customizedColumns) {
+          final mapped = columnMap[col.fieldName];
+          if (mapped != null) {
+            nextColumns.add(mapped);
+          }
+        }
+
+        // Append any new columns not present in current customized order.
+        for (var col in widget.columns) {
+          if (!nextColumns.any((c) => c.fieldName == col.fieldName)) {
+            nextColumns.add(col);
+          }
+        }
+
+        _customizedColumns = nextColumns;
+      }
+    } else if (oldWidget.columns != widget.columns ||
+        oldWidget.enableColumnCustomization != widget.enableColumnCustomization) {
+      _customizedColumns = List.from(widget.columns);
+    }
     
     // Update live prices if enabled and rows changed
     if (widget.enableLivePrices && oldWidget.rows != widget.rows) {
@@ -477,14 +531,34 @@ class _DynamicTableState extends State<DynamicTable> {
     // Fixed column for company name
     if (widget.showFixedColumn) {
       fixedLst.add(DataColumn(
-        label: Padding(
-          padding: const EdgeInsets.only(right: 12, bottom: 4),
-          child: Text(
-            "COMPANY",
-            style: TextStyle(
-              fontSize: 13,
-              color: headerColor,
-              fontWeight: FontWeight.w400,
+        label: SizedBox(
+          width: widget.fixedColumnWidth != null && widget.fixedColumnWidth! > 10
+              ? widget.fixedColumnWidth!
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 12, bottom: 4),
+            child: Center(
+              child: widget.compactHeaderText
+                  ? AutoSizeText(
+                      "COMPANY",
+                      maxLines: 1,
+                      minFontSize: 9,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: headerColor,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    )
+                  : Text(
+                      "COMPANY",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: headerColor,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
             ),
           ),
         ),
@@ -509,16 +583,35 @@ class _DynamicTableState extends State<DynamicTable> {
       
       Widget headerLabel = Padding(
         padding: const EdgeInsets.only(bottom: 4),
-        child: Text(
-          column.label,
-          textAlign: textAlign,
-          style: TextStyle(
-            fontSize: 13,
-            color: headerColor,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
+        child: widget.compactHeaderText
+            ? AutoSizeText(
+                column.label,
+                maxLines: 1,
+                minFontSize: 9,
+                textAlign: textAlign,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: headerColor,
+                  fontWeight: FontWeight.w400,
+                ),
+              )
+            : Text(
+                column.label,
+                textAlign: textAlign,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: headerColor,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
       );
+
+      if (column.width != null) {
+        headerLabel = SizedBox(
+          width: column.width,
+          child: headerLabel,
+        );
+      }
       
       if (isPriceColumn) {
         headerLabel = SizedBox(
@@ -572,9 +665,22 @@ class _DynamicTableState extends State<DynamicTable> {
           (col) => DynamicTableColumn(
             key: col.fieldName,
             label: col.label,
+            headerWidget: widget.compactHeaderText
+                ? AutoSizeText(
+                    col.label,
+                    maxLines: 1,
+                    minFontSize: 9,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
+                  )
+                : null,
             width: col.width,
             sortable: true,
-            align: col.isNumeric ? TextAlign.right : TextAlign.left,
+            align: TextAlign.center,
           ),
         )
         .toList();
@@ -600,21 +706,54 @@ class _DynamicTableState extends State<DynamicTable> {
       padding: EdgeInsets.symmetric(
         horizontal: widget.considerPadding == true ? 16 : 0,
       ),
-      child: DynamicTableFromWeb(
-        columns: mappedColumns,
-        rows: mappedRows,
-        paginated: false,
-        selectable: false,
-        showTickerCell: widget.showFixedColumn,
-        tickerKey: '_ticker_symbol',
-        companyKey: '_company_name',
-        logoKey: '_logo_url',
-        tickerHeaderLabel: 'COMPANY',
-        enableColumnVisibilityToggle: widget.enableColumnCustomization,
-        enableColumnReorder: widget.enableColumnCustomization,
-        enableColumnPinning: true,
-        stickyHeader: true,
-        onTickerTap: widget.onTickerTap ?? (row) {
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFE6ECF5),
+            width: 1,
+          ),
+          boxShadow: widget.showOuterShadow
+              ? (widget.outerBoxShadow ??
+                  [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(
+                        Theme.of(context).brightness == Brightness.dark ? 0.28 : 0.08,
+                      ),
+                      blurRadius: 18,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 8),
+                    ),
+                  ])
+              : null,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: DynamicTableFromWeb(
+            title: widget.title,
+            subtitle: widget.subtitle,
+            useOuterContainer: false,
+            columns: mappedColumns,
+            rows: mappedRows,
+            sortState: widget.sortState,
+            onSortChange: widget.onSortChange,
+            toolbar: widget.toolbar,
+            paginated: false,
+            selectable: false,
+            showTickerCell: widget.showFixedColumn,
+            tickerKey: '_ticker_symbol',
+            companyKey: '_company_name',
+            logoKey: '_logo_url',
+            tickerHeaderLabel: 'COMPANY',
+            enableColumnVisibilityToggle: widget.enableColumnCustomization,
+            enableColumnReorder: widget.enableColumnCustomization,
+            enableColumnPinning: true,
+            stickyHeader: true,
+            showColumnActionMenu: widget.showColumnActionMenu,
+            showColumnResizeHandle: widget.showColumnResizeHandle,
+            resizeHandleIndicatorHeight: widget.resizeHandleIndicatorHeight,
+            onTickerTap: widget.onTickerTap ?? (row) {
           final ticker = row.data['_ticker_symbol']?.toString() ?? '';
           if (ticker.isEmpty || ticker == '--') return;
 
@@ -655,7 +794,9 @@ class _DynamicTableState extends State<DynamicTable> {
                   : EtfDetailsScreen(ticker: tickerModel),
             ),
           );
-        },
+            },
+          ),
+        ),
       ),
     );
   }
@@ -1034,27 +1175,47 @@ class _DynamicTableState extends State<DynamicTable> {
               }
             }
             
-            // All values left-aligned
-            final textAlign = TextAlign.left;
-            
-            Widget cellContent = Text(
-              displayValue,
-              textAlign: textAlign,
-              style: DashboardTextStyles.dataCell.copyWith(color: textColor),
-            );
+            final textAlign = widget.centerCellContent
+                ? TextAlign.center
+                : TextAlign.left;
+
+            Widget cellContent = widget.compactHeaderText
+                ? AutoSizeText(
+                    displayValue,
+                    maxLines: 1,
+                    minFontSize: 9,
+                    textAlign: textAlign,
+                    style: DashboardTextStyles.dataCell.copyWith(color: textColor),
+                  )
+                : Text(
+                    displayValue,
+                    textAlign: textAlign,
+                    style: DashboardTextStyles.dataCell.copyWith(color: textColor),
+                  );
+
+            if (column.width != null) {
+              cellContent = SizedBox(
+                width: column.width,
+                child: cellContent,
+              );
+            }
             
             // Apply fixed width for price columns to prevent shifting
             if (isPriceColumn) {
               cellContent = SizedBox(
                 width: 65, // Fixed width for price columns
                 child: Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: widget.centerCellContent
+                      ? Alignment.center
+                      : Alignment.centerLeft,
                   child: cellContent,
                 ),
               );
             } else {
               cellContent = Align(
-                alignment: Alignment.centerLeft,
+                alignment: widget.centerCellContent
+                    ? Alignment.center
+                    : Alignment.centerLeft,
                 child: cellContent,
               );
             }

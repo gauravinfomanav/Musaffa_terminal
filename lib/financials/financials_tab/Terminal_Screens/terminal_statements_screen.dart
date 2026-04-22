@@ -14,11 +14,13 @@ import 'package:musaffa_terminal/utils/constants.dart';
 class TerminalStatementsScreen extends StatefulWidget {
   final String symbol;
   final bool isQuarterly;
+  final String? title;
 
   const TerminalStatementsScreen({
     Key? key,
     required this.symbol,
     this.isQuarterly = false,
+    this.title,
   }) : super(key: key);
 
   @override
@@ -232,6 +234,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
             annualIncomeData,
             annualYears,
             'Metric',
+            title: 'COMPANY FINANCIALS',
           ),
           const SizedBox(height: 20),
           _buildCombinedBalanceSheetAndCashFlowTable(
@@ -252,6 +255,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
             quarterlyIncomeData,
             quarterlyQuarters,
             'Metric',
+            title: 'COMPANY FINANCIALS',
           ),
           const SizedBox(height: 20),
           _buildCombinedBalanceSheetAndCashFlowTable(
@@ -320,6 +324,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: DynamicTableFromWeb(
+          title: widget.title,
           columns: columns,
           rows: _mapFinancialRowsToDynamicRows(transformedData),
           paginated: false,
@@ -347,7 +352,8 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
   }
 
   Widget _buildStatementTable(
-      RxList data, RxList<String> periods, String columnTitle) {
+      RxList data, RxList<String> periods, String columnTitle,
+      {String? title}) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (data.isEmpty) {
@@ -401,11 +407,12 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: DynamicTableFromWeb(
+          title: title,
           columns: columns,
           rows: _mapFinancialRowsToDynamicRows(transformedData),
           paginated: false,
           selectable: false,
-          showTickerCell: false,
+          showTickerCell: false,  
           enableColumnFilters: false,
           loading: isLoading.value,
           rowHeight: 40,

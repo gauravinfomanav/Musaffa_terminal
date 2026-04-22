@@ -177,33 +177,11 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Super Investors Data',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827),
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
               AnimatedSize(
                 duration: const Duration(milliseconds: 280),
                 curve: Curves.easeInOutCubic,
                 child: DynamicTable(
+                  title: 'Super Investors Data',
                   columns: columns,
                   rows: visibleRows,
                   showFixedColumn: true,
@@ -219,7 +197,7 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
               if (hasMoreRows) ...[
                 const SizedBox(height: 8),
                 Center(
-                  child: TextButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: () {
                       setState(() {
                         _isExpanded = !_isExpanded;
@@ -245,10 +223,14 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
                     ),
-                    style: TextButton.styleFrom(
+                    style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
+                      side: BorderSide(color: actionColor.withOpacity(0.6), width: 1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                     ),
                   ),
                 ),

@@ -358,12 +358,12 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
 
   Widget _buildTable() {
     final columns = [
-      SimpleColumn(label: 'ADDED', fieldName: 'addedPrice', isNumeric: true, width: 75),
-      SimpleColumn(label: 'CURRENT', fieldName: 'currentPrice', isNumeric: true, width: 75),
-      SimpleColumn(label: 'GAIN/LOSS', fieldName: 'gainLoss', isNumeric: true, width: 85),
-      SimpleColumn(label: 'TARGET', fieldName: 'targetPrice', isNumeric: false, width: 80),
-      SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 85),
-      SimpleColumn(label: 'Volume', fieldName: 'volume', isNumeric: false, width: 85),
+      SimpleColumn(label: 'ADDED', fieldName: 'addedPrice', isNumeric: true, width: 108),
+      SimpleColumn(label: 'CURRENT', fieldName: 'currentPrice', isNumeric: true, width: 118),
+      SimpleColumn(label: 'GAIN/LOSS', fieldName: 'gainLoss', isNumeric: true, width: 132),
+      SimpleColumn(label: 'TARGET', fieldName: 'targetPrice', isNumeric: false, width: 104),
+      SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 112),
+      SimpleColumn(label: 'Volume', fieldName: 'volume', isNumeric: false, width: 96),
     ];
 
     return Container(
@@ -376,12 +376,17 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         rows: _tableData,
         considerPadding: false,
         showFixedColumn: true,
-        columnSpacing: 15,
-        horizontalMargin: 8,
-        fixedColumnWidth: 1.5, // Flex value for fixed column (smaller = less space)
+        columnSpacing: 10,
+        horizontalMargin: 6,
+        fixedColumnWidth: 155,
         enableLivePrices: true,
         enableColumnCustomization: true,
         tableId: 'watchlist_stocks_table',
+        centerCellContent: true,
+        compactHeaderText: true,
+        showColumnActionMenu: true,
+        showColumnResizeHandle: true,
+        resizeHandleIndicatorHeight: 18,
       ),
     );
   }

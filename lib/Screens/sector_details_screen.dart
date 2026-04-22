@@ -950,6 +950,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         symbol: stock.ticker ?? '',
         name: sectorStocksController.companyNamesMap[stock.ticker] ?? stock.companySymbol ?? stock.ticker ?? '',
         logo: sectorStocksController.logoMap[stock.ticker],
+        
         price: stock.currentPrice,
         changePercent: stock.priceChange1DPercent,
         currency: stock.currency ?? 'USD',
@@ -967,65 +968,39 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       );
     }).toList();
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
+    return DynamicTable(
+      title: title,
+      tableId: 'sector_details_${title.toLowerCase().replaceAll(' ', '_')}_table',
+      enableColumnCustomization: true,
+      showOuterShadow: true,
+      outerBoxShadow: [
+        BoxShadow(
+          color: isDarkMode
+              ? Colors.black.withOpacity(0.28)
+              : const Color(0xFF0F172A).withOpacity(0.08),
+          blurRadius: 18,
+          spreadRadius: 0,
+          offset: const Offset(0, 8),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
-              ),
-            ),
-            child: Text(
-              title,
-              style: DashboardTextStyles.columnHeader.copyWith(
-                fontWeight: FontWeight.w400,
-                fontSize: 13,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Table
-          DynamicTable(
-            tableId: 'sector_details_${title.toLowerCase().replaceAll(' ', '_')}_table',
-            enableColumnCustomization: true,
-            columns: const [
-              SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-              SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-              SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
-              SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
-              SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
-              SimpleColumn(label: '10D AVG', fieldName: 'avgVol10d', isNumeric: true),
-              SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
-            ],
-            rows: rows,
-            showFixedColumn: true,
-            considerPadding: false,
-            columnSpacing: 20,
-            fixedColumnWidth: 300,
-            enableDragging: false,
-            enableLivePrices: true,
-            // enableColumnCustomization: true,
-            // tableId: 'top_gainers_losers_table',
-          ),
-        ],
-      ),
+      ],
+      columns: const [
+        SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
+        SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
+        SimpleColumn(label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+        SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+        SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+        SimpleColumn(label: '10D AVG', fieldName: 'avgVol10d', isNumeric: true),
+        SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+      ],
+      rows: rows,
+      showFixedColumn: true,
+      considerPadding: false,
+      columnSpacing: 20,
+      fixedColumnWidth: 300,
+      enableDragging: false,
+      enableLivePrices: true,
+      // enableColumnCustomization: true,
+      // tableId: 'top_gainers_losers_table',
     );
   }
 

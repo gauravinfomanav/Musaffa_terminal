@@ -96,7 +96,6 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTerminalTitle(isDarkMode, title: 'PER SHARE DATA'),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -104,6 +103,7 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
                   child: TerminalPerShareScreen(
                     symbol: widget.symbol,
                     currency: widget.currency,
+                    title: 'PER SHARE DATA',
                     onMetricSelected: (metric) {
                       setState(() {
                         selectedMetric = metric;
@@ -118,29 +118,16 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            _buildTerminalTitle(isDarkMode, title: 'COMPANY FINANCIALS'),
-            TerminalRatiosScreen(symbol: widget.symbol),
+            TerminalRatiosScreen(
+              symbol: widget.symbol,
+              title: 'COMPANY FINANCIALS',
+            ),
             const SizedBox(height: 12),
-            _buildTerminalTitle(isDarkMode, title: 'FINANCIAL STATEMENTS'),
-            TerminalStatementsScreen(symbol: widget.symbol),
+            TerminalStatementsScreen(
+              symbol: widget.symbol,
+              title: 'FINANCIAL STATEMENTS',
+            ),
           ],
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildTerminalTitle(bool isDarkMode, {String title = 'PER SHARE DATA'}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          color: isDarkMode ? const Color(0xFF81AACE) : const Color.fromARGB(255, 64, 58, 58),
         ),
       ),
     );

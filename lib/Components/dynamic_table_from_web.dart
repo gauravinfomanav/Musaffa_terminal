@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
@@ -147,8 +148,11 @@ class DynamicTableFromWeb extends StatefulWidget {
   final TableBorder? tableBorder;
   final bool showBottomBorder;
   final bool useOuterContainer;
+  final bool showOuterShadow;
+  final List<BoxShadow>? outerBoxShadow;
   final bool showColumnActionMenu;
   final bool showColumnResizeHandle;
+  final double resizeHandleIndicatorHeight;
   final bool enforceColumnWidths;
   final List<String> initialPinnedLeftColumnKeys;
   final List<String> initialPinnedRightColumnKeys;
@@ -216,8 +220,11 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.tableBorder,
     this.showBottomBorder = false,
     this.useOuterContainer = true,
+    this.showOuterShadow = false,
+    this.outerBoxShadow,
     this.showColumnActionMenu = true,
     this.showColumnResizeHandle = true,
+    this.resizeHandleIndicatorHeight = 18,
     this.enforceColumnWidths = true,
     this.initialPinnedLeftColumnKeys = const <String>[],
     this.initialPinnedRightColumnKeys = const <String>[],
@@ -995,10 +1002,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                                   opacity: _hoveredResizeColumnKey == col.key
                                       ? 1
                                       : 1,
-                                  child: Container(
-                                    width: 1,
-                                    color: const Color.fromARGB(
-                                        255, 172, 173, 174),
+                                  child: Center(
+                                    child: Container(
+                                      width: 1,
+                                      height: widget.resizeHandleIndicatorHeight,
+                                      color: const Color.fromARGB(
+                                          255, 172, 173, 174),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1386,6 +1396,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                         ),
                     ],
                   ),
+                // If there is no title/subtitle, place custom toolbar content on the left.
+                if (widget.title == null && widget.subtitle == null && widget.toolbar != null)
+                  widget.toolbar!,
                 const Spacer(),
                 if (widget.enableColumnVisibilityToggle && widget.title != null)
                   const SizedBox(width: 12),
@@ -1406,7 +1419,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                     isDark: isDark,
                   ),
                 // Custom toolbar
-                if (widget.toolbar != null) widget.toolbar!,
+                if ((widget.title != null || widget.subtitle != null) && widget.toolbar != null) ...[
+                  const SizedBox(width: 12),
+                  widget.toolbar!,
+                ],
               ],
             ),
           ),
@@ -1665,6 +1681,17 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         color: bgColor,
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(10),
+        boxShadow: widget.showOuterShadow
+            ? (widget.outerBoxShadow ??
+                [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.8 : 0.8),
+                    blurRadius: 18,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 8),
+                  ),
+                ])
+            : null,
       ),
       child: paddedTableContent,
     );
@@ -1880,10 +1907,14 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.tune,
-                size: 18,
-                color: widget.isDark ? Colors.white : Colors.black,
+              SvgPicture.string(
+                '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14.67 5v14H9.33V5h5.34zm1 14H21V5h-5.33v14zm-7.34 0V5H3v14h5.33z"/></svg>',
+                width: 18,
+                height: 18,
+                colorFilter: ColorFilter.mode(
+                  widget.isDark ? Colors.white : Colors.black,
+                  BlendMode.srcIn,
+                ),
               ),
               const SizedBox(width: 8),
               Text(

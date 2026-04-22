@@ -9,12 +9,14 @@ class TerminalPerShareScreen extends StatefulWidget {
   final String symbol;
   final String currency;
   final Function(String)? onMetricSelected;
+  final String? title;
 
   const TerminalPerShareScreen({
     Key? key,
     required this.symbol,
     required this.currency,
     this.onMetricSelected,
+    this.title,
   }) : super(key: key);
 
   @override
@@ -191,6 +193,7 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: DynamicTableFromWeb(
+          title: widget.title,
           columns: columns,
           rows: tableData,
           paginated: false,

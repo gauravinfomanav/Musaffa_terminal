@@ -336,16 +336,6 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
   }
 
   Widget _buildPortfolioTable(List<PortfolioSummary> portfolios, bool isDark) {
-    final columns = [
-      SimpleColumn(label: 'CLIENT', fieldName: 'client', width: 180),
-      SimpleColumn(label: 'CAPITAL', fieldName: 'capital', width: 120, isNumeric: true),
-      SimpleColumn(label: 'HOLDINGS', fieldName: 'holdings', width: 100, isNumeric: true),
-      SimpleColumn(label: 'ALLOCATION %', fieldName: 'allocation', width: 120, isNumeric: true),
-      SimpleColumn(label: 'EST. RETURNS', fieldName: 'returns', width: 130, isNumeric: true),
-      SimpleColumn(label: 'LAST UPDATED', fieldName: 'updated', width: 140),
-      SimpleColumn(label: 'ACTIONS', fieldName: 'actions', width: 80),
-    ];
-
     final rows = portfolios.map((portfolio) {
       return SimpleRowModel(
         symbol: '', // Empty - don't show ID/ticker
@@ -363,19 +353,56 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
       );
     }).toList();
 
-    return DynamicTable(
-      columns: columns,
-      rows: rows,
-      showFixedColumn: true,
-      considerPadding: false,
-      columnSpacing: 20,
-      fixedColumnWidth: 250,
-      enableLivePrices: false,
-      zebraStripes: true,
-      evenRowColor: Colors.transparent,
-      oddRowColor: isDark ? const Color(0xFF14171C) : const Color(0xFFF5F6F8),
-      enableColumnCustomization: true,
-      tableId: 'portfolio_ideas_table',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const fixedColumnWidth = 250.0;
+        const baseClient = 180.0;
+        const baseCapital = 120.0;
+        const baseHoldings = 100.0;
+        const baseAllocation = 120.0;
+        const baseReturns = 130.0;
+        const baseUpdated = 140.0;
+        const baseActions = 80.0;
+        const totalBaseWidth = baseClient +
+            baseCapital +
+            baseHoldings +
+            baseAllocation +
+            baseReturns +
+            baseUpdated +
+            baseActions;
+
+        // Fill extra horizontal space on large screens while preserving minimum widths.
+        final availableForDynamicColumns =
+            (constraints.maxWidth - fixedColumnWidth - 32).clamp(0.0, double.infinity);
+        final widthScale = availableForDynamicColumns > totalBaseWidth
+            ? (availableForDynamicColumns / totalBaseWidth)
+            : 1.0;
+
+        final columns = [
+          SimpleColumn(label: 'CLIENT', fieldName: 'client', width: baseClient * widthScale),
+          SimpleColumn(label: 'CAPITAL', fieldName: 'capital', width: baseCapital * widthScale, isNumeric: true),
+          SimpleColumn(label: 'HOLDINGS', fieldName: 'holdings', width: baseHoldings * widthScale, isNumeric: true),
+          SimpleColumn(label: 'ALLOCATION %', fieldName: 'allocation', width: baseAllocation * widthScale, isNumeric: true),
+          SimpleColumn(label: 'EST. RETURNS', fieldName: 'returns', width: baseReturns * widthScale, isNumeric: true),
+          SimpleColumn(label: 'LAST UPDATED', fieldName: 'updated', width: baseUpdated * widthScale),
+          SimpleColumn(label: 'ACTIONS', fieldName: 'actions', width: baseActions * widthScale),
+        ];
+
+        return DynamicTable(
+          columns: columns,
+          rows: rows,
+          showFixedColumn: true,
+          considerPadding: false,
+          columnSpacing: 20,
+          fixedColumnWidth: fixedColumnWidth,
+          enableLivePrices: false,
+          zebraStripes: true,
+          evenRowColor: Colors.transparent,
+          oddRowColor: isDark ? const Color(0xFF14171C) : const Color(0xFFF5F6F8),
+          enableColumnCustomization: true,
+          tableId: 'portfolio_ideas_table',
+        );
+      },
     );
   }
 

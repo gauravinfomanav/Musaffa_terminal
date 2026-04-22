@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -33,6 +34,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   late FilterController filterController;
   late ScreenerStrategyController strategyController;
   late ScrollController _scrollController;
+  SortState? _resultsSortState;
   
   // GlobalKey to maintain scroll position
   final GlobalKey _resultsSectionKey = GlobalKey();
@@ -774,26 +776,16 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              
-              
-              if (_getTotalAppliedFiltersCount() > 0) ...[
-                Text(
-                  '${_getTotalAppliedFiltersCount()} ${_getTotalAppliedFiltersCount() == 1 ? 'filter' : 'filters'}',
-                  style: DashboardTextStyles.dataCell.copyWith(
-                    fontSize: 12,
-                    color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                  ),
-                ),
-                const Spacer(),
-              ] else ...[
-                const Spacer(),
-              ],
-              _buildResultsTabs(isDarkMode),
-            ],
-          ),
-          const SizedBox(height: 12),
+          if (_getTotalAppliedFiltersCount() > 0) ...[
+            Text(
+              '${_getTotalAppliedFiltersCount()} ${_getTotalAppliedFiltersCount() == 1 ? 'filter' : 'filters'}',
+              style: DashboardTextStyles.dataCell.copyWith(
+                fontSize: 12,
+                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           _buildResultsTable(isDarkMode),
         ],
       ),
@@ -861,6 +853,7 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
           DynamicTable(
             columns: _getColumnsForSelectedTab(),
             rows: rows,
+            toolbar: _buildResultsTabs(isDarkMode),
             showFixedColumn: true,
             considerPadding: false,
             columnSpacing: 16,
@@ -868,7 +861,13 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
             enableDragging: false,
             enableLivePrices: true,
             enableColumnCustomization: true,
-            tableId: 'screener_results_table',
+            tableId: 'screener_results_table_${_selectedResultsTab}',
+            sortState: _resultsSortState,
+            onSortChange: (key, direction) {
+              setState(() {
+                _resultsSortState = SortState(key: key, direction: direction);
+              });
+            },
           ),
           
           const SizedBox(height: 12),
