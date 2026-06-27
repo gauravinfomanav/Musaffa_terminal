@@ -31,30 +31,77 @@ class ShariahComplianceSearchService {
         return;
       }
 
-      onResults(_dedupeAndLimit(results));
+      onResults(_dedupeAndLimitBalanced(results));
     });
   }
 
-  List<TickerModel> _dedupeAndLimit(List<TickerModel> results) {
-    final Set<String> seenSymbols = <String>{};
-    final List<TickerModel> filtered = <TickerModel>[];
+  List<TickerModel> _dedupeAndLimitBalanced(
+    List<TickerModel> results, {
+    int limit = 6,
+  }) {
+    final List<TickerModel> stocks = <TickerModel>[];
+    final List<TickerModel> etfs = <TickerModel>[];
+    final Set<String> seenStockSymbols = <String>{};
+    final Set<String> seenEtfSymbols = <String>{};
 
     for (final TickerModel item in results) {
       final String symbol =
           (item.symbol ?? item.ticker ?? '').trim().toUpperCase();
-      if (symbol.isEmpty || seenSymbols.contains(symbol)) {
+      if (symbol.isEmpty) {
         continue;
       }
 
-      seenSymbols.add(symbol);
-      filtered.add(item);
-
-      if (filtered.length == 6) {
-        break;
+      if (item.isStock) {
+        if (seenStockSymbols.contains(symbol)) {
+          continue;
+        }
+        seenStockSymbols.add(symbol);
+        stocks.add(item);
+      } else {
+        if (seenEtfSymbols.contains(symbol)) {
+          continue;
+        }
+        seenEtfSymbols.add(symbol);
+        etfs.add(item);
       }
     }
 
-    return filtered;
+    final int perType = (limit / 2).ceil();
+    final List<TickerModel> picked = <TickerModel>[
+      ...stocks.take(perType),
+      ...etfs.take(perType),
+    ];
+
+    if (picked.length >= limit) {
+      return picked.take(limit).toList();
+    }
+
+    final Set<String> pickedSymbols = picked
+        .map(
+          (TickerModel item) =>
+              (item.symbol ?? item.ticker ?? '').trim().toUpperCase(),
+        )
+        .toSet();
+
+    for (final TickerModel item in <TickerModel>[
+      ...stocks.skip(perType),
+      ...etfs.skip(perType),
+    ]) {
+      if (picked.length >= limit) {
+        break;
+      }
+
+      final String symbol =
+          (item.symbol ?? item.ticker ?? '').trim().toUpperCase();
+      if (pickedSymbols.contains(symbol)) {
+        continue;
+      }
+
+      pickedSymbols.add(symbol);
+      picked.add(item);
+    }
+
+    return picked;
   }
 
   void dispose() {

@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
+import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_etf_details_screen.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_history_item.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report.dart';
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_api_service.dart';
@@ -12,6 +13,7 @@ import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_history_formatters.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_charts.dart';
+import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_detail_search.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
@@ -112,7 +114,36 @@ class _ShariahComplianceDetailsScreenState
     );
   }
 
-  void _closeScreen() => Navigator.of(context).maybePop();
+  void _goBack() => Navigator.of(context).maybePop();
+
+  void _exitScreening() {
+    Navigator.of(context, rootNavigator: true).popUntil((Route<dynamic> route) {
+      return route.isFirst;
+    });
+  }
+
+  void _openComplianceResult(TickerModel ticker) {
+    final String symbol = (ticker.symbol ?? ticker.ticker ?? '').trim();
+    if (symbol.isEmpty) return;
+
+    final String? name = ticker.companyName ?? ticker.name ?? ticker.stockName;
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ticker.isStock
+            ? ShariahComplianceDetailsScreen(
+                tickerSymbol: symbol,
+                companyName: name,
+                ticker: ticker,
+              )
+            : ShariahComplianceEtfDetailsScreen(
+                tickerSymbol: symbol,
+                companyName: name,
+                ticker: ticker,
+              ),
+      ),
+    );
+  }
 
   void _showCalculationDialog(
     ComplianceReport report,
@@ -171,7 +202,7 @@ class _ShariahComplianceDetailsScreenState
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.escape): _closeScreen,
+        const SingleActivator(LogicalKeyboardKey.escape): _exitScreening,
       },
       child: Scaffold(
         backgroundColor: bg,
@@ -187,12 +218,12 @@ class _ShariahComplianceDetailsScreenState
                           child: Scrollbar(
                             thumbVisibility: true,
                             child: SingleChildScrollView(
+                              physics: const ClampingScrollPhysics(),
                               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildStockHeaderRow(
-                                      primary, secondary, isDark),
+                                  _buildStockHeaderRow(primary, secondary, isDark),
                                   const SizedBox(height: 16),
                                   // _buildMetadataStrip(
                                   //     _report!, secondary, isDark),
@@ -205,9 +236,11 @@ class _ShariahComplianceDetailsScreenState
                                       _report!, primary, secondary, isDark),
                                   const SizedBox(height: 16),
                                   // _buildMsciSection(_report!, isDark),
-                                  const SizedBox(height: 16),
-                                  _buildHistorySection(
-                                      _report!, secondary, isDark),
+                                  if (_history.isNotEmpty) ...<Widget>[
+                                    const SizedBox(height: 16),
+                                    _buildHistorySection(
+                                        _report!, secondary, isDark),
+                                  ],
                                 ],
                               ),
                             ),
@@ -231,7 +264,16 @@ class _ShariahComplianceDetailsScreenState
                 fontFamily: Constants.FONT_DEFAULT_NEW, color: primary),
           ),
           const SizedBox(height: 12),
-          TextButton(onPressed: _closeScreen, child: const Text('Go back')),
+          TextButton(
+            onPressed: _goBack,
+            child: Text(
+              'Go back',
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -315,23 +357,35 @@ class _ShariahComplianceDetailsScreenState
       value != null ? value.toStringAsFixed(digits) : '--';
 
   Widget _buildTopBar(Color primary, Color secondary, bool isDark) {
+    final Color backColor =
+        isDark ? const Color(0xFF93C5FD) : const Color(0xFF3B82F6);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 20, 0),
+      padding: const EdgeInsets.fromLTRB(24, 12, 20, 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          InkWell(
-            onTap: _closeScreen,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  Text('Esc', style: TextStyle(fontSize: 12, color: secondary)),
-                  const SizedBox(width: 8),
-                  Icon(Icons.close, color: secondary, size: 20),
-                ],
+          ComplianceOutlinedActionButton(
+            onPressed: _goBack,
+            label: 'Back',
+            leadingIcon: Icons.arrow_back_rounded,
+            color: backColor,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Center(
+              child: ComplianceDetailSearch(
+                onSelectTicker: _openComplianceResult,
+                maxWidth: 520,
+                compact: true,
               ),
             ),
+          ),
+          const SizedBox(width: 16),
+          ComplianceOutlinedActionButton(
+            onPressed: _exitScreening,
+            label: 'Exit',
+            trailingIcon: Icons.close_rounded,
+            color: secondary,
           ),
         ],
       ),
@@ -2237,6 +2291,10 @@ class _ShariahComplianceDetailsScreenState
 
   Widget _buildHistorySection(
       ComplianceReport report, Color secondary, bool isDark) {
+    if (_history.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return ComplianceSectionCard(
       padding: EdgeInsets.zero,
       child: Column(
@@ -2246,27 +2304,18 @@ class _ShariahComplianceDetailsScreenState
             padding: const EdgeInsets.all(16),
             child: _sectionLabel('Historical Reports', isDark),
           ),
-          if (_history.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Text('No historical reports found.',
-                  style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      color: secondary)),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  return _buildHistoryTable(
-                    isDark: isDark,
-                    secondary: secondary,
-                    tableWidth: constraints.maxWidth,
-                  );
-                },
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                return _buildHistoryTable(
+                  isDark: isDark,
+                  secondary: secondary,
+                  tableWidth: constraints.maxWidth,
+                );
+              },
             ),
+          ),
         ],
       ),
     );

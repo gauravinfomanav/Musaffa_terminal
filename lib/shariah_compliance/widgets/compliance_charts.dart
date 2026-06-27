@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 
 class ComplianceDonutChart extends StatelessWidget {
   const ComplianceDonutChart({
@@ -127,7 +128,8 @@ class ComplianceGaugeChart extends StatelessWidget {
             padding: const EdgeInsets.only(top: 28),
             child: Text(
               '${value.toStringAsFixed(2)}%',
-              style: const TextStyle(
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
                 fontSize: 28,
                 fontWeight: FontWeight.w600,
               ),

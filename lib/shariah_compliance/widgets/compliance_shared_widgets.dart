@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -172,4 +173,144 @@ String formatLineAmount(
     return ComplianceFormatters.compactMoney(item.amountInOnes, fromOnes: true);
   }
   return ComplianceFormatters.millions(item.amount);
+}
+
+class ComplianceOutlinedActionButton extends StatelessWidget {
+  const ComplianceOutlinedActionButton({
+    super.key,
+    required this.onPressed,
+    required this.label,
+    this.leadingIcon,
+    this.trailingIcon,
+    this.color,
+  });
+
+  final VoidCallback onPressed;
+  final String label;
+  final IconData? leadingIcon;
+  final IconData? trailingIcon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color borderColor =
+        isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+    final Color textColor = color ??
+        (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280));
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(999),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: borderColor, width: 1),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (leadingIcon != null) ...<Widget>[
+                  Icon(leadingIcon, size: 16, color: textColor),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                    height: 1.1,
+                  ),
+                ),
+                if (trailingIcon != null) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Icon(trailingIcon, size: 16, color: textColor),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ComplianceSearchResultsShimmer extends StatelessWidget {
+  const ComplianceSearchResultsShimmer({
+    super.key,
+    this.itemCount = 4,
+  });
+
+  final int itemCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color baseColor =
+        isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB);
+    final Color highlightColor =
+        isDark ? const Color(0xFF404040) : const Color(0xFFF3F4F6);
+    final Color borderColor =
+        isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List<Widget>.generate(itemCount, (int index) {
+        final bool isLast = index == itemCount - 1;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            border: isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                      color: borderColor.withValues(alpha: 0.3),
+                      width: 0.5,
+                    ),
+                  ),
+          ),
+          child: Row(
+            children: <Widget>[
+              ShimmerWidgets.box(
+                width: 52,
+                height: 28,
+                borderRadius: BorderRadius.circular(8),
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    ShimmerWidgets.box(
+                      width: double.infinity,
+                      height: 14,
+                      borderRadius: BorderRadius.circular(4),
+                      baseColor: baseColor,
+                      highlightColor: highlightColor,
+                    ),
+                    const SizedBox(height: 6),
+                    ShimmerWidgets.box(
+                      width: 120,
+                      height: 11,
+                      borderRadius: BorderRadius.circular(4),
+                      baseColor: baseColor,
+                      highlightColor: highlightColor,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
 }

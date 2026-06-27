@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_details_screen.dart';
+import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_etf_details_screen.dart';
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_search_service.dart';
+import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 class ShariahComplianceScreen extends StatefulWidget {
@@ -92,11 +94,17 @@ class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ShariahComplianceDetailsScreen(
-          tickerSymbol: symbol,
-          companyName: name,
-          ticker: ticker,
-        ),
+        builder: (_) => ticker.isStock
+            ? ShariahComplianceDetailsScreen(
+                tickerSymbol: symbol,
+                companyName: name,
+                ticker: ticker,
+              )
+            : ShariahComplianceEtfDetailsScreen(
+                tickerSymbol: symbol,
+                companyName: name,
+                ticker: ticker,
+              ),
       ),
     );
   }
@@ -319,33 +327,8 @@ class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
                                 ],
                               ),
                               child: _isSearching
-                                  ? Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 14,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: accentColor,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            'Searching stocks and ETFs...',
-                                            style: TextStyle(
-                                              fontFamily:
-                                                  Constants.FONT_DEFAULT_NEW,
-                                              fontSize: 13,
-                                              color: secondaryTextColor,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                  ? const ComplianceSearchResultsShimmer(
+                                      itemCount: 4,
                                     )
                                   : Column(
                                       mainAxisSize: MainAxisSize.min,
@@ -538,6 +521,18 @@ class _SearchSuggestionTile extends StatelessWidget {
                       color: primaryTextColor,
                     ),
                   ),
+                  if (!ticker.isStock) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'ETF',
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
                   if (meta.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(

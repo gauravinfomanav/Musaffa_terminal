@@ -6,6 +6,7 @@ import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/global_keyboard_shortcuts.dart';
 import 'services/websocket_service.dart';
 import 'services/live_price_service.dart';
@@ -30,10 +31,12 @@ class MyApp extends StatelessWidget {
       child: GetMaterialApp(
         title: 'Infomanav Terminal',
         theme: ThemeData(
+          fontFamily: Constants.FONT_DEFAULT_NEW,
           primarySwatch: Colors.blue,
           brightness: Brightness.light,
         ),
         darkTheme: ThemeData(
+          fontFamily: Constants.FONT_DEFAULT_NEW,
           primarySwatch: Colors.blue,
           brightness: Brightness.dark,
         ),
