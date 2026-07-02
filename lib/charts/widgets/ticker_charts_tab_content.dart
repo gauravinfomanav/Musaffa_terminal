@@ -228,34 +228,29 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
 
     return Scrollbar(
       controller: _scrollController,
-      thumbVisibility: true,
-      child: SingleChildScrollView(
+      child: ListView.separated(
         controller: _scrollController,
         physics: const ClampingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-        child: Column(
-          children: List<Widget>.generate(5, (int rowIndex) {
-            return Padding(
-              padding: EdgeInsets.only(top: rowIndex == 0 ? 0 : 16),
-              child: Row(
-                children: <Widget>[
-                  for (int column = 0;
-                      column < _chartsPerRow;
-                      column++) ...<Widget>[
-                    if (column > 0) const SizedBox(width: 16),
-                    Expanded(
-                      child: ShimmerWidgets.chartShimmer(
-                        height: 300,
-                        baseColor: base,
-                        highlightColor: highlight,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }),
-        ),
+        itemCount: 5,
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        itemBuilder: (BuildContext context, int rowIndex) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              for (int column = 0; column < _chartsPerRow; column++) ...<Widget>[
+                if (column > 0) const SizedBox(width: 16),
+                Expanded(
+                  child: ShimmerWidgets.chartShimmer(
+                    height: 300,
+                    baseColor: base,
+                    highlightColor: highlight,
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
