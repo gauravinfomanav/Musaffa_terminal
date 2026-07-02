@@ -13,6 +13,7 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);

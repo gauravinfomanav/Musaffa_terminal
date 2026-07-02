@@ -1,0 +1,327 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
+import 'package:musaffa_terminal/charts/models/quarterly_chart_colors.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+
+/// Builds Syncfusion cartesian chart primitives for [QuarterlyBarChart].
+///
+/// ## Syncfusion source references (v29.1.38, pub-cache)
+///
+/// This engine does **not** call `SfCartesianChart` directly from the widget.
+/// Instead it centralises the series/axis construction that mirrors Syncfusion's
+/// public API surface, which is implemented in:
+///
+/// | Concern | Syncfusion file | What we reuse |
+/// |---------|-----------------|---------------|
+/// | Chart shell | `lib/src/charts/cartesian_chart.dart` | `SfCartesianChart` plot area, margins, border |
+/// | Column geometry | `lib/src/charts/series/column_series.dart` | `ColumnSeries`, `width`, `spacing`, `borderRadius`, `ColumnSegment.toRRect` rounding |
+/// | Per-bar colour | `lib/src/charts/series/chart_series.dart` | `pointColorMapper` callback contract |
+/// | Data labels | `lib/src/charts/common/data_label.dart` | `DataLabelSettings`, `ChartDataLabelPosition.outside`, `ChartDataLabelAlignment.auto` |
+/// | Y axis | `lib/src/charts/axis/numeric_axis.dart` | `NumericAxis`, `majorGridLines`, hidden axis line |
+/// | X axis | `lib/src/charts/axis/category_axis.dart` | `CategoryAxis`, category labels from `xValueMapper` |
+///
+/// ## Written fresh in this repo
+///
+/// - Y-axis nice-number interval calculation ([resolveYAxisRange])
+/// - Per-chart border radius direction (top for positive bars, bottom for negative)
+/// - Last-bar highlight via `pointColorMapper`
+/// - Value formatting helpers
+/// - Header is outside Syncfusion (built in the widget layer)
+class QuarterlyBarChartEngine {
+  const QuarterlyBarChartEngine._();
+
+  static final NumberFormat _valueFormat = NumberFormat('#,##0.0');
+  static final NumberFormat _axisNumberFormat = NumberFormat('#,##0.#');
+
+  static String formatValue(double value) => _valueFormat.format(value);
+
+  static QuarterlyBarChartYAxisRange resolveYAxisRange({
+    required List<QuarterDataPoint> data,
+    required QuarterlyBarChartTheme theme,
+  }) {
+    if (theme.yAxisMinimum != null &&
+        theme.yAxisMaximum != null &&
+        theme.yAxisInterval != null) {
+      return QuarterlyBarChartYAxisRange(
+        minimum: theme.yAxisMinimum!,
+        maximum: theme.yAxisMaximum!,
+        interval: theme.yAxisInterval!,
+      );
+    }
+
+    if (data.isEmpty) {
+      return const QuarterlyBarChartYAxisRange(
+        minimum: 0,
+        maximum: 100,
+        interval: 50,
+      );
+    }
+
+    double minValue = data.first.value;
+    double maxValue = data.first.value;
+    for (final QuarterDataPoint point in data) {
+      minValue = math.min(minValue, point.value);
+      maxValue = math.max(maxValue, point.value);
+    }
+
+    final bool allPositive = minValue >= 0;
+    final bool allNegative = maxValue <= 0;
+    final double span = (maxValue - minValue).abs();
+    final double axisPadding = span == 0
+        ? math.max(1, maxValue.abs() * theme.yAxisPaddingRatio)
+        : span * theme.yAxisPaddingRatio;
+    final double labelHeadroom = maxValue > 0
+        ? maxValue * theme.dataLabelHeadroomRatio
+        : 0;
+    final double negativeLabelHeadroom = minValue < 0
+        ? minValue.abs() * theme.dataLabelHeadroomRatio
+        : 0;
+
+    double minimum = theme.yAxisMinimum ?? minValue;
+    double maximum = theme.yAxisMaximum ?? maxValue;
+
+    if (theme.yAxisMinimum == null || theme.yAxisMaximum == null) {
+      if (theme.yAxisMinimum == null) {
+        if (allPositive) {
+          minimum = 0;
+        } else if (allNegative) {
+          maximum = 0;
+          minimum = minValue - axisPadding - negativeLabelHeadroom;
+        } else {
+          minimum = minValue - axisPadding - negativeLabelHeadroom;
+        }
+      }
+
+      if (theme.yAxisMaximum == null) {
+        if (allPositive) {
+          minimum = theme.yAxisMinimum ?? 0;
+          maximum = maxValue + axisPadding + labelHeadroom;
+        } else if (allNegative) {
+          maximum = theme.yAxisMaximum ?? 0;
+        } else {
+          maximum = maxValue + axisPadding + labelHeadroom;
+          minimum = theme.yAxisMinimum ??
+              (minValue - axisPadding - negativeLabelHeadroom);
+        }
+      }
+    }
+
+    final double interval = theme.yAxisInterval ??
+        _niceInterval((maximum - minimum).abs().clamp(1, double.infinity));
+
+    if (theme.yAxisMinimum == null) {
+      minimum = (minimum / interval).floorToDouble() * interval;
+    }
+    if (theme.yAxisMaximum == null) {
+      maximum = (maximum / interval).ceilToDouble() * interval;
+    }
+
+    return QuarterlyBarChartYAxisRange(
+      minimum: minimum,
+      maximum: maximum,
+      interval: interval,
+    );
+  }
+
+  static bool isNegativeDominant(List<QuarterDataPoint> data) {
+    if (data.isEmpty) {
+      return false;
+    }
+    return data.every((QuarterDataPoint point) => point.value <= 0);
+  }
+
+  static bool hasMixedSigns(List<QuarterDataPoint> data) {
+    if (data.isEmpty) {
+      return false;
+    }
+    bool hasPositive = false;
+    bool hasNegative = false;
+    for (final QuarterDataPoint point in data) {
+      if (point.value > 0) {
+        hasPositive = true;
+      } else if (point.value < 0) {
+        hasNegative = true;
+      }
+    }
+    return hasPositive && hasNegative;
+  }
+
+  static BorderRadius barBorderRadius({
+    required QuarterlyBarChartTheme theme,
+    required List<QuarterDataPoint> data,
+  }) {
+    final double radius = theme.barCornerRadius;
+    if (hasMixedSigns(data)) {
+      return BorderRadius.zero;
+    }
+    if (isNegativeDominant(data)) {
+      return BorderRadius.only(
+        bottomLeft: Radius.circular(radius),
+        bottomRight: Radius.circular(radius),
+      );
+    }
+    return BorderRadius.only(
+      topLeft: Radius.circular(radius),
+      topRight: Radius.circular(radius),
+    );
+  }
+
+  static NumericAxis buildYAxis({
+    required QuarterlyBarChartYAxisRange range,
+    required QuarterlyBarChartTheme theme,
+    required TextStyle axisLabelStyle,
+    required List<QuarterDataPoint> data,
+  }) {
+    return NumericAxis(
+      minimum: range.minimum,
+      maximum: range.maximum,
+      interval: range.interval,
+      numberFormat: _axisNumberFormat,
+      axisLine: AxisLine(
+        width: 1,
+        color: theme.axisLineColor,
+      ),
+      majorTickLines: MajorTickLines(
+        size: 4,
+        color: theme.axisLineColor,
+      ),
+      minorTickLines: const MinorTickLines(size: 0),
+      majorGridLines: MajorGridLines(
+        width: 1,
+        color: theme.gridLineColor,
+      ),
+      minorGridLines: const MinorGridLines(width: 0),
+      labelStyle: axisLabelStyle,
+      plotBands: const <PlotBand>[],
+    );
+  }
+
+  static CategoryAxis buildXAxis({
+    required QuarterlyBarChartTheme theme,
+    required TextStyle axisLabelStyle,
+    required List<QuarterDataPoint> data,
+  }) {
+    final bool crossesZero = hasMixedSigns(data) || isNegativeDominant(data);
+
+    return CategoryAxis(
+      crossesAt: crossesZero ? 0 : null,
+      axisLine: AxisLine(
+        width: 1,
+        color: theme.axisLineColor,
+      ),
+      majorTickLines: MajorTickLines(
+        size: 4,
+        color: theme.axisLineColor,
+      ),
+      majorGridLines: const MajorGridLines(width: 0),
+      labelStyle: axisLabelStyle,
+      labelPosition: ChartDataLabelPosition.outside,
+      labelPlacement: LabelPlacement.betweenTicks,
+      placeLabelsNearAxisLine: !crossesZero,
+      plotOffset: theme.plotAreaBottomPadding,
+      plotOffsetStart: theme.firstBarGap,
+    );
+  }
+
+  static ColumnSeries<QuarterDataPoint, String> buildColumnSeries({
+    required List<QuarterDataPoint> data,
+    required int latestIndex,
+    int? hoveredIndex,
+    required QuarterlyBarChartTheme theme,
+    required TextStyle dataLabelStyle,
+  }) {
+    return ColumnSeries<QuarterDataPoint, String>(
+      dataSource: data,
+      xValueMapper: (QuarterDataPoint point, _) => point.label,
+      yValueMapper: (QuarterDataPoint point, _) => point.value,
+      pointColorMapper: (QuarterDataPoint point, int index) {
+        final bool isHighlighted =
+            index == latestIndex || index == hoveredIndex;
+        return QuarterlyChartColors.barColor(
+          point.value,
+          highlighted: isHighlighted,
+        );
+      },
+      dataLabelMapper: (QuarterDataPoint point, _) => formatValue(point.value),
+      width: theme.barWidth,
+      spacing: theme.barSpacing,
+      borderRadius: barBorderRadius(theme: theme, data: data),
+      animationDuration: 0,
+      enableTooltip: true,
+      dataLabelSettings: DataLabelSettings(
+        isVisible: true,
+        labelPosition: ChartDataLabelPosition.outside,
+        labelAlignment: ChartDataLabelAlignment.auto,
+        overflowMode: OverflowMode.shift,
+        textStyle: dataLabelStyle,
+        margin: const EdgeInsets.only(top: 6, bottom: 6),
+      ),
+    );
+  }
+
+  static TextStyle defaultTitleStyle(BuildContext context, bool isDark) {
+    return TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+    );
+  }
+
+  static TextStyle defaultValueStyle(BuildContext context, bool isDark) {
+    return TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontSize: 28,
+      fontWeight: FontWeight.w600,
+      color: isDark ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A),
+      height: 1.1,
+    );
+  }
+
+  static TextStyle defaultUnitStyle(BuildContext context, bool isDark) {
+    return TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+    );
+  }
+
+  static TextStyle defaultAxisLabelStyle(BuildContext context, bool isDark) {
+    return TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontSize: 11,
+      fontWeight: FontWeight.w400,
+      color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+    );
+  }
+
+  static TextStyle defaultDataLabelStyle(BuildContext context, bool isDark) {
+    return TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+      color: isDark ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A),
+    );
+  }
+
+  static double _niceInterval(double raw) {
+    final double exponent = (math.log(raw) / math.ln10).floorToDouble();
+    final double fraction = raw / math.pow(10, exponent);
+    double niceFraction;
+    if (fraction <= 1) {
+      niceFraction = 1;
+    } else if (fraction <= 2) {
+      niceFraction = 2;
+    } else if (fraction <= 5) {
+      niceFraction = 5;
+    } else {
+      niceFraction = 10;
+    }
+    return niceFraction * math.pow(10, exponent).toDouble();
+  }
+}

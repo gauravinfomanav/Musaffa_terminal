@@ -45,6 +45,7 @@ dependencies:
   webview_flutter_wkwebview: ^3.9.0
   webview_flutter_web: ^0.2.2+4
   syncfusion_flutter_datagrid: ^29.1.38
+  syncfusion_flutter_charts: ^29.1.38
   web_socket_channel: ^2.4.0
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.10

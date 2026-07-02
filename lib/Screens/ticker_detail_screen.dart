@@ -13,6 +13,7 @@ import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/Controllers/research_notes_controller.dart';
+import 'package:musaffa_terminal/charts/widgets/ticker_charts_tab_content.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
@@ -45,7 +46,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late LivePriceService _livePriceService;
   late WebSocketService _webSocketService;
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
-  int _selectedTabIndex = 0; // 0 for Overview, 1 for Financial
+  int _selectedTabIndex = 0; // 0 Overview, 1 Financial, 2 Charts
   bool _isInWatchlist = false;
   bool _isNotesPanelOpen = false;
   
@@ -301,6 +302,40 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                                     ),
                                   ),
                                 ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTabIndex = 2;
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 1),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                      horizontal: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _selectedTabIndex == 2
+                                          ? Colors.blue
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(90),
+                                    ),
+                                    child: Text(
+                                      'Charts',
+                                      style: DashboardTextStyles.tickerSymbol.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: _selectedTabIndex == 2
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
+                                        color: _selectedTabIndex == 2
+                                            ? Colors.white
+                                            : (isDarkMode
+                                                ? const Color(0xFF9CA3AF)
+                                                : const Color(0xFF6B7280)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -352,9 +387,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               ),
               
               Expanded(
-                child: _selectedTabIndex == 0
-                    ? _buildOverviewTab(isDarkMode)
-                    : _buildFinancialTab(isDarkMode),
+                child: switch (_selectedTabIndex) {
+                  0 => _buildOverviewTab(isDarkMode),
+                  1 => _buildFinancialTab(isDarkMode),
+                  _ => _buildChartsTab(isDarkMode),
+                },
               ),
             ],
           ),
@@ -1321,6 +1358,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return TerminalFinancialsScreen(
       symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
       currency: widget.ticker.currency ?? 'USD',
+    );
+  }
+
+  Widget _buildChartsTab(bool isDarkMode) {
+    return TickerChartsTabContent(
+      symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
     );
   }
 
