@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 /// A single quarterly data point for [QuarterlyBarChart].
 class QuarterDataPoint {
   const QuarterDataPoint({
+    required this.date,
     required this.label,
     required this.value,
   });
+
+  /// Quarter-end date used on the time axis.
+  final DateTime date;
 
   /// X-axis label, e.g. `"Jun '24"`.
   final String label;
@@ -14,10 +18,18 @@ class QuarterDataPoint {
   final double value;
 }
 
-/// Visual + layout configuration for [QuarterlyBarChart].
-///
-/// All typography, axis, grid, and bar geometry are overridable so the same
-/// widget can be reused across metrics with dynamic data later.
+/// A daily or sampled stock price point for the overlay line.
+class PriceDataPoint {
+  const PriceDataPoint({
+    required this.date,
+    required this.value,
+  });
+
+  final DateTime date;
+  final double value;
+}
+
+
 class QuarterlyBarChartTheme {
   const QuarterlyBarChartTheme({
     this.titleStyle,
@@ -29,6 +41,9 @@ class QuarterlyBarChartTheme {
     this.axisLineColor = const Color(0xFFD1D5DB),
     this.cardBackgroundColor = Colors.white,
     this.cardBorderColor = const Color(0xFFE5E7EB),
+    this.priceLineColor = const Color.fromARGB(255, 213, 244, 187),
+    this.priceAxisLabelColor = const Color(0xFF6B7280),
+    this.priceLineAnimationDuration = 1000.0,
     this.barWidth = 0.55,
     this.barSpacing = 0.08,
     this.barCornerRadius = 4,
@@ -55,6 +70,9 @@ class QuarterlyBarChartTheme {
   final Color axisLineColor;
   final Color cardBackgroundColor;
   final Color cardBorderColor;
+  final Color priceLineColor;
+  final Color priceAxisLabelColor;
+  final double priceLineAnimationDuration;
   final double barWidth;
   final double barSpacing;
   final double barCornerRadius;
@@ -75,6 +93,19 @@ class QuarterlyBarChartTheme {
 /// Resolved Y-axis bounds for a dataset.
 class QuarterlyBarChartYAxisRange {
   const QuarterlyBarChartYAxisRange({
+    required this.minimum,
+    required this.maximum,
+    required this.interval,
+  });
+
+  final double minimum;
+  final double maximum;
+  final double interval;
+}
+
+/// Resolved Y-axis bounds for an overlaid price series.
+class PriceYAxisRange {
+  const PriceYAxisRange({
     required this.minimum,
     required this.maximum,
     required this.interval,

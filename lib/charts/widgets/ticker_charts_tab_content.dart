@@ -28,6 +28,12 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
 
   late final TickerQuarterlyChartsController _controller;
   late final ScrollController _scrollController;
+  final Map<FinancialStatementType, bool> _showPriceOverlayByStatement =
+      <FinancialStatementType, bool>{
+        FinancialStatementType.ic: false,
+        FinancialStatementType.bs: false,
+        FinancialStatementType.cf: false,
+      };
 
   @override
   void initState() {
@@ -71,6 +77,8 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
           isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB),
       axisLineColor:
           isDark ? const Color(0xFF4B5563) : const Color(0xFFD1D5DB),
+      priceAxisLabelColor:
+          isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
     );
 
     return Column(
@@ -78,7 +86,7 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          child: Obx(() => _buildStatementTabs(isDark)),
+          child: Obx(() => _buildTopControls(isDark)),
         ),
         const SizedBox(height: 8),
         Expanded(
@@ -111,31 +119,36 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
     );
   }
 
+  Widget _buildTopControls(bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Expanded(child: _buildStatementTabs(isDark)),
+        const SizedBox(width: 8),
+        _buildPriceToggle(isDark),
+      ],
+    );
+  }
+
   Widget _buildStatementTabs(bool isDark) {
     final FinancialStatementType selected = _controller.selectedStatement.value;
 
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(90),
-        border: Border.all(
-          color: isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List<Widget>.generate(
-          FinancialStatementType.values.length,
-          (int index) {
-            final FinancialStatementType statement =
-                FinancialStatementType.values[index];
-            final bool isSelected = selected == statement;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List<Widget>.generate(
+        FinancialStatementType.values.length,
+        (int index) {
+          final FinancialStatementType statement =
+              FinancialStatementType.values[index];
+          final bool isSelected = selected == statement;
 
-            return GestureDetector(
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index == FinancialStatementType.values.length - 1 ? 0 : 4,
+            ),
+            child: GestureDetector(
               onTap: () => _controller.selectStatement(statement),
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 1),
                 padding:
                     const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 decoration: BoxDecoration(
@@ -157,10 +170,44 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
                   ),
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildPriceToggle(bool isDark) {
+    final FinancialStatementType statement = _controller.selectedStatement.value;
+    final bool isEnabled = _showPriceOverlayByStatement[statement] ?? false;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          'Add Price',
+          style: TextStyle(
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color:
+                isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Transform.scale(
+          scale: 0.78,
+          child: Switch(
+            value: isEnabled,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            onChanged: (bool value) {
+              setState(() {
+                _showPriceOverlayByStatement[statement] = value;
+              });
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -207,16 +254,21 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
     QuarterlyChartViewModel chart,
     QuarterlyBarChartTheme baseTheme,
   ) {
+    final FinancialStatementType statement = _controller.selectedStatement.value;
+    final bool showPrice = _showPriceOverlayByStatement[statement] ?? false;
+
     return QuarterlyBarChart(
       title: chart.title,
       displayValue: chart.displayValue,
       unit: chart.unit,
       data: chart.data,
+      priceData: showPrice ? chart.priceData : const <PriceDataPoint>[],
       theme: QuarterlyBarChartTheme(
         cardBackgroundColor: baseTheme.cardBackgroundColor,
         cardBorderColor: baseTheme.cardBorderColor,
         gridLineColor: baseTheme.gridLineColor,
         axisLineColor: baseTheme.axisLineColor,
+        priceAxisLabelColor: baseTheme.priceAxisLabelColor,
       ),
     );
   }

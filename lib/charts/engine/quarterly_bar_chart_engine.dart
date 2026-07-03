@@ -36,8 +36,28 @@ class QuarterlyBarChartEngine {
 
   static final NumberFormat _valueFormat = NumberFormat('#,##0.0');
   static final NumberFormat _axisNumberFormat = NumberFormat('#,##0.#');
+  static final NumberFormat _priceAxisFormat = NumberFormat('#,##0.##');
 
   static String formatValue(double value) => _valueFormat.format(value);
+
+  static String formatPriceDateLabel(DateTime date) {
+    const List<String> months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final String year = (date.year % 100).toString().padLeft(2, '0');
+    return "${months[date.month - 1]} ${date.day}, '$year";
+  }
 
   static QuarterlyBarChartYAxisRange resolveYAxisRange({
     required List<QuarterDataPoint> data,
@@ -127,6 +147,38 @@ class QuarterlyBarChartEngine {
     );
   }
 
+  static PriceYAxisRange resolvePriceYAxisRange({
+    required List<PriceDataPoint> data,
+  }) {
+    if (data.isEmpty) {
+      return const PriceYAxisRange(
+        minimum: 0,
+        maximum: 100,
+        interval: 50,
+      );
+    }
+
+    double minValue = data.first.value;
+    double maxValue = data.first.value;
+    for (final PriceDataPoint point in data) {
+      minValue = math.min(minValue, point.value);
+      maxValue = math.max(maxValue, point.value);
+    }
+
+    final double span = (maxValue - minValue).abs();
+    final double padding = span == 0 ? math.max(1, maxValue.abs() * 0.1) : span * 0.12;
+    final double rawMin = math.max(0, minValue - padding);
+    final double rawMax = maxValue + 200;
+    final double interval =
+        _niceInterval((rawMax - rawMin).abs().clamp(1, double.infinity));
+
+    return PriceYAxisRange(
+      minimum: (rawMin / interval).floorToDouble() * interval,
+      maximum: (rawMax / interval).ceilToDouble() * interval,
+      interval: interval,
+    );
+  }
+
   static bool isNegativeDominant(List<QuarterDataPoint> data) {
     if (data.isEmpty) {
       return false;
@@ -200,14 +252,71 @@ class QuarterlyBarChartEngine {
     );
   }
 
-  static CategoryAxis buildXAxis({
+  static NumericAxis buildPriceYAxis({
+    required PriceYAxisRange range,
+    required QuarterlyBarChartTheme theme,
+    required TextStyle axisLabelStyle,
+  }) {
+    return NumericAxis(
+      name: 'priceAxis',
+      opposedPosition: true,
+      minimum: range.minimum,
+      maximum: range.maximum,
+      interval: range.interval,
+      numberFormat: _priceAxisFormat,
+      axisLine: AxisLine(
+        width: 1,
+        color: theme.axisLineColor,
+      ),
+      majorTickLines: MajorTickLines(
+        size: 4,
+        color: theme.axisLineColor,
+      ),
+      minorTickLines: const MinorTickLines(size: 0),
+      majorGridLines: const MajorGridLines(width: 0),
+      minorGridLines: const MinorGridLines(width: 0),
+      labelStyle: axisLabelStyle.copyWith(
+        color: theme.priceAxisLabelColor,
+      ),
+    );
+  }
+
+  static DateTime? resolveXAxisMinimum(
+    List<QuarterDataPoint> data,
+    List<PriceDataPoint> priceData,
+  ) {
+    final DateTime? minDate = _minimumDate(data, priceData);
+    if (minDate == null) {
+      return null;
+    }
+    return minDate.subtract(_resolveDateAxisEdgePadding(data, priceData));
+  }
+
+  static DateTime? resolveXAxisMaximum(
+    List<QuarterDataPoint> data,
+    List<PriceDataPoint> priceData,
+  ) {
+    final DateTime? maxDate = _maximumDate(data, priceData);
+    if (maxDate == null) {
+      return null;
+    }
+    return maxDate.add(_resolveDateAxisEdgePadding(data, priceData));
+  }
+
+  static DateTimeAxis buildXAxis({
     required QuarterlyBarChartTheme theme,
     required TextStyle axisLabelStyle,
     required List<QuarterDataPoint> data,
+    required List<PriceDataPoint> priceData,
   }) {
     final bool crossesZero = hasMixedSigns(data) || isNegativeDominant(data);
+    final DateTime? minDate = _minimumDate(data, priceData);
+    final DateTime? maxDate = _maximumDate(data, priceData);
+    final Duration edgePadding = _resolveDateAxisEdgePadding(data, priceData);
 
-    return CategoryAxis(
+    return DateTimeAxis(
+      minimum: minDate?.subtract(edgePadding),
+      maximum: maxDate?.add(edgePadding),
       crossesAt: crossesZero ? 0 : null,
       axisLine: AxisLine(
         width: 1,
@@ -219,24 +328,26 @@ class QuarterlyBarChartEngine {
       ),
       majorGridLines: const MajorGridLines(width: 0),
       labelStyle: axisLabelStyle,
-      labelPosition: ChartDataLabelPosition.outside,
-      labelPlacement: LabelPlacement.betweenTicks,
-      placeLabelsNearAxisLine: !crossesZero,
+      dateFormat: DateFormat("MMM ''yy"),
+      intervalType: DateTimeIntervalType.months,
+      enableAutoIntervalOnZooming: true,
+      edgeLabelPlacement: EdgeLabelPlacement.shift,
       plotOffset: theme.plotAreaBottomPadding,
       plotOffsetStart: theme.firstBarGap,
     );
   }
 
-  static ColumnSeries<QuarterDataPoint, String> buildColumnSeries({
+  static ColumnSeries<QuarterDataPoint, DateTime> buildColumnSeries({
     required List<QuarterDataPoint> data,
     required int latestIndex,
     int? hoveredIndex,
     required QuarterlyBarChartTheme theme,
     required TextStyle dataLabelStyle,
+    bool enableTooltip = true,
   }) {
-    return ColumnSeries<QuarterDataPoint, String>(
+    return ColumnSeries<QuarterDataPoint, DateTime>(
       dataSource: data,
-      xValueMapper: (QuarterDataPoint point, _) => point.label,
+      xValueMapper: (QuarterDataPoint point, _) => point.date,
       yValueMapper: (QuarterDataPoint point, _) => point.value,
       pointColorMapper: (QuarterDataPoint point, int index) {
         final bool isHighlighted =
@@ -251,7 +362,7 @@ class QuarterlyBarChartEngine {
       spacing: theme.barSpacing,
       borderRadius: barBorderRadius(theme: theme, data: data),
       animationDuration: 0,
-      enableTooltip: true,
+      enableTooltip: enableTooltip,
       dataLabelSettings: DataLabelSettings(
         isVisible: true,
         labelPosition: ChartDataLabelPosition.outside,
@@ -260,6 +371,23 @@ class QuarterlyBarChartEngine {
         textStyle: dataLabelStyle,
         margin: const EdgeInsets.only(top: 6, bottom: 6),
       ),
+    );
+  }
+
+  static LineSeries<PriceDataPoint, DateTime> buildPriceSeries({
+    required List<PriceDataPoint> data,
+    required QuarterlyBarChartTheme theme,
+  }) {
+    return LineSeries<PriceDataPoint, DateTime>(
+      dataSource: data,
+      xValueMapper: (PriceDataPoint point, _) => point.date,
+      yValueMapper: (PriceDataPoint point, _) => point.value,
+      yAxisName: 'priceAxis',
+      color: theme.priceLineColor,
+      width: 2,
+      animationDuration: theme.priceLineAnimationDuration,
+      enableTooltip: true,
+      markerSettings: const MarkerSettings(isVisible: false),
     );
   }
 
@@ -323,5 +451,62 @@ class QuarterlyBarChartEngine {
       niceFraction = 10;
     }
     return niceFraction * math.pow(10, exponent).toDouble();
+  }
+
+  static DateTime? _minimumDate(
+    List<QuarterDataPoint> data,
+    List<PriceDataPoint> priceData,
+  ) {
+    final Iterable<DateTime> dates = <DateTime>[
+      ...data.map((QuarterDataPoint point) => point.date),
+      ...priceData.map((PriceDataPoint point) => point.date),
+    ];
+    if (dates.isEmpty) {
+      return null;
+    }
+    return dates.reduce(
+      (DateTime current, DateTime next) => current.isBefore(next) ? current : next,
+    );
+  }
+
+  static DateTime? _maximumDate(
+    List<QuarterDataPoint> data,
+    List<PriceDataPoint> priceData,
+  ) {
+    final Iterable<DateTime> dates = <DateTime>[
+      ...data.map((QuarterDataPoint point) => point.date),
+      ...priceData.map((PriceDataPoint point) => point.date),
+    ];
+    if (dates.isEmpty) {
+      return null;
+    }
+    return dates.reduce(
+      (DateTime current, DateTime next) => current.isAfter(next) ? current : next,
+    );
+  }
+
+  static Duration _resolveDateAxisEdgePadding(
+    List<QuarterDataPoint> data,
+    List<PriceDataPoint> priceData,
+  ) {
+    if (priceData.length >= 2) {
+      final List<DateTime> sorted = priceData
+          .map((PriceDataPoint point) => point.date)
+          .toList()
+        ..sort();
+      final int days = sorted[1].difference(sorted[0]).inDays.abs();
+      return Duration(days: math.max(14, days * 8));
+    }
+
+    if (data.length >= 2) {
+      final List<DateTime> sorted = data
+          .map((QuarterDataPoint point) => point.date)
+          .toList()
+        ..sort();
+      final int days = sorted[1].difference(sorted[0]).inDays.abs();
+      return Duration(days: math.max(18, (days * 0.28).round()));
+    }
+
+    return const Duration(days: 21);
   }
 }

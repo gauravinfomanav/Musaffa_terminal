@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/charts/engine/quarterly_bar_chart_engine.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
@@ -19,6 +22,7 @@ class QuarterlyBarChart extends StatefulWidget {
     required this.displayValue,
     required this.unit,
     required this.data,
+    this.priceData = const <PriceDataPoint>[],
     this.theme = const QuarterlyBarChartTheme(),
   });
 
@@ -26,18 +30,26 @@ class QuarterlyBarChart extends StatefulWidget {
   final String displayValue;
   final String unit;
   final List<QuarterDataPoint> data;
+  final List<PriceDataPoint> priceData;
   final QuarterlyBarChartTheme theme;
 
   @override
   State<QuarterlyBarChart> createState() => _QuarterlyBarChartState();
 }
 
+
 class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
   int? _hoveredIndex;
   bool _chartHovered = false;
   bool _isDark = false;
+  Offset _pointerPosition = Offset.zero;
+  final GlobalKey _chartStackKey = GlobalKey();
   TooltipBehavior? _tooltipBehavior;
   bool? _tooltipThemeIsDark;
+  final GlobalKey<_HoverTooltipLayerState> _tooltipLayerKey =
+      GlobalKey<_HoverTooltipLayerState>();
+  bool _priceTooltipRenderThisFrame = false;
+  bool _priceOverlayVisible = false;
 
   /// Syncfusion delays desktop tooltip show by 50ms; hide again after that window.
   static const Duration _tooltipHideGrace = Duration(milliseconds: 80);
@@ -48,7 +60,10 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
 
   void _clearHover() {
     _chartHovered = false;
+    _priceTooltipRenderThisFrame = false;
+    _priceOverlayVisible = false;
     _tooltipBehavior?.hide();
+    _tooltipLayerKey.currentState?.hide();
 
     // Beat Syncfusion's delayed desktop show timer if the pointer left quickly.
     Future<void>.delayed(_tooltipHideGrace, () {
@@ -56,6 +71,7 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
         return;
       }
       _tooltipBehavior?.hide();
+      _tooltipLayerKey.currentState?.hide();
     });
 
     if (_hoveredIndex != null) {
@@ -63,16 +79,213 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
     }
   }
 
+  void _hidePriceOverlay() {
+    _priceOverlayVisible = false;
+    _tooltipLayerKey.currentState?.hide();
+  }
+
+  void _hideTooltip() {
+    _tooltipBehavior?.hide();
+    _hidePriceOverlay();
+    _setHoveredIndex(null);
+  }
+
+  Offset _tooltipOffset() {
+    return Offset(
+      _pointerPosition.dx + 12,
+      math.max(0, _pointerPosition.dy - 48),
+    );
+  }
+
+  void _onPointerHover(PointerHoverEvent event) {
+    if (widget.priceData.isEmpty) {
+      return;
+    }
+    final RenderBox? box =
+        _chartStackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) {
+      return;
+    }
+    _pointerPosition = box.globalToLocal(event.position);
+
+    // Run after Syncfusion finishes handling this hover event.
+    Future<void>.microtask(() {
+      if (!mounted || !_chartHovered) {
+        return;
+      }
+      if (!_priceTooltipRenderThisFrame &&
+          (!_priceOverlayVisible || !_isPointerOnPriceLine())) {
+        _hidePriceOverlay();
+        _tooltipBehavior?.hide();
+      }
+      _priceTooltipRenderThisFrame = false;
+    });
+  }
+
+  bool _isPointerOnPriceLine() {
+    final RenderBox? box =
+        _chartStackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || widget.priceData.isEmpty) {
+      return false;
+    }
+
+    final QuarterlyBarChartTheme theme = widget.theme;
+    final double plotLeft = theme.plotAreaLeftPadding;
+    final double plotRight = box.size.width - theme.plotAreaRightPadding;
+    final double plotTop = theme.plotAreaTopPadding;
+    final double plotBottom = box.size.height - theme.plotAreaBottomPadding - 20;
+    final double plotWidth = plotRight - plotLeft;
+    final double plotHeight = plotBottom - plotTop;
+    if (plotWidth <= 0 || plotHeight <= 0) {
+      return false;
+    }
+
+    final Offset pointer = _pointerPosition;
+    if (pointer.dx < plotLeft - 24 ||
+        pointer.dx > plotRight + 24 ||
+        pointer.dy < plotTop - 24 ||
+        pointer.dy > plotBottom + 24) {
+      return false;
+    }
+
+    final DateTime? axisMin = QuarterlyBarChartEngine.resolveXAxisMinimum(
+      widget.data,
+      widget.priceData,
+    );
+    final DateTime? axisMax = QuarterlyBarChartEngine.resolveXAxisMaximum(
+      widget.data,
+      widget.priceData,
+    );
+    if (axisMin == null || axisMax == null) {
+      return false;
+    }
+
+    final int axisMs = axisMax.difference(axisMin).inMilliseconds;
+    if (axisMs <= 0) {
+      return false;
+    }
+
+    final double xRatio = ((pointer.dx - plotLeft) / plotWidth).clamp(0.0, 1.0);
+    final DateTime hoverDate = axisMin.add(
+      Duration(milliseconds: (axisMs * xRatio).round()),
+    );
+
+    int nearestIndex = 0;
+    int nearestDays = widget.priceData[0].date.difference(hoverDate).inDays.abs();
+    for (int i = 1; i < widget.priceData.length; i++) {
+      final int days = widget.priceData[i].date.difference(hoverDate).inDays.abs();
+      if (days < nearestDays) {
+        nearestDays = days;
+        nearestIndex = i;
+      }
+    }
+
+    final PriceYAxisRange priceRange =
+        QuarterlyBarChartEngine.resolvePriceYAxisRange(
+      data: widget.priceData,
+    );
+    final double priceSpan = priceRange.maximum - priceRange.minimum;
+    if (priceSpan <= 0) {
+      return false;
+    }
+
+    double minDistance = double.infinity;
+    for (final int index in <int>{
+      nearestIndex,
+      nearestIndex - 1,
+      nearestIndex + 1,
+    }) {
+      if (index < 0 || index >= widget.priceData.length) {
+        continue;
+      }
+      final PriceDataPoint point = widget.priceData[index];
+      final int pointMs = point.date.difference(axisMin).inMilliseconds;
+      final double x = plotLeft + (pointMs / axisMs) * plotWidth;
+      final double y = plotTop +
+          (1 - (point.value - priceRange.minimum) / priceSpan) * plotHeight;
+      final double distance = (pointer - Offset(x, y)).distance;
+      if (distance < minDistance) {
+        minDistance = distance;
+      }
+    }
+
+    return minDistance <= 22;
+  }
+
+  Offset _priceTooltipOffsetFromArgs(TooltipArgs args) {
+    final RenderBox? box =
+        _chartStackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || args.locationX == null || args.locationY == null) {
+      return _tooltipOffset();
+    }
+
+    final Offset local = box.globalToLocal(
+      Offset(args.locationX!, args.locationY!),
+    );
+    return Offset(
+      local.dx + 12,
+      math.max(0, local.dy - 48),
+    );
+  }
+
   void _onTooltipRender(TooltipArgs args) {
     if (!_chartHovered) {
-      _tooltipBehavior?.hide();
+      _hideTooltip();
       return;
     }
 
     final int? index = args.pointIndex is int
         ? args.pointIndex as int
         : args.pointIndex?.toInt();
-    if (index == null || index == _hoveredIndex) {
+    if (index == null) {
+      _hideTooltip();
+      return;
+    }
+
+    final bool isPriceSeries =
+        widget.priceData.isNotEmpty && args.seriesIndex == 1;
+
+    if (isPriceSeries) {
+      if (index < 0 || index >= widget.priceData.length) {
+        _hideTooltip();
+        return;
+      }
+
+      final PriceDataPoint point = widget.priceData[index];
+
+      final _HoverTooltipLayerState? layer = _tooltipLayerKey.currentState;
+      if (layer == null) {
+        return;
+      }
+
+      _priceTooltipRenderThisFrame = true;
+      _priceOverlayVisible = true;
+      _tooltipBehavior?.hide();
+      layer.showPrice(
+        offset: _priceTooltipOffsetFromArgs(args),
+        dateLabel: QuarterlyBarChartEngine.formatPriceDateLabel(point.date),
+        priceText: '\$${point.value.toStringAsFixed(2)}',
+      );
+      _setHoveredIndex(null);
+      return;
+    }
+
+    if (widget.priceData.isNotEmpty) {
+      _tooltipBehavior?.hide();
+      return;
+    }
+
+    if (index < 0 || index >= widget.data.length) {
+      _hideTooltip();
+      return;
+    }
+
+    _hidePriceOverlay();
+    _setHoveredIndex(index);
+  }
+
+  void _setHoveredIndex(int? index) {
+    if (_hoveredIndex == index) {
       return;
     }
     setState(() => _hoveredIndex = index);
@@ -99,11 +312,22 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
           return const SizedBox.shrink();
         }
 
-        final QuarterDataPoint item = data as QuarterDataPoint;
+        if (widget.priceData.isNotEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        if (data is PriceDataPoint) {
+          return const SizedBox.shrink();
+        }
+
+        if (data is! QuarterDataPoint) {
+          return const SizedBox.shrink();
+        }
+
         return _BarTooltipCard(
-          quarterLabel: item.label,
+          quarterLabel: data.label,
           metricTitle: widget.title,
-          valueText: QuarterlyBarChartEngine.formatValue(item.value),
+          valueText: QuarterlyBarChartEngine.formatValue(data.value),
           isDark: _isDark,
         );
       },
@@ -139,14 +363,29 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
       theme: widget.theme,
     );
 
-    final ColumnSeries<QuarterDataPoint, String> series =
+    final bool hasPriceOverlay = widget.priceData.isNotEmpty;
+
+    final ColumnSeries<QuarterDataPoint, DateTime> series =
         QuarterlyBarChartEngine.buildColumnSeries(
       data: widget.data,
       latestIndex: widget.data.isEmpty ? -1 : widget.data.length - 1,
       hoveredIndex: _hoveredIndex,
       theme: widget.theme,
       dataLabelStyle: dataLabelStyle,
+      enableTooltip: !hasPriceOverlay,
     );
+    final LineSeries<PriceDataPoint, DateTime>? priceSeries =
+        widget.priceData.isEmpty
+            ? null
+            : QuarterlyBarChartEngine.buildPriceSeries(
+                data: widget.priceData,
+                theme: widget.theme,
+              );
+    final PriceYAxisRange? priceRange = widget.priceData.isEmpty
+        ? null
+        : QuarterlyBarChartEngine.resolvePriceYAxisRange(
+            data: widget.priceData,
+          );
 
     return Container(
       padding: widget.theme.cardPadding,
@@ -172,29 +411,162 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
             child: MouseRegion(
               onEnter: _onChartEnter,
               onExit: (_) => _clearHover(),
-              child: _QuarterlyBarChartCanvas(
-                data: widget.data,
-                series: series,
-                tooltipBehavior: _tooltipBehavior!,
-                onTooltipRender: _onTooltipRender,
-                yAxis: QuarterlyBarChartEngine.buildYAxis(
-                  range: yRange,
-                  theme: widget.theme,
-                  axisLabelStyle: axisLabelStyle,
-                  data: widget.data,
-                ),
-                xAxis: QuarterlyBarChartEngine.buildXAxis(
-                  theme: widget.theme,
-                  axisLabelStyle: axisLabelStyle,
-                  data: widget.data,
-                ),
-                plotAreaLeftPadding: widget.theme.plotAreaLeftPadding,
-                plotAreaRightPadding: widget.theme.plotAreaRightPadding,
-                plotAreaTopPadding: widget.theme.plotAreaTopPadding,
+              child: Listener(
+                onPointerHover: _onPointerHover,
+                child: Stack(
+                  key: _chartStackKey,
+                  clipBehavior: Clip.none,
+                  children: <Widget>[
+                    _QuarterlyBarChartCanvas(
+                    data: widget.data,
+                    series: series,
+                    tooltipBehavior: _tooltipBehavior!,
+                    onTooltipRender: _onTooltipRender,
+                    yAxis: QuarterlyBarChartEngine.buildYAxis(
+                      range: yRange,
+                      theme: widget.theme,
+                      axisLabelStyle: axisLabelStyle,
+                      data: widget.data,
+                    ),
+                    xAxis: QuarterlyBarChartEngine.buildXAxis(
+                      theme: widget.theme,
+                      axisLabelStyle: axisLabelStyle,
+                      data: widget.data,
+                      priceData: widget.priceData,
+                    ),
+                    priceAxis: priceRange == null
+                        ? null
+                        : QuarterlyBarChartEngine.buildPriceYAxis(
+                            range: priceRange,
+                            theme: widget.theme,
+                            axisLabelStyle: axisLabelStyle,
+                          ),
+                    priceSeries: priceSeries,
+                    plotAreaLeftPadding: widget.theme.plotAreaLeftPadding,
+                    plotAreaRightPadding: widget.theme.plotAreaRightPadding,
+                    plotAreaTopPadding: widget.theme.plotAreaTopPadding,
+                  ),
+                  if (widget.priceData.isNotEmpty)
+                    _HoverTooltipLayer(
+                      key: _tooltipLayerKey,
+                      isDark: isDark,
+                    ),
+                ],
               ),
             ),
           ),
+        ),
         ],
+      ),
+    );
+  }
+}
+
+class _HoverTooltipLayer extends StatefulWidget {
+  const _HoverTooltipLayer({
+    super.key,
+    required this.isDark,
+  });
+
+  final bool isDark;
+
+  @override
+  State<_HoverTooltipLayer> createState() => _HoverTooltipLayerState();
+}
+
+class _HoverTooltipLayerState extends State<_HoverTooltipLayer> {
+  bool _visible = false;
+  Offset _offset = Offset.zero;
+  String _dateLabel = '';
+  String _priceText = '';
+
+  void hide() {
+    if (!_visible) {
+      return;
+    }
+    setState(() => _visible = false);
+  }
+
+  void showPrice({
+    required Offset offset,
+    required String dateLabel,
+    required String priceText,
+  }) {
+    final bool contentChanged = !_visible ||
+        _offset != offset ||
+        _dateLabel != dateLabel ||
+        _priceText != priceText;
+
+    if (!contentChanged) {
+      return;
+    }
+
+    setState(() {
+      _visible = true;
+      _offset = offset;
+      _dateLabel = dateLabel;
+      _priceText = priceText;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_visible) {
+      return const SizedBox.shrink();
+    }
+
+    final Color secondary =
+        widget.isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+
+    return Positioned(
+      left: _offset.dx,
+      top: _offset.dy,
+      child: IgnorePointer(
+        child: Material(
+          elevation: 8,
+          shadowColor:
+              Colors.black.withValues(alpha: widget.isDark ? 0.4 : 0.14),
+          color: widget.isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(
+              color: widget.isDark
+                  ? const Color(0xFF404040)
+                  : const Color(0xFFE5E7EB),
+            ),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    _dateLabel,
+                    style: TextStyle(
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _priceText,
+                    style: TextStyle(
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -330,21 +702,25 @@ class _QuarterlyBarChartCanvas extends StatelessWidget {
   const _QuarterlyBarChartCanvas({
     required this.data,
     required this.series,
+    required this.priceSeries,
     required this.tooltipBehavior,
     required this.onTooltipRender,
     required this.yAxis,
     required this.xAxis,
+    required this.priceAxis,
     required this.plotAreaLeftPadding,
     required this.plotAreaRightPadding,
     required this.plotAreaTopPadding,
   });
 
   final List<QuarterDataPoint> data;
-  final ColumnSeries<QuarterDataPoint, String> series;
+  final ColumnSeries<QuarterDataPoint, DateTime> series;
+  final LineSeries<PriceDataPoint, DateTime>? priceSeries;
   final TooltipBehavior tooltipBehavior;
   final void Function(TooltipArgs args) onTooltipRender;
   final NumericAxis yAxis;
-  final CategoryAxis xAxis;
+  final DateTimeAxis xAxis;
+  final NumericAxis? priceAxis;
   final double plotAreaLeftPadding;
   final double plotAreaRightPadding;
   final double plotAreaTopPadding;
@@ -367,7 +743,11 @@ class _QuarterlyBarChartCanvas extends StatelessWidget {
       onTooltipRender: onTooltipRender,
       primaryXAxis: xAxis,
       primaryYAxis: yAxis,
-      series: <CartesianSeries<QuarterDataPoint, String>>[series],
+      axes: priceAxis == null ? const <ChartAxis>[] : <ChartAxis>[priceAxis!],
+      series: <CartesianSeries<dynamic, DateTime>>[
+        series,
+        if (priceSeries != null) priceSeries!,
+      ],
     );
   }
 }

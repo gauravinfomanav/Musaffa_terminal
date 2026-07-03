@@ -34,12 +34,14 @@ class QuarterlyFinancialsMapper {
   static List<QuarterlyChartViewModel> buildAllCharts(
     List<QuarterlyFinancialPeriod> quarters, {
     FinancialStatementType statement = FinancialStatementType.ic,
+    List<PriceDataPoint> priceData = const <PriceDataPoint>[],
   }) {
     return QuarterlyChartMetric.forPeriods(quarters, statement)
         .map(
           (QuarterlyChartMetric metric) => buildChartForMetric(
             quarters: quarters,
             metric: metric,
+            priceData: priceData,
           ),
         )
         .where((QuarterlyChartViewModel chart) => chart.hasData)
@@ -49,6 +51,7 @@ class QuarterlyFinancialsMapper {
   static QuarterlyChartViewModel buildChartForMetric({
     required List<QuarterlyFinancialPeriod> quarters,
     required QuarterlyChartMetric metric,
+    List<PriceDataPoint> priceData = const <PriceDataPoint>[],
   }) {
     final List<QuarterDataPoint> data = toChartData(
       quarters,
@@ -68,6 +71,7 @@ class QuarterlyFinancialsMapper {
           : formatDisplayValue(latestRaw, metric.scale),
       unit: latestRaw == null ? '' : displayUnit(latestRaw, metric.scale),
       data: data,
+      priceData: priceData,
     );
   }
 
@@ -83,6 +87,7 @@ class QuarterlyFinancialsMapper {
             return null;
           }
           return QuarterDataPoint(
+            date: period.periodDate,
             label: formatQuarterLabel(period.period),
             value: toChartValue(raw, scale),
           );

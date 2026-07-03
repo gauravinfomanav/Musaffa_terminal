@@ -8,6 +8,7 @@ class QuarterlyChartViewModel {
     required this.displayValue,
     required this.unit,
     required this.data,
+    this.priceData = const <PriceDataPoint>[],
   });
 
   final String metricKey;
@@ -15,6 +16,7 @@ class QuarterlyChartViewModel {
   final String displayValue;
   final String unit;
   final List<QuarterDataPoint> data;
+  final List<PriceDataPoint> priceData;
 
   bool get hasData => data.isNotEmpty;
 }

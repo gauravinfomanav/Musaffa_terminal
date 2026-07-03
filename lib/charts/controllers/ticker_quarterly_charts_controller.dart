@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/charts/api/infomanav_financials_api.dart';
 import 'package:musaffa_terminal/charts/mappers/quarterly_financials_mapper.dart';
 import 'package:musaffa_terminal/charts/models/financial_statement_type.dart';
+import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_chart_view_model.dart';
 import 'package:musaffa_terminal/charts/models/stock_quarterly_financials.dart';
 
@@ -19,6 +20,7 @@ class TickerQuarterlyChartsController extends GetxController {
   final RxList<QuarterlyChartViewModel> charts = <QuarterlyChartViewModel>[].obs;
 
   String? _loadedSymbol;
+  List<PriceDataPoint>? _priceSeriesCache;
   final Map<FinancialStatementType, List<QuarterlyChartViewModel>> _cache =
       <FinancialStatementType, List<QuarterlyChartViewModel>>{};
 
@@ -37,6 +39,7 @@ class TickerQuarterlyChartsController extends GetxController {
 
     if (normalized != _loadedSymbol) {
       _cache.clear();
+      _priceSeriesCache = null;
       _loadedSymbol = null;
     }
 
@@ -62,10 +65,17 @@ class TickerQuarterlyChartsController extends GetxController {
         throw InfomanavApiException('No quarterly financial data available');
       }
 
+      _priceSeriesCache ??= await _api.fetchDailyPriceSeries(
+        normalized,
+        from: quarters.first.periodDate,
+        to: quarters.last.periodDate,
+      );
+
       final List<QuarterlyChartViewModel> built =
           QuarterlyFinancialsMapper.buildAllCharts(
         quarters,
         statement: type,
+        priceData: _priceSeriesCache ?? const <PriceDataPoint>[],
       );
 
       if (built.isEmpty) {
