@@ -90,6 +90,24 @@ class QuarterlyBarChartEngine {
 
     final bool allPositive = minValue >= 0;
     final bool allNegative = maxValue <= 0;
+    final bool mixedSigns = hasMixedSigns(data);
+
+    if (mixedSigns &&
+        theme.yAxisMinimum == null &&
+        theme.yAxisMaximum == null) {
+      final double padding = theme.mixedSignYAxisPadding;
+      final double rawMin = minValue - padding;
+      final double rawMax = maxValue + padding;
+      final double interval = theme.yAxisInterval ??
+          _mixedSignAxisInterval(rawMax - rawMin);
+
+      return QuarterlyBarChartYAxisRange(
+        minimum: (rawMin / interval).floorToDouble() * interval,
+        maximum: (rawMax / interval).ceilToDouble() * interval,
+        interval: interval,
+      );
+    }
+
     final double span = (maxValue - minValue).abs();
     final double axisPadding = span == 0
         ? math.max(1, maxValue.abs() * theme.yAxisPaddingRatio)
@@ -303,7 +321,55 @@ class QuarterlyBarChartEngine {
     return maxDate.add(_resolveDateAxisEdgePadding(data, priceData));
   }
 
-  static DateTimeAxis buildXAxis({
+  static ChartAxis buildXAxis({
+    required QuarterlyBarChartTheme theme,
+    required TextStyle axisLabelStyle,
+    required List<QuarterDataPoint> data,
+    required List<PriceDataPoint> priceData,
+  }) {
+    if (priceData.isEmpty) {
+      return _buildCategoryXAxis(
+        theme: theme,
+        axisLabelStyle: axisLabelStyle,
+        data: data,
+      );
+    }
+
+    return _buildDateTimeXAxis(
+      theme: theme,
+      axisLabelStyle: axisLabelStyle,
+      data: data,
+      priceData: priceData,
+    );
+  }
+
+  static CategoryAxis _buildCategoryXAxis({
+    required QuarterlyBarChartTheme theme,
+    required TextStyle axisLabelStyle,
+    required List<QuarterDataPoint> data,
+  }) {
+    return CategoryAxis(
+      arrangeByIndex: true,
+      labelPlacement: LabelPlacement.onTicks,
+      minimum: -0.5,
+      maximum: data.length - 0.5,
+      maximumLabels: data.length,
+      labelIntersectAction: AxisLabelIntersectAction.multipleRows,
+      axisLine: AxisLine(
+        width: 1,
+        color: theme.axisLineColor,
+      ),
+      majorTickLines: MajorTickLines(
+        size: 4,
+        color: theme.axisLineColor,
+      ),
+      majorGridLines: const MajorGridLines(width: 0),
+      labelStyle: axisLabelStyle,
+      plotOffset: theme.plotAreaBottomPadding,
+    );
+  }
+
+  static DateTimeAxis _buildDateTimeXAxis({
     required QuarterlyBarChartTheme theme,
     required TextStyle axisLabelStyle,
     required List<QuarterDataPoint> data,
@@ -313,6 +379,13 @@ class QuarterlyBarChartEngine {
     final DateTime? minDate = _minimumDate(data, priceData);
     final DateTime? maxDate = _maximumDate(data, priceData);
     final Duration edgePadding = _resolveDateAxisEdgePadding(data, priceData);
+
+    final int quarterMonths = data.length >= 2
+        ? ((data.last.date.difference(data.first.date).inDays) /
+                (30.44 * (data.length - 1)))
+            .round()
+            .clamp(2, 4)
+        : 3;
 
     return DateTimeAxis(
       minimum: minDate?.subtract(edgePadding),
@@ -328,23 +401,76 @@ class QuarterlyBarChartEngine {
       ),
       majorGridLines: const MajorGridLines(width: 0),
       labelStyle: axisLabelStyle,
-      dateFormat: DateFormat("MMM ''yy"),
+      interval: quarterMonths.toDouble(),
       intervalType: DateTimeIntervalType.months,
-      enableAutoIntervalOnZooming: true,
-      edgeLabelPlacement: EdgeLabelPlacement.shift,
+      desiredIntervals: data.length,
+      edgeLabelPlacement: EdgeLabelPlacement.none,
       plotOffset: theme.plotAreaBottomPadding,
       plotOffsetStart: theme.firstBarGap,
+      axisLabelFormatter: (AxisLabelRenderDetails details) {
+        final num rawValue = details.value;
+        final DateTime tickDate =
+            DateTime.fromMillisecondsSinceEpoch(rawValue.toInt());
+
+        QuarterDataPoint? nearest;
+        int? nearestDays;
+        for (final QuarterDataPoint point in data) {
+          final int days =
+              point.date.difference(tickDate).inDays.abs();
+          if (nearestDays == null || days < nearestDays) {
+            nearestDays = days;
+            nearest = point;
+          }
+        }
+
+        if (nearest != null && nearestDays != null && nearestDays <= 45) {
+          return ChartAxisLabel(nearest.label, details.textStyle);
+        }
+
+        return ChartAxisLabel('', details.textStyle);
+      },
     );
   }
 
-  static ColumnSeries<QuarterDataPoint, DateTime> buildColumnSeries({
+  static CartesianSeries<QuarterDataPoint, dynamic> buildColumnSeries({
     required List<QuarterDataPoint> data,
     required int latestIndex,
     int? hoveredIndex,
     required QuarterlyBarChartTheme theme,
     required TextStyle dataLabelStyle,
     bool enableTooltip = true,
+    bool categoryXAxis = false,
   }) {
+    if (categoryXAxis) {
+      return ColumnSeries<QuarterDataPoint, String>(
+        dataSource: data,
+        xValueMapper: (QuarterDataPoint point, _) => point.label,
+        yValueMapper: (QuarterDataPoint point, _) => point.value,
+        pointColorMapper: (QuarterDataPoint point, int index) {
+          final bool isHighlighted =
+              index == latestIndex || index == hoveredIndex;
+          return QuarterlyChartColors.barColor(
+            point.value,
+            highlighted: isHighlighted,
+          );
+        },
+        dataLabelMapper: (QuarterDataPoint point, _) => formatValue(point.value),
+        width: theme.barWidth,
+        spacing: theme.barSpacing,
+        borderRadius: barBorderRadius(theme: theme, data: data),
+        animationDuration: 0,
+        enableTooltip: enableTooltip,
+        dataLabelSettings: DataLabelSettings(
+          isVisible: true,
+          labelPosition: ChartDataLabelPosition.outside,
+          labelAlignment: ChartDataLabelAlignment.auto,
+          overflowMode: OverflowMode.shift,
+          textStyle: dataLabelStyle,
+          margin: const EdgeInsets.only(top: 6, bottom: 6),
+        ),
+      );
+    }
+
     return ColumnSeries<QuarterDataPoint, DateTime>(
       dataSource: data,
       xValueMapper: (QuarterDataPoint point, _) => point.date,
@@ -451,6 +577,34 @@ class QuarterlyBarChartEngine {
       niceFraction = 10;
     }
     return niceFraction * math.pow(10, exponent).toDouble();
+  }
+
+  /// Picks a readable tick step for mixed-sign charts without overshooting
+  /// (e.g. range ~1000 should use 200, not jump to 2000).
+  static double _mixedSignAxisInterval(double range) {
+    if (range <= 0) {
+      return 50;
+    }
+
+    const List<double> steps = <double>[
+      25,
+      50,
+      100,
+      200,
+      250,
+      500,
+      1000,
+      2000,
+    ];
+
+    for (final double step in steps) {
+      final int tickCount = (range / step).ceil();
+      if (tickCount >= 4 && tickCount <= 8) {
+        return step;
+      }
+    }
+
+    return _niceInterval(range);
   }
 
   static DateTime? _minimumDate(

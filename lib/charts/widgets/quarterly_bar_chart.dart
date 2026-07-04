@@ -365,7 +365,7 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
 
     final bool hasPriceOverlay = widget.priceData.isNotEmpty;
 
-    final ColumnSeries<QuarterDataPoint, DateTime> series =
+    final CartesianSeries<QuarterDataPoint, dynamic> series =
         QuarterlyBarChartEngine.buildColumnSeries(
       data: widget.data,
       latestIndex: widget.data.isEmpty ? -1 : widget.data.length - 1,
@@ -373,6 +373,7 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
       theme: widget.theme,
       dataLabelStyle: dataLabelStyle,
       enableTooltip: !hasPriceOverlay,
+      categoryXAxis: !hasPriceOverlay,
     );
     final LineSeries<PriceDataPoint, DateTime>? priceSeries =
         widget.priceData.isEmpty
@@ -418,6 +419,7 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
                   clipBehavior: Clip.none,
                   children: <Widget>[
                     _QuarterlyBarChartCanvas(
+                    key: ValueKey<bool>(hasPriceOverlay),
                     data: widget.data,
                     series: series,
                     tooltipBehavior: _tooltipBehavior!,
@@ -700,6 +702,7 @@ class _ChartHeader extends StatelessWidget {
 /// in [QuarterlyBarChartEngine], not inline in the widget tree.
 class _QuarterlyBarChartCanvas extends StatelessWidget {
   const _QuarterlyBarChartCanvas({
+    super.key,
     required this.data,
     required this.series,
     required this.priceSeries,
@@ -714,12 +717,12 @@ class _QuarterlyBarChartCanvas extends StatelessWidget {
   });
 
   final List<QuarterDataPoint> data;
-  final ColumnSeries<QuarterDataPoint, DateTime> series;
+  final CartesianSeries<QuarterDataPoint, dynamic> series;
   final LineSeries<PriceDataPoint, DateTime>? priceSeries;
   final TooltipBehavior tooltipBehavior;
   final void Function(TooltipArgs args) onTooltipRender;
   final NumericAxis yAxis;
-  final DateTimeAxis xAxis;
+  final ChartAxis xAxis;
   final NumericAxis? priceAxis;
   final double plotAreaLeftPadding;
   final double plotAreaRightPadding;
@@ -744,7 +747,7 @@ class _QuarterlyBarChartCanvas extends StatelessWidget {
       primaryXAxis: xAxis,
       primaryYAxis: yAxis,
       axes: priceAxis == null ? const <ChartAxis>[] : <ChartAxis>[priceAxis!],
-      series: <CartesianSeries<dynamic, DateTime>>[
+      series: <CartesianSeries<dynamic, dynamic>>[
         series,
         if (priceSeries != null) priceSeries!,
       ],
