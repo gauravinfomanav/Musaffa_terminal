@@ -405,6 +405,7 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
             titleStyle: titleStyle,
             valueStyle: valueStyle,
             unitStyle: unitStyle,
+            inlineHeader: widget.theme.inlineHeader,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -668,6 +669,7 @@ class _ChartHeader extends StatelessWidget {
     required this.titleStyle,
     required this.valueStyle,
     required this.unitStyle,
+    this.inlineHeader = false,
   });
 
   final String title;
@@ -676,9 +678,23 @@ class _ChartHeader extends StatelessWidget {
   final TextStyle titleStyle;
   final TextStyle valueStyle;
   final TextStyle unitStyle;
+  final bool inlineHeader;
 
   @override
   Widget build(BuildContext context) {
+    if (inlineHeader) {
+      return Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        children: <Widget>[
+          Text(title, style: titleStyle),
+          Text('-', style: titleStyle),
+          Text(displayValue, style: valueStyle),
+          Text(unit, style: unitStyle),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[

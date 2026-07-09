@@ -60,6 +60,7 @@ class QuarterlyBarChartTheme {
     this.plotAreaTopPadding = 24,
     this.plotAreaBottomPadding = 8,
     this.firstBarGap = 10,
+    this.inlineHeader = false,
   });
 
   final TextStyle? titleStyle;
@@ -90,6 +91,7 @@ class QuarterlyBarChartTheme {
   final double plotAreaTopPadding;
   final double plotAreaBottomPadding;
   final double firstBarGap;
+  final bool inlineHeader;
 }
 
 /// Resolved Y-axis bounds for a dataset.

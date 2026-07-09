@@ -133,6 +133,7 @@ class DynamicTable extends StatefulWidget {
     this.showColumnActionMenu = true,
     this.showColumnResizeHandle = true,
     this.resizeHandleIndicatorHeight = 14,
+    this.tickerHeaderLabel = 'COMPANY',
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -164,6 +165,7 @@ class DynamicTable extends StatefulWidget {
   final bool showColumnActionMenu;
   final bool showColumnResizeHandle;
   final double resizeHandleIndicatorHeight;
+  final String tickerHeaderLabel;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -745,7 +747,7 @@ class _DynamicTableState extends State<DynamicTable> {
             tickerKey: '_ticker_symbol',
             companyKey: '_company_name',
             logoKey: '_logo_url',
-            tickerHeaderLabel: 'COMPANY',
+            tickerHeaderLabel: widget.tickerHeaderLabel,
             enableColumnVisibilityToggle: widget.enableColumnCustomization,
             enableColumnReorder: widget.enableColumnCustomization,
             enableColumnPinning: true,
