@@ -17,13 +17,15 @@ import 'package:musaffa_terminal/Controllers/ticker_earnings_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_dividend_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_insider_trading_controller.dart';
-import 'package:musaffa_terminal/Controllers/ticker_revenue_geography_controller.dart';
+import 'package:musaffa_terminal/Controllers/ticker_news_sentiment_controller.dart';
+import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
 import 'package:musaffa_terminal/Components/ticker_upcoming_earnings_card.dart';
 import 'package:musaffa_terminal/Components/ticker_earnings_history_section.dart';
 import 'package:musaffa_terminal/Components/ticker_dividend_history_section.dart';
 import 'package:musaffa_terminal/Components/ticker_peer_comparison_section.dart';
 import 'package:musaffa_terminal/Components/ticker_insider_trading_section.dart';
-import 'package:musaffa_terminal/Components/ticker_revenue_geography_section.dart';
+import 'package:musaffa_terminal/Components/ticker_news_sentiment_section.dart';
+import 'package:musaffa_terminal/Components/ticker_fund_ownership_section.dart';
 import 'package:musaffa_terminal/charts/widgets/ticker_charts_tab_content.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
@@ -58,7 +60,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TickerDividendController tickerDividendController;
   late TickerPeerComparisonController tickerPeerComparisonController;
   late TickerInsiderTradingController tickerInsiderTradingController;
-  late TickerRevenueGeographyController tickerRevenueGeographyController;
+  late TickerNewsSentimentController tickerNewsSentimentController;
+  late TickerFundOwnershipController tickerFundOwnershipController;
+  
   late LivePriceService _livePriceService;
   late WebSocketService _webSocketService;
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
@@ -87,7 +91,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerDividendController = TickerDividendController();
     tickerPeerComparisonController = TickerPeerComparisonController();
     tickerInsiderTradingController = TickerInsiderTradingController();
-    tickerRevenueGeographyController = TickerRevenueGeographyController();
+    tickerNewsSentimentController = TickerNewsSentimentController();
+    tickerFundOwnershipController = TickerFundOwnershipController();
+  
     _livePriceService = Get.find<LivePriceService>();
     _webSocketService = Get.find<WebSocketService>();
     
@@ -110,9 +116,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       tickerDividendController.load(ticker);
       tickerPeerComparisonController.load(ticker);
       tickerInsiderTradingController.load(ticker);
-      tickerRevenueGeographyController.load(ticker);
+      tickerNewsSentimentController.load(ticker);
+      tickerFundOwnershipController.load(ticker);
+      
       _setupLivePrices(ticker);
     });
+
   }
   
   void _setupLivePrices(String ticker) {
@@ -170,7 +179,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerDividendController.dispose();
     tickerPeerComparisonController.dispose();
     tickerInsiderTradingController.dispose();
-    tickerRevenueGeographyController.dispose();
+    tickerNewsSentimentController.dispose();
+    tickerFundOwnershipController.dispose();
     financialFundamentalsController.dispose();
     tradingViewController.dispose();
     super.dispose();
@@ -479,6 +489,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       childFontWeight: FontWeight.w400,
     );
   }
+
 
   Widget _buildValuationMetrics(StocksData stockData, bool isDarkMode) {
     final data = [
@@ -1339,15 +1350,15 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               controller: tickerEarningsController,
               isDarkMode: isDarkMode,
             ),
-            const SizedBox(height: 16),
-            TickerRevenueGeographySection(
-              controller: tickerRevenueGeographyController,
-              isDarkMode: isDarkMode,
-              onRetry: () => tickerRevenueGeographyController.load(
-                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                forceRefresh: true,
-              ),
-            ),
+            // const SizedBox(height: 16),
+            // TickerRevenueGeographySection(
+            //   controller: tickerRevenueGeographyController,
+            //   isDarkMode: isDarkMode,
+            //   onRetry: () => tickerRevenueGeographyController.load(
+            //     widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+            //     forceRefresh: true,
+            //   ),
+            // ),
             const SizedBox(height: 16),
             TickerDividendHistorySection(
               controller: tickerDividendController,
@@ -1393,6 +1404,16 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
             ),
             const SizedBox(height: 16),
+            TickerFundOwnershipSection(
+              controller: tickerFundOwnershipController,
+              isDarkMode: isDarkMode,
+              currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
+              onRetry: () => tickerFundOwnershipController.load(
+                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                forceRefresh: true,
+              ),
+            ),
+            const SizedBox(height: 16),
             TickerInsiderTradingSection(
               controller: tickerInsiderTradingController,
               isDarkMode: isDarkMode,
@@ -1400,6 +1421,15 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
               companyLogoUrl: widget.ticker.logo ?? '',
               onRetry: () => tickerInsiderTradingController.load(
+                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                forceRefresh: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TickerNewsSentimentSection(
+              controller: tickerNewsSentimentController,
+              isDarkMode: isDarkMode,
+              onRetry: () => tickerNewsSentimentController.load(
                 widget.ticker.symbol ?? widget.ticker.ticker ?? '',
                 forceRefresh: true,
               ),

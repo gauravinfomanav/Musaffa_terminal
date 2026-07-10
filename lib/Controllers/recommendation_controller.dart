@@ -1,16 +1,27 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/models/recommendation_model.dart';
+import 'package:musaffa_terminal/models/recommendation_trend_model.dart';
+import 'package:musaffa_terminal/services/finnhub/recommendation_trend_service.dart';
 import 'package:musaffa_terminal/web_service.dart';
 
 class RecommendationController extends ChangeNotifier {
   RecommendationModel? _recommendation;
+  List<RecommendationTrendModel> _trendHistory = <RecommendationTrendModel>[];
   bool _isLoading = false;
+  bool _isTrendLoading = false;
   String? _error;
+  String? _trendError;
+  String? _loadedTrendSymbol;
+
+  final RecommendationTrendService _trendService = RecommendationTrendService();
 
   RecommendationModel? get recommendation => _recommendation;
+  List<RecommendationTrendModel> get trendHistory => _trendHistory;
   bool get isLoading => _isLoading;
+  bool get isTrendLoading => _isTrendLoading;
   String? get error => _error;
+  String? get trendError => _trendError;
 
   Future<void> fetchRecommendation(String symbol) async {
     if (symbol.isEmpty) return;
@@ -42,11 +53,44 @@ class RecommendationController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+
+    fetchRecommendationTrends(symbol);
+  }
+
+  Future<void> fetchRecommendationTrends(
+    String symbol, {
+    bool forceRefresh = false,
+  }) async {
+    final String normalized = symbol.trim().toUpperCase();
+    if (normalized.isEmpty) return;
+    if (!forceRefresh &&
+        _loadedTrendSymbol == normalized &&
+        _trendHistory.isNotEmpty) {
+      return;
+    }
+
+    _isTrendLoading = true;
+    _trendError = null;
+    _loadedTrendSymbol = normalized;
+    notifyListeners();
+
+    try {
+      _trendHistory = await _trendService.fetchForSymbol(normalized);
+      _trendError = _trendHistory.isEmpty ? 'No recommendation trend data' : null;
+    } catch (e) {
+      _trendHistory = <RecommendationTrendModel>[];
+      _trendError = e.toString();
+    } finally {
+      _isTrendLoading = false;
+      notifyListeners();
+    }
   }
 
   void clearRecommendation() {
     _recommendation = null;
+    _trendHistory = <RecommendationTrendModel>[];
     _error = null;
+    _trendError = null;
     notifyListeners();
   }
 

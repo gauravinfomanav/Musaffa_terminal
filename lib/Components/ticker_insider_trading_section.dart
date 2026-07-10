@@ -131,13 +131,6 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
             fields: <String, dynamic>{
               'name': Row(
                 children: <Widget>[
-                  showLogo(
-                    widget.ticker,
-                    widget.companyLogoUrl,
-                    sideWidth: 18,
-                    name: widget.ticker,
-                  ),
-                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       item.name,
@@ -151,8 +144,8 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
               'action': Row(
                 children: <Widget>[
                   Text(
-                    item.isBuy ? '🟢 Buy' : item.isSell ? '🔴 Sell' : '—',
-                    style: DashboardTextStyles.dataCell.copyWith(fontSize: 11),
+                    item.isBuy ? 'Buy' : item.isSell ? 'Sell' : '—',
+                    style: DashboardTextStyles.dataCell.copyWith(fontSize: 13),
                   ),
                   if (isRecent) ...<Widget>[
                     const SizedBox(width: 6),

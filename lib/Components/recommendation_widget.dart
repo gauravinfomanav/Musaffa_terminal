@@ -1,9 +1,10 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/models/recommendation_model.dart';
+import 'package:musaffa_terminal/models/recommendation_trend_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class RecommendationWidget extends StatefulWidget {
   final String symbol;
@@ -20,8 +21,6 @@ class RecommendationWidget extends StatefulWidget {
 }
 
 class _RecommendationWidgetState extends State<RecommendationWidget> {
-  double _pointerValue = 0.0;
-
   @override
   void initState() {
     super.initState();
@@ -50,50 +49,14 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
           return const SizedBox.shrink();
         }
 
-        // Update pointer value based on weighted average
-        _pointerValue = recommendation.weightedAverage * 20; // Scale to 0-100
-
         return Container(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Left side: Custom Gauge
+              // Left side: Recommendation Trend chart
               Expanded(
                 flex: 2,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Analyst Consensus',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildCustomGauge(recommendation),
-                    const SizedBox(height: 12),
-                    Text(
-                      recommendation.recommendationText,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: Color(recommendation.recommendationColor),
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${recommendation.weightedAverage.toStringAsFixed(1)}/5.0',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                  ],
-                ),
+                child: _buildTrendPanel(recommendation),
               ),
               const SizedBox(width: 24),
               // Right side: Recommendation bars
@@ -121,7 +84,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                     Text(
                       'Total: ${widget.controller.totalRecommendations}',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400,
                         fontFamily: Constants.FONT_DEFAULT_NEW,
                       ),
@@ -136,16 +99,255 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     );
   }
 
-  Widget _buildCustomGauge(RecommendationModel recommendation) {
-    return Container(
-      width: 240,
-      height: 140,
-      child: CustomPaint(
-        painter: GaugePainter(
-          value: _pointerValue,
-          color: Color(recommendation.recommendationColor),
+  Widget _buildTrendPanel(RecommendationModel recommendation) {
+    if (widget.controller.isTrendLoading && widget.controller.trendHistory.isEmpty) {
+      return _buildTrendLoading();
+    }
+    if (widget.controller.trendError != null &&
+        widget.controller.trendHistory.isEmpty) {
+      return _buildTrendError();
+    }
+    if (widget.controller.trendHistory.isEmpty) {
+      return _buildTrendEmpty();
+    }
+
+    final List<RecommendationTrendModel> trends = widget.controller.trendHistory;
+    final RecommendationTrendModel latest = trends.last;
+    final RecommendationTrendModel? previous =
+        trends.length > 1 ? trends[trends.length - 2] : null;
+    final String trendText = _deriveTrendText(latest, previous);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'Recommendation Trend',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+          ),
         ),
+        const SizedBox(height: 10),
+        Row(
+          children: <Widget>[
+            _summaryCard('Current Consensus', latest.consensusText),
+            const SizedBox(width: 8),
+            _summaryCard('Latest Analysts', latest.total.toString()),
+            const SizedBox(width: 8),
+            _summaryCard('Trend', trendText),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 210,
+          child: SfCartesianChart(
+            legend: const Legend(
+              isVisible: true,
+              position: LegendPosition.bottom,
+              overflowMode: LegendItemOverflowMode.wrap,
+              textStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+              ),
+            ),
+            tooltipBehavior: TooltipBehavior(
+              enable: true,
+              builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+                if (pointIndex < 0 || pointIndex >= trends.length) {
+                  return const SizedBox.shrink();
+                }
+                final RecommendationTrendModel p = trends[pointIndex];
+                return Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    'Period: ${p.period}\n'
+                    'Strong Buy: ${p.strongBuy}\n'
+                    'Buy: ${p.buy}\n'
+                    'Hold: ${p.hold}\n'
+                    'Sell: ${p.sell}\n'
+                    'Strong Sell: ${p.strongSell}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
+                  ),
+                );
+              },
+            ),
+            primaryXAxis: CategoryAxis(
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+              ),
+            ),
+            primaryYAxis: NumericAxis(
+              title: const AxisTitle(
+                text: 'No. of Recommendations',
+                textStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                ),
+              ),
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+              ),
+            ),
+            series: <CartesianSeries<RecommendationTrendModel, String>>[
+              LineSeries<RecommendationTrendModel, String>(
+                name: 'Strong Buy',
+                color: Colors.green,
+                dataSource: trends,
+                xValueMapper: (RecommendationTrendModel t, _) => t.period,
+                yValueMapper: (RecommendationTrendModel t, _) => t.strongBuy,
+              ),
+              LineSeries<RecommendationTrendModel, String>(
+                name: 'Buy',
+                color: Colors.lightGreen,
+                dataSource: trends,
+                xValueMapper: (RecommendationTrendModel t, _) => t.period,
+                yValueMapper: (RecommendationTrendModel t, _) => t.buy,
+              ),
+              LineSeries<RecommendationTrendModel, String>(
+                name: 'Hold',
+                color: Colors.orange,
+                dataSource: trends,
+                xValueMapper: (RecommendationTrendModel t, _) => t.period,
+                yValueMapper: (RecommendationTrendModel t, _) => t.hold,
+              ),
+              LineSeries<RecommendationTrendModel, String>(
+                name: 'Sell',
+                color: const Color(0xFFFF8A65),
+                dataSource: trends,
+                xValueMapper: (RecommendationTrendModel t, _) => t.period,
+                yValueMapper: (RecommendationTrendModel t, _) => t.sell,
+              ),
+              LineSeries<RecommendationTrendModel, String>(
+                name: 'Strong Sell',
+                color: Colors.red,
+                dataSource: trends,
+                xValueMapper: (RecommendationTrendModel t, _) => t.period,
+                yValueMapper: (RecommendationTrendModel t, _) => t.strongSell,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryCard(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  String _deriveTrendText(
+    RecommendationTrendModel latest,
+    RecommendationTrendModel? previous,
+  ) {
+    if (previous == null) return 'Stable';
+    final int bullishLatest = latest.strongBuy + latest.buy;
+    final int bullishPrevious = previous.strongBuy + previous.buy;
+    if (bullishLatest > bullishPrevious) return 'More Bullish';
+    if (bullishLatest < bullishPrevious) return 'More Bearish';
+    return 'Stable';
+  }
+
+  Widget _buildTrendLoading() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        ShimmerWidgets.box(height: 14, width: 150),
+        const SizedBox(height: 10),
+        ShimmerWidgets.box(height: 180, width: double.infinity),
+      ],
+    );
+  }
+
+  Widget _buildTrendError() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Text(
+          'Recommendation Trend',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Unable to load recommendation trend',
+          style: TextStyle(
+            fontSize: 12,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+          ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () => widget.controller.fetchRecommendationTrends(
+            widget.symbol,
+            forceRefresh: true,
+          ),
+          child: const Text('Retry'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrendEmpty() {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'Recommendation Trend',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+          ),
+        ),
+        SizedBox(height: 10),
+        Text(
+          'No recommendation trend data found',
+          style: TextStyle(
+            fontSize: 12,
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+          ),
+        ),
+      ],
     );
   }
 
@@ -154,7 +356,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          // Left side: Gauge shimmer
+          // Left side: Trend shimmer
           Expanded(
             flex: 2,
             child: Column(
@@ -165,17 +367,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                 ),
                 const SizedBox(height: 12),
                 ShimmerWidgets.box(
-                  height: 100,
-                  width: 180,
-                ),
-                const SizedBox(height: 8),
-                ShimmerWidgets.box(
-                  height: 16,
-                  width: 80,
-                ),
-                ShimmerWidgets.box(
-                  height: 12,
-                  width: 60,
+                  height: 140,
+                  width: double.infinity,
                 ),
               ],
             ),
@@ -306,96 +499,4 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
       ),
     );
   }
-}
-
-class GaugePainter extends CustomPainter {
-  final double value;
-  final Color color;
-
-  GaugePainter({required this.value, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height);
-    final radius = size.width / 2 - 10;
-    
-    // Draw background arc
-    final backgroundPaint = Paint()
-      ..color = Colors.grey[300]!
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -3.14, // Start from bottom
-      3.14,  // Half circle
-      false,
-      backgroundPaint,
-    );
-
-    // Draw value arc
-    final valuePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
-      ..strokeCap = StrokeCap.round;
-
-    final sweepAngle = (value / 100) * 3.14;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -3.14, // Start from bottom
-      sweepAngle,
-      false,
-      valuePaint,
-    );
-
-    // Draw needle
-    final needlePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-
-    final needleAngle = -3.14 + sweepAngle;
-    final needleEndX = center.dx + (radius - 5) * cos(needleAngle);
-    final needleEndY = center.dy + (radius - 5) * sin(needleAngle);
-    
-    canvas.drawLine(
-      center,
-      Offset(needleEndX, needleEndY),
-      needlePaint,
-    );
-
-    // Draw center circle
-    final centerPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, 6, centerPaint);
-
-    // Draw value text (smaller and more compact)
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: value.toStringAsFixed(0),
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        center.dx - textPainter.width / 2,
-        center.dy - textPainter.height / 2,
-      ),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
