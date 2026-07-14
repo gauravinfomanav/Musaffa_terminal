@@ -19,6 +19,7 @@ import 'package:musaffa_terminal/Controllers/ticker_peer_comparison_controller.d
 import 'package:musaffa_terminal/Controllers/ticker_insider_trading_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_news_sentiment_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
+import 'package:musaffa_terminal/Controllers/ticker_price_target_controller.dart';
 import 'package:musaffa_terminal/Components/ticker_upcoming_earnings_card.dart';
 import 'package:musaffa_terminal/Components/ticker_earnings_history_section.dart';
 import 'package:musaffa_terminal/Components/ticker_dividend_history_section.dart';
@@ -26,6 +27,7 @@ import 'package:musaffa_terminal/Components/ticker_peer_comparison_section.dart'
 import 'package:musaffa_terminal/Components/ticker_insider_trading_section.dart';
 import 'package:musaffa_terminal/Components/ticker_news_sentiment_section.dart';
 import 'package:musaffa_terminal/Components/ticker_fund_ownership_section.dart';
+import 'package:musaffa_terminal/Components/ticker_price_target_section.dart';
 import 'package:musaffa_terminal/charts/widgets/ticker_charts_tab_content.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
@@ -62,6 +64,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TickerInsiderTradingController tickerInsiderTradingController;
   late TickerNewsSentimentController tickerNewsSentimentController;
   late TickerFundOwnershipController tickerFundOwnershipController;
+  late TickerPriceTargetController tickerPriceTargetController;
   
   late LivePriceService _livePriceService;
   late WebSocketService _webSocketService;
@@ -93,6 +96,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerInsiderTradingController = TickerInsiderTradingController();
     tickerNewsSentimentController = TickerNewsSentimentController();
     tickerFundOwnershipController = TickerFundOwnershipController();
+    tickerPriceTargetController = TickerPriceTargetController();
   
     _livePriceService = Get.find<LivePriceService>();
     _webSocketService = Get.find<WebSocketService>();
@@ -118,6 +122,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       tickerInsiderTradingController.load(ticker);
       tickerNewsSentimentController.load(ticker);
       tickerFundOwnershipController.load(ticker);
+      tickerPriceTargetController.load(ticker);
       
       _setupLivePrices(ticker);
     });
@@ -181,6 +186,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerInsiderTradingController.dispose();
     tickerNewsSentimentController.dispose();
     tickerFundOwnershipController.dispose();
+    tickerPriceTargetController.dispose();
     financialFundamentalsController.dispose();
     tradingViewController.dispose();
     super.dispose();
@@ -1368,6 +1374,15 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             TickerPeerComparisonSection(
               controller: tickerPeerComparisonController,
               isDarkMode: isDarkMode,
+            ),
+            const SizedBox(height: 16),
+            TickerPriceTargetSection(
+              controller: tickerPriceTargetController,
+              isDarkMode: isDarkMode,
+              onRetry: () => tickerPriceTargetController.load(
+                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                forceRefresh: true,
+              ),
             ),
             const SizedBox(height: 16),
             // Forecast/Recommendation Widget
