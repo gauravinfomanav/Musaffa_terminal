@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/Controllers/notes_controller.dart';
@@ -35,8 +36,26 @@ class GlobalKeyboardShortcutsWrapper extends StatelessWidget {
     required this.child,
   }) : super(key: key);
 
+  bool get _shortcutsEnabled {
+    if (!Get.isRegistered<AuthController>()) return false;
+    final auth = Get.find<AuthController>();
+    return auth.isAuthenticated.value && !auth.isInitializing.value;
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Disable all app shortcuts on login / session-check screens.
+    if (Get.isRegistered<AuthController>()) {
+      return Obx(() {
+        if (!_shortcutsEnabled) return child;
+        return _buildShortcuts(child);
+      });
+    }
+
+    return child;
+  }
+
+  Widget _buildShortcuts(Widget child) {
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
         // Cmd+W on Mac, Ctrl+W on Windows/Linux - Toggle Watchlist

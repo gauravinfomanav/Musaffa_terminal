@@ -322,6 +322,29 @@ class WatchlistController extends GetxController {
     stocksErrorMessage.value = '';
   }
 
+  /// Wipe in-memory watchlist state (call on logout / account switch).
+  void clearSessionData() {
+    watchlists.clear();
+    selectedWatchlist.value = null;
+    userPreferences.value = null;
+    watchlistStocks.clear();
+    targetPrices.clear();
+    loadingTargetPricesByTicker.clear();
+    errorMessage.value = '';
+    stocksErrorMessage.value = '';
+    targetPricesErrorMessage.value = '';
+    isLoading.value = false;
+    isLoadingPreferences.value = false;
+    isLoadingStocks.value = false;
+    isLoadingTargetPrices.value = false;
+  }
+
+  /// Clear old user data and reload for the current authenticated user.
+  Future<void> reloadForCurrentUser() async {
+    clearSessionData();
+    await fetchUserPreferences();
+  }
+
   /// Add stocks to the selected watchlist
   Future<bool> addStocksToWatchlist(List<Map<String, dynamic>> stocks) async {
     if (selectedWatchlist.value == null) {

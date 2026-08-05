@@ -8,12 +8,15 @@ import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_etf_details_screen.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_history_item.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report.dart';
+import 'package:musaffa_terminal/shariah_compliance/models/compliance_report_period.dart';
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_api_service.dart';
+import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_history_details_service.dart';
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_history_service.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_history_formatters.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_charts.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_detail_search.dart';
+import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_report_period_selector.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
@@ -41,11 +44,18 @@ class _ShariahComplianceDetailsScreenState
   final ShariahComplianceApiService _apiService = ShariahComplianceApiService();
   final ShariahComplianceHistoryService _historyService =
       ShariahComplianceHistoryService();
+  final ShariahComplianceHistoryDetailsService _historyDetailsService =
+      ShariahComplianceHistoryDetailsService();
   final StockDetailsController _stockController = StockDetailsController();
 
-  ComplianceReport? _report;
+  ComplianceReport? _currentReport;
   StocksData? _stockData;
   List<ComplianceHistoryItem> _history = const <ComplianceHistoryItem>[];
+  List<ComplianceReportPeriod> _historicalPeriods =
+      const <ComplianceReportPeriod>[];
+  bool _viewingHistorical = false;
+  String? _selectedHistoricalYear;
+  String? _selectedHistoricalPeriodId;
   bool _isLoading = true;
   final Map<String, bool> _showPercentBySection = <String, bool>{
     'revenue': true,
@@ -66,6 +76,7 @@ class _ShariahComplianceDetailsScreenState
     final results = await Future.wait<dynamic>([
       _apiService.fetchCompliance(widget.tickerSymbol),
       _historyService.fetchHistory(widget.tickerSymbol),
+      _historyDetailsService.fetchPeriods(widget.tickerSymbol),
       stockFuture,
     ]);
 
@@ -73,13 +84,85 @@ class _ShariahComplianceDetailsScreenState
 
     final ShariahComplianceResult apiResult =
         results[0] as ShariahComplianceResult;
+    final ComplianceReport? currentReport = apiResult.isSuccess
+        ? ComplianceReport.fromJson(apiResult.data!)
+        : null;
     setState(() {
-      _report = apiResult.isSuccess
-          ? ComplianceReport.fromJson(apiResult.data!)
-          : null;
+      _currentReport = currentReport;
       _history = results[1] as List<ComplianceHistoryItem>;
+      _historicalPeriods = _dedupeHistoricalPeriods(
+        results[2] as List<ComplianceReportPeriod>,
+        currentReport,
+      );
+      _viewingHistorical = false;
+      _selectedHistoricalYear = null;
+      _selectedHistoricalPeriodId = null;
       _stockData = _stockController.stockData.value;
       _isLoading = false;
+    });
+  }
+
+  ComplianceReport? get _activeReport => _viewingHistorical
+      ? _selectedHistoricalPeriod?.report
+      : _currentReport;
+
+  ComplianceReportPeriod? get _selectedHistoricalPeriod {
+    if (_selectedHistoricalPeriodId == null) return null;
+    for (final ComplianceReportPeriod period in _historicalPeriods) {
+      if (period.id == _selectedHistoricalPeriodId) return period;
+    }
+    return null;
+  }
+
+  bool get _showMsciPanel {
+    final ComplianceReport? report = _activeReport;
+    if (report == null) return false;
+    if (_viewingHistorical) return false;
+    return report.msciStatus.isNotEmpty ||
+        report.msciSecuritiesRatio > 0 ||
+        report.msciDebtRatio > 0 ||
+        report.msciTotalAssets > 0;
+  }
+
+  List<ComplianceReportPeriod> _dedupeHistoricalPeriods(
+    List<ComplianceReportPeriod> periods,
+    ComplianceReport? currentReport,
+  ) {
+    if (currentReport == null) return periods;
+    return periods
+        .where(
+          (ComplianceReportPeriod period) =>
+              period.reportDate != currentReport.reportDate,
+        )
+        .toList();
+  }
+
+  void _selectCurrentReport() {
+    setState(() {
+      _viewingHistorical = false;
+      _selectedHistoricalYear = null;
+      _selectedHistoricalPeriodId = null;
+    });
+  }
+
+  void _selectHistoricalYear(String year) {
+    final List<ComplianceReportPeriod> options = _historicalPeriods
+        .where((ComplianceReportPeriod period) => period.year == year)
+        .toList();
+    if (options.isEmpty) return;
+
+    setState(() {
+      _viewingHistorical = true;
+      _selectedHistoricalYear = year;
+      _selectedHistoricalPeriodId = options.first.id;
+    });
+  }
+
+  void _selectHistoricalPeriod(ComplianceReportPeriod period) {
+    setState(() {
+      _viewingHistorical = true;
+      _selectedHistoricalYear = period.year;
+      _selectedHistoricalPeriodId = period.id;
     });
   }
 
@@ -96,10 +179,10 @@ class _ShariahComplianceDetailsScreenState
         TickerModel(
           symbol: widget.tickerSymbol,
           ticker: widget.tickerSymbol,
-          companyName: _report?.companyName ?? widget.companyName,
-          name: _report?.companyName ?? widget.companyName,
-          stockName: _report?.companyName ?? widget.companyName,
-          exchange: _report?.exchange ?? stock?.exchange,
+          companyName: _currentReport?.companyName ?? widget.companyName,
+          name: _currentReport?.companyName ?? widget.companyName,
+          stockName: _currentReport?.companyName ?? widget.companyName,
+          exchange: _currentReport?.exchange ?? stock?.exchange,
           sectorname: widget.ticker?.sectorname,
           logo: widget.ticker?.logo,
           currentPrice: stock?.currentPrice,
@@ -209,7 +292,7 @@ class _ShariahComplianceDetailsScreenState
         body: SafeArea(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : _report == null
+              : _currentReport == null
                   ? _buildError(primary, secondary)
                   : Column(
                       children: [
@@ -224,22 +307,45 @@ class _ShariahComplianceDetailsScreenState
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildStockHeaderRow(primary, secondary, isDark),
+                                  if (_historicalPeriods.isNotEmpty) ...<Widget>[
+                                    const SizedBox(height: 16),
+                                    ComplianceReportPeriodSelector(
+                                      periods: _historicalPeriods,
+                                      viewingHistorical: _viewingHistorical,
+                                      selectedYear: _selectedHistoricalYear,
+                                      selectedPeriodId:
+                                          _selectedHistoricalPeriodId,
+                                      onSelectCurrent: _selectCurrentReport,
+                                      onSelectYear: _selectHistoricalYear,
+                                      onSelectPeriod: _selectHistoricalPeriod,
+                                      isDark: isDark,
+                                      secondary: secondary,
+                                    ),
+                                  ],
                                   const SizedBox(height: 16),
-                                  // _buildMetadataStrip(
-                                  //     _report!, secondary, isDark),
+                                  _buildMethodologySection(
+                                    _activeReport!,
+                                    isDark,
+                                    showMsciPanel: _showMsciPanel,
+                                  ),
                                   const SizedBox(height: 16),
-                                  _buildMethodologySection(_report!, isDark),
-                                  const SizedBox(height: 16),
-                                  _buildScreeningSection(_report!, isDark),
+                                  _buildScreeningSection(_activeReport!, isDark),
                                   const SizedBox(height: 16),
                                   _buildRevenueSection(
-                                      _report!, primary, secondary, isDark),
+                                    _activeReport!,
+                                    primary,
+                                    secondary,
+                                    isDark,
+                                  ),
                                   const SizedBox(height: 16),
-                                  // _buildMsciSection(_report!, isDark),
+                                  // _buildMsciSection(_activeReport!, isDark),
                                   if (_history.isNotEmpty) ...<Widget>[
                                     const SizedBox(height: 16),
                                     _buildHistorySection(
-                                        _report!, secondary, isDark),
+                                      _activeReport!,
+                                      secondary,
+                                      isDark,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -448,12 +554,12 @@ class _ShariahComplianceDetailsScreenState
   }
 
   Widget _buildStockHeaderRow(Color primary, Color secondary, bool isDark) {
-    final String name = _report?.companyName ??
+    final String name = _activeReport?.companyName ??
         widget.companyName ??
         widget.ticker?.companyName ??
         widget.ticker?.name ??
         '';
-    final String status = _report?.status ?? '';
+    final String status = _activeReport?.status ?? '';
     final String logo = widget.ticker?.logo ?? '';
     final StocksData? stock = _stockData;
 
@@ -979,7 +1085,11 @@ class _ShariahComplianceDetailsScreenState
     );
   }
 
-  Widget _buildMethodologySection(ComplianceReport report, bool isDark) {
+  Widget _buildMethodologySection(
+    ComplianceReport report,
+    bool isDark, {
+    required bool showMsciPanel,
+  }) {
     return ComplianceSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1034,59 +1144,60 @@ class _ShariahComplianceDetailsScreenState
                         ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _methodologyPanel(
-                  title: 'MSCI',
-                  status: report.msciStatus,
-                  isDark: isDark,
-                  accent: const Color(0xFFDC2626),
-                  lines: isDark
-                      ? <String>[
-                          'Denominator: Total Assets',
-                          ComplianceFormatters.compactMoney(
-                            report.msciTotalAssets,
-                          ),
-                          'IB Securities ${ComplianceFormatters.percent(report.msciSecuritiesRatio)}',
-                          'IB Debt ${ComplianceFormatters.percent(report.msciDebtRatio)}',
-                        ]
-                      : null,
-                  structuredLines: isDark
-                      ? null
-                      : <_PanelLine>[
-                          const _PanelLine(
-                            label: 'Denominator',
-                            value: 'Total Assets',
-                          ),
-                          _PanelLine(
-                            label: 'Total Assets',
-                            value: ComplianceFormatters.compactMoney(
+              if (showMsciPanel) ...<Widget>[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _methodologyPanel(
+                    title: 'MSCI',
+                    status: report.msciStatus,
+                    isDark: isDark,
+                    accent: const Color(0xFFDC2626),
+                    lines: isDark
+                        ? <String>[
+                            'Denominator: Total Assets',
+                            ComplianceFormatters.compactMoney(
                               report.msciTotalAssets,
                             ),
-                          ),
-                          _PanelLine(
-                            label: 'IB Securities',
-                            value: ComplianceFormatters.percent(
-                                report.msciSecuritiesRatio),
-                            valueColor:
-                                _isFailStatus(report.msciSecuritiesStatus)
-                                    ? const Color(0xFFDC2626)
-                                    : null,
-                          ),
-                          _PanelLine(
-                            label: 'IB Debt',
-                            value: ComplianceFormatters.percent(
-                                report.msciDebtRatio),
-                            valueColor: _isFailStatus(report.msciDebtStatus)
-                                ? const Color(0xFFDC2626)
-                                : null,
-                          ),
-                        ],
+                            'IB Securities ${ComplianceFormatters.percent(report.msciSecuritiesRatio)}',
+                            'IB Debt ${ComplianceFormatters.percent(report.msciDebtRatio)}',
+                          ]
+                        : null,
+                    structuredLines: isDark
+                        ? null
+                        : <_PanelLine>[
+                            const _PanelLine(
+                              label: 'Denominator',
+                              value: 'Total Assets',
+                            ),
+                            _PanelLine(
+                              label: 'Total Assets',
+                              value: ComplianceFormatters.compactMoney(
+                                report.msciTotalAssets,
+                              ),
+                            ),
+                            _PanelLine(
+                              label: 'IB Securities',
+                              value: ComplianceFormatters.percent(
+                                  report.msciSecuritiesRatio),
+                              valueColor:
+                                  _isFailStatus(report.msciSecuritiesStatus)
+                                      ? const Color(0xFFDC2626)
+                                      : null,
+                            ),
+                            _PanelLine(
+                              label: 'IB Debt',
+                              value: ComplianceFormatters.percent(
+                                  report.msciDebtRatio),
+                              valueColor: _isFailStatus(report.msciDebtStatus)
+                                  ? const Color(0xFFDC2626)
+                                  : null,
+                            ),
+                          ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
-          
         ],
       ),
     );

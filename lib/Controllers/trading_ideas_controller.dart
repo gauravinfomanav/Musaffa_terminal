@@ -139,10 +139,6 @@ class CreateTradingIdeaRequest {
 
 /// Controller responsible for fetching and creating trading ideas
 class TradingIdeasController extends GetxController {
-  TradingIdeasController({String? baseUrl})
-      : _baseUrl = baseUrl ?? 'https://terminal.musaffa.us';
-
-  final String _baseUrl;
   final RxList<TradingIdea> ideas = <TradingIdea>[].obs;
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
@@ -150,6 +146,17 @@ class TradingIdeasController extends GetxController {
   final RxString submitError = ''.obs;
   final RxInt totalIdeas = 0.obs;
   final RxMap<String, IdeaTickerMeta> tickerMeta = <String, IdeaTickerMeta>{}.obs;
+
+  /// Wipe in-memory ideas (call on logout / account switch).
+  void clearSessionData() {
+    ideas.clear();
+    tickerMeta.clear();
+    totalIdeas.value = 0;
+    errorMessage.value = '';
+    submitError.value = '';
+    isLoading.value = false;
+    isSubmitting.value = false;
+  }
 
   /// Fetch all trading ideas from the backend
   Future<void> fetchTradingIdeas({bool force = false}) async {
@@ -161,7 +168,6 @@ class TradingIdeasController extends GetxController {
       final response = await WebService.callApi(
         method: HttpMethod.GET,
         path: ['trading-ideas'],
-        baseUrl: _baseUrl,
       );
 
       if (response.status == ApiStatus.SUCCESS && response.data != null) {
@@ -204,7 +210,6 @@ class TradingIdeasController extends GetxController {
         method: HttpMethod.POST,
         path: ['trading-ideas'],
         body: payload.toJson(),
-        baseUrl: _baseUrl,
       );
 
       if (response.status == ApiStatus.SUCCESS && response.data != null) {

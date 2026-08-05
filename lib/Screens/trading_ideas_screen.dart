@@ -209,7 +209,10 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
 
       Widget content;
       if (isLoading && ideas.isEmpty) {
-        content = const Center(child: CircularProgressIndicator());
+        content = Padding(
+          padding: const EdgeInsets.all(12),
+          child: _buildIdeasTableShimmer(isDark),
+        );
       } else if (error.isNotEmpty && ideas.isEmpty) {
         content = Center(
           child: Text(
@@ -265,6 +268,18 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
         child: content,
       );
     });
+  }
+
+  Widget _buildIdeasTableShimmer(bool isDark) {
+    final baseColor =
+        isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB);
+    final highlightColor =
+        isDark ? const Color(0xFF404040) : const Color(0xFFF3F4F6);
+
+    return ShimmerWidgets.perShareTableShimmer(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+    );
   }
 
   List<SimpleColumn> _buildIdeaColumns(BuildContext context) {

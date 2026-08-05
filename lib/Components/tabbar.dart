@@ -21,6 +21,7 @@ import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/web_service.dart';
+import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 
 
 class HomeTabBar extends StatelessWidget {
@@ -192,6 +193,8 @@ class HomeTabBar extends StatelessWidget {
             onToggle: onWatchlistToggle,
             isDarkMode: isDarkMode,
           ),
+          const SizedBox(width: 8),
+          _LogoutButton(isDarkMode: isDarkMode),
             ],
           ),
         );
@@ -853,6 +856,131 @@ class _PortfolioButton extends StatelessWidget {
           );
         },
         tooltip: 'Portfolios',
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatefulWidget {
+  final bool isDarkMode;
+
+  const _LogoutButton({required this.isDarkMode});
+
+  @override
+  State<_LogoutButton> createState() => _LogoutButtonState();
+}
+
+class _LogoutButtonState extends State<_LogoutButton> {
+  bool _isHovered = false;
+
+  Future<void> _confirmAndLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final isDark = widget.isDarkMode;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            ),
+          ),
+          title: Text(
+            'Sign out',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827),
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to sign out of Musaffa Terminal?',
+            style: TextStyle(
+              fontSize: 13,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  color: isDark ? const Color(0xFF81AACE) : const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Sign out',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && Get.isRegistered<AuthController>()) {
+      await Get.find<AuthController>().logout();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = widget.isDarkMode
+        ? const Color(0xFF9CA3AF)
+        : const Color(0xFF6B7280);
+    final hoverBg = widget.isDarkMode
+        ? const Color(0xFF2D2D2D)
+        : const Color(0xFFF3F4F6);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: Tooltip(
+        message: 'Sign out',
+        child: GestureDetector(
+          onTap: _confirmAndLogout,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _isHovered ? hoverBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: widget.isDarkMode
+                    ? const Color(0xFF404040)
+                    : const Color(0xFFE5E7EB),
+              ),
+            ),
+            child: Icon(
+              Icons.logout_rounded,
+              size: 18,
+              color: accent,
+            ),
+          ),
+        ),
       ),
     );
   }

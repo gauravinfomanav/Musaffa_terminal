@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:musaffa_terminal/Screens/main_screen.dart';
+import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
 import 'package:musaffa_terminal/Controllers/notes_controller.dart';
+import 'package:musaffa_terminal/Screens/auth_gate.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
@@ -41,7 +42,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         themeMode: ThemeMode.light, // Set default to light mode
-        home: const MainScreen(),
+        home: const AuthGate(),
         initialBinding: AppBinding(),
       ),
     );
@@ -51,6 +52,7 @@ class MyApp extends StatelessWidget {
 class AppBinding extends Bindings {
   @override
   void dependencies() {
+    Get.put<AuthController>(AuthController(), permanent: true);
     // Initialize WebSocket service
     Get.put<WebSocketService>(WebSocketService(), permanent: true);
     Get.put<LivePriceService>(LivePriceService(), permanent: true);

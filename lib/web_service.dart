@@ -11,12 +11,14 @@ class ApiResponse {
   final String? data;
   final String? errorMessage;
   final String? exceptionMessage;
+  final int? statusCode;
 
   ApiResponse({
     required this.status,
     this.data,
     this.errorMessage,
     this.exceptionMessage,
+    this.statusCode,
   });
 }
 
@@ -26,14 +28,21 @@ class WebService {
   static const String _typesenseKey =
       'GRhZdTOnzVKId4Ln9G1PIvuIgn1TK0fH';
       
-  // Musaffa Terminal API base URL
-  static const String _musaffaBaseUrl = 'https://terminal.musaffa.us';
+  // Musaffa Terminal API base URL (local backend)
+  static const String musaffaBaseUrl = 'http://localhost:3000';
+  static const String _musaffaBaseUrl = musaffaBaseUrl;
       
   // New Typesense instance for infomanav
   static const String _typesenseInfomanavUrl =
       'https://typesense.infomanav.in';
   static const String _typesenseInfomanavKey =
       'v0R3WozafhWeECu5MVuKr6HPcXI0hLPh';
+
+  /// Injected by [AuthController] — clears session + redirects to login.
+  static Future<void> Function()? onUnauthorized;
+
+  /// Optional token reader so authenticated Terminal APIs send Bearer JWT.
+  static Future<String?> Function()? tokenProvider;
 
   static Future<http.Response> getTypesense(
       List<String> path, [Map<String, dynamic>? params]) async {
@@ -103,12 +112,20 @@ class WebService {
     Map<String, dynamic>? params,
     Map<String, dynamic>? body,
     String? baseUrl,
+    bool attachAuthToken = true,
   }) async {
     try {
-      final headers = {
+      final headers = <String, String>{
         HttpHeaders.contentTypeHeader: 'application/json',
         HttpHeaders.acceptHeader: 'application/json',
       };
+
+      if (attachAuthToken && tokenProvider != null) {
+        final token = await tokenProvider!();
+        if (token != null && token.isNotEmpty) {
+          headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
+        }
+      }
 
       final uri = Uri.parse(baseUrl ?? _musaffaBaseUrl)
           .replace(pathSegments: path, queryParameters: params);
@@ -150,14 +167,25 @@ class WebService {
         return ApiResponse(
           status: ApiStatus.SUCCESS,
           data: response.body,
-        );
-      } else {
-        return ApiResponse(
-          status: ApiStatus.FAIL,
-          data: response.body,
-          errorMessage: 'API call failed with status: ${response.statusCode}',
+          statusCode: response.statusCode,
         );
       }
+
+      if (response.statusCode == 401 && attachAuthToken) {
+        final isAuthEndpoint =
+            path.isNotEmpty && path.first == 'auth' && path.contains('login');
+        if (!isAuthEndpoint) {
+          await onUnauthorized?.call();
+        }
+      }
+
+      return ApiResponse(
+        status: ApiStatus.FAIL,
+        data: response.body,
+        statusCode: response.statusCode,
+        errorMessage: _extractErrorMessage(response.body) ??
+            'API call failed with status: ${response.statusCode}',
+      );
     } catch (e) {
       return ApiResponse(
         status: ApiStatus.EXCEPTION,
@@ -165,6 +193,18 @@ class WebService {
         exceptionMessage: e.toString(),
       );
     }
+  }
+
+  static String? _extractErrorMessage(String body) {
+    if (body.isEmpty) return null;
+    try {
+      final json = jsonDecode(body);
+      if (json is Map<String, dynamic>) {
+        final message = json['message']?.toString();
+        if (message != null && message.isNotEmpty) return message;
+      }
+    } catch (_) {}
+    return null;
   }
 
   // User Preferences API methods
