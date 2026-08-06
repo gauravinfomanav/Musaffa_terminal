@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.
 import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/Screens/auth_gate.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -60,6 +61,8 @@ class AppBinding extends Bindings {
     Get.put<FloatingActionButtonsController>(FloatingActionButtonsController(), permanent: true);
     // Initialize global watchlist service
     Get.put<GlobalWatchlistService>(GlobalWatchlistService(), permanent: true);
+    // Initialize global navigation sidebar service
+    Get.put<GlobalSidebarService>(GlobalSidebarService(), permanent: true);
     // Initialize global search service
     Get.put<GlobalSearchService>(GlobalSearchService(), permanent: true);
     // Initialize table column preferences service

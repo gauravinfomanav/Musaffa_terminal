@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -21,7 +22,8 @@ import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/web_service.dart';
-import 'package:musaffa_terminal/Controllers/auth_controller.dart';
+import 'package:musaffa_terminal/Components/app_sidebar.dart';
+import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 
 
 class HomeTabBar extends StatelessWidget {
@@ -60,14 +62,20 @@ class HomeTabBar extends StatelessWidget {
         }
       },
       builder: (context, candidateData, rejectedData) {
+        final barBg = candidateData.isNotEmpty
+            ? (isDarkMode
+                ? const Color(0xFF2D4A6B).withOpacity(0.8)
+                : const Color(0xFFDBEAFE).withOpacity(0.8))
+            : (isDarkMode ? const Color(0xFF1A1A1A) : Colors.white);
+        final borderColor =
+            isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
+        final screenWidth = MediaQuery.sizeOf(context).width;
+        // Responsive centered search: ~45% of screen, clamped.
+        final searchWidth = (screenWidth * 0.45).clamp(300.0, 680.0);
+
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: candidateData.isNotEmpty
-                ? (isDarkMode 
-                    ? const Color(0xFF2D4A6B).withOpacity(0.8)
-                    : const Color(0xFFDBEAFE).withOpacity(0.8))
-                : (isDarkMode ? const Color(0xFF1A1A1A) : Colors.white),
+            color: barBg,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.06),
@@ -77,124 +85,89 @@ class HomeTabBar extends StatelessWidget {
             ],
             border: candidateData.isNotEmpty
                 ? Border.all(
-                    color: isDarkMode ? const Color(0xFF4A9EFF) : const Color(0xFF2563EB),
+                    color: isDarkMode
+                        ? const Color(0xFF4A9EFF)
+                        : const Color(0xFF2563EB),
                     width: 2,
                   )
                 : null,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-            // Back button first if it exists
-            if (showBackButton) ...[
-              GestureDetector(
-                onTap: () => Get.back(),
-                child: Icon(
-                  Icons.arrow_back_ios,
-                  size: 24,
-                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          SidebarMenuButton(isDarkMode: isDarkMode),
+                          const SizedBox(width: 16),
+                          if (showBackButton) ...[
+                            GestureDetector(
+                              onTap: () => Get.back(),
+                              child: Icon(
+                                CupertinoIcons.back,
+                                size: 20,
+                                color: isDarkMode
+                                    ? const Color(0xFFE0E0E0)
+                                    : const Color(0xFF374151),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          SvgPicture.asset(
+                            'resources/Small Logo.svg',
+                            height: 22,
+                            fit: BoxFit.contain,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: searchWidth,
+                      child: _SearchField(
+                        onChanged: onSearch,
+                        onSubmitted: (_) => onSearchSubmit?.call(),
+                        isDarkMode: isDarkMode,
+                      ),
+                    ),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _NavToolsCluster(isDarkMode: isDarkMode),
+                          const SizedBox(width: 8),
+                          _WatchlistToggleButton(
+                            isOpen: isWatchlistOpen,
+                            onToggle: onWatchlistToggle,
+                            isDarkMode: isDarkMode,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-            ],
-            // Logo - always shown, position depends on back button
-            SvgPicture.asset(
-              'resources/Small Logo.svg',
-              height: 22,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 12),
-            // Theme toggle button
-            // GestureDetector(
-            //   onTap: onThemeToggle,
-            //   child: Container(
-            //     width: 44,
-            //     height: 44,
-            //     decoration: BoxDecoration(
-            //       color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
-            //       borderRadius: BorderRadius.circular(8),
-            //       border: Border.all(
-            //         color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            //         width: 1,
-            //       ),
-            //     ),
-            //     child: Icon(
-            //       isDarkMode ? Icons.light_mode : Icons.dark_mode,
-            //       size: 20,
-            //       color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-            //     ),
-            //   ),
-            // ),
-            // const SizedBox(width: 12),
-          // Search field
-          Expanded(
-            flex: 1,
-            child: _SearchField(
-              onChanged: onSearch,
-              onSubmitted: (_) => onSearchSubmit?.call(),
-              isDarkMode: isDarkMode,
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Market indices
-          Expanded(
-            flex: 3,
-            child: _MarketIndicesStrip(
-              controller: controller,
-              isDarkMode: isDarkMode,
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Stock Screener button (only show if not a FAB)
-          Obx(() {
-            final fabController = Get.find<FloatingActionButtonsController>();
-            if (fabController.shouldHideInTabbar(FABType.screener)) {
-              return const SizedBox.shrink();
-            }
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ScreenerButton(isDarkMode: isDarkMode),
-                const SizedBox(width: 8),
-              ],
-            );
-          }),
-          // Ideas button (only show if not a FAB)
-          Obx(() {
-            final fabController = Get.find<FloatingActionButtonsController>();
-            if (fabController.shouldHideInTabbar(FABType.ideas)) {
-              return const SizedBox.shrink();
-            }
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _IdeasButton(isDarkMode: isDarkMode),
-                const SizedBox(width: 8),
-              ],
-            );
-          }),
-          // Portfolio button (only show if not a FAB)
-          Obx(() {
-            final fabController = Get.find<FloatingActionButtonsController>();
-            if (fabController.shouldHideInTabbar(FABType.portfolio)) {
-              return const SizedBox.shrink();
-            }
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _PortfolioButton(isDarkMode: isDarkMode),
-                const SizedBox(width: 8),
-              ],
-            );
-          }),
-          // Watchlist toggle button (always visible, not draggable)
-          _WatchlistToggleButton(
-            isOpen: isWatchlistOpen,
-            onToggle: onWatchlistToggle,
-            isDarkMode: isDarkMode,
-          ),
-          const SizedBox(width: 8),
-          _LogoutButton(isDarkMode: isDarkMode),
+              Container(
+                width: double.infinity,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? const Color(0xFF141414)
+                      : const Color(0xFFF8F9FA),
+                  border: Border(
+                    top: BorderSide(color: borderColor, width: 1),
+                  ),
+                ),
+                alignment: Alignment.centerLeft,
+                child: _MarketIndicesStrip(
+                  controller: controller,
+                  isDarkMode: isDarkMode,
+                ),
+              ),
             ],
           ),
         );
@@ -464,9 +437,8 @@ class _SearchFieldState extends State<_SearchField> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final fieldHeight = (screenHeight * 0.055).clamp(40.0, 48.0);
-    
+    const fieldHeight = 30.0;
+
     return SizedBox(
       key: _searchFieldKey,
       height: fieldHeight,
@@ -494,20 +466,27 @@ class _SearchFieldState extends State<_SearchField> {
         style: DashboardTextStyles.stockName.copyWith(
           color: widget.isDarkMode ? const Color(0xFFE0E0E0) : DashboardTextStyles.stockName.color,
           fontFamily: Constants.FONT_DEFAULT_NEW,
+          fontSize: 12.5,
+          height: 1.15,
         ),
         decoration: InputDecoration(
+          isDense: true,
           prefixIcon: Icon(
-            Icons.search_rounded,
-            size: 18,
+            CupertinoIcons.search,
+            size: 15,
             color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 32,
+            minHeight: 30,
           ),
           hintText: 'Search symbols, ETFs, or stocks...',
           hintStyle: DashboardTextStyles.tickerSymbol.copyWith(
             color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            fontSize: 13,
+            fontSize: 12,
             fontFamily: Constants.FONT_DEFAULT_NEW,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           filled: true,
           fillColor: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFFAFAFA),
           border: OutlineInputBorder(
@@ -527,7 +506,7 @@ class _SearchFieldState extends State<_SearchField> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
             borderSide: BorderSide(
-              color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
               width: 1,
             ),
           ),
@@ -611,7 +590,7 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
             (index) => Padding(
               padding: const EdgeInsets.only(left: 20),
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 6),
                 child: _IndexItem(
                   index: index,
                   isDarkMode: widget.isDarkMode,
@@ -636,11 +615,11 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
               8,
               (i) => Padding(
                 padding: const EdgeInsets.only(left: 12),
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: ShimmerWidgets.box(
                     width: 120,
-                    height: 18,
+                    height: 14,
                     borderRadius: BorderRadius.circular(6),
                     baseColor: widget.isDarkMode
                         ? const Color(0xFF404040)
@@ -742,245 +721,224 @@ class _IndexItem extends StatelessWidget {
   }
 }
 
-class _IdeasButton extends StatelessWidget {
+class _NavToolsCluster extends StatelessWidget {
   final bool isDarkMode;
 
-  const _IdeasButton({required this.isDarkMode});
+  const _NavToolsCluster({required this.isDarkMode});
 
-  @override
-  Widget build(BuildContext context) {
-    final iconColor = isDarkMode ? const Color(0xFFFCD34D) : const Color(0xFF92400E);
-    final fabController = Get.find<FloatingActionButtonsController>();
-    
-    return Draggable<FABType>(
-      data: FABType.ideas,
-      onDragEnd: (details) {
-        // When drag ends anywhere on screen, create FAB
-        fabController.addFAB(FABType.ideas);
-      },
-      feedback: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.5,
-        child: IconButton(
-          icon: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
-          onPressed: null,
-          tooltip: 'Ideas',
-        ),
-      ),
-      child: IconButton(
-        icon: Icon(Icons.lightbulb_outline, color: iconColor, size: 22),
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const TradingIdeasScreen(),
-            ),
-          );
-        },
-        tooltip: 'Ideas',
-      ),
-    );
-  }
-}
+  void _goScreener(BuildContext context) {
+    bool isOnScreener = false;
+    context.visitAncestorElements((element) {
+      if (element.widget is ScreenerScreen) {
+        isOnScreener = true;
+        return false;
+      }
+      return true;
+    });
+    if (isOnScreener) return;
 
-class _PortfolioButton extends StatelessWidget {
-  final bool isDarkMode;
-
-  const _PortfolioButton({required this.isDarkMode});
-
-  @override
-  Widget build(BuildContext context) {
-    final iconColor = isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF1E40AF);
-    final fabController = Get.find<FloatingActionButtonsController>();
-    
-    return Draggable<FABType>(
-      data: FABType.portfolio,
-      onDragEnd: (details) {
-        // When drag ends anywhere on screen, create FAB
-        fabController.addFAB(FABType.portfolio);
-      },
-      feedback: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.5,
-        child: IconButton(
-          icon: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
-          onPressed: null,
-          tooltip: 'Portfolios',
-        ),
-      ),
-      child: IconButton(
-        icon: Icon(Icons.account_balance_wallet_outlined, color: iconColor, size: 22),
-        onPressed: () {
-          // Check if we're already on the portfolio screen
-          bool isOnPortfolio = false;
-          context.visitAncestorElements((element) {
-            if (element.widget is PortfolioIdeaScreen) {
-              isOnPortfolio = true;
-              return false; // Stop traversing
-            }
-            return true; // Continue traversing
-          });
-          
-          // Don't navigate if already on portfolio screen
-          if (isOnPortfolio) {
-            return;
-          }
-          
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const PortfolioIdeaScreen(),
-            ),
-          );
-        },
-        tooltip: 'Portfolios',
-      ),
-    );
-  }
-}
-
-class _LogoutButton extends StatefulWidget {
-  final bool isDarkMode;
-
-  const _LogoutButton({required this.isDarkMode});
-
-  @override
-  State<_LogoutButton> createState() => _LogoutButtonState();
-}
-
-class _LogoutButtonState extends State<_LogoutButton> {
-  bool _isHovered = false;
-
-  Future<void> _confirmAndLogout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        final isDark = widget.isDarkMode;
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            ),
-          ),
-          title: Text(
-            'Sign out',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827),
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to sign out of Musaffa Terminal?',
-            style: TextStyle(
-              fontSize: 13,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: isDark ? const Color(0xFF81AACE) : const Color(0xFF2563EB),
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Sign out',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed == true && Get.isRegistered<AuthController>()) {
-      await Get.find<AuthController>().logout();
+    if (Get.isRegistered<GlobalSidebarService>()) {
+      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.screener);
     }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ScreenerScreen()),
+    );
+  }
+
+  void _goIdeas(BuildContext context) {
+    if (Get.isRegistered<GlobalSidebarService>()) {
+      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.ideas);
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TradingIdeasScreen()),
+    );
+  }
+
+  void _goPortfolio(BuildContext context) {
+    bool isOnPortfolio = false;
+    context.visitAncestorElements((element) {
+      if (element.widget is PortfolioIdeaScreen) {
+        isOnPortfolio = true;
+        return false;
+      }
+      return true;
+    });
+    if (isOnPortfolio) return;
+
+    if (Get.isRegistered<GlobalSidebarService>()) {
+      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.portfolio);
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PortfolioIdeaScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final accent = widget.isDarkMode
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF6B7280);
-    final hoverBg = widget.isDarkMode
-        ? const Color(0xFF2D2D2D)
-        : const Color(0xFFF3F4F6);
+    final border =
+        isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+    final divider =
+        isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: Tooltip(
-        message: 'Sign out',
-        child: GestureDetector(
-          onTap: _confirmAndLogout,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _isHovered ? hoverBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: widget.isDarkMode
-                    ? const Color(0xFF404040)
-                    : const Color(0xFFE5E7EB),
+    return Obx(() {
+      final fab = Get.find<FloatingActionButtonsController>();
+      final tools = <_ToolSpec>[
+        if (!fab.shouldHideInTabbar(FABType.screener))
+          _ToolSpec(
+            label: 'Screener',
+            icon: CupertinoIcons.slider_horizontal_3,
+            fabType: FABType.screener,
+            onTap: () => _goScreener(context),
+          ),
+        if (!fab.shouldHideInTabbar(FABType.ideas))
+          _ToolSpec(
+            label: 'Ideas',
+            icon: CupertinoIcons.lightbulb,
+            fabType: FABType.ideas,
+            onTap: () => _goIdeas(context),
+          ),
+        if (!fab.shouldHideInTabbar(FABType.portfolio))
+          _ToolSpec(
+            label: 'Portfolios',
+            icon: CupertinoIcons.chart_pie,
+            fabType: FABType.portfolio,
+            onTap: () => _goPortfolio(context),
+          ),
+      ];
+
+      if (tools.isEmpty) return const SizedBox.shrink();
+
+      return Container(
+        height: 30,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: border),
+          color: isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < tools.length; i++) ...[
+              if (i > 0)
+                Container(width: 1, height: 18, color: divider),
+              _ToolSegment(
+                spec: tools[i],
+                isDarkMode: isDarkMode,
               ),
-            ),
-            child: Icon(
-              Icons.logout_rounded,
-              size: 18,
-              color: accent,
+            ],
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _ToolSpec {
+  final String label;
+  final IconData icon;
+  final FABType fabType;
+  final VoidCallback onTap;
+
+  const _ToolSpec({
+    required this.label,
+    required this.icon,
+    required this.fabType,
+    required this.onTap,
+  });
+}
+
+class _ToolSegment extends StatefulWidget {
+  final _ToolSpec spec;
+  final bool isDarkMode;
+
+  const _ToolSegment({
+    required this.spec,
+    required this.isDarkMode,
+  });
+
+  @override
+  State<_ToolSegment> createState() => _ToolSegmentState();
+}
+
+class _ToolSegmentState extends State<_ToolSegment> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final idle =
+        widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final active =
+        widget.isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+    final hoverBg = widget.isDarkMode
+        ? Colors.white.withOpacity(0.06)
+        : Colors.black.withOpacity(0.04);
+    final fabController = Get.find<FloatingActionButtonsController>();
+    final color = _hovering ? active : idle;
+
+    final chip = MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      cursor: SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: widget.spec.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          color: _hovering ? hoverBg : Colors.transparent,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.spec.icon, size: 13, color: color),
+              const SizedBox(width: 6),
+              Text(
+                widget.spec.label,
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return Tooltip(
+      message: 'Drag out to pin as floating button',
+      waitDuration: const Duration(milliseconds: 600),
+      child: Draggable<FABType>(
+        data: widget.spec.fabType,
+        onDragEnd: (_) => fabController.addFAB(widget.spec.fabType),
+        feedback: Material(
+          elevation: 6,
+          borderRadius: BorderRadius.circular(6),
+          color: widget.isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.spec.icon, size: 14, color: active),
+                const SizedBox(width: 6),
+                Text(
+                  widget.spec.label,
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: active,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
+        childWhenDragging: Opacity(opacity: 0.35, child: chip),
+        child: chip,
       ),
     );
   }
@@ -1177,9 +1135,18 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
   }
 
   Widget _buildButtonContent() {
+    final border =
+        widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+    final idle =
+        widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final active =
+        widget.isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+    final accent = const Color(0xFF81AACE);
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.basic,
       child: GestureDetector(
         onTap: _onTap,
         child: AnimatedBuilder(
@@ -1187,80 +1154,55 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
           builder: (context, child) {
             return Transform.scale(
               scale: _scaleAnimation.value,
-              child: Container(
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  maxWidth: 48,
-                  minHeight: 40,
-                  maxHeight: 48,
-                ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                height: 30,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                   color: _isDragOver
-                      ? (widget.isDarkMode 
-                          ? const Color(0xFF81AACE).withOpacity(0.2)
-                          : const Color(0xFF81AACE).withOpacity(0.1))
-                      : widget.isOpen 
-                          ? (widget.isDarkMode 
-                              ? const Color(0xFF2D2D2D)
-                              : const Color(0xFFF9FAFB))
-                          : (_isHovered 
-                              ? (widget.isDarkMode 
-                                  ? const Color(0xFF2D2D2D).withOpacity(0.8)
-                                  : const Color(0xFFE5E7EB).withOpacity(0.9))
-                              : Colors.transparent),
+                      ? accent.withOpacity(widget.isDarkMode ? 0.2 : 0.12)
+                      : widget.isOpen
+                          ? (widget.isDarkMode
+                              ? const Color(0xFF1C2430)
+                              : const Color(0xFFEFF6FF))
+                          : (_isHovered
+                              ? (widget.isDarkMode
+                                  ? const Color(0xFF1A1A1A)
+                                  : const Color(0xFFF3F4F6))
+                              : (widget.isDarkMode
+                                  ? const Color(0xFF161616)
+                                  : const Color(0xFFFAFAFA))),
                   borderRadius: BorderRadius.circular(6),
-                  border: _isDragOver
-                      ? Border.all(
-                          color: widget.isDarkMode 
-                              ? const Color(0xFF81AACE)
-                              : const Color(0xFF81AACE),
-                          width: 2,
-                        )
-                      : null,
+                  border: Border.all(
+                    color: _isDragOver || widget.isOpen ? accent : border,
+                    width: 1,
+                  ),
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Active indicator line
-                    if (widget.isOpen)
-                      Positioned(
-                        left: 2,
-                        child: Container(
-                          width: 2,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: widget.isDarkMode 
-                                ? const Color(0xFF81AACE)
-                                : const Color(0xFF81AACE),
-                            borderRadius: BorderRadius.circular(1),
-                          ),
-                        ),
-                      ),
-                    
-                    // Icon
                     _isDragOver
-                        ? Icon(
-                            Icons.add_circle_outline,
-                            size: 18,
-                            color: widget.isDarkMode 
-                                ? const Color(0xFF81AACE)
-                                : const Color(0xFF81AACE),
-                          )
+                        ? Icon(CupertinoIcons.plus_circle, size: 14, color: accent)
                         : SvgPicture.asset(
                             'resources/bookmark.svg',
-                            width: 22,
-                            height: 20,
+                            width: 13,
+                            height: 13,
                             colorFilter: ColorFilter.mode(
-                              widget.isOpen
-                                  ? (widget.isDarkMode 
-                                      ? const Color(0xFFE0E0E0)
-                                      : const Color(0xFF374151))
-                                  : (widget.isDarkMode 
-                                      ? const Color(0xFF9CA3AF)
-                                      : const Color(0xFF6B7280)),
+                              widget.isOpen ? accent : idle,
                               BlendMode.srcIn,
                             ),
                           ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _isDragOver ? 'Add' : 'Watchlist',
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        height: 1,
+                        color: widget.isOpen || _isDragOver ? active : idle,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1271,205 +1213,3 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
     );
   }
 }
-
-class _ScreenerButton extends StatefulWidget {
-  final bool isDarkMode;
-
-  const _ScreenerButton({
-    required this.isDarkMode,
-  });
-
-  @override
-  State<_ScreenerButton> createState() => _ScreenerButtonState();
-}
-
-class _ScreenerButtonState extends State<_ScreenerButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  bool _isHovered = false;
-
-  @override
-  void initState() {
-    super.initState();
-    
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _onTap() {
-    // Check if we're already on the screener screen
-    // Use visitAncestorElements to traverse up the widget tree
-    bool isOnScreener = false;
-    context.visitAncestorElements((element) {
-      if (element.widget is ScreenerScreen) {
-        isOnScreener = true;
-        return false; // Stop traversing
-      }
-      return true; // Continue traversing
-    });
-    
-    // Don't navigate if already on screener screen
-    if (isOnScreener) {
-      return;
-    }
-    
-    _animationController.forward().then((_) {
-      _animationController.reverse();
-    });
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ScreenerScreen(),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final fabController = Get.find<FloatingActionButtonsController>();
-    
-    return Draggable<FABType>(
-      data: FABType.screener,
-      onDragEnd: (details) {
-        // When drag ends anywhere on screen, create FAB
-        fabController.addFAB(FABType.screener);
-      },
-      feedback: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: widget.isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Center(
-            child: SvgPicture.asset(
-              'resources/finance_mode.svg',
-              width: 24,
-              height: 24,
-              colorFilter: ColorFilter.mode(
-                widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.5,
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: Container(
-            constraints: const BoxConstraints(
-              minWidth: 40,
-              maxWidth: 48,
-              minHeight: 40,
-              maxHeight: 48,
-            ),
-            decoration: BoxDecoration(
-              color: _isHovered 
-                  ? (widget.isDarkMode 
-                      ? const Color(0xFF2D2D2D).withOpacity(0.8)
-                      : const Color(0xFFE5E7EB).withOpacity(0.9))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: SvgPicture.asset(
-                  'resources/finance_mode.svg',
-                  fit: BoxFit.contain,
-                  width: 24,
-                  height: 24,
-                  colorFilter: ColorFilter.mode(
-                    widget.isDarkMode 
-                        ? const Color(0xFF9CA3AF)
-                        : const Color(0xFF6B7280),
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTap: _onTap,
-          child: AnimatedBuilder(
-            animation: _scaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _scaleAnimation.value,
-                child: Container(
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    maxWidth: 48,
-                    minHeight: 40,
-                    maxHeight: 48,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _isHovered 
-                        ? (widget.isDarkMode 
-                            ? const Color(0xFF2D2D2D).withOpacity(0.8)
-                            : const Color(0xFFE5E7EB).withOpacity(0.9))
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Center(
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: SvgPicture.asset(
-                        'resources/finance_mode.svg',
-                        fit: BoxFit.contain,
-                        width: 24,
-                        height: 24,
-                        colorFilter: ColorFilter.mode(
-                          _isHovered
-                          ? (widget.isDarkMode 
-                              ? const Color(0xFFE0E0E0)
-                              : const Color(0xFF374151))
-                          : (widget.isDarkMode 
-                              ? const Color(0xFF9CA3AF)
-                              : const Color(0xFF6B7280)),
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-

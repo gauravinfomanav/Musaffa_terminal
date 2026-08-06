@@ -15,6 +15,7 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
@@ -34,6 +35,9 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<GlobalSidebarService>()) {
+      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.ideas);
+    }
     _controller = Get.isRegistered<TradingIdeasController>()
         ? Get.find<TradingIdeasController>()
         : Get.put(TradingIdeasController());

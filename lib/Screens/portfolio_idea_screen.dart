@@ -9,6 +9,7 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/Controllers/portfolio_controller.dart';
 import 'package:musaffa_terminal/models/portfolio_model.dart';
 import 'package:musaffa_terminal/Screens/portfolio_builder_form.dart';
@@ -33,6 +34,9 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<GlobalSidebarService>()) {
+      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.portfolio);
+    }
     _watchlistController = Get.put(WatchlistController());
     _portfolioController = Get.put(PortfolioController());
     _tabController = TabController(length: 2, vsync: this);

@@ -11,6 +11,7 @@ import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/Controllers/filter_controller.dart';
 import 'package:musaffa_terminal/Controllers/screener_strategy_controller.dart';
 import 'package:musaffa_terminal/models/filter_config.dart';
@@ -80,6 +81,9 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   void initState() {
     super.initState();
     print('🚀 [ScreenerScreen] initState called');
+    if (Get.isRegistered<GlobalSidebarService>()) {
+      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.screener);
+    }
     
     // Initialize Controllers
     filterController = Get.put(FilterController());

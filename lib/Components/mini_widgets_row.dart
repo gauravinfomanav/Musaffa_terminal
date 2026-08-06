@@ -7,21 +7,22 @@ import 'dart:async';
 /// Widget height constants for market indices mini widgets
 class MiniWidgetsRowConstants {
   /// Minimum height for responsive sizing (smallest screens)
-  static const double minHeight = 200.0;
-  
+  static const double minHeight = 140.0;
+
   /// Maximum height for responsive sizing (largest screens)
-  static const double maxHeight = 480.0;
-  
- 
-  static const double baseHeightPercentage = 0.15; 
-  
-  
-  static const double minHeightPercentage = 0.1; 
-  
-  
-  static const double maxHeightPercentage = 0.2; 
-  
-  
+  static const double maxHeight = 280.0;
+
+  static const double baseHeightPercentage = 0.11;
+
+  static const double minHeightPercentage = 0.08;
+
+  static const double maxHeightPercentage = 0.14;
+
+  /// Gap between mini chart cards
+  static const double widgetGap = 8.0;
+
+  static const int chartCount = 5;
+
   static const int loadingDelayMs = 100;
 }
 
@@ -104,7 +105,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 border: none !important;
                 border-width: 0 !important;
                 box-shadow: inset 0 0 0 0.5px $borderColor !important;
-                border-radius: 10px !important;
+                border-radius: 6px !important;
                 outline: none !important;
                 margin: 0 !important;
                 padding: 0 !important;
@@ -112,7 +113,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 overflow: hidden !important;
             }
             .mini-widget:not(:last-child) {
-                margin-right: 20px !important;
+                margin-right: ${MiniWidgetsRowConstants.widgetGap}px !important;
                 box-sizing: border-box !important;
             }
             .mini-widget-wrapper {
@@ -122,7 +123,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 display: flex !important;
                 align-items: center !important;
                 overflow: hidden !important;
-                border-radius: 10px !important;
+                border-radius: 6px !important;
             }
             .tradingview-widget-container { 
                 height: 100% !important; 
@@ -245,7 +246,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 border: none !important;
                 border-width: 0 !important;
                 box-shadow: inset 0 0 0 0.5px $borderColor !important;
-                border-radius: 10px !important;
+                border-radius: 6px !important;
                 overflow: hidden !important;
             }
         </style>
@@ -329,6 +330,29 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
                     {
                         "symbol": "ICMARKETS:USTEC",
+                        "chartOnly": false,
+                        "dateRange": "12M",
+                        "noTimeScale": false,
+                        "colorTheme": "$colorTheme",
+                        "isTransparent": false,
+                        "locale": "en",
+                        "width": "100%",
+                        "autosize": true,
+                        "height": "100%"
+                    }
+                    </script>
+                </div>
+                </div>
+            </div>
+
+            <!-- Bitcoin Widget -->
+            <div class="mini-widget">
+                <div class="mini-widget-wrapper">
+                <div class="tradingview-widget-container">
+                    <div class="tradingview-widget-container__widget"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+                    {
+                        "symbol": "BITSTAMP:BTCUSD",
                         "chartOnly": false,
                         "dateRange": "12M",
                         "noTimeScale": false,
@@ -524,14 +548,15 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
         color: appBackgroundColor,
         child: _isLoading
             ? Row(
-                children: List.generate(4, (index) => Expanded(
+                children: List.generate(MiniWidgetsRowConstants.chartCount, (index) => Expanded(
                   child: Container(
                     margin: EdgeInsets.only(
-                      right: index < 3 ? 20 : 0,
+                      right: index < MiniWidgetsRowConstants.chartCount - 1
+                          ? MiniWidgetsRowConstants.widgetGap
+                          : 0,
                     ),
                     decoration: BoxDecoration(
                       border: Border.all(color: borderColor, width: 0.1),
-                      // borderRadius: BorderRadius.circular(1),
                     ),
                     child: ShimmerWidgets.box(
                       width: double.infinity,

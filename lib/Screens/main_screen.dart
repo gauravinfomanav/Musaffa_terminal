@@ -13,6 +13,7 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class MainScreen extends StatefulWidget {
@@ -40,6 +41,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     Get.put(WatchlistController());
+    if (Get.isRegistered<GlobalSidebarService>()) {
+      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.dashboard);
+    }
     _hideSplash();
     
     // Initialize watchlist slide animation
@@ -119,6 +123,22 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    // Keep Dashboard selected whenever home is the top route again.
+    final route = ModalRoute.of(context);
+    if (route?.isCurrent == true &&
+        Get.isRegistered<GlobalSidebarService>()) {
+      final sidebar = Get.find<GlobalSidebarService>();
+      if (sidebar.activeItem.value != SidebarNavItem.dashboard &&
+          sidebar.activeItem.value != SidebarNavItem.profile) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (ModalRoute.of(context)?.isCurrent == true) {
+            sidebar.setActive(SidebarNavItem.dashboard);
+          }
+        });
+      }
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark 
           ? const Color(0xFF0F0F0F) 
