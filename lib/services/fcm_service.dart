@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:musaffa_terminal/firebase_options.dart';
+import 'package:musaffa_terminal/utils/platform_capabilities.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'dart:io';
 
@@ -14,7 +15,14 @@ class FCMService {
   /// Initialize Firebase and FCM
   static Future<void> initialize() async {
     try {
-     
+      if (!PlatformCapabilities.isFcmSupported) {
+        debugPrint(
+          'FCM skipped on ${defaultTargetPlatform.name} — '
+          'Firebase Messaging is not configured for this platform.',
+        );
+        return;
+      }
+
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );

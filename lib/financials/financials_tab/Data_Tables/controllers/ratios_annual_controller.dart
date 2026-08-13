@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:convert';
-
 import 'package:musaffa_terminal/web_service.dart';
-
-
 
 class FinancialRatio {
   final String name;
@@ -16,14 +12,6 @@ class FinancialRatio {
     required this.period,
     required this.value,
   });
-
-  factory FinancialRatio.fromJson(Map<String, dynamic> json) {
-    return FinancialRatio(
-      name: json['name'],
-      period: json['period'],
-      value: json['v'] is double ? json['v'] : (json['v'] as num).toDouble(),
-    );
-  }
 }
 
 class YearlyRatios {
@@ -41,152 +29,137 @@ class YearlyRatios {
   }
 }
 
-
 class RatiosController extends GetxController {
   var isLoading = true.obs;
   var yearlyRatiosMap = <String, YearlyRatios>{}.obs;
   var years = <String>[].obs;
-  
+
+  /// RisePython annual series key → UI metric key used by TerminalRatiosScreen.
+  static const Map<String, String> _annualSeriesToUiKey = {
+    'netMargin': 'netMargin',
+    'quickRatio': 'quickRatio',
+    'currentRatio': 'currentRatio',
+    'pe': 'peTTM',
+    'ps': 'psTTM',
+    'pb': 'pb',
+    'fcfMargin': 'fcfMargin',
+    'payoutRatio': 'payoutRatioTTM',
+    'grossMargin': 'grossMargin',
+    'roe': 'roeTTM',
+    'roa': 'roa',
+    'roic': 'roic',
+    'inventoryTurnover': 'inventoryTurnoverTTM',
+    'receivablesTurnover': 'receivablesTurnoverTTM',
+    'longtermDebtTotalEquity': 'longtermDebtTotalEquity',
+    'totalDebtToTotalAsset': 'totalDebtToTotalAsset',
+    'longtermDebtTotalAsset': 'longtermDebtTotalAsset',
+    'totalDebtToTotalCapital': 'totalDebtToTotalCapital',
+    'operatingMargin': 'operatingMargin',
+  };
+
   Future<void> fetchRatio(String symbol) async {
-  try {
-    isLoading.value = true;
-    
-    // First call - get older data (ascending order)
-    final paramsAsc = {
-      'q': '*',
-      'filter_by': 'company_symbol:$symbol&&time_period:annual',
-      'name': 'netMargin,quickRatio,currentRatio,peTTM,psTTM,pb,fcfMargin,payoutRatioTTM,grossMargin,roeTTM,roa,roaTTM,roic,inventoryTurnoverTTM,receivablesTurnoverTTM,assetTurnoverTTM,longtermDebtTotalEquity,totalDebtToTotalAsset,longtermDebtTotalAsset,totalDebtToTotalCapital,operatingMargin',
-      'per_page': '250',
-      'sort_by': 'period:asc',
-      'page': '1',
-    };
-    
-    final webService = WebService();
-    final responseAsc = await WebService.getTypesense_infomanav(
-      ['collections', 'company_financials_series', 'documents', 'search'],
-      paramsAsc,
-    );
-    
-    List<FinancialRatio> allRatios = [];
-    
-    if (responseAsc.statusCode == 200) {
-      final decodedData = jsonDecode(responseAsc.body);
-      
-      if (decodedData.containsKey('hits')) {
-        final hits = decodedData['hits'] as List;
-        
-        for (var hit in hits) {
-          if (hit['document'] != null) {
-            final document = hit['document'];
-            final ratio = FinancialRatio.fromJson(document);
-            allRatios.add(ratio);
+    try {
+      isLoading.value = true;
+
+      final decoded =
+          await WebService.fetchCompanyBasicFinancialsCached(symbol);
+      if (decoded == null) {
+        yearlyRatiosMap.clear();
+        years.clear();
+        return;
+      }
+
+      final annual = (decoded['series'] is Map)
+          ? (decoded['series'] as Map)['annual']
+          : null;
+      if (annual is! Map) {
+        yearlyRatiosMap.clear();
+        years.clear();
+        return;
+      }
+
+      final allRatios = <FinancialRatio>[];
+      for (final entry in _annualSeriesToUiKey.entries) {
+        final series = annual[entry.key];
+        if (series is! List) continue;
+        for (final point in series) {
+          if (point is! Map) continue;
+          final period = point['period']?.toString() ?? '';
+          final v = point['v'];
+          if (period.length < 4 || v is! num) continue;
+          allRatios.add(FinancialRatio(
+            name: entry.value,
+            period: period,
+            value: v.toDouble(),
+          ));
+          // UI also lists roaTTM; annual API only has `roa`.
+          if (entry.key == 'roa') {
+            allRatios.add(FinancialRatio(
+              name: 'roaTTM',
+              period: period,
+              value: v.toDouble(),
+            ));
           }
         }
       }
+
+      processRatiosByYear(allRatios);
+    } catch (e, stackTrace) {
+      debugPrint('Error fetching ratio data: $e');
+      debugPrint('Stack trace: $stackTrace');
+    } finally {
+      isLoading.value = false;
     }
-    
-    // Second call - get newer data (descending order)
-    final paramsDesc = {
-      'q': '*',
-      'filter_by': 'company_symbol:$symbol&&time_period:annual',
-      'name': 'netMargin,quickRatio,currentRatio,peTTM,psTTM,pb,fcfMargin,payoutRatioTTM,grossMargin,roeTTM,roa,roaTTM,roic,inventoryTurnoverTTM,receivablesTurnoverTTM,assetTurnoverTTM,longtermDebtTotalEquity,totalDebtToTotalAsset,longtermDebtTotalAsset,totalDebtToTotalCapital,operatingMargin',
-      'per_page': '250',
-      'sort_by': 'period:desc',
-      'page': '1',
-    };
-    
-    final responseDesc = await WebService.getTypesense_infomanav(
-      ['collections', 'company_financials_series', 'documents', 'search'],
-      paramsDesc,
-    );
-    
-    if (responseDesc.statusCode == 200) {
-      final decodedData = jsonDecode(responseDesc.body);
-      
-      if (decodedData.containsKey('hits')) {
-        final hits = decodedData['hits'] as List;
-        
-        for (var hit in hits) {
-          if (hit['document'] != null) {
-            final document = hit['document'];
-            final ratio = FinancialRatio.fromJson(document);
-            // Add only if we don't already have this ratio (to avoid duplicates)
-            if (!allRatios.any((r) => r.name == ratio.name && r.period == ratio.period)) {
-              allRatios.add(ratio);
-            }
-          }
-        }
+  }
+
+  void processRatiosByYear(List<FinancialRatio> allRatios) {
+    yearlyRatiosMap.clear();
+    years.clear();
+
+    final yearSet = <String>{};
+    for (final ratio in allRatios) {
+      if (ratio.period.length >= 4) {
+        yearSet.add(ratio.period.substring(0, 4));
       }
     }
-    
-    processRatiosByYear(allRatios);
-    
-  } catch (e, stackTrace) {
-    debugPrint('Error fetching ratio data: $e');
-    debugPrint('Stack trace: $stackTrace');
-  } finally {
-    isLoading.value = false;
-  }
-}
 
- void processRatiosByYear(List<FinancialRatio> allRatios) {
-  yearlyRatiosMap.clear();
-  years.clear();
+    // Latest 5 fiscal years with data (dynamic — no hard-coded 2020–2024).
+    var sortedYears = yearSet.toList()..sort();
+    if (sortedYears.length > 5) {
+      sortedYears = sortedYears.sublist(sortedYears.length - 5);
+    }
 
-  // Debug what years are actually coming from the API
- 
- 
+    for (final year in sortedYears) {
+      yearlyRatiosMap[year] = YearlyRatios(year);
+      years.add(year);
+    }
 
-  // Always include 2020-2024 regardless of what's in the data
-  Set<String> allExpectedYears = {'2020', '2021', '2022', '2023', '2024'};
-  
-  // Create year objects for all expected years, even if they have no data
-  for (var year in allExpectedYears) {
-    yearlyRatiosMap[year] = YearlyRatios(year);
-    years.add(year);
-  }
-
-  // Sort years in desired order (ascending)
-  years.sort();  // For descending order: years.sort((a, b) => b.compareTo(a));
-  
-  // Process the ratios we actually have
-  for (var ratio in allRatios) {
-    final year = ratio.period.substring(0, 4);
-    if (yearlyRatiosMap.containsKey(year)) {
+    for (final ratio in allRatios) {
+      final year = ratio.period.substring(0, 4);
       yearlyRatiosMap[year]?.addRatio(ratio.name, ratio.value);
     }
   }
 
-
-  
-}
-
-  
-  Map<String, double?> getRatioForYears(String ratioName, List<String> yearsList) {
-    Map<String, double?> result = {};
-    
-    for (var year in yearsList) {
-      final yearData = yearlyRatiosMap[year];
-      result[year] = yearData?.getRatio(ratioName);
+  Map<String, double?> getRatioForYears(
+    String ratioName,
+    List<String> yearsList,
+  ) {
+    final result = <String, double?>{};
+    for (final year in yearsList) {
+      result[year] = yearlyRatiosMap[year]?.getRatio(ratioName);
     }
-    
     return result;
   }
-  
+
   Map<String, Map<String, double?>> getFinancialDataForYears() {
-    Map<String, Map<String, double?>> result = {};
-    
-    // Get all available ratio names from the data
-    Set<String> ratioNames = {};
-    for (var yearData in yearlyRatiosMap.values) {
+    final result = <String, Map<String, double?>>{};
+    final ratioNames = <String>{};
+    for (final yearData in yearlyRatiosMap.values) {
       ratioNames.addAll(yearData.ratios.keys);
     }
-    
-    // Create data map for each ratio
-    for (var ratioName in ratioNames) {
+    for (final ratioName in ratioNames) {
       result[ratioName] = getRatioForYears(ratioName, years);
     }
-    
     return result;
   }
 }

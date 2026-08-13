@@ -1,10 +1,11 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:musaffa_terminal/config/api_config.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_history_item.dart';
 
 class ShariahComplianceHistoryService {
-  static const String _baseUrl = 'https://api.musaffa.us';
+  static const String _baseUrl = ApiConfig.musaffaApiBaseUrl;
   // TODO: replace with authenticated token from app session
   static const String _bearerToken =
       '1390072|ogVcdCibKOntX4Km7dm2cXDxMqoLMB7v4OfBDHnW3a67dd49';

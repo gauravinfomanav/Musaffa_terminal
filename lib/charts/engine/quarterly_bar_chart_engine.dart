@@ -95,7 +95,15 @@ class QuarterlyBarChartEngine {
     if (mixedSigns &&
         theme.yAxisMinimum == null &&
         theme.yAxisMaximum == null) {
-      final double padding = theme.mixedSignYAxisPadding;
+      final double span = (maxValue - minValue).abs();
+      final double magnitude = math.max(maxValue.abs(), minValue.abs());
+      final double padding = theme.mixedSignYAxisPadding ??
+          (span == 0
+              ? math.max(1, magnitude * theme.yAxisPaddingRatio)
+              : math.max(
+                  span * theme.yAxisPaddingRatio,
+                  magnitude * theme.dataLabelHeadroomRatio,
+                ));
       final double rawMin = minValue - padding;
       final double rawMax = maxValue + padding;
       final double interval = theme.yAxisInterval ??
@@ -580,13 +588,19 @@ class QuarterlyBarChartEngine {
   }
 
   /// Picks a readable tick step for mixed-sign charts without overshooting
-  /// (e.g. range ~1000 should use 200, not jump to 2000).
+  /// (e.g. range ~1000 should use 200, not jump to 2000; EPS ~5 → 1).
   static double _mixedSignAxisInterval(double range) {
     if (range <= 0) {
-      return 50;
+      return 1;
     }
 
     const List<double> steps = <double>[
+      0.25,
+      0.5,
+      1,
+      2,
+      5,
+      10,
       25,
       50,
       100,

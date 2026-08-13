@@ -5,6 +5,8 @@ import 'package:musaffa_terminal/utils/socket_message.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class MainTickerCell extends StatelessWidget {
   const MainTickerCell(
@@ -111,18 +113,16 @@ class MainTickerCell extends StatelessWidget {
     if (model.stock != null) {
       // Navigate to appropriate screen based on isStock flag
       if (model.isStock) {
-        Navigator.push(
+        FeatureNavigation.pushIfAllowed(
           context,
-          MaterialPageRoute(
-            builder: (context) => TickerDetailScreen(ticker: model.stock!),
-          ),
+          FeatureKeys.tickerDetails,
+          TickerDetailScreen(ticker: model.stock!),
         );
       } else {
-        Navigator.push(
+        FeatureNavigation.pushIfAllowed(
           context,
-          MaterialPageRoute(
-            builder: (context) => EtfDetailsScreen(ticker: model.stock!),
-          ),
+          FeatureKeys.etfDetails,
+          EtfDetailsScreen(ticker: model.stock!),
         );
       }
     } else {

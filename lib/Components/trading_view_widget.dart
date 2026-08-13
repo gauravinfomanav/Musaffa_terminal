@@ -7,8 +7,9 @@ import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/models/trading_chart_ticker.dart';
+import 'package:musaffa_terminal/utils/platform_capabilities.dart';
+import 'package:musaffa_terminal/Components/windows_html_webview.dart';
 import 'dart:convert';
-import 'dart:io';
 
 class TradingViewWidget extends StatefulWidget {
   final String symbol;
@@ -34,6 +35,7 @@ class TradingViewWidget extends StatefulWidget {
 
 class _TradingViewWidgetState extends State<TradingViewWidget> {
   WebViewController? _webViewController;
+  WindowsWebViewHandle? _windowsHandle;
   bool _isLoading = true;
   String _htmlContent = '';
   bool _isWebViewSupported = true;
@@ -93,7 +95,8 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
     debugPrint('Final formatted symbol: $_formattedSymbol, shouldShowChart: $_shouldShowChart');
     
     // Update chart if WebView is already initialized
-    if (_isWebViewInitialized && _webViewController != null && _shouldShowChart) {
+    if (_isWebViewInitialized && _shouldShowChart &&
+        (_webViewController != null || _windowsHandle != null)) {
       widget.controller.updateSymbol(_formattedSymbol);
     }
   }
@@ -140,13 +143,9 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   }
 
   void _checkPlatformSupport() {
-    // Check if webview is supported on current platform
-    if (Platform.isMacOS) {
-      _isWebViewSupported = true;
-      debugPrint('macOS platform detected, WebView should be supported');
-    } else {
-      _isWebViewSupported = false;
-      debugPrint('Platform not supported for WebView');
+    _isWebViewSupported = PlatformCapabilities.isWebViewAvailable;
+    if (!_isWebViewSupported) {
+      debugPrint('WebView is not supported on this platform');
     }
   }
 
@@ -259,8 +258,11 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
       debugPrint('HTML content loaded successfully, length: ${_htmlContent.length}');
       
       // Initialize webview after content is loaded
-      if (_isWebViewSupported) {
+      if (_isWebViewSupported && PlatformCapabilities.isWebViewFlutterSupported) {
         _initializeWebView();
+      } else if (PlatformCapabilities.isWindows) {
+        _isWebViewInitialized = true;
+        if (mounted) setState(() {});
       }
     } catch (e) {
       debugPrint('Error loading HTML content: $e');
@@ -293,22 +295,26 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
 
   Future<void> _initializeChart() async {
     try {
-      if (_webViewController != null && _shouldShowChart && _formattedSymbol.isNotEmpty) {
+      final bool canRun = _webViewController != null || _windowsHandle != null;
+      if (canRun && _shouldShowChart && _formattedSymbol.isNotEmpty) {
         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         final theme = isDarkMode ? 'dark' : 'light';
         
         debugPrint('Flutter: Calling initChart with symbol: $_formattedSymbol, theme: $theme, height: ${widget.height}px');
-        
-        // First check if the function exists
-        final functionExists = await _webViewController!.runJavaScriptReturningResult(
-          'typeof initChart === "function"'
-        );
-        debugPrint('Flutter: initChart function exists: $functionExists');
-        
-        // Then call the function with formatted symbol
-        await _webViewController!.runJavaScript(
-          'initChart("$_formattedSymbol", "$theme", "${widget.height}px");'
-        );
+
+        if (_webViewController != null) {
+          final functionExists = await _webViewController!.runJavaScriptReturningResult(
+            'typeof initChart === "function"'
+          );
+          debugPrint('Flutter: initChart function exists: $functionExists');
+          await _webViewController!.runJavaScript(
+            'initChart("$_formattedSymbol", "$theme", "${widget.height}px");'
+          );
+        } else {
+          await _windowsHandle!.runJavaScript(
+            'initChart("$_formattedSymbol", "$theme", "${widget.height}px");'
+          );
+        }
         
         debugPrint('Flutter: initChart called successfully');
       } else if (!_shouldShowChart) {
@@ -327,12 +333,12 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
     if ((oldWidget.symbol != widget.symbol || 
          oldWidget.country != widget.country || 
          oldWidget.exchange != widget.exchange) && 
-        _webViewController != null && !_isLoading) {
-      // Re-prepare symbol and update chart
+        (_webViewController != null || _windowsHandle != null) && !_isLoading) {
       _prepareSymbol().then((_) {
-        if (mounted && _webViewController != null && _shouldShowChart) {
+        if (mounted && _shouldShowChart &&
+            (_webViewController != null || _windowsHandle != null)) {
           Future.delayed(const Duration(milliseconds: 100), () {
-            if (mounted && _webViewController != null) {
+            if (mounted) {
               widget.controller.updateSymbol(_formattedSymbol);
             }
           });
@@ -362,12 +368,23 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
         child: Stack(
           children: [
             // WebView with overscan to clip gaps - only show if chart should be displayed
-            if (_isWebViewSupported && _webViewController != null && _shouldShowChart)
+            if (_isWebViewSupported &&
+                _shouldShowChart &&
+                _htmlContent.isNotEmpty)
               Transform.scale(
                 scale: 1.02,
-                child: WebViewWidget(
-                  controller: _webViewController!,
+                child: AdaptiveHtmlWebView(
+                  html: _htmlContent,
+                  flutterController: _webViewController,
                   gestureRecognizers: _createGestureRecognizers(),
+                  backgroundColor: isDarkMode
+                      ? const Color(0xFF2D2D2D)
+                      : const Color(0xFFF9FAFB),
+                  onWindowsCreated: (WindowsWebViewHandle handle) {
+                    _windowsHandle = handle;
+                    widget.controller.initializeJsRunner(handle.runJavaScript);
+                  },
+                  onWindowsPageFinished: _onPageFinished,
                 ),
               ),
             
@@ -391,8 +408,12 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
                 ),
               ),
             
-            // Loading indicator - show when loading OR when WebView not ready
-            if (_isLoading || _webViewController == null)
+            if (!_isWebViewSupported)
+              const Positioned.fill(
+                child: WebViewUnavailablePlaceholder(),
+              )
+            else if (_isLoading ||
+                (_webViewController == null && _windowsHandle == null))
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -449,6 +470,7 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   @override
   void dispose() {
     // Clean up WebView controller to prevent recreation errors
+    _windowsHandle = null;
     if (_webViewController != null) {
       _webViewController = null;
     }

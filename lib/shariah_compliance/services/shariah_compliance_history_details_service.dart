@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:musaffa_terminal/config/api_config.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report_period.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/nova_compliance_mapper.dart';
 
 class ShariahComplianceHistoryDetailsService {
-  static const String _endpoint =
-      'https://novalive-api.musaffa.us/v3/api/get_compliance_history_details';
+  static const String _endpoint = ApiConfig.novaComplianceHistoryDetailsUrl;
 
   Future<List<ComplianceReportPeriod>> fetchPeriods(String ticker) async {
     final String symbol = ticker.trim().toUpperCase();

@@ -7,6 +7,7 @@ import 'package:musaffa_terminal/Screens/auth_gate.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/services/global_search_service.dart';
+import 'package:musaffa_terminal/services/feature_access_service.dart';
 import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/global_keyboard_shortcuts.dart';
@@ -54,6 +55,7 @@ class AppBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<AuthController>(AuthController(), permanent: true);
+    Get.put<FeatureAccessService>(FeatureAccessService(), permanent: true);
     // Initialize WebSocket service
     Get.put<WebSocketService>(WebSocketService(), permanent: true);
     Get.put<LivePriceService>(LivePriceService(), permanent: true);

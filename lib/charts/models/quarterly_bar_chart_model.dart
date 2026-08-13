@@ -54,7 +54,10 @@ class QuarterlyBarChartTheme {
     this.yAxisMaximum,
     this.yAxisPaddingRatio = 0.18,
     this.dataLabelHeadroomRatio = 0.18,
-    this.mixedSignYAxisPadding = 200,
+    /// Absolute Y padding for mixed-sign charts. When null, padding is
+    /// derived from the data span so small metrics (e.g. EPS surprise %)
+    /// still fill the chart instead of sitting on a ±200/±300 axis.
+    this.mixedSignYAxisPadding,
     this.plotAreaLeftPadding = 20,
     this.plotAreaRightPadding = 8,
     this.plotAreaTopPadding = 24,
@@ -85,7 +88,7 @@ class QuarterlyBarChartTheme {
   final double? yAxisMaximum;
   final double yAxisPaddingRatio;
   final double dataLabelHeadroomRatio;
-  final double mixedSignYAxisPadding;
+  final double? mixedSignYAxisPadding;
   final double plotAreaLeftPadding;
   final double plotAreaRightPadding;
   final double plotAreaTopPadding;

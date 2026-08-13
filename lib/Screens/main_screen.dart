@@ -7,13 +7,17 @@ import 'package:musaffa_terminal/Components/market_indices.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
 import 'package:musaffa_terminal/Components/mini_widgets_row.dart';
+import 'package:musaffa_terminal/Components/latest_market_news_widget.dart';
 import 'package:musaffa_terminal/Components/stock_heatmap.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
+import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class MainScreen extends StatefulWidget {
@@ -104,6 +108,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   }
 
   void _toggleWatchlist() {
+    if (!FeatureNavigation.isEnabled(FeatureKeys.watchlists)) return;
+
     final watchlistController = Get.find<WatchlistController>();
     
     if (_watchlistService.isWatchlistOpen.value) {
@@ -248,34 +254,10 @@ Widget _buildVerticalLayout() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             MiniWidgetsRow(),
-            const SizedBox(height: 12),            
+            const SizedBox(height: 12),
             Builder(
-              builder: (context) {
-                final screenWidth = MediaQuery.of(context).size.width;
-                // Calculate available width after padding and spacing
-                // Available width = screenWidth - (left padding + right padding + spacing between widgets)
-                final availableWidth = screenWidth - (2 * LayoutConstants.SCREEN_PADDING) - LayoutConstants.SCREEN_COMPONENTS_PADDING;
-                final widgetWidth = availableWidth / 2;
-                
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Table always takes exactly half of available width
-                    SizedBox(
-                      width: widgetWidth,
-                      child: MarketSummaryDynamicTable(),
-                    ),
-                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
-                    // TradingView widget also takes exactly half of available width
-                    SizedBox(
-                      width: widgetWidth,
-                      child: DynamicHeightTradingView(
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
-                );
-              },
+              builder: (context) =>
+                  _buildTableAndChartRow(MediaQuery.of(context).size.width),
             ),
             const SizedBox(height: 16),            
             _buildHeatmapHub(context),
@@ -296,34 +278,7 @@ Widget _buildVerticalLayout() {
             
             MiniWidgetsRow(),
             const SizedBox(height: 16),
-            
-            Builder(
-              builder: (context) {
-                // Calculate available width after padding and spacing
-                // Available width = screenWidth - (left padding + right padding + spacing between widgets)
-                final availableWidth = screenWidth - (2 * LayoutConstants.SCREEN_PADDING) - LayoutConstants.SCREEN_COMPONENTS_PADDING;
-                final widgetWidth = availableWidth / 2;
-                
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Table always takes exactly half of available width
-                    SizedBox(
-                      width: widgetWidth,
-                      child: MarketSummaryDynamicTable(),
-                    ),
-                    SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
-                    // TradingView widget also takes exactly half of available width
-                    SizedBox(
-                      width: widgetWidth,
-                      child: DynamicHeightTradingView(
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+            _buildTableAndChartRow(screenWidth),
             const SizedBox(height: 28),
             // Bottom Section: Heatmap/Cross Rates hub
             _buildHeatmapHub(context),
@@ -334,6 +289,82 @@ Widget _buildVerticalLayout() {
   }
 
 
+
+  static const double _chartNewsGap = 12.0;
+  static const int _chartPanelFlex = 58;
+  static const int _newsPanelFlex = 42;
+
+  double _tableWidgetHeight(double screenWidth) {
+    final summary = Get.isRegistered<MarketSummaryController>()
+        ? Get.find<MarketSummaryController>()
+        : Get.put(MarketSummaryController());
+    return summary.estimatedTableWidgetHeight(screenWidth);
+  }
+
+  Widget _buildTableAndChartRow(double screenWidth) {
+    final availableWidth = screenWidth -
+        (2 * LayoutConstants.SCREEN_PADDING) -
+        LayoutConstants.SCREEN_COMPONENTS_PADDING;
+    final widgetWidth = availableWidth / 2;
+
+    return Obx(() {
+      // Rebuild when market summary rows load so chart height can track table.
+      final summary = Get.isRegistered<MarketSummaryController>()
+          ? Get.find<MarketSummaryController>()
+          : Get.put(MarketSummaryController());
+      // ignore: unused_local_variable
+      final _ = summary.dataRows.length;
+      final tableHeight = _tableWidgetHeight(screenWidth);
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: widgetWidth,
+            child: const MarketSummaryDynamicTable(),
+          ),
+          SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
+          SizedBox(
+            height: tableHeight,
+            width: widgetWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: _chartPanelFlex,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final chartBodyHeight = (constraints.maxHeight -
+                              DynamicHeightTradingViewConstants.chromeHeight)
+                          .clamp(1.0, constraints.maxHeight);
+                      return DynamicHeightTradingView(
+                        height: chartBodyHeight,
+                        minHeight: chartBodyHeight,
+                        maxHeight: chartBodyHeight,
+                        useResponsiveHeight: false,
+                        contentPadding: EdgeInsets.zero,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: _chartNewsGap),
+                Expanded(
+                  flex: _newsPanelFlex,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return LatestMarketNewsWidget(
+                        height: constraints.maxHeight,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
 
   int _calculateMarketSummaryFlex(double screenWidth) {
     if (screenWidth < 1200) return 2;
@@ -519,45 +550,64 @@ Widget _buildVerticalLayout() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            buildTile(
-              icon: CupertinoIcons.chart_bar_alt_fill,
-              title: 'Stock Market Heatmap',
-              subtitle:
-                  'Explore live market breadth across sectors and market caps with interactive zoom and tooltips for each company.',
-              onTap: () => _open(const StockHeatmapFullScreenPage()),
-              accentColor: unifiedAccent,
-            ),
-            const SizedBox(width: 20),
-            buildTile(
-              icon: CupertinoIcons.chart_pie_fill,
-              title: 'ETF Market Heatmap',
-              subtitle:
-                  'View top ETFs grouped by asset class and theme. Quickly spot flows and performance leaders across US-listed funds.',
-              onTap: () => _open(const EtfHeatmapFullScreenPage()),
-              accentColor: unifiedAccent,
-            ),
-            const SizedBox(width: 20),
-            buildTile(
-              icon: CupertinoIcons.bitcoin_circle_fill,
-              title: 'Crypto Market Map',
-              subtitle:
-                  'Monitor the digital assets universe by market cap and weekly performance. Drill into leaders and emerging movers.',
-              onTap: () => _open(const CryptoHeatmapFullScreenPage()),
-              accentColor: unifiedAccent,
-            ),
-            const SizedBox(width: 20),
-            buildTile(
-              icon: CupertinoIcons.arrow_2_circlepath,
-              title: 'Forex Cross‑Rates Heatmap',
-              subtitle:
-                  'Compare strength across major FX pairs and crosses at a glance with a theme-aware, full-width heatmap.',
-              onTap: () => _open(const ForexCrossRatesFullScreenPage()),
-              accentColor: unifiedAccent,
-            ),
-          ],
-        ),
+        Obx(() {
+          final canHeatmaps =
+              FeatureNavigation.isEnabled(FeatureKeys.heatmaps);
+          if (!canHeatmaps) {
+            return const SizedBox.shrink();
+          }
+          return Row(
+            children: [
+              buildTile(
+                icon: CupertinoIcons.chart_bar_alt_fill,
+                title: 'Stock Market Heatmap',
+                subtitle:
+                    'Explore live market breadth across sectors and market caps with interactive zoom and tooltips for each company.',
+                onTap: () => FeatureNavigation.toIfAllowed(
+                  FeatureKeys.heatmaps,
+                  () => const StockHeatmapFullScreenPage(),
+                ),
+                accentColor: unifiedAccent,
+              ),
+              const SizedBox(width: 20),
+              buildTile(
+                icon: CupertinoIcons.chart_pie_fill,
+                title: 'ETF Market Heatmap',
+                subtitle:
+                    'View top ETFs grouped by asset class and theme. Quickly spot flows and performance leaders across US-listed funds.',
+                onTap: () => FeatureNavigation.toIfAllowed(
+                  FeatureKeys.heatmaps,
+                  () => const EtfHeatmapFullScreenPage(),
+                ),
+                accentColor: unifiedAccent,
+              ),
+              const SizedBox(width: 20),
+              buildTile(
+                icon: CupertinoIcons.bitcoin_circle_fill,
+                title: 'Crypto Market Map',
+                subtitle:
+                    'Monitor the digital assets universe by market cap and weekly performance. Drill into leaders and emerging movers.',
+                onTap: () => FeatureNavigation.toIfAllowed(
+                  FeatureKeys.heatmaps,
+                  () => const CryptoHeatmapFullScreenPage(),
+                ),
+                accentColor: unifiedAccent,
+              ),
+              const SizedBox(width: 20),
+              buildTile(
+                icon: CupertinoIcons.arrow_2_circlepath,
+                title: 'Forex Cross‑Rates Heatmap',
+                subtitle:
+                    'Compare strength across major FX pairs and crosses at a glance with a theme-aware, full-width heatmap.',
+                onTap: () => FeatureNavigation.toIfAllowed(
+                  FeatureKeys.heatmaps,
+                  () => const ForexCrossRatesFullScreenPage(),
+                ),
+                accentColor: unifiedAccent,
+              ),
+            ],
+          );
+        }),
       ],
     );
   }

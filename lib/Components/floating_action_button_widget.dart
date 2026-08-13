@@ -7,6 +7,8 @@ import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class FloatingActionButtonWidget extends StatelessWidget {
   final FloatingActionButtonItem item;
@@ -118,15 +120,25 @@ class FloatingActionButtonWidget extends StatelessWidget {
   void _handleTap() {
     switch (item.type) {
       case FABType.screener:
-        Get.to(() => const ScreenerScreen());
+        FeatureNavigation.toIfAllowed(
+          FeatureKeys.screener,
+          () => const ScreenerScreen(),
+        );
         break;
       case FABType.ideas:
-        Get.to(() => const TradingIdeasScreen());
+        FeatureNavigation.toIfAllowed(
+          FeatureKeys.tradingIdeas,
+          () => const TradingIdeasScreen(),
+        );
         break;
       case FABType.portfolio:
-        Get.to(() => const PortfolioIdeaScreen());
+        FeatureNavigation.toIfAllowed(
+          FeatureKeys.portfolios,
+          () => const PortfolioIdeaScreen(),
+        );
         break;
       case FABType.watchlist:
+        if (!FeatureNavigation.isEnabled(FeatureKeys.watchlists)) return;
         // Toggle watchlist using global service
         final watchlistService = Get.find<GlobalWatchlistService>();
         final watchlistController = Get.find<WatchlistController>();

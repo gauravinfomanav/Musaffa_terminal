@@ -40,6 +40,8 @@ import 'package:musaffa_terminal/services/websocket_service.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/models/live_price_model.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 import 'dart:async';
 
 class TickerDetailScreen extends StatefulWidget {
@@ -251,10 +253,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF0F0F0F) 
+
+    return FeatureGuard(
+      featureKey: FeatureKeys.tickerDetails,
+      child: Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF0F0F0F)
           : const Color(0xFFFAFAFA),
       body: Stack(
         children: [
@@ -475,6 +479,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           const GlobalFABOverlay(),
         ],
       ),
+    ),
     );
   }
 

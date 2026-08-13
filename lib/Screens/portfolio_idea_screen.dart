@@ -13,6 +13,8 @@ import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/Controllers/portfolio_controller.dart';
 import 'package:musaffa_terminal/models/portfolio_model.dart';
 import 'package:musaffa_terminal/Screens/portfolio_builder_form.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class PortfolioIdeaScreen extends StatefulWidget {
   const PortfolioIdeaScreen({super.key});
@@ -81,7 +83,9 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    return FeatureGuard(
+      featureKey: FeatureKeys.portfolios,
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA),
       body: GestureDetector(
         onTap: () {
@@ -147,6 +151,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
           ],
         ),
       ),
+    ),
     );
   }
 

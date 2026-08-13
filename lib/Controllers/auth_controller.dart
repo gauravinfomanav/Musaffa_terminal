@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/models/auth_models.dart';
 import 'package:musaffa_terminal/services/auth_service.dart';
 import 'package:musaffa_terminal/services/auth_token_store.dart';
 import 'package:musaffa_terminal/Controllers/trading_ideas_controller.dart';
+import 'package:musaffa_terminal/services/feature_access_service.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/web_service.dart';
@@ -27,6 +28,13 @@ class AuthController extends GetxController {
   final RxnString successMessage = RxnString();
 
   bool _handlingUnauthorized = false;
+
+  FeatureAccessService get _features {
+    if (!Get.isRegistered<FeatureAccessService>()) {
+      Get.put(FeatureAccessService(), permanent: true);
+    }
+    return Get.find<FeatureAccessService>();
+  }
 
   @override
   void onInit() {
@@ -63,6 +71,14 @@ class AuthController extends GetxController {
     if (Get.isRegistered<TradingIdeasController>()) {
       Get.find<TradingIdeasController>().clearSessionData();
     }
+    _features.reset();
+  }
+
+  Future<void> _syncFeatures({Map<String, dynamic>? seed}) async {
+    if (seed != null) {
+      _features.seedFromLogin(seed);
+    }
+    await _features.fetchFeatures();
   }
 
   Future<void> restoreSession() async {
@@ -78,18 +94,23 @@ class AuthController extends GetxController {
       if (token == null || token.isEmpty) {
         isAuthenticated.value = false;
         user.value = null;
+        _features.reset();
         return;
       }
 
       final cachedUser = await _tokenStore.getUser();
       if (cachedUser != null) {
         user.value = cachedUser;
+        if (cachedUser.features != null) {
+          _features.seedFromLogin(cachedUser.features);
+        }
       }
 
       final me = await _authService.me();
       user.value = me;
       await _tokenStore.saveUser(me);
       isAuthenticated.value = true;
+      await _syncFeatures(seed: me.features);
     } on AuthException catch (e) {
       if (e.statusCode == 401) {
         await _clearLocalSession();
@@ -97,10 +118,16 @@ class AuthController extends GetxController {
         // Offline / transient: keep cached token if present.
         final token = await _tokenStore.getToken();
         isAuthenticated.value = token != null && token.isNotEmpty;
+        if (isAuthenticated.value) {
+          await _features.fetchFeatures();
+        }
       }
     } catch (_) {
       final token = await _tokenStore.getToken();
       isAuthenticated.value = token != null && token.isNotEmpty;
+      if (isAuthenticated.value) {
+        await _features.fetchFeatures();
+      }
     } finally {
       WebService.onUnauthorized = previousUnauthorized ?? handleUnauthorized;
       isInitializing.value = false;
@@ -173,6 +200,8 @@ class AuthController extends GetxController {
       user.value = result.user;
       isAuthenticated.value = true;
 
+      await _syncFeatures(seed: result.user.features);
+
       if (Get.isRegistered<WatchlistController>()) {
         // Force reload under the new Bearer token.
         await Get.find<WatchlistController>().reloadForCurrentUser();
@@ -221,6 +250,7 @@ class AuthController extends GetxController {
     await _tokenStore.clear();
     user.value = null;
     isAuthenticated.value = false;
+    _features.reset();
     clearMessages();
   }
 }

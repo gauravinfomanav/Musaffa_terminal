@@ -18,6 +18,8 @@ import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 
 class TradingIdeasScreen extends StatefulWidget {
@@ -90,7 +92,9 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    return FeatureGuard(
+      featureKey: FeatureKeys.tradingIdeas,
+      child: Scaffold(
       backgroundColor:
           isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA),
       body: GestureDetector(
@@ -156,6 +160,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

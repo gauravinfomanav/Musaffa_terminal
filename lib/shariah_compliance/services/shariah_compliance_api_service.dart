@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:musaffa_terminal/config/api_config.dart';
 
 class ShariahComplianceApiService {
-  static const String _baseUrl =
-      'https://0bs2hegi5nmtad4op.a1.typesense.net';
-  static const String _apiKey = 'GRhZdTOnzVKId4Ln9G1PIvuIgn1TK0fH';
+  static const String _baseUrl = ApiConfig.typesenseUrl;
+  static const String _apiKey = ApiConfig.typesenseApiKey;
   static const String _collection = 'compliance_collection_3';
   static const String _etfCollection = 'etf_compliance_detailed_collection_2';
 

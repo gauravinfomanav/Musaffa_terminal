@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/platform_capabilities.dart';
+import 'package:musaffa_terminal/Components/windows_html_webview.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -20,7 +22,7 @@ class DynamicHeightMarketQuotes extends StatefulWidget {
 }
 
 class _DynamicHeightMarketQuotesState extends State<DynamicHeightMarketQuotes> {
-  late WebViewController _controller;
+  WebViewController? _controller;
   double? _webViewHeight;
   bool _isLoading = true;
   Brightness? _currentLoadedBrightness;
@@ -268,6 +270,11 @@ class _DynamicHeightMarketQuotesState extends State<DynamicHeightMarketQuotes> {
     print("initState: Setting initial height to ${widget.initialHeight}");
     _webViewHeight = widget.initialHeight;
 
+    if (!PlatformCapabilities.isWebViewFlutterSupported) {
+      _isLoading = false;
+      return;
+    }
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel(
@@ -345,6 +352,9 @@ class _DynamicHeightMarketQuotesState extends State<DynamicHeightMarketQuotes> {
   }
 
   void _loadWebViewContent() {
+    final controller = _controller;
+    if (controller == null) return;
+
     final Brightness currentBrightness = Theme.of(context).brightness;
     print("didChangeDependencies: Current theme brightness: $currentBrightness");
 
@@ -361,7 +371,7 @@ class _DynamicHeightMarketQuotesState extends State<DynamicHeightMarketQuotes> {
           base64Encode(const Utf8Encoder().convert(htmlContent));
       final String dataUrl = 'data:text/html;base64,$contentBase64';
 
-      _controller.loadRequest(Uri.parse(dataUrl)).then((_) {
+      controller.loadRequest(Uri.parse(dataUrl)).then((_) {
         if (mounted) {
           _currentLoadedBrightness = currentBrightness;
         }
@@ -411,7 +421,24 @@ class _DynamicHeightMarketQuotesState extends State<DynamicHeightMarketQuotes> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                    child: WebViewWidget(controller: _controller),
+                    child: AdaptiveHtmlWebView(
+                      html: _generateTradingViewHtml(
+                        Theme.of(context).brightness == Brightness.dark
+                            ? 'dark'
+                            : 'light',
+                      ),
+                      flutterController: _controller,
+                      onWindowsJsMessage: (dynamic message) {
+                        final double? height =
+                            double.tryParse(message.toString());
+                        if (height != null && height > 0 && mounted) {
+                          setState(() => _webViewHeight = height);
+                        }
+                      },
+                      onWindowsPageFinished: () {
+                        if (mounted) setState(() => _isLoading = false);
+                      },
+                    ),
                   ),
                   if (_isLoading ||
                       _webViewHeight == null ||

@@ -16,6 +16,8 @@ import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class SectorDetailsScreen extends StatefulWidget {
   final String sectorName;
@@ -879,11 +881,10 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   isStock: true,
                 );
 
-                Navigator.push(
+                FeatureNavigation.pushIfAllowed(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => TickerDetailScreen(ticker: tickerModel),
-                  ),
+                  FeatureKeys.tickerDetails,
+                  TickerDetailScreen(ticker: tickerModel),
                 );
               },
             ),
@@ -1007,10 +1008,12 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF0F0F0F) 
+
+    return FeatureGuard(
+      featureKey: FeatureKeys.sectorDetails,
+      child: Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF0F0F0F)
           : const Color(0xFFFAFAFA),
       body: GestureDetector(
         onTap: () {
@@ -1141,6 +1144,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }

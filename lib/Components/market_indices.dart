@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/platform_capabilities.dart';
+import 'package:musaffa_terminal/Components/windows_html_webview.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'dart:async'; // Import for Timer
@@ -7,25 +9,25 @@ import 'dart:async'; // Import for Timer
 /// Widget height constants for market indices TradingView widget
 class DynamicHeightTradingViewConstants {
   /// Default height for medium screens (horizontal layout)
-  static const double defaultHeight = 600.0;
-  
+  static const double defaultHeight = 380.0;
+
   /// Height for small screens (vertical layout)
-  static const double smallScreenHeight = 600.0;
-  
+  static const double smallScreenHeight = 340.0;
+
   /// Height for large screens
-  static const double largeScreenHeight = 700.0;
-  
+  static const double largeScreenHeight = 440.0;
+
   /// Minimum height for responsive sizing
-  static const double minHeight = 410.0;
-  
+  static const double minHeight = 420.0;
+
   /// Maximum height for responsive sizing
-  static const double maxHeight = 910.0;
-  
+  static const double maxHeight = 520.0;
+
   /// Height for extra large screens
-  static const double extraLargeScreenHeight = 800.0;
+  static const double extraLargeScreenHeight = 480.0;
   
-  /// Title section height (title + spacing)
-  static const double titleHeight = 42.0;
+  /// Title text + spacing above the chart body in [DynamicHeightTradingView.build].
+  static const double chromeHeight = 48.0;
   
   /// Content padding
   static const EdgeInsets contentPadding = EdgeInsets.symmetric(horizontal: 16.0);
@@ -118,7 +120,7 @@ class DynamicHeightTradingView extends StatefulWidget {
 }
 
 class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
-  late WebViewController _controller;
+  WebViewController? _controller;
   double? _webViewHeight; // State variable to hold the dynamic height
   bool _isLoading = true; // Track loading state (initial and theme changes)
   Brightness? _currentLoadedBrightness; // Track the theme loaded in WebView
@@ -331,6 +333,11 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
     // Set initial height - will be calculated properly in build method
     _webViewHeight = widget.height;
 
+    if (!PlatformCapabilities.isWebViewFlutterSupported) {
+      _isLoading = false;
+      return;
+    }
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -361,7 +368,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                 
                 // Inject minimal JavaScript to prevent window.open to TradingView website
                 // NavigationDelegate handles most navigation blocking
-                _controller.runJavaScript('''
+                _controller?.runJavaScript('''
                   (function() {
                     // Wait for TradingView widget to load
                     setTimeout(function() {
@@ -455,6 +462,9 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
   }
 
   void _loadWebViewContent() {
+    final controller = _controller;
+    if (controller == null) return;
+
     final Brightness currentBrightness = Theme.of(context).brightness;
     print(
         "didChangeDependencies: Current theme brightness: $currentBrightness");
@@ -474,7 +484,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
           base64Encode(const Utf8Encoder().convert(htmlContent));
       final String dataUrl = 'data:text/html;base64,$contentBase64';
 
-      _controller.loadRequest(Uri.parse(dataUrl)).then((_) {
+      controller.loadRequest(Uri.parse(dataUrl)).then((_) {
         if (mounted) {
           _currentLoadedBrightness =
               currentBrightness; // Update the loaded theme state
@@ -573,7 +583,13 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                           scaleY: 1.02,
                           child: Padding(
                             padding: contentPadding,
-                            child: WebViewWidget(controller: _controller),
+                            child: AdaptiveHtmlWebView(
+                              html: _generateTradingViewHtml(
+                                isDark ? 'dark' : 'light',
+                              ),
+                              flutterController: _controller,
+                              backgroundColor: bgColor,
+                            ),
                           ),
                         ),
                         // Show loading indicator only when actually loading

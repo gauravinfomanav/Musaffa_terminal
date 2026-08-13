@@ -20,6 +20,8 @@ import 'package:musaffa_terminal/models/screener_strategy.dart';
 import 'package:musaffa_terminal/services/filter_loader.dart';
 import 'package:musaffa_terminal/services/results_tabs_loader.dart';
 import 'package:musaffa_terminal/widgets/filter_widget_builder.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class ScreenerScreen extends StatefulWidget {
   const ScreenerScreen({Key? key}) : super(key: key);
@@ -347,6 +349,13 @@ class _ScreenerScreenState extends State<ScreenerScreen> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+    return FeatureGuard(
+      featureKey: FeatureKeys.screener,
+      child: _buildScreenerBody(context),
+    );
+  }
+
+  Widget _buildScreenerBody(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(

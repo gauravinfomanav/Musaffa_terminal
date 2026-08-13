@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:musaffa_terminal/utils/platform_capabilities.dart';
+import 'package:musaffa_terminal/Components/windows_html_webview.dart';
 import 'shimmer.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -40,7 +42,7 @@ class MiniWidgetsRow extends StatefulWidget {
 
 class _MiniWidgetsRowState extends State<MiniWidgetsRow> 
     with AutomaticKeepAliveClientMixin {
-  late WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
   Brightness? _currentLoadedBrightness;
   bool _isWebViewInitialized = false;
@@ -381,6 +383,11 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
   }
 
   void _initializeWebView() {
+    if (!PlatformCapabilities.isWebViewFlutterSupported) {
+      _isLoading = false;
+      return;
+    }
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -448,6 +455,9 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
   }
 
   void _loadWebViewContent() {
+    final controller = _controller;
+    if (controller == null) return;
+
     final Brightness currentBrightness = Theme.of(context).brightness;
 
     if (currentBrightness != _currentLoadedBrightness) {
@@ -462,7 +472,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
           base64Encode(const Utf8Encoder().convert(htmlContent));
       final String dataUrl = 'data:text/html;base64,$contentBase64';
 
-      _controller.loadRequest(Uri.parse(dataUrl)).then((_) {
+      controller.loadRequest(Uri.parse(dataUrl)).then((_) {
         if (mounted) {
           _currentLoadedBrightness = currentBrightness;
         }
@@ -574,7 +584,15 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             : Transform.scale(
                 scaleX: 1.01,   // No horizontal scaling (left/right)
                 scaleY: 1.011, // Vertical scaling (top/bottom only)
-                child: WebViewWidget(controller: _controller),
+                child: AdaptiveHtmlWebView(
+                  html: _generateMiniWidgetsHtml(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? 'dark'
+                        : 'light',
+                  ),
+                  flutterController: _controller,
+                  backgroundColor: appBackgroundColor,
+                ),
               ),
       ),
     );

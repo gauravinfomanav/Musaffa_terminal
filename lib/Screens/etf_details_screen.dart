@@ -14,6 +14,8 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class EtfDetailsScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -77,10 +79,12 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF0F0F0F) 
+
+    return FeatureGuard(
+      featureKey: FeatureKeys.etfDetails,
+      child: Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF0F0F0F)
           : const Color(0xFFFAFAFA),
       body: Stack(
         children: [
@@ -170,6 +174,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           const GlobalFABOverlay(),
         ],
       ),
+    ),
     );
   }
 

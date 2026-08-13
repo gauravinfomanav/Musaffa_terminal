@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class AddToWatchlistButton extends StatefulWidget {
   final String ticker;
@@ -300,6 +302,10 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (!FeatureNavigation.isEnabled(FeatureKeys.watchlists)) {
+      return const SizedBox.shrink();
+    }
+
     if (widget.isInWatchlist) {
       // Show "In Watchlist" state
       return _buildInWatchlistButton();

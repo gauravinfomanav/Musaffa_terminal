@@ -93,7 +93,7 @@ class FinancialStatementsQuarterlyController extends GetxController {
   };
 
   final Map<String, dynamic> cashFlowMapping = {
-    'netIncome': 'Net Income',
+    'netIncomeStartingLine': 'Net Income',
     'netOperatingCashFlow': {
       'label': 'Net Cash from Operating Activities',
       'valueKey': 'netOperatingCashFlow',
@@ -138,6 +138,19 @@ class FinancialStatementsQuarterlyController extends GetxController {
     }
   }
 
+  Map<String, dynamic> _normalizeStatementRow(Map<String, dynamic> row) {
+    final normalized = Map<String, dynamic>.from(row);
+    if (normalized['netIncome'] == null &&
+        normalized['netIncomeStartingLine'] != null) {
+      normalized['netIncome'] = normalized['netIncomeStartingLine'];
+    }
+    if (normalized['netIncomeStartingLine'] == null &&
+        normalized['netIncome'] != null) {
+      normalized['netIncomeStartingLine'] = normalized['netIncome'];
+    }
+    return normalized;
+  }
+
   Future<void> fetchFinancialReport(String symbol, String reportType) async {
   try {
     isLoading.value = true;
@@ -145,57 +158,66 @@ class FinancialStatementsQuarterlyController extends GetxController {
     // Get the appropriate structured mapping based on reportType
     Map<String, dynamic> structuredMapping = _getStructuredMapping(reportType);
 
-    Map<String, dynamic> params = {
-      'q': '*',
-      'filter_by': 'company_symbol:$symbol&&freq:quarterly',
-      'page': '1',
-      'per_page': '250' // Increased to handle 250 hits
-    };
-
-    final response = await WebService.getTypesense_infomanav(
-      ['collections', 'financial_statements_1', 'documents', 'search'],
-      params,
+    final response = await WebService.getFinancialStatements(
+      symbol: symbol,
+      statement: reportType,
+      freq: 'quarterly',
     );
 
     if (response.statusCode == 200) {
       final decodedData = jsonDecode(response.body) as Map<String, dynamic>?;
+      final rows = decodedData?['financials'];
 
-      if (decodedData == null || decodedData['hits'] == null) {
+      if (decodedData == null || rows is! List || rows.isEmpty) {
         financialData.clear();
         quarters.clear();
         return;
       }
 
-      List<dynamic> hits = decodedData['hits'] as List<dynamic>;
+      final parsedRows = <({DateTime date, String label, Map<String, dynamic> data})>[];
 
-      // Define the expected quarters for 2024
-      const List<String> expectedQuarters = ['Q12024', 'Q22024', 'Q32024', 'Q42024'];
-      Map<String, Map<String, dynamic>> dataByQuarter = {};
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final dataItem =
+            _normalizeStatementRow(Map<String, dynamic>.from(row));
+        final period = dataItem['period']?.toString() ?? '';
+        final quarterLabel = _getQuarterLabelFromPeriod(period);
+        if (quarterLabel.isEmpty) continue;
 
-      // Process hits and filter for 2024 only
-      for (var hit in hits) {
-        var dataItem = hit['document'] ?? hit;
-        String period = dataItem['period'] ?? '';
-        String quarterLabel = _getQuarterLabelFromPeriod(period);
-
-        // Only include data for 2024 quarters
-        if (quarterLabel.isNotEmpty && quarterLabel.endsWith('2024')) {
-          dataByQuarter[quarterLabel] = dataItem;
+        DateTime? parsedDate;
+        try {
+          parsedDate = DateTime.parse(period);
+        } catch (_) {
+          continue;
         }
+
+        parsedRows.add((date: parsedDate, label: quarterLabel, data: dataItem));
       }
 
-      // Ensure all 2024 quarters are represented, even if missing
-      for (var quarter in expectedQuarters) {
-        if (!dataByQuarter.containsKey(quarter)) {
-          dataByQuarter[quarter] = {'placeholder': true}; // Placeholder for missing data
-        }
+      if (parsedRows.isEmpty) {
+        financialData.clear();
+        quarters.clear();
+        return;
       }
 
-      // Populate quarterLabels with all expected quarters
-      List<String> quarterLabels = expectedQuarters;
+      // Newest first from API; keep recent quarters and show oldest→newest in table.
+      parsedRows.sort((a, b) => b.date.compareTo(a.date));
+      const maxQuarters = 8;
+      final recentRows = parsedRows.take(maxQuarters).toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
+
+      final Map<String, Map<String, dynamic>> dataByQuarter = {};
+      final List<String> quarterLabels = [];
+      for (final row in recentRows) {
+        // Deduplicate same quarter label if API returns overlapping periods.
+        if (dataByQuarter.containsKey(row.label)) continue;
+        dataByQuarter[row.label] = row.data;
+        quarterLabels.add(row.label);
+      }
 
       // Process data and build the model
-      List<FinancialStatementModel> newData = _processFinancialData(dataByQuarter, structuredMapping);
+      List<FinancialStatementModel> newData =
+          _processFinancialData(dataByQuarter, structuredMapping);
 
       financialData.assignAll(newData);
       quarters.assignAll(quarterLabels);

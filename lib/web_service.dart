@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:musaffa_terminal/config/api_config.dart';
 
 enum HttpMethod { GET, POST, PUT, DELETE, PATCH }
 
@@ -23,23 +24,21 @@ class ApiResponse {
 }
 
 class WebService {
-  static const String _typesenseUrl =
-      'https://0bs2hegi5nmtad4op.a1.typesense.net';
-  static const String _typesenseKey =
-      'GRhZdTOnzVKId4Ln9G1PIvuIgn1TK0fH';
-      
-  // Musaffa Terminal API base URL (local backend)
-  static const String musaffaBaseUrl = 'http://localhost:3000';
-  static const String _musaffaBaseUrl = musaffaBaseUrl;
-      
-  // New Typesense instance for infomanav
-  static const String _typesenseInfomanavUrl =
-      'https://typesense.infomanav.in';
-  static const String _typesenseInfomanavKey =
-      'v0R3WozafhWeECu5MVuKr6HPcXI0hLPh';
+  /// @deprecated Use [ApiConfig.terminalBaseUrl] instead.
+  static const String musaffaBaseUrl = ApiConfig.terminalBaseUrl;
+
+  static const String _typesenseUrl = ApiConfig.typesenseUrl;
+  static const String _typesenseKey = ApiConfig.typesenseApiKey;
+  static const String _musaffaBaseUrl = ApiConfig.terminalBaseUrl;
+  static const String _typesenseInfomanavUrl = ApiConfig.typesenseInfomanavUrl;
+  static const String _typesenseInfomanavKey = ApiConfig.typesenseInfomanavApiKey;
 
   /// Injected by [AuthController] — clears session + redirects to login.
   static Future<void> Function()? onUnauthorized;
+
+  /// Injected by [FeatureAccessService] — handles FEATURE_DISABLED 403s.
+  static Future<void> Function(String feature, String message)?
+      onFeatureDisabled;
 
   /// Optional token reader so authenticated Terminal APIs send Bearer JWT.
   static Future<String?> Function()? tokenProvider;
@@ -179,6 +178,16 @@ class WebService {
         }
       }
 
+      if (response.statusCode == 403) {
+        final disabled = _extractFeatureDisabled(response.body);
+        if (disabled != null) {
+          await onFeatureDisabled?.call(
+            disabled.feature,
+            disabled.message,
+          );
+        }
+      }
+
       return ApiResponse(
         status: ApiStatus.FAIL,
         data: response.body,
@@ -207,6 +216,24 @@ class WebService {
     return null;
   }
 
+  static ({String feature, String message})? _extractFeatureDisabled(
+    String body,
+  ) {
+    if (body.isEmpty) return null;
+    try {
+      final json = jsonDecode(body);
+      if (json is! Map<String, dynamic>) return null;
+      if (json['code']?.toString() != 'FEATURE_DISABLED') return null;
+      final feature = json['feature']?.toString() ?? '';
+      if (feature.isEmpty) return null;
+      final message = json['message']?.toString() ??
+          'Feature is disabled for this account: $feature';
+      return (feature: feature, message: message);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // User Preferences API methods
   static Future<ApiResponse> getUserPreferences() async {
     return await callApi(
@@ -223,13 +250,154 @@ class WebService {
     );
   }
 
+  /// Financial statements from RisePython (ic / bs / cf × annual / quarterly).
+  /// Example: https://risepython.infomanav.in/8010/financial_statements/AAPL?statement=ic&freq=annual
+  static Future<http.Response> getFinancialStatements({
+    required String symbol,
+    required String statement,
+    required String freq,
+  }) async {
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    final uri = Uri.parse(
+      ApiConfig.risePythonFinancialStatements(normalizedSymbol),
+    ).replace(queryParameters: {
+      'statement': statement,
+      'freq': freq,
+    });
+
+    try {
+      return await http.get(
+        uri,
+        headers: const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+    } catch (e) {
+      return http.Response(jsonEncode({'error': e.toString()}), 500);
+    }
+  }
+
+  /// Company basic financials (metric snapshot + annual/quarterly series).
+  /// Example: https://risepython.infomanav.in/8010/company_basic_financials/AAPL
+  static Future<http.Response> getCompanyBasicFinancials({
+    required String symbol,
+  }) async {
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    final uri = Uri.parse(
+      ApiConfig.risePythonCompanyBasicFinancials(normalizedSymbol),
+    );
+
+    try {
+      return await http.get(
+        uri,
+        headers: const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+    } catch (e) {
+      return http.Response(jsonEncode({'error': e.toString()}), 500);
+    }
+  }
+
+  static final Map<String, Map<String, dynamic>> _basicFinancialsCache = {};
+  static final Map<String, Future<Map<String, dynamic>?>> _basicFinancialsInflight =
+      {};
+
+  /// Cached decode of [getCompanyBasicFinancials] — shared by Per Share + Ratios.
+  static Future<Map<String, dynamic>?> fetchCompanyBasicFinancialsCached(
+    String symbol,
+  ) async {
+    final key = symbol.trim().toUpperCase();
+    final cached = _basicFinancialsCache[key];
+    if (cached != null) return cached;
+
+    final inflight = _basicFinancialsInflight[key];
+    if (inflight != null) return inflight;
+
+    final future = () async {
+      try {
+        final response = await getCompanyBasicFinancials(symbol: key);
+        if (response.statusCode != 200) return null;
+        final decoded = jsonDecode(response.body);
+        if (decoded is! Map<String, dynamic>) return null;
+        _basicFinancialsCache[key] = decoded;
+        return decoded;
+      } catch (_) {
+        return null;
+      } finally {
+        _basicFinancialsInflight.remove(key);
+      }
+    }();
+
+    _basicFinancialsInflight[key] = future;
+    return future;
+  }
+
+  static void clearCompanyBasicFinancialsCache([String? symbol]) {
+    if (symbol == null) {
+      _basicFinancialsCache.clear();
+      return;
+    }
+    _basicFinancialsCache.remove(symbol.trim().toUpperCase());
+  }
+
+  /// Convert RisePython series `[{v, period}, ...]` → year → value.
+  static Map<String, double?> seriesToYearMap(
+    dynamic series, {
+    int? maxYears,
+  }) {
+    final result = <String, double?>{};
+    if (series is! List) return result;
+
+    // API is typically newest-first; keep insertion order of unique years.
+    for (final item in series) {
+      if (item is! Map) continue;
+      final period = item['period']?.toString() ?? '';
+      if (period.length < 4) continue;
+      final year = period.substring(0, 4);
+      if (result.containsKey(year)) continue;
+      final v = item['v'];
+      result[year] = v is num ? v.toDouble() : null;
+    }
+
+    if (maxYears == null || result.length <= maxYears) return result;
+
+    final years = result.keys.toList()..sort();
+    final keep = years.sublist(years.length - maxYears);
+    return {for (final y in keep) y: result[y]};
+  }
+
+  /// Convert RisePython quarterly series → period (YYYY-MM-DD) → value.
+  static Map<String, double?> seriesToPeriodMap(
+    dynamic series, {
+    int? maxPeriods,
+  }) {
+    final entries = <MapEntry<String, double?>>[];
+    if (series is! List) return {};
+
+    for (final item in series) {
+      if (item is! Map) continue;
+      final period = item['period']?.toString() ?? '';
+      if (period.isEmpty) continue;
+      final v = item['v'];
+      entries.add(MapEntry(period, v is num ? v.toDouble() : null));
+    }
+
+    // Newest first from API; take first N then return as map.
+    final sliced =
+        maxPeriods == null ? entries : entries.take(maxPeriods).toList();
+    return {for (final e in sliced) e.key: e.value};
+  }
+
   /// Get historical prices for backtesting
   static Future<http.Response> getHistoricalPrices({
     required List<String> symbols,
     required String date,
   }) async {
     print('🌐 WebService: Making historical prices API call');
-    print('🌐 URL: https://risepython.infomanav.in/8009/latest_stock_candles/');
+    print('🌐 URL: ${ApiConfig.risePythonStockCandles}');
     print('🌐 Symbols: $symbols');
     print('🌐 Date: $date');
     
@@ -244,7 +412,7 @@ class WebService {
     
     print('🌐 Request body: $body');
     
-    final uri = Uri.parse('https://risepython.infomanav.in/8009/latest_stock_candles/');
+    final uri = Uri.parse(ApiConfig.risePythonStockCandles);
     
     try {
       print('🌐 Making HTTP POST request...');

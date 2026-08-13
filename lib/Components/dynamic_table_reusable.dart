@@ -14,6 +14,8 @@ import 'package:musaffa_terminal/services/table_column_preferences_service.dart'
 import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 var holdingItemTitleGroup = AutoSizeGroup();
 
@@ -788,13 +790,12 @@ class _DynamicTableState extends State<DynamicTable> {
             isStock: isStock,
           );
 
-          Navigator.push(
+          FeatureNavigation.pushIfAllowed(
             context,
-            MaterialPageRoute(
-              builder: (_) => isStock
-                  ? TickerDetailScreen(ticker: tickerModel)
-                  : EtfDetailsScreen(ticker: tickerModel),
-            ),
+            isStock ? FeatureKeys.tickerDetails : FeatureKeys.etfDetails,
+            isStock
+                ? TickerDetailScreen(ticker: tickerModel)
+                : EtfDetailsScreen(ticker: tickerModel),
           );
             },
           ),

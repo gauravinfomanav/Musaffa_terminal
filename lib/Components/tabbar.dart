@@ -24,6 +24,9 @@ import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/Components/app_sidebar.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/services/feature_access_service.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 
 class HomeTabBar extends StatelessWidget {
@@ -128,23 +131,41 @@ class HomeTabBar extends StatelessWidget {
                     ),
                     SizedBox(
                       width: searchWidth,
-                      child: _SearchField(
-                        onChanged: onSearch,
-                        onSubmitted: (_) => onSearchSubmit?.call(),
-                        isDarkMode: isDarkMode,
-                      ),
+                      child: Obx(() {
+                        final canSearch = FeatureNavigation.isEnabled(
+                          FeatureKeys.stockSearch,
+                        );
+                        if (!canSearch) {
+                          return const SizedBox.shrink();
+                        }
+                        return _SearchField(
+                          onChanged: onSearch,
+                          onSubmitted: (_) => onSearchSubmit?.call(),
+                          isDarkMode: isDarkMode,
+                        );
+                      }),
                     ),
                     Expanded(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           _NavToolsCluster(isDarkMode: isDarkMode),
-                          const SizedBox(width: 8),
-                          _WatchlistToggleButton(
-                            isOpen: isWatchlistOpen,
-                            onToggle: onWatchlistToggle,
-                            isDarkMode: isDarkMode,
-                          ),
+                          Obx(() {
+                            final canWatchlists = FeatureNavigation.isEnabled(
+                              FeatureKeys.watchlists,
+                            );
+                            if (!canWatchlists) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: _WatchlistToggleButton(
+                                isOpen: isWatchlistOpen,
+                                onToggle: onWatchlistToggle,
+                                isDarkMode: isDarkMode,
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),
@@ -319,18 +340,16 @@ class _SearchFieldState extends State<_SearchField> {
     
     // Navigate to appropriate screen based on isStock flag
     if (ticker.isStock) {
-      Navigator.push(
+      FeatureNavigation.pushIfAllowed(
         context,
-        MaterialPageRoute(
-          builder: (context) => TickerDetailScreen(ticker: ticker),
-        ),
+        FeatureKeys.tickerDetails,
+        TickerDetailScreen(ticker: ticker),
       );
     } else {
-      Navigator.push(
+      FeatureNavigation.pushIfAllowed(
         context,
-        MaterialPageRoute(
-          builder: (context) => EtfDetailsScreen(ticker: ticker),
-        ),
+        FeatureKeys.etfDetails,
+        EtfDetailsScreen(ticker: ticker),
       );
     }
   }
@@ -740,8 +759,10 @@ class _NavToolsCluster extends StatelessWidget {
     if (Get.isRegistered<GlobalSidebarService>()) {
       Get.find<GlobalSidebarService>().setActive(SidebarNavItem.screener);
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ScreenerScreen()),
+    FeatureNavigation.pushIfAllowed(
+      context,
+      FeatureKeys.screener,
+      const ScreenerScreen(),
     );
   }
 
@@ -749,8 +770,10 @@ class _NavToolsCluster extends StatelessWidget {
     if (Get.isRegistered<GlobalSidebarService>()) {
       Get.find<GlobalSidebarService>().setActive(SidebarNavItem.ideas);
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const TradingIdeasScreen()),
+    FeatureNavigation.pushIfAllowed(
+      context,
+      FeatureKeys.tradingIdeas,
+      const TradingIdeasScreen(),
     );
   }
 
@@ -768,8 +791,10 @@ class _NavToolsCluster extends StatelessWidget {
     if (Get.isRegistered<GlobalSidebarService>()) {
       Get.find<GlobalSidebarService>().setActive(SidebarNavItem.portfolio);
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PortfolioIdeaScreen()),
+    FeatureNavigation.pushIfAllowed(
+      context,
+      FeatureKeys.portfolios,
+      const PortfolioIdeaScreen(),
     );
   }
 
@@ -782,22 +807,30 @@ class _NavToolsCluster extends StatelessWidget {
 
     return Obx(() {
       final fab = Get.find<FloatingActionButtonsController>();
+      // Ensure Obx tracks feature map changes.
+      if (Get.isRegistered<FeatureAccessService>()) {
+        Get.find<FeatureAccessService>().features.length;
+      }
+      final canScreener = FeatureNavigation.isEnabled(FeatureKeys.screener);
+      final canIdeas = FeatureNavigation.isEnabled(FeatureKeys.tradingIdeas);
+      final canPortfolios = FeatureNavigation.isEnabled(FeatureKeys.portfolios);
+
       final tools = <_ToolSpec>[
-        if (!fab.shouldHideInTabbar(FABType.screener))
+        if (canScreener && !fab.shouldHideInTabbar(FABType.screener))
           _ToolSpec(
             label: 'Screener',
             icon: CupertinoIcons.slider_horizontal_3,
             fabType: FABType.screener,
             onTap: () => _goScreener(context),
           ),
-        if (!fab.shouldHideInTabbar(FABType.ideas))
+        if (canIdeas && !fab.shouldHideInTabbar(FABType.ideas))
           _ToolSpec(
             label: 'Ideas',
             icon: CupertinoIcons.lightbulb,
             fabType: FABType.ideas,
             onTap: () => _goIdeas(context),
           ),
-        if (!fab.shouldHideInTabbar(FABType.portfolio))
+        if (canPortfolios && !fab.shouldHideInTabbar(FABType.portfolio))
           _ToolSpec(
             label: 'Portfolios',
             icon: CupertinoIcons.chart_pie,

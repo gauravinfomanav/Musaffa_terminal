@@ -7,6 +7,8 @@ import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 class AppSidebarPanel extends StatefulWidget {
@@ -109,7 +111,10 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
     }
     sidebar.setActive(SidebarNavItem.screener);
     sidebar.close();
-    Get.to(() => const ScreenerScreen());
+    FeatureNavigation.toIfAllowed(
+      FeatureKeys.screener,
+      () => const ScreenerScreen(),
+    );
   }
 
   void _goIdeas() {
@@ -120,7 +125,10 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
     }
     sidebar.setActive(SidebarNavItem.ideas);
     sidebar.close();
-    Get.to(() => const TradingIdeasScreen());
+    FeatureNavigation.toIfAllowed(
+      FeatureKeys.tradingIdeas,
+      () => const TradingIdeasScreen(),
+    );
   }
 
   void _goPortfolio() {
@@ -131,7 +139,10 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
     }
     sidebar.setActive(SidebarNavItem.portfolio);
     sidebar.close();
-    Get.to(() => const PortfolioIdeaScreen());
+    FeatureNavigation.toIfAllowed(
+      FeatureKeys.portfolios,
+      () => const PortfolioIdeaScreen(),
+    );
   }
 
   void _showProfileSheet(bool isDark) {
@@ -394,6 +405,12 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
               Expanded(
                 child: Obx(() {
                   final active = sidebar.activeItem.value;
+                  final canScreener =
+                      FeatureNavigation.isEnabled(FeatureKeys.screener);
+                  final canIdeas =
+                      FeatureNavigation.isEnabled(FeatureKeys.tradingIdeas);
+                  final canPortfolios =
+                      FeatureNavigation.isEnabled(FeatureKeys.portfolios);
                   return ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     children: [
@@ -404,27 +421,30 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
                         isDark: isDark,
                         onTap: _goDashboard,
                       ),
-                      _NavTile(
-                        icon: CupertinoIcons.slider_horizontal_3,
-                        label: 'Stock Screener',
-                        selected: active == SidebarNavItem.screener,
-                        isDark: isDark,
-                        onTap: _goScreener,
-                      ),
-                      _NavTile(
-                        icon: CupertinoIcons.lightbulb,
-                        label: 'Trading Ideas',
-                        selected: active == SidebarNavItem.ideas,
-                        isDark: isDark,
-                        onTap: _goIdeas,
-                      ),
-                      _NavTile(
-                        icon: CupertinoIcons.chart_pie,
-                        label: 'Portfolios',
-                        selected: active == SidebarNavItem.portfolio,
-                        isDark: isDark,
-                        onTap: _goPortfolio,
-                      ),
+                      if (canScreener)
+                        _NavTile(
+                          icon: CupertinoIcons.slider_horizontal_3,
+                          label: 'Stock Screener',
+                          selected: active == SidebarNavItem.screener,
+                          isDark: isDark,
+                          onTap: _goScreener,
+                        ),
+                      if (canIdeas)
+                        _NavTile(
+                          icon: CupertinoIcons.lightbulb,
+                          label: 'Trading Ideas',
+                          selected: active == SidebarNavItem.ideas,
+                          isDark: isDark,
+                          onTap: _goIdeas,
+                        ),
+                      if (canPortfolios)
+                        _NavTile(
+                          icon: CupertinoIcons.chart_pie,
+                          label: 'Portfolios',
+                          selected: active == SidebarNavItem.portfolio,
+                          isDark: isDark,
+                          onTap: _goPortfolio,
+                        ),
                     ],
                   );
                 }),

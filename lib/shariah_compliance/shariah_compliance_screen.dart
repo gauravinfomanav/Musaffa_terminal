@@ -7,6 +7,8 @@ import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_etf_detai
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_search_service.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class ShariahComplianceScreen extends StatefulWidget {
   const ShariahComplianceScreen({super.key});
@@ -127,7 +129,9 @@ class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
     final Color surfaceColor =
         isDarkMode ? const Color(0xFF111827) : Colors.white;
 
-    return CallbackShortcuts(
+    return FeatureGuard(
+      featureKey: FeatureKeys.shariahCompliance,
+      child: CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape): _closeScreen,
       },
@@ -403,6 +407,7 @@ class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

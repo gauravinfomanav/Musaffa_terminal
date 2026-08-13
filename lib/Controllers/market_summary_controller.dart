@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/Screens/sector_details_screen.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
 class MarketSummaryDefaults {
   String? displayName;
@@ -158,8 +160,10 @@ class MarketSummaryController extends GetxController {
         var sectorCell = DataCell(
           GestureDetector(
             onTap: () {
-              // Navigate to sector details screen
-              Get.to(() => SectorDetailsScreen(sectorName: sector));
+              FeatureNavigation.toIfAllowed(
+                FeatureKeys.sectorDetails,
+                () => SectorDetailsScreen(sectorName: sector),
+              );
             },
             child: Container(
               padding: EdgeInsets.only(right: 12),
@@ -228,5 +232,18 @@ class MarketSummaryController extends GetxController {
 
   void refreshData() {
     fetchMarketSummaryData();
+  }
+
+  /// Estimated full height of the "Previous day closing data" table widget
+  /// (title + spacing + padded table body). Matches [MarketSummaryDynamicTable].
+  double estimatedTableWidgetHeight(double screenWidth) {
+    final bool isLargeScreen = screenWidth >= 1600;
+    final dataRowMaxHeight = isLargeScreen ? 33.0 : 28.0;
+    final rowCount = dataRows.isEmpty ? 11 : dataRows.length;
+    final tableBodyHeight = 24 + (rowCount * dataRowMaxHeight) + 1;
+    const titleHeight = 28.0;
+    const titleSpacing = 12.0;
+    const containerPadding = 16.0; // EdgeInsets.all(8) top + bottom
+    return titleHeight + titleSpacing + containerPadding + tableBodyHeight;
   }
 }

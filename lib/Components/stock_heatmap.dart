@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
+import 'package:musaffa_terminal/utils/platform_capabilities.dart';
+import 'package:musaffa_terminal/Components/windows_html_webview.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -110,7 +112,7 @@ class StockHeatmap extends StatefulWidget {
 
 class _StockHeatmapState extends State<StockHeatmap> 
     with AutomaticKeepAliveClientMixin {
-  late WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
   Brightness? _currentLoadedBrightness;
   bool _isWebViewInitialized = false;
@@ -173,6 +175,11 @@ class _StockHeatmapState extends State<StockHeatmap>
   }
 
   void _initializeWebView() {
+    if (!PlatformCapabilities.isWebViewFlutterSupported) {
+      _isLoading = false;
+      return;
+    }
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       
@@ -269,6 +276,9 @@ class _StockHeatmapState extends State<StockHeatmap>
   }
 
   void _loadWebViewContent() {
+    final controller = _controller;
+    if (controller == null) return;
+
     final Brightness currentBrightness = Theme.of(context).brightness;
 
     if (currentBrightness != _currentLoadedBrightness) {
@@ -283,7 +293,7 @@ class _StockHeatmapState extends State<StockHeatmap>
           base64Encode(const Utf8Encoder().convert(htmlContent));
       final String dataUrl = 'data:text/html;base64,$contentBase64';
 
-      _controller.loadRequest(Uri.parse(dataUrl)).then((_) {
+      controller.loadRequest(Uri.parse(dataUrl)).then((_) {
         if (mounted) {
           _currentLoadedBrightness = currentBrightness;
         }
@@ -353,7 +363,12 @@ class _StockHeatmapState extends State<StockHeatmap>
                 children: [
                   Padding(
                     padding: StockHeatmapConstants.contentPadding,
-                    child: WebViewWidget(controller: _controller),
+                    child: AdaptiveHtmlWebView(
+                      html: _generateStockHeatmapHtml(
+                        isDarkMode ? 'dark' : 'light',
+                      ),
+                      flutterController: _controller,
+                    ),
                   ),
                   if (_isLoading)
                     Center(
@@ -565,7 +580,7 @@ class EtfHeatmap extends StatefulWidget {
 }
 
 class _EtfHeatmapState extends State<EtfHeatmap> with AutomaticKeepAliveClientMixin {
-  late WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
   Brightness? _loadedBrightness;
 
@@ -575,6 +590,10 @@ class _EtfHeatmapState extends State<EtfHeatmap> with AutomaticKeepAliveClientMi
   @override
   void initState() {
     super.initState();
+    if (!PlatformCapabilities.isWebViewFlutterSupported) {
+      _isLoading = false;
+      return;
+    }
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -594,12 +613,14 @@ class _EtfHeatmapState extends State<EtfHeatmap> with AutomaticKeepAliveClientMi
   }
 
   void _load() {
+    final controller = _controller;
+    if (controller == null) return;
     final brightness = Theme.of(context).brightness;
     final colorTheme = brightness == Brightness.dark ? 'dark' : 'light';
     if (_loadedBrightness == brightness) return;
     final html = _buildHtml(colorTheme);
     final b64 = base64Encode(const Utf8Encoder().convert(html));
-    _controller.loadRequest(Uri.parse('data:text/html;base64,$b64'));
+    controller.loadRequest(Uri.parse('data:text/html;base64,$b64'));
     _loadedBrightness = brightness;
   }
 
@@ -678,7 +699,10 @@ class _EtfHeatmapState extends State<EtfHeatmap> with AutomaticKeepAliveClientMi
           width: double.infinity,
           child: Stack(
             children: [
-              WebViewWidget(controller: _controller),
+              AdaptiveHtmlWebView(
+                html: _buildHtml(isDarkMode ? 'dark' : 'light'),
+                flutterController: _controller,
+              ),
               if (_isLoading)
                 Center(
                   child: CircularProgressIndicator(
@@ -865,7 +889,7 @@ class CryptoHeatmap extends StatefulWidget {
 }
 
 class _CryptoHeatmapState extends State<CryptoHeatmap> with AutomaticKeepAliveClientMixin {
-  late WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
   Brightness? _loadedBrightness;
   @override
@@ -873,6 +897,10 @@ class _CryptoHeatmapState extends State<CryptoHeatmap> with AutomaticKeepAliveCl
   @override
   void initState() {
     super.initState();
+    if (!PlatformCapabilities.isWebViewFlutterSupported) {
+      _isLoading = false;
+      return;
+    }
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
@@ -892,7 +920,7 @@ class _CryptoHeatmapState extends State<CryptoHeatmap> with AutomaticKeepAliveCl
     final theme = b == Brightness.dark ? 'dark' : 'light';
     final html = _cryptoHtml(theme);
     final b64 = base64Encode(const Utf8Encoder().convert(html));
-    _controller.loadRequest(Uri.parse('data:text/html;base64,$b64'));
+    _controller?.loadRequest(Uri.parse('data:text/html;base64,$b64'));
     _loadedBrightness = b;
   }
   String _cryptoHtml(String theme) {
@@ -913,7 +941,10 @@ class _CryptoHeatmapState extends State<CryptoHeatmap> with AutomaticKeepAliveCl
         SizedBox(height: StockHeatmapConstants.titleSpacing),
       ],
       SizedBox(height: h, width: double.infinity, child: Stack(children: [
-        WebViewWidget(controller: _controller),
+        AdaptiveHtmlWebView(
+          html: _cryptoHtml(isDark ? 'dark' : 'light'),
+          flutterController: _controller,
+        ),
         if (_isLoading) Center(child: CircularProgressIndicator(color: isDark ? Colors.white : Colors.black)),
       ])),
     ]);
@@ -932,7 +963,7 @@ class ForexHeatmap extends StatefulWidget {
 }
 
 class _ForexHeatmapState extends State<ForexHeatmap> with AutomaticKeepAliveClientMixin {
-  late WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
   Brightness? _loadedBrightness;
   @override
@@ -940,6 +971,10 @@ class _ForexHeatmapState extends State<ForexHeatmap> with AutomaticKeepAliveClie
   @override
   void initState() {
     super.initState();
+    if (!PlatformCapabilities.isWebViewFlutterSupported) {
+      _isLoading = false;
+      return;
+    }
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
@@ -956,12 +991,16 @@ class _ForexHeatmapState extends State<ForexHeatmap> with AutomaticKeepAliveClie
   void _load() {
     final b = Theme.of(context).brightness;
     if (_loadedBrightness == b) return;
-    final theme = b == Brightness.dark ? 'dark' : 'light';
-    final bg = b == Brightness.dark ? '#0F0F0F' : '#FFFFFF';
-    final html = '''<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><style>html,body{margin:0;padding:0;height:100%;width:100%;background:${bg}}.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}.tradingview-widget-copyright{display:none!important}</style></head><body><div class=tradingview-widget-container><div class=tradingview-widget-container__widget></div><script type=text/javascript src=https://s3.tradingview.com/external-embedding/embed-widget-forex-heat-map.js async>{"colorTheme":"${theme}","isTransparent":false,"locale":"en","currencies":["EUR","USD","JPY","GBP","CHF","AUD","CAD","NZD","CNY","TRY","NOK","SEK","DKK","ZAR","HKD","SGD"],"backgroundColor":"${bg}","width":"100%","height":"100%"}</script></div></body></html>''';
+    final html = _forexHtml(b == Brightness.dark);
     final b64 = base64Encode(const Utf8Encoder().convert(html));
-    _controller.loadRequest(Uri.parse('data:text/html;base64,$b64'));
+    _controller?.loadRequest(Uri.parse('data:text/html;base64,$b64'));
     _loadedBrightness = b;
+  }
+
+  String _forexHtml(bool isDark) {
+    final theme = isDark ? 'dark' : 'light';
+    final bg = isDark ? '#0F0F0F' : '#FFFFFF';
+    return '''<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><style>html,body{margin:0;padding:0;height:100%;width:100%;background:${bg}}.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}.tradingview-widget-copyright{display:none!important}</style></head><body><div class=tradingview-widget-container><div class=tradingview-widget-container__widget></div><script type=text/javascript src=https://s3.tradingview.com/external-embedding/embed-widget-forex-heat-map.js async>{"colorTheme":"${theme}","isTransparent":false,"locale":"en","currencies":["EUR","USD","JPY","GBP","CHF","AUD","CAD","NZD","CNY","TRY","NOK","SEK","DKK","ZAR","HKD","SGD"],"backgroundColor":"${bg}","width":"100%","height":"100%"}</script></div></body></html>''';
   }
   @override
   void didChangeDependencies() { super.didChangeDependencies(); _load(); }
@@ -977,7 +1016,10 @@ class _ForexHeatmapState extends State<ForexHeatmap> with AutomaticKeepAliveClie
         SizedBox(height: StockHeatmapConstants.titleSpacing),
       ],
       SizedBox(height: h, width: double.infinity, child: Stack(children: [
-        WebViewWidget(controller: _controller),
+        AdaptiveHtmlWebView(
+          html: _forexHtml(isDark),
+          flutterController: _controller,
+        ),
         if (_isLoading) Center(child: CircularProgressIndicator(color: isDark ? Colors.white : Colors.black)),
       ])),
     ]);

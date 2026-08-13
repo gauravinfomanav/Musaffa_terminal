@@ -6,6 +6,7 @@ class AuthUser {
   final bool? registered;
   final String? createdAt;
   final String? lastLoginAt;
+  final Map<String, dynamic>? features;
 
   const AuthUser({
     required this.id,
@@ -15,9 +16,18 @@ class AuthUser {
     this.registered,
     this.createdAt,
     this.lastLoginAt,
+    this.features,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic>? features;
+    final rawFeatures = json['features'];
+    if (rawFeatures is Map<String, dynamic>) {
+      features = rawFeatures;
+    } else if (rawFeatures is Map) {
+      features = Map<String, dynamic>.from(rawFeatures);
+    }
+
     return AuthUser(
       id: json['id']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
@@ -28,6 +38,7 @@ class AuthUser {
           : null,
       createdAt: json['created_at']?.toString(),
       lastLoginAt: json['last_login_at']?.toString(),
+      features: features,
     );
   }
 
@@ -40,6 +51,7 @@ class AuthUser {
       'registered': registered,
       'created_at': createdAt,
       'last_login_at': lastLoginAt,
+      if (features != null) 'features': features,
     };
   }
 }

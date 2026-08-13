@@ -100,7 +100,7 @@ class FinancialStatementsController extends GetxController {
 
   // Structured mapping for Cash Flow (cf)
   final Map<String, dynamic> cashFlowMapping = {
-  'netIncome': 'Net Income',
+  'netIncomeStartingLine': 'Net Income',
 
   'netOperatingCashFlow': {
     'label': 'Net Cash from Operating Activities',
@@ -149,8 +149,19 @@ class FinancialStatementsController extends GetxController {
     }
   }
 
-  // Recursive function to process nested mappings
- 
+  Map<String, dynamic> _normalizeStatementRow(Map<String, dynamic> row) {
+    final normalized = Map<String, dynamic>.from(row);
+    // RisePython CF uses netIncomeStartingLine; keep netIncome as fallback alias.
+    if (normalized['netIncome'] == null &&
+        normalized['netIncomeStartingLine'] != null) {
+      normalized['netIncome'] = normalized['netIncomeStartingLine'];
+    }
+    if (normalized['netIncomeStartingLine'] == null &&
+        normalized['netIncome'] != null) {
+      normalized['netIncomeStartingLine'] = normalized['netIncome'];
+    }
+    return normalized;
+  }
 
 Future<void> fetchFinancialReport(String symbol, String reportType) async {
   try {
@@ -159,38 +170,30 @@ Future<void> fetchFinancialReport(String symbol, String reportType) async {
     // Get the appropriate structured mapping based on reportType
     Map<String, dynamic> structuredMapping = _getStructuredMapping(reportType);
 
-    Map<String, dynamic> params = {
-      'q': '*',
-      'filter_by': 'company_symbol:$symbol&&freq:annual',
-      'page': '1',
-      'per_page': '250'
-    };
-
-    final response = await WebService.getTypesense_infomanav(
-      ['collections', 'financial_statements_1', 'documents', 'search'],
-      params,
+    final response = await WebService.getFinancialStatements(
+      symbol: symbol,
+      statement: reportType,
+      freq: 'annual',
     );
 
     if (response.statusCode == 200) {
-      // print("Raw Response: ${response.body}");
       final decodedData = jsonDecode(response.body) as Map<String, dynamic>?;
+      final rows = decodedData?['financials'];
 
-      if (decodedData == null || decodedData['hits'] == null) {
+      if (decodedData == null || rows is! List || rows.isEmpty) {
         financialData.clear();
         years.clear();
         return;
       }
 
-      List<dynamic> hits = decodedData['hits'] as List<dynamic>;
       Set<String> uniqueYears = {};
-
-      // Collect raw data by year
       Map<String, Map<String, dynamic>> dataByYear = {};
 
-      for (var hit in hits) {
-        var dataItem = hit['document'] ?? hit;
-        String year = dataItem['year']?.toString() ?? '';
-
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final dataItem =
+            _normalizeStatementRow(Map<String, dynamic>.from(row));
+        final year = dataItem['year']?.toString() ?? '';
         if (year.isEmpty) continue;
 
         uniqueYears.add(year);
@@ -198,7 +201,8 @@ Future<void> fetchFinancialReport(String symbol, String reportType) async {
       }
 
       // Process data and build the model
-      List<FinancialStatementModel> newData = _processFinancialData(dataByYear, structuredMapping);
+      List<FinancialStatementModel> newData =
+          _processFinancialData(dataByYear, structuredMapping);
 
       financialData.assignAll(newData);
       years.assignAll(uniqueYears.toList()..sort());

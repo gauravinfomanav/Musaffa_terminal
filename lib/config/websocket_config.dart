@@ -1,5 +1,7 @@
+import 'package:musaffa_terminal/config/api_config.dart';
+
 class WebSocketConfig {
-  static const String baseUrl = 'ws://risepython.infomanav.in:6003/ws/price';
+  static const String baseUrl = ApiConfig.priceWebSocketUrl;
   
   // Connection settings
   static const Duration connectionTimeout = Duration(seconds: 10);
