@@ -4,7 +4,7 @@ import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
 import 'package:musaffa_terminal/models/fund_ownership_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
 class TickerFundOwnershipSection extends StatelessWidget {
@@ -51,9 +51,10 @@ class TickerFundOwnershipSection extends StatelessWidget {
                   message: controller.error ?? 'No fund ownership data found',
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: onRetry,
-                  child: const Text('Retry'),
+                HomeUi.ghostAction(
+                  label: 'Retry',
+                  onTap: onRetry,
+                  dark: isDarkMode,
                 ),
               ],
             ),
@@ -101,7 +102,7 @@ class TickerFundOwnershipSection extends StatelessWidget {
           final num positionValue = item.share * (currentPrice ?? 0);
           return SimpleRowModel(
             symbol: item.name,
-            name: item.name,
+            name: '',
             fields: <String, dynamic>{
               'share': _compact(item.share),
               'prevShare': prevShare > 0 ? _compact(prevShare) : '--',
@@ -123,39 +124,32 @@ class TickerFundOwnershipSection extends StatelessWidget {
               'filingDate': FinnhubDisplayFormatters.formatDate(item.filingDate),
             },
             changeColor: item.change > 0
-                ? Colors.green.shade600
+                ? HomeUi.positive(isDarkMode)
                 : item.change < 0
-                    ? Colors.red.shade600
+                    ? HomeUi.negative(isDarkMode)
                     : null,
           );
         }).toList();
 
-        return TickerFinnhubSectionCard(
-          isDarkMode: isDarkMode,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const TickerFinnhubSectionTitle(title: 'Fund Ownership'),
-              const SizedBox(height: 12),
-              DynamicTable(
-                title: 'Top Funds',
-                columns: columns,
-                rows: rows,
-                showFixedColumn: true,
-                tickerHeaderLabel: 'FUND',
-                considerPadding: false,
-                columnSpacing: 10,
-                fixedColumnWidth: 220,
-                enableLivePrices: false,
-                zebraStripes: false,
-                enableColumnCustomization: true,
-                tableId: 'fund_ownership_table',
-                showColumnActionMenu: true,
-                showColumnResizeHandle: true,
-                compactHeaderText: true,
-              ),
-            ],
-          ),
+        return DynamicTable(
+          title: 'Fund Ownership',
+          subtitle: 'Largest reported holders',
+          toolbarLeadingIcon: Icons.account_balance_outlined,
+          showOuterShadow: true,
+          columns: columns,
+          rows: rows,
+          showFixedColumn: true,
+          tickerHeaderLabel: 'FUND',
+          considerPadding: false,
+          columnSpacing: 10,
+          fixedColumnWidth: 248,
+          enableLivePrices: false,
+          zebraStripes: true,
+          enableColumnCustomization: true,
+          tableId: 'fund_ownership_table',
+          showColumnActionMenu: true,
+          showColumnResizeHandle: true,
+          compactHeaderText: true,
         );
       },
     );

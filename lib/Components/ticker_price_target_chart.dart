@@ -4,7 +4,7 @@ import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/models/price_target_chart_model.dart';
 import 'package:musaffa_terminal/models/price_target_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class TickerPriceTargetChart extends StatelessWidget {
@@ -22,43 +22,45 @@ class TickerPriceTargetChart extends StatelessWidget {
   static final DateFormat _axisDateFormat = DateFormat('MMM yy');
   static final DateFormat _tooltipDateFormat = DateFormat('MMM d, yyyy');
 
+  static const Color _brandOrange = Color(0xFFE4621E);
+  static const Color _brandPurple = Color(0xFF6A2C72);
+
   @override
   Widget build(BuildContext context) {
-    final Color axisColor =
-        isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-    final Color textColor =
-        isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final Color historicalColor =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
-    const Color highColor = Color(0xFF22C55E);
-    const Color meanColor = Color(0xFFF59E0B);
-    const Color lowColor = Color(0xFFEF4444);
+    final Color axisColor = HomeUi.borderLight(isDarkMode);
+    final TextStyle axisLabelStyle = HomeUi.subtitle(isDarkMode).copyWith(
+      fontSize: 11,
+      height: 1.15,
+      fontWeight: FontWeight.w500,
+    );
+    final Color historicalColor = _brandOrange;
+    final Color highColor = HomeUi.positive(isDarkMode);
+    final Color meanColor = _brandPurple;
+    final Color lowColor = HomeUi.negative(isDarkMode);
 
     return SizedBox(
-      height: 280,
+      height: 300,
       child: SfCartesianChart(
         plotAreaBorderWidth: 0,
-        margin: const EdgeInsets.only(top: 4, right: 8),
+        margin: const EdgeInsets.fromLTRB(4, 8, 12, 0),
         legend: Legend(
           isVisible: true,
           position: LegendPosition.top,
           overflowMode: LegendItemOverflowMode.wrap,
           toggleSeriesVisibility: true,
-          textStyle: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w400,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: textColor,
+          padding: 0,
+          itemPadding: 12,
+          iconHeight: 10,
+          iconWidth: 18,
+          textStyle: HomeUi.tableCellSecondary(isDarkMode).copyWith(
+            fontSize: 12,
           ),
         ),
         tooltipBehavior: TooltipBehavior(
           enable: true,
-          color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFF374151),
-          textStyle: const TextStyle(
-            fontSize: 10,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: Colors.white,
-          ),
+          color: Colors.transparent,
+          borderColor: Colors.transparent,
+          elevation: 0,
           builder: (
             dynamic data,
             dynamic point,
@@ -74,20 +76,18 @@ class TickerPriceTargetChart extends StatelessWidget {
               .subtract(const Duration(days: 14)),
           maximum: chartData.forecastEndDate.add(const Duration(days: 14)),
           dateFormat: _axisDateFormat,
-          majorGridLines: MajorGridLines(color: axisColor.withOpacity(0.3)),
-          axisLine: AxisLine(color: axisColor),
-          labelStyle: TextStyle(
-            fontSize: 10,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: textColor,
-          ),
+          majorGridLines: const MajorGridLines(width: 0),
+          majorTickLines: const MajorTickLines(size: 0),
+          axisLine: AxisLine(width: 1, color: axisColor),
+          labelStyle: axisLabelStyle,
+          labelIntersectAction: AxisLabelIntersectAction.none,
           plotBands: <PlotBand>[
             PlotBand(
               isVisible: true,
               start: chartData.anchorDate,
               end: chartData.anchorDate,
               borderWidth: 1,
-              borderColor: textColor.withOpacity(0.45),
+              borderColor: HomeUi.borderStrong(isDarkMode),
               dashArray: const <double>[4, 4],
             ),
           ],
@@ -95,22 +95,10 @@ class TickerPriceTargetChart extends StatelessWidget {
         primaryYAxis: NumericAxis(
           minimum: chartData.yMin,
           maximum: chartData.yMax,
-          title: AxisTitle(
-            text: 'Stock Price',
-            textStyle: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: textColor,
-            ),
-          ),
-          majorGridLines: MajorGridLines(color: axisColor.withOpacity(0.3)),
-          axisLine: AxisLine(color: axisColor),
-          labelStyle: TextStyle(
-            fontSize: 10,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: textColor,
-          ),
+          majorGridLines: const MajorGridLines(width: 0),
+          majorTickLines: const MajorTickLines(size: 0),
+          axisLine: AxisLine(width: 1, color: axisColor),
+          labelStyle: axisLabelStyle,
           axisLabelFormatter: (AxisLabelRenderDetails details) {
             return ChartAxisLabel(
               '\$${details.value.toStringAsFixed(0)}',
@@ -119,14 +107,24 @@ class TickerPriceTargetChart extends StatelessWidget {
           },
         ),
         series: <CartesianSeries<dynamic, DateTime>>[
-          LineSeries<PriceDataPoint, DateTime>(
+          SplineAreaSeries<PriceDataPoint, DateTime>(
             name: 'Historical Price',
             dataSource: chartData.historical,
             xValueMapper: (PriceDataPoint point, _) => point.date,
             yValueMapper: (PriceDataPoint point, _) => point.value,
-            color: historicalColor,
-            width: 2,
+            borderWidth: 2.5,
+            borderColor: historicalColor,
+            color: historicalColor.withValues(alpha: 0.12),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                historicalColor.withValues(alpha: isDarkMode ? 0.32 : 0.22),
+                _brandPurple.withValues(alpha: isDarkMode ? 0.08 : 0.03),
+              ],
+            ),
             markerSettings: const MarkerSettings(isVisible: false),
+            legendIconType: LegendIconType.horizontalLine,
           ),
           if (chartData.targetHigh.isNotEmpty)
             LineSeries<PriceTargetForecastPoint, DateTime>(
@@ -138,29 +136,6 @@ class TickerPriceTargetChart extends StatelessWidget {
               width: 2,
               dashArray: const <double>[6, 4],
               markerSettings: const MarkerSettings(isVisible: false),
-              dataLabelSettings: DataLabelSettings(
-                isVisible: true,
-                labelAlignment: ChartDataLabelAlignment.outer,
-                builder: (
-                  dynamic data,
-                  ChartPoint<dynamic> point,
-                  ChartSeries<dynamic, dynamic> series,
-                  int pointIndex,
-                  int seriesIndex,
-                ) {
-                  final PriceTargetForecastPoint? item =
-                      data is PriceTargetForecastPoint ? data : null;
-                  if (item == null || !item.isEndPoint) {
-                    return const SizedBox.shrink();
-                  }
-                  return _buildEndLabel(
-                    label: 'High',
-                    price: item.price,
-                    color: highColor,
-                    isDarkMode: isDarkMode,
-                  );
-                },
-              ),
             ),
           if (chartData.targetMean.isNotEmpty)
             LineSeries<PriceTargetForecastPoint, DateTime>(
@@ -172,29 +147,6 @@ class TickerPriceTargetChart extends StatelessWidget {
               width: 2,
               dashArray: const <double>[6, 4],
               markerSettings: const MarkerSettings(isVisible: false),
-              dataLabelSettings: DataLabelSettings(
-                isVisible: true,
-                labelAlignment: ChartDataLabelAlignment.outer,
-                builder: (
-                  dynamic data,
-                  ChartPoint<dynamic> point,
-                  ChartSeries<dynamic, dynamic> series,
-                  int pointIndex,
-                  int seriesIndex,
-                ) {
-                  final PriceTargetForecastPoint? item =
-                      data is PriceTargetForecastPoint ? data : null;
-                  if (item == null || !item.isEndPoint) {
-                    return const SizedBox.shrink();
-                  }
-                  return _buildEndLabel(
-                    label: 'Mean',
-                    price: item.price,
-                    color: meanColor,
-                    isDarkMode: isDarkMode,
-                  );
-                },
-              ),
             ),
           if (chartData.targetLow.isNotEmpty)
             LineSeries<PriceTargetForecastPoint, DateTime>(
@@ -206,87 +158,45 @@ class TickerPriceTargetChart extends StatelessWidget {
               width: 2,
               dashArray: const <double>[6, 4],
               markerSettings: const MarkerSettings(isVisible: false),
-              dataLabelSettings: DataLabelSettings(
-                isVisible: true,
-                labelAlignment: ChartDataLabelAlignment.outer,
-                builder: (
-                  dynamic data,
-                  ChartPoint<dynamic> point,
-                  ChartSeries<dynamic, dynamic> series,
-                  int pointIndex,
-                  int seriesIndex,
-                ) {
-                  final PriceTargetForecastPoint? item =
-                      data is PriceTargetForecastPoint ? data : null;
-                  if (item == null || !item.isEndPoint) {
-                    return const SizedBox.shrink();
-                  }
-                  return _buildEndLabel(
-                    label: 'Low',
-                    price: item.price,
-                    color: lowColor,
-                    isDarkMode: isDarkMode,
-                  );
-                },
-              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildEndLabel({
-    required String label,
-    required double price,
-    required Color color,
-    required bool isDarkMode,
-  }) {
-    return Text(
-      '$label\n\$${price.toStringAsFixed(2)}',
-      textAlign: TextAlign.left,
-      style: TextStyle(
-        fontSize: 10,
-        fontWeight: FontWeight.w500,
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        color: color,
-        height: 1.2,
+  Widget _buildTooltip(dynamic data) {
+    String title;
+    String body;
+    if (data is PriceDataPoint) {
+      title = _tooltipDateFormat.format(data.date);
+      body = 'Close  \$${data.value.toStringAsFixed(2)}';
+    } else if (data is PriceTargetForecastPoint && data.isEndPoint) {
+      title = data.targetType;
+      body =
+          'Target  \$${data.price.toStringAsFixed(2)}\n'
+          'Analysts  ${data.numberAnalysts}\n'
+          'Updated  ${FinnhubDisplayFormatters.formatDate(data.lastUpdated)}';
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: HomeUi.cardBg(isDarkMode),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+        boxShadow: HomeUi.cardShadow(isDarkMode),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(title, style: HomeUi.tableCellSecondary(isDarkMode)),
+          const SizedBox(height: 6),
+          Text(body, style: HomeUi.tableCellEmphasis(isDarkMode)),
+        ],
       ),
     );
-  }
-
-  Widget _buildTooltip(dynamic data) {
-    if (data is PriceDataPoint) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Text(
-          'Date: ${_tooltipDateFormat.format(data.date)}\n'
-          'Closing Price: \$${data.value.toStringAsFixed(2)}',
-          style: const TextStyle(
-            fontSize: 10,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: Colors.white,
-          ),
-        ),
-      );
-    }
-
-    if (data is PriceTargetForecastPoint && data.isEndPoint) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Text(
-          'Target Type: ${data.targetType}\n'
-          'Target Price: \$${data.price.toStringAsFixed(2)}\n'
-          'Analysts: ${data.numberAnalysts}\n'
-          'Last Updated: ${FinnhubDisplayFormatters.formatDate(data.lastUpdated)}',
-          style: const TextStyle(
-            fontSize: 10,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            color: Colors.white,
-          ),
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
   }
 }

@@ -1,12 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/ticker_eps_surprise_chart.dart';
+import 'package:musaffa_terminal/Components/ticker_earnings_compact_chart.dart';
 import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
 import 'package:musaffa_terminal/Controllers/ticker_earnings_controller.dart';
 import 'package:musaffa_terminal/models/earnings_calendar_entry.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class TickerUpcomingEarningsCard extends StatelessWidget {
   const TickerUpcomingEarningsCard({
@@ -15,37 +14,16 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
     required this.isDarkMode,
   });
 
-  static const double _cardPadding = 24;
-  static const double _tableHeaderHeight = 30;
-  static const double _tableRowHeight = 26;
-
   final TickerEarningsController controller;
   final bool isDarkMode;
 
-  static double containerHeightForRows(int rowCount) {
-    return _cardPadding + _tableHeaderHeight + rowCount * _tableRowHeight;
-  }
-
-  int _maxTableRows(
-    EarningsCalendarEntry? upcoming,
-    EarningsCalendarEntry? previous,
-  ) {
-    final int nextRows = upcoming != null ? _nextEarningsRows(upcoming).length : 0;
-    final int previousRows =
-        previous != null ? _previousEarningsRows(previous).length : 0;
-    return math.max(nextRows, previousRows);
-  }
-
-  Widget _sizedCard({
-    required double height,
-    required Widget child,
-  }) {
+  Widget _card({required Widget child}) {
     return SizedBox(
-      height: height,
+      height: TickerEarningsCompactChart.cardHeight,
       child: TickerFinnhubSectionCard(
         isDarkMode: isDarkMode,
         child: Align(
-          alignment: Alignment.topCenter,
+          alignment: Alignment.topLeft,
           child: child,
         ),
       ),
@@ -73,31 +51,23 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
         }
 
         final List<Widget> rowChildren = <Widget>[];
-        final int tableRows = _maxTableRows(upcoming, previous);
-        final double? sharedHeight = tableRows > 0
-            ? containerHeightForRows(tableRows)
-            : null;
 
         if (isLoadingCalendar) {
-          final double loadingHeight =
-              sharedHeight ?? containerHeightForRows(6);
           rowChildren.addAll(<Widget>[
             Expanded(
-              child: _sizedCard(
-                height: loadingHeight,
+              child: _card(
                 child: TickerFinnhubLoadingState(
                   isDarkMode: isDarkMode,
-                  height: loadingHeight - _cardPadding,
+                  height: TickerEarningsCompactChart.cardHeight - 32,
                 ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: _sizedCard(
-                height: loadingHeight,
+              child: _card(
                 child: TickerFinnhubLoadingState(
                   isDarkMode: isDarkMode,
-                  height: loadingHeight - _cardPadding,
+                  height: TickerEarningsCompactChart.cardHeight - 32,
                 ),
               ),
             ),
@@ -106,8 +76,7 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
           if (upcoming != null) {
             rowChildren.add(
               Expanded(
-                child: _sizedCard(
-                  height: sharedHeight!,
+                child: _card(
                   child: _buildCompactTable(
                     'Next Earnings',
                     _nextEarningsRows(upcoming),
@@ -124,8 +93,7 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
             }
             rowChildren.add(
               Expanded(
-                child: _sizedCard(
-                  height: sharedHeight!,
+                child: _card(
                   child: _buildCompactTable(
                     'Previous Earnings',
                     _previousEarningsRows(previous),
@@ -147,7 +115,6 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
                 surprises: controller.chartSurprises,
                 isDarkMode: isDarkMode,
                 isLoading: isLoadingSurprises,
-                containerHeight: sharedHeight,
               ),
             ),
           );
@@ -215,61 +182,32 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(6),
-              topRight: Radius.circular(6),
-            ),
-          ),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-            ),
-          ),
+        HomeUi.tableToolbarHeader(
+          isDarkMode,
+          icon: Icons.event_outlined,
+          title: title,
         ),
-        ...data.map(
-          (List<String> row) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: (isDarkMode
-                          ? const Color(0xFF404040)
-                          : const Color(0xFFE5E7EB))
-                      .withOpacity(0.3),
-                  width: 0.5,
-                ),
-              ),
-            ),
+        const SizedBox(height: 14),
+        ...List<Widget>.generate(data.length, (int index) {
+          final List<String> row = data[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                Text(
-                  row[0],
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
+                Expanded(
+                  child: Text(
+                    row[0],
+                    style: HomeUi.tableCellSecondary(isDarkMode),
                   ),
                 ),
                 Text(
                   row[1],
-                  style: DashboardTextStyles.dataCell.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                  ),
+                  style: HomeUi.tableCellEmphasis(isDarkMode),
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        }),
       ],
     );
   }

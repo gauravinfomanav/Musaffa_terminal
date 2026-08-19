@@ -55,6 +55,14 @@ dependencies:
   url_launcher: ^6.2.5
   webview_windows: ^0.4.0
 
+# ATL (atlstr.h) is not present in VS Build Tools 2026 by default.
+# Use a local Windows plugin that converts strings with Win32 APIs instead.
+dependency_overrides:
+  flutter_secure_storage_windows:
+    path: packages/flutter_secure_storage_windows
+  webview_windows:
+    path: packages/webview_windows
+
 
 
 dev_dependencies:
@@ -102,6 +110,16 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
+    - family: Inter
+      fonts:
+        - asset: resources/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: resources/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: resources/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: resources/fonts/Inter-Bold.ttf
+          weight: 700
     - family: Poppins
       fonts:
         - asset: resources/fonts/Poppins-Thin.ttf

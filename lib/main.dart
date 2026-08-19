@@ -17,7 +17,9 @@ import 'services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+  FocusManager.instance.highlightStrategy =
+      FocusHighlightStrategy.alwaysTraditional;
+
   // Initialize FCM in background - don't block app startup
   FCMService.initialize().catchError((e) {
     print('⚠️  FCM initialization failed (non-blocking): $e');
@@ -33,22 +35,29 @@ class MyApp extends StatelessWidget {
     return GlobalKeyboardShortcutsWrapper(
       child: GetMaterialApp(
         title: 'Infomanav Terminal',
-        theme: ThemeData(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          primarySwatch: Colors.blue,
-          brightness: Brightness.light,
-        ),
-        darkTheme: ThemeData(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          primarySwatch: Colors.blue,
-          brightness: Brightness.dark,
-        ),
+        theme: _terminalTheme(Brightness.light),
+        darkTheme: _terminalTheme(Brightness.dark),
         themeMode: ThemeMode.light, // Set default to light mode
         home: const AuthGate(),
         initialBinding: AppBinding(),
       ),
     );
   }
+}
+
+ThemeData _terminalTheme(Brightness brightness) {
+  return ThemeData(
+    fontFamily: Constants.FONT_DEFAULT_NEW,
+    fontFamilyFallback: Constants.FONT_FALLBACK,
+    primarySwatch: Colors.blue,
+    brightness: brightness,
+    splashFactory: NoSplash.splashFactory,
+    highlightColor: Colors.transparent,
+    splashColor: Colors.transparent,
+    hoverColor: Colors.transparent,
+    focusColor: Colors.transparent,
+    visualDensity: VisualDensity.compact,
+  );
 }
 
 class AppBinding extends Bindings {

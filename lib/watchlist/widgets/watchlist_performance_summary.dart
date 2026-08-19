@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/Controllers/portfolio_backtest_controller.dart';
 import 'package:musaffa_terminal/models/backtest_models.dart';
 import 'package:intl/intl.dart';
@@ -37,21 +37,41 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
 
   @override
   Widget build(BuildContext context) {
-    print('WatchlistPerformanceSummary: Building with ${widget.tableData.length} items');
     if (widget.tableData.isEmpty) {
       return _buildEmptyState();
     }
 
     final performanceData = _calculatePerformanceMetrics();
 
-    return Column(
-      children: [
-        _buildPerformanceSummary(performanceData, widget.isDarkMode),
-        if (_showPastPerformance) ...[
-          const SizedBox(height: 12),
-          _buildPastPerformanceResults(),
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: Column(
+        children: [
+          _buildPerformanceSummary(performanceData, widget.isDarkMode),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SizeTransition(
+                sizeFactor: animation,
+                axisAlignment: -1,
+                child: child,
+              ),
+            ),
+            child: _showPastPerformance
+                ? Padding(
+                    key: const ValueKey('past-performance'),
+                    padding: const EdgeInsets.only(top: 12),
+                    child: _buildPastPerformanceResults(),
+                  )
+                : const SizedBox.shrink(key: ValueKey('past-performance-hidden')),
+          ),
         ],
-      ],
+      ),
     );
   }
 
@@ -125,270 +145,103 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
     final near52WeekHigh = data['near52WeekHigh'] as int;
 
     final isPositivePL = totalDayPL >= 0;
-    final plColor = isPositivePL ? Colors.green.shade600 : Colors.red.shade600;
+    final plColor =
+        isPositivePL ? HomeUi.positive(isDarkMode) : HomeUi.negative(isDarkMode);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 3,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Performance Summary',
-                style: DashboardTextStyles.columnHeader.copyWith(
-                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _showPastPerformance = !_showPastPerformance;
-                  });
-                  if (_showPastPerformance) {
-                    _showDatePicker();
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.history,
-                        size: 12,
-                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Past Performance',
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+    return Container(
+      decoration: HomeUi.cardDecoration(isDarkMode),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 14, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: HomeUi.tableToolbarHeader(
+                    isDarkMode,
+                    icon: Icons.insights_outlined,
+                    title: 'Performance Summary',
+                    subtitleText: 'Live day metrics for this watchlist',
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        // Performance metrics
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
+                const SizedBox(width: 8),
+                _PastPerformanceToggle(
+                  isDarkMode: isDarkMode,
+                  isActive: _showPastPerformance,
+                  onTap: () {
+                    setState(() => _showPastPerformance = !_showPastPerformance);
+                    if (_showPastPerformance) {
+                      _showDatePicker();
+                    }
+                  },
+                ),
+              ],
             ),
           ),
-          child: Column(
-            children: [
-              // Day P&L
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Day P&L:',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 13,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
+              children: [
+                _PlHeroBand(
+                  isDark: isDarkMode,
+                  isPositive: isPositivePL,
+                  amount:
+                      '${isPositivePL ? '+' : ''}\$${totalDayPL.toStringAsFixed(2)}',
+                  percent:
+                      '${isPositivePL ? '+' : ''}${totalDayPLPercent.toStringAsFixed(1)}%',
+                  percentValue: totalDayPLPercent,
+                  color: plColor,
+                ),
+                const SizedBox(height: 4),
+                _KpiStrip(
+                  isDark: isDarkMode,
+                  items: [
+                    _KpiItem(
+                      label: 'Best',
+                      ticker: bestTicker.isEmpty ? '--' : bestTicker,
+                      value:
+                          '${bestPerformer >= 0 ? '+' : ''}${bestPerformer.toStringAsFixed(1)}%',
+                      valueColor: HomeUi.positive(isDarkMode),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        '${isPositivePL ? '+' : ''}\$${totalDayPL.toStringAsFixed(2)}',
-                        style: DashboardTextStyles.stockName.copyWith(
-                          color: plColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '(${isPositivePL ? '+' : ''}${totalDayPLPercent.toStringAsFixed(1)}%)',
-                        style: DashboardTextStyles.stockName.copyWith(
-                          color: plColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Best/Worst performers
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Best:',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 13,
+                    _KpiItem(
+                      label: 'Worst',
+                      ticker: worstTicker.isEmpty ? '--' : worstTicker,
+                      value:
+                          '${worstPerformer >= 0 ? '+' : ''}${worstPerformer.toStringAsFixed(1)}%',
+                      valueColor: HomeUi.negative(isDarkMode),
                     ),
-                  ),
-                  Text(
-                    '$bestTicker ${bestPerformer >= 0 ? '+' : ''}${bestPerformer.toStringAsFixed(1)}%',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: Colors.green.shade600,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                    _KpiItem(
+                      label: 'Volume',
+                      ticker: volumeLeader.isEmpty ? '--' : volumeLeader,
+                      value: _formatVolume(maxVolume),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Worst:',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 13,
+                    _KpiItem(
+                      label: 'Movers',
+                      ticker: '$near52WeekHigh',
+                      value: 'stocks',
                     ),
-                  ),
-                  Text(
-                    '$worstTicker ${worstPerformer >= 0 ? '+' : ''}${worstPerformer.toStringAsFixed(1)}%',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: Colors.red.shade600,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Volume leader
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Volume Leader:',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    '$volumeLeader ${_formatVolume(maxVolume)}',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Near 52-week high
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Positive Movers:',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    '$near52WeekHigh stocks',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 3,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Performance Summary',
-                style: DashboardTextStyles.columnHeader.copyWith(
-                  color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      decoration: HomeUi.cardDecoration(widget.isDarkMode),
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: Text(
+          'No performance data available',
+          style: HomeUi.subtitle(widget.isDarkMode),
         ),
-        // Empty state
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            'No performance data available',
-            style: DashboardTextStyles.stockName.copyWith(
-              color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              fontSize: 13,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -408,35 +261,25 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
     return Obx(() {
       if (_backtestController.isLoading.value) {
         return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
+          padding: const EdgeInsets.all(20),
+          decoration: HomeUi.cardDecoration(widget.isDarkMode),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 16,
-                height: 16,
+                width: 18,
+                height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+                    HomeUi.accent(widget.isDarkMode),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
-                'Loading past performance...',
-                style: DashboardTextStyles.tickerSymbol.copyWith(
-                  color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                  fontSize: 13,
-                ),
+                'Loading past performance…',
+                style: HomeUi.subtitle(widget.isDarkMode),
               ),
             ],
           ),
@@ -445,29 +288,21 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
 
       if (_backtestController.errorMessage.value.isNotEmpty) {
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: widget.isDarkMode ? const Color(0xFF2D1B1B) : Colors.red[50],
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: widget.isDarkMode ? const Color(0xFF5C2A2A) : Colors.red[200]!,
-              width: 1,
-            ),
+            color: HomeUi.negativeSoft(widget.isDarkMode),
+            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+            border: Border.all(color: HomeUi.negative(widget.isDarkMode).withValues(alpha: 0.25)),
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.error,
-                color: Colors.red,
-                size: 16,
-              ),
+              Icon(Icons.error_outline_rounded, color: HomeUi.negative(widget.isDarkMode), size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _backtestController.errorMessage.value,
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
-                    color: widget.isDarkMode ? Colors.red[300] : Colors.red[800],
-                    fontSize: 13,
+                  style: HomeUi.bodyText(widget.isDarkMode).copyWith(
+                    color: HomeUi.negative(widget.isDarkMode),
                   ),
                 ),
               ),
@@ -486,148 +321,61 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
   }
 
   Widget _buildSimpleResultsDisplay(BacktestResult result) {
+    final isDark = widget.isDarkMode;
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: HomeUi.cardDecoration(isDark),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with date range
-          Row(
-            children: [
-              Icon(
-                Icons.trending_up,
-                color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                size: 14,
+          HomeUi.tableToolbarHeader(
+            isDark,
+            icon: Icons.timeline_rounded,
+            title: 'Past Performance',
+            subtitleText:
+                '${DateFormat('MMM dd, yyyy').format(result.backtestDate)} – ${DateFormat('MMM dd, yyyy').format(result.currentDate)}',
+          ),
+          const SizedBox(height: 14),
+          _KpiStrip(
+            isDark: isDark,
+            items: [
+              _KpiItem(
+                label: 'Best',
+                ticker: result.bestPerformer?.symbol ?? '--',
+                value: result.bestPerformer?.formattedGainPercent ?? '--',
+                valueColor: result.bestPerformer?.gainPercent != null &&
+                        result.bestPerformer!.gainPercent >= 0
+                    ? HomeUi.positive(isDark)
+                    : HomeUi.negative(isDark),
               ),
-              const SizedBox(width: 6),
-              Text(
-                'Past Performance Results',
-                style: DashboardTextStyles.columnHeader.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                ),
+              _KpiItem(
+                label: 'Worst',
+                ticker: result.worstPerformer?.symbol ?? '--',
+                value: result.worstPerformer?.formattedGainPercent ?? '--',
+                valueColor: result.worstPerformer?.gainPercent != null &&
+                        result.worstPerformer!.gainPercent >= 0
+                    ? HomeUi.positive(isDark)
+                    : HomeUi.negative(isDark),
+              ),
+              _KpiItem(
+                label: 'Return',
+                ticker: '${result.totalReturnPercent.toStringAsFixed(1)}%',
+                value: _formatCurrency(result.currentValue),
+                valueColor: result.totalReturnPercent >= 0
+                    ? HomeUi.positive(isDark)
+                    : HomeUi.negative(isDark),
+              ),
+              _KpiItem(
+                label: 'Win rate',
+                ticker: '${_calculateWinRate(result.stockPerformances)}%',
+                value:
+                    '${result.annualizedReturn.toStringAsFixed(1)}% / yr',
+                valueColor: _calculateWinRate(result.stockPerformances) >= 50
+                    ? HomeUi.positive(isDark)
+                    : HomeUi.negative(isDark),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${DateFormat('MMM dd, yyyy').format(result.backtestDate)} - ${DateFormat('MMM dd, yyyy').format(result.currentDate)}',
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 12,
-              color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-          const SizedBox(height: 8),
-          
-          // Key metrics in a simple row layout
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricCard(
-                  'Best Performer',
-                  result.bestPerformer != null 
-                    ? '${result.bestPerformer!.symbol} (${result.bestPerformer!.formattedGainPercent})'
-                    : '--',
-                  result.bestPerformer?.gainPercent != null && result.bestPerformer!.gainPercent >= 0 
-                    ? Colors.green : Colors.red,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _buildMetricCard(
-                  'Worst Performer',
-                  result.worstPerformer != null 
-                    ? '${result.worstPerformer!.symbol} (${result.worstPerformer!.formattedGainPercent})'
-                    : '--',
-                  result.worstPerformer?.gainPercent != null && result.worstPerformer!.gainPercent >= 0 
-                    ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricCard(
-                  'Total Return %',
-                  '${result.totalReturnPercent.toStringAsFixed(2)}%',
-                  result.totalReturnPercent >= 0 ? Colors.green : Colors.red,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _buildMetricCard(
-                  'Total Value',
-                  _formatCurrency(result.currentValue),
-                  result.currentValue >= result.initialInvestment ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricCard(
-                  'Annualized Return',
-                  '${result.annualizedReturn.toStringAsFixed(2)}%/year',
-                  result.annualizedReturn >= 0 ? Colors.green : Colors.red,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _buildMetricCard(
-                  'Win Rate',
-                  '${_calculateWinRate(result.stockPerformances)}%',
-                  _calculateWinRate(result.stockPerformances) >= 50 ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricCard(String title, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 11,
-              color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: DashboardTextStyles.stockName.copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
           ),
         ],
       ),
@@ -651,54 +399,11 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
   }
 
   Future<void> _showDatePicker() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
+    final DateTime? picked = await HomeUi.pickDate(
+      context,
       initialDate: _backtestController.backtestDate.value,
       firstDate: DateTime(2020, 1, 1),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFF007AFF), // iOS blue
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: const Color(0xFF1C1C1E), // iOS dark text
-              onSurfaceVariant: const Color(0xFF8E8E93), // iOS secondary text
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF007AFF),
-                textStyle: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-            datePickerTheme: DatePickerThemeData(
-              backgroundColor: Colors.white,
-              headerBackgroundColor: const Color(0xFFF2F2F7), // iOS light gray
-              headerForegroundColor: const Color(0xFF1C1C1E),
-              dayForegroundColor: MaterialStateProperty.resolveWith((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return Colors.white;
-                }
-                return const Color(0xFF1C1C1E);
-              }),
-              dayBackgroundColor: MaterialStateProperty.resolveWith((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return const Color(0xFF007AFF);
-                }
-                return Colors.transparent;
-              }),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     
     if (picked != null) {
@@ -708,3 +413,260 @@ class _WatchlistPerformanceSummaryState extends State<WatchlistPerformanceSummar
     }
   }
 }
+
+class _PastPerformanceToggle extends StatefulWidget {
+  final bool isDarkMode;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _PastPerformanceToggle({
+    required this.isDarkMode,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_PastPerformanceToggle> createState() => _PastPerformanceToggleState();
+}
+
+class _PastPerformanceToggleState extends State<_PastPerformanceToggle> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          height: HomeUi.controlHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            gradient: widget.isActive || _hover ? HomeUi.iconWellGradient : null,
+            color: widget.isActive || _hover ? null : HomeUi.elevatedBg(widget.isDarkMode),
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(
+              color: widget.isActive || _hover
+                  ? HomeUi.iconWellBorder
+                  : HomeUi.borderLight(widget.isDarkMode),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              HomeUi.brandIcon(
+                icon: Icons.history_rounded,
+                size: HomeUi.iconSm,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Past Performance',
+                style: HomeUi.label(widget.isDarkMode).copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlHeroBand extends StatefulWidget {
+  final bool isDark;
+  final bool isPositive;
+  final String amount;
+  final String percent;
+  final double percentValue;
+  final Color color;
+
+  const _PlHeroBand({
+    required this.isDark,
+    required this.isPositive,
+    required this.amount,
+    required this.percent,
+    required this.percentValue,
+    required this.color,
+  });
+
+  @override
+  State<_PlHeroBand> createState() => _PlHeroBandState();
+}
+
+class _PlHeroBandState extends State<_PlHeroBand> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = widget.isPositive
+        ? HomeUi.positiveSoft(widget.isDark)
+        : HomeUi.negativeSoft(widget.isDark);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: tint,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.color.withValues(alpha: _hover ? 0.28 : 0.14),
+          ),
+          boxShadow: _hover
+              ? [
+                  BoxShadow(
+                    color: widget.color.withValues(alpha: 0.12),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DAY P&L',
+                      style: HomeUi.overline(widget.isDark).copyWith(
+                        fontSize: 10,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.amount,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeUi.heading(widget.isDark).copyWith(
+                        fontSize: 22,
+                        letterSpacing: -0.6,
+                        color: widget.color,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              HomeUi.signedPercentPill(
+                widget.isDark,
+                widget.percent,
+                widget.percentValue,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KpiItem {
+  final String label;
+  final String ticker;
+  final String value;
+  final Color? valueColor;
+
+  const _KpiItem({
+    required this.label,
+    required this.ticker,
+    required this.value,
+    this.valueColor,
+  });
+}
+
+class _KpiStrip extends StatelessWidget {
+  final bool isDark;
+  final List<_KpiItem> items;
+
+  const _KpiStrip({
+    required this.isDark,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0)
+              Container(
+                width: 1,
+                height: 36,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                color: HomeUi.borderLight(isDark),
+              ),
+            Expanded(child: _KpiStat(isDark: isDark, item: items[i])),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _KpiStat extends StatelessWidget {
+  final bool isDark;
+  final _KpiItem item;
+
+  const _KpiStat({
+    required this.isDark,
+    required this.item,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          item.label.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.overline(isDark).copyWith(
+            fontSize: 9.5,
+            letterSpacing: 0.9,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          item.ticker,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.tableCellEmphasis(isDark).copyWith(fontSize: 13),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          item.value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.tableNumeric(
+            isDark,
+            positiveValue: item.valueColor == HomeUi.positive(isDark)
+                ? true
+                : item.valueColor == HomeUi.negative(isDark)
+                    ? false
+                    : null,
+          ).copyWith(
+            fontSize: 12,
+            color: item.valueColor ?? HomeUi.muted(isDark),
+          ),
+        ),
+      ],
+    );
+  }
+}
+

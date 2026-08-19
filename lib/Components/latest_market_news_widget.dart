@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/Controllers/market_news_controller.dart';
 import 'package:musaffa_terminal/models/market_news.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -41,28 +42,25 @@ class _LatestMarketNewsWidgetState extends State<LatestMarketNewsWidget> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final card = isDark ? const Color(0xFF151718) : Colors.white;
-    final border = isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
-    final title = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-    final muted = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final muted = HomeUi.muted(isDark);
 
     return Obx(() {
       final loading = _controller.isLoadingLatest.value;
       final error = _controller.latestErrorMessage.value;
       final news = _controller.latestMarketNewsList;
 
-      final header = Row(
+      final header = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Text(
               'Latest Market News',
-              style: DashboardTextStyles.titleSmall.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: title,
-              ),
+              style: HomeUi.cardTitle(isDark),
             ),
           ),
+          const SizedBox(height: 12),
+          Divider(height: 1, thickness: 1, color: HomeUi.borderLight(isDark)),
         ],
       );
 
@@ -73,18 +71,19 @@ class _LatestMarketNewsWidgetState extends State<LatestMarketNewsWidget> {
           height: widget.height,
           child: Container(
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: card,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: border),
-            ),
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+            clipBehavior: Clip.antiAlias,
+            decoration: HomeUi.cardDecoration(isDark),
+            padding: EdgeInsets.zero,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 header,
-                const SizedBox(height: 8),
-                Expanded(child: body),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                    child: body,
+                  ),
+                ),
               ],
             ),
           ),
@@ -93,19 +92,18 @@ class _LatestMarketNewsWidgetState extends State<LatestMarketNewsWidget> {
 
       return Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          color: card,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: border),
-        ),
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+        clipBehavior: Clip.antiAlias,
+        decoration: HomeUi.cardDecoration(isDark),
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             header,
-            const SizedBox(height: 10),
-            body,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: body,
+            ),
           ],
         ),
       );
@@ -251,9 +249,9 @@ class _NewsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-    final muted = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final imgBg = isDark ? const Color(0xFF1F2325) : const Color(0xFFF3F4F6);
+    final title = HomeUi.title(isDark);
+    final muted = HomeUi.muted(isDark);
+    final imgBg = HomeUi.elevatedBg(isDark);
     final imageUrl = news.image?.trim();
 
     final imageWidth = compact ? 64.0 : 72.0;
@@ -268,7 +266,7 @@ class _NewsRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(HomeUi.radiusSm),
               child: Container(
                 width: imageWidth,
                 height: imageHeight,
@@ -294,7 +292,14 @@ class _NewsRow extends StatelessWidget {
                     _clean(news.headline),
                     maxLines: compact ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: Constants.FONT_DEFAULT_NEW, fontSize: compact ? 13 : 14, fontWeight: FontWeight.w600, height: 1.2, color: title),
+                    style: TextStyle(
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      fontSize: compact ? 13 : 13.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                      letterSpacing: -0.15,
+                      color: title,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(

@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/Components/add_to_watchlist_button.dart';
+import 'package:musaffa_terminal/Components/simple_news_widget.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
@@ -11,6 +14,8 @@ import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/etfs_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
@@ -33,7 +38,10 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   late WatchlistController watchlistController;
   late EtfDetailsController controller;
   late TradingViewController tradingViewController;
-  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
+  final GlobalWatchlistService _watchlistService =
+      Get.find<GlobalWatchlistService>();
+  bool _isInWatchlist = false;
+  StreamSubscription<dynamic>? _watchlistStocksSubscription;
 
   @override
   void initState() {
@@ -41,8 +49,13 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     watchlistController = Get.put(WatchlistController());
     controller = Get.put(EtfDetailsController());
     tradingViewController = TradingViewController();
-    
-    
+
+    _watchlistStocksSubscription =
+        watchlistController.watchlistStocks.listen((_) {
+      _checkIfInWatchlist();
+    });
+    _checkIfInWatchlist();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.fetchEtfDetails(widget.ticker.symbol ?? '');
       controller.fetchEtfHoldings(widget.ticker.symbol ?? '');
@@ -51,8 +64,28 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
 
   @override
   void dispose() {
+    _watchlistStocksSubscription?.cancel();
     tradingViewController.dispose();
     super.dispose();
+  }
+
+  void _checkIfInWatchlist() {
+    final String currentTicker = widget.ticker.symbol ?? '';
+    final bool isInCurrentWatchlist = watchlistController.watchlistStocks
+        .any((stock) => stock.ticker == currentTicker);
+
+    if (!mounted) return;
+    setState(() {
+      _isInWatchlist = isInCurrentWatchlist;
+    });
+  }
+
+  void _showSuccessSnackBar(String message) {
+    SnackBarUtils.showSuccess(context, message);
+  }
+
+  void _showErrorSnackBar(String message) {
+    SnackBarUtils.showError(context, message);
   }
 
   void _toggleWatchlist() {
@@ -64,12 +97,12 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
 
   String _formatSymbolForTradingView(EtfsData etfData) {
     final symbol = widget.ticker.symbol ?? etfData.symbol ?? '';
-    
+
     // If symbol already has exchange prefix, return as-is
     if (symbol.contains(':')) {
       return symbol;
     }
-    
+
     // Return just the symbol without exchange prefix
     // TradingView will automatically resolve the correct exchange
     // This works for most US stocks and ETFs
@@ -83,98 +116,95 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     return FeatureGuard(
       featureKey: FeatureKeys.etfDetails,
       child: Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF0F0F0F)
-          : const Color(0xFFFAFAFA),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Obx(() => HomeTabBar(
-                showBackButton: true,
-                isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
-                onWatchlistToggle: _toggleWatchlist,
-                onThemeToggle: () {
-                  final currentTheme = Theme.of(context).brightness;
-                  Get.changeThemeMode(
-                    currentTheme == Brightness.dark 
-                        ? ThemeMode.light 
-                        : ThemeMode.dark,
-                  );
-                },
-              )),
-              
-              Expanded(
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  
-                  if (controller.errorMessage.isNotEmpty) {
-                    return Center(
-                      child: Text(
-                        controller.errorMessage.value,
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 14,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
+        backgroundColor: HomeUi.pageBg(isDarkMode),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Obx(() => HomeTabBar(
+                      showBackButton: true,
+                      isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
+                      onWatchlistToggle: _toggleWatchlist,
+                      onThemeToggle: () {
+                        final currentTheme = Theme.of(context).brightness;
+                        Get.changeThemeMode(
+                          currentTheme == Brightness.dark
+                              ? ThemeMode.light
+                              : ThemeMode.dark,
+                        );
+                      },
+                    )),
+                Expanded(
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (controller.errorMessage.isNotEmpty) {
+                      return Center(
+                        child: Text(
+                          controller.errorMessage.value,
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                  
-                  if (controller.etfData.value == null) {
-                    return Center(
-                      child: Text(
-                        'No data available',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                      );
+                    }
+
+                    if (controller.etfData.value == null) {
+                      return Center(
+                        child: Text(
+                          'No data available',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                  
-                  final etfData = controller.etfData.value!;
-                  return _buildEtfContent(etfData, isDarkMode);
-                }),
-              ),
-            ],
-          ),
-          
-          // Watchlist sidebar overlay
-          Obx(() {
-            if (!_watchlistService.isWatchlistOpen.value) {
-              return const SizedBox.shrink();
-            }
-            return Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleWatchlist,
-                child: Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(),
-                      ),
-                      GestureDetector(
-                        onTap: () {},
-                        child: WatchlistSidebar(
-                          isDarkMode: isDarkMode,
-                          onClose: _toggleWatchlist,
+                      );
+                    }
+
+                    final etfData = controller.etfData.value!;
+                    return _buildEtfContent(etfData, isDarkMode);
+                  }),
+                ),
+              ],
+            ),
+
+            // Watchlist sidebar overlay
+            Obx(() {
+              if (!_watchlistService.isWatchlistOpen.value) {
+                return const SizedBox.shrink();
+              }
+              return Positioned.fill(
+                child: GestureDetector(
+                  onTap: _toggleWatchlist,
+                  child: Container(
+                    color: Colors.black.withOpacity(0.3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(),
                         ),
-                      ),
-                    ],
+                        GestureDetector(
+                          onTap: () {},
+                          child: WatchlistSidebar(
+                            isDarkMode: isDarkMode,
+                            onClose: _toggleWatchlist,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }),
-          // Global FAB Overlay
-          const GlobalFABOverlay(),
-        ],
+              );
+            }),
+            // Global FAB Overlay
+            const GlobalFABOverlay(),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -189,16 +219,19 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           _buildEtfHeader(etfData, isDarkMode),
           const SizedBox(height: 16),
 
-        
           LayoutBuilder(
             builder: (context, constraints) {
               // Calculate heatmap height dynamically based on available width
-              final availableWidth = (constraints.maxWidth - 8) / 2; // Half width minus spacing
-              final cellWidth = (availableWidth - 20 - 8) / 3; // Container width - padding - spacing
+              final availableWidth =
+                  (constraints.maxWidth - 8) / 2; // Half width minus spacing
+              final cellWidth = (availableWidth - 20 - 8) /
+                  3; // Container width - padding - spacing
               final cellHeight = cellWidth / 2; // aspectRatio is 2
-              final gridHeight = (cellHeight * 3) + (4 * 2); // 3 rows + 2 spacings
-              final heatmapHeight = 20 + 26 + gridHeight; // padding + header + grid
-              
+              final gridHeight =
+                  (cellHeight * 3) + (4 * 2); // 3 rows + 2 spacings
+              final heatmapHeight =
+                  20 + 26 + gridHeight; // padding + header + grid
+
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -211,7 +244,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildPerformanceHeatmap(etfData, isDarkMode, heatmapHeight),
+                    child: _buildPerformanceHeatmap(
+                        etfData, isDarkMode, heatmapHeight),
                   ),
                 ],
               );
@@ -231,7 +265,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Charts Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -243,468 +277,312 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
-        // Holdings Table
-        _buildHoldingsTable(isDarkMode),
-        const SizedBox(height: 16),
-        _buildHoldingsPaginationControls(),
+
+          // Holdings Table
+          _buildHoldingsTable(isDarkMode),
+          const SizedBox(height: 16),
+          _buildHoldingsPaginationControls(),
+          const SizedBox(height: 16),
+          SimpleNewsWidget(
+            symbol: widget.ticker.symbol ?? '',
+          ),
         ],
       ),
     );
   }
 
   Widget _buildEtfHeader(EtfsData etfData, bool isDarkMode) {
-    return IntrinsicHeight(
+    final String ticker = etfData.symbol ?? widget.ticker.symbol ?? 'TICKER';
+    final String etfName = etfData.etfProfile?.name ??
+        widget.ticker.name ??
+        widget.ticker.companyName ??
+        'ETF Name';
+    final double price = etfData.currentPrice?.toDouble() ?? 0.0;
+    final double? change = etfData.change1DPercent?.toDouble();
+    final bool isUp = change != null && change >= 0;
+
+    return Container(
+      decoration: HomeUi.cardDecoration(isDarkMode),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Expanded(
+              flex: 11,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: HomeUi.elevatedBg(isDarkMode),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: HomeUi.borderLight(isDarkMode),
+                            ),
+                          ),
+                          child: showLogo(
+                            ticker,
+                            widget.ticker.logo ?? '',
+                            sideWidth: 28,
+                            name: ticker,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                etfName,
+                                style: HomeUi.sectionTitle(isDarkMode)
+                                    .copyWith(fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                ticker,
+                                style: HomeUi.overline(isDarkMode).copyWith(
+                                  letterSpacing: 1.2,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        AddToWatchlistButton(
+                          ticker: ticker,
+                          currentPrice: price,
+                          isDarkMode: isDarkMode,
+                          isInWatchlist: _isInWatchlist,
+                          onSuccess: () {
+                            _showSuccessSnackBar('$ticker added to watchlist');
+                            _checkIfInWatchlist();
+                          },
+                          onError: () {
+                            _showErrorSnackBar(
+                              'Failed to add $ticker to watchlist',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: <Widget>[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                'CURRENT PRICE',
+                                style: HomeUi.overline(isDarkMode).copyWith(
+                                  fontSize: 10,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                etfData.currentPrice != null
+                                    ? '\$${price.toStringAsFixed(2)}'
+                                    : '--',
+                                style: HomeUi.display(isDarkMode).copyWith(
+                                  fontSize: 24,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            change == null
+                                ? '--'
+                                : '${isUp ? '+' : ''}${change.toStringAsFixed(2)}%',
+                            style: HomeUi.tableNumeric(
+                              isDarkMode,
+                              positiveValue: change == null ? null : isUp,
+                            ).copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _headerKv(
+                      isDarkMode,
+                      'Volume',
+                      '${((etfData.volume ?? 0) / 1000000).toStringAsFixed(1)}M',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      '52W High',
+                      etfData.d52WeekHigh != null
+                          ? '\$${etfData.d52WeekHigh!.toStringAsFixed(2)}'
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      '52W Low',
+                      etfData.d52WeekLow != null
+                          ? '\$${etfData.d52WeekLow!.toStringAsFixed(2)}'
+                          : '--',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: HomeUi.borderLight(isDarkMode),
+            ),
+            Expanded(
+              flex: 10,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    HomeUi.tableToolbarHeader(
+                      isDarkMode,
+                      icon: Icons.public_outlined,
+                      title: 'Fund Information',
+                    ),
+                    const SizedBox(height: 12),
+                    _headerKv(
+                      isDarkMode,
+                      'Exchange',
+                      etfData.exchange ?? '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Domicile',
+                      etfData.domicile ?? '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Asset Class',
+                      etfData.assetClass ?? '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Segment',
+                      etfData.investmentSegment ?? '--',
+                      maxLines: 2,
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Inception',
+                      etfData.inceptionDate ?? '--',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: HomeUi.borderLight(isDarkMode),
+            ),
+            Expanded(
+              flex: 10,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    HomeUi.tableToolbarHeader(
+                      isDarkMode,
+                      icon: Icons.auto_graph_outlined,
+                      title: 'Key Metrics',
+                    ),
+                    const SizedBox(height: 12),
+                    _headerKv(
+                      isDarkMode,
+                      'Holdings',
+                      etfData.numberOfHoldings?.toString() ?? '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Expense Ratio',
+                      etfData.expenseRatio != null
+                          ? '${etfData.expenseRatio!.toStringAsFixed(2)}%'
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'NAV',
+                      etfData.nav != null
+                          ? '\$${etfData.nav!.toStringAsFixed(2)}'
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'AUM',
+                      Constants.getShortenedMarketCapV2(etfData.aum),
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Dividend',
+                      etfData.dividentAmount != null &&
+                              etfData.dividentAmount! > 0
+                          ? '\$${etfData.dividentAmount!.toStringAsFixed(2)}'
+                          : '--',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _headerKv(
+    bool isDarkMode,
+    String label,
+    String value, {
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Container 1: ETF Identity & Current Status
+        crossAxisAlignment:
+            maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: <Widget>[
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // ETF Logo
-                      showLogo(
-                        widget.ticker.symbol ?? '',
-                        widget.ticker.logo ?? '',
-                        sideWidth: 32,
-                        name: widget.ticker.symbol ?? '',
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              etfData.etfProfile?.name ?? widget.ticker.name ?? widget.ticker.companyName ?? 'ETF Name',
-                              style: DashboardTextStyles.headerTitle.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              etfData.symbol ?? widget.ticker.symbol ?? 'TICKER',
-                              style: DashboardTextStyles.headerTicker.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Current Price: \$${etfData.currentPrice?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerPrice.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      Text(
-                        'Change: ${etfData.priceChange1D?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerChange.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: etfData.change1DPercent != null
-                              ? (etfData.priceChange1D! >= 0 ? Colors.green : Colors.red)
-                              : DashboardTextStyles.headerChange.color,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Volume:',
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      Text(
-                        '${((etfData.volume ?? 0) / 1000000).toStringAsFixed(1)}M',
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '52W High:',
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      Text(
-                        '\$${etfData.d52WeekHigh?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '52W Low:',
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      Text(
-                        '\$${etfData.d52WeekLow?.toStringAsFixed(2) ?? '--'}',
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                ],
-              ),
+            flex: 4,
+            child: Text(
+              label,
+              style:
+                  HomeUi.tableCellSecondary(isDarkMode).copyWith(fontSize: 12),
             ),
           ),
-          
           const SizedBox(width: 8),
-          
-          // Container 2: Fund Information
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Fund Information',
-                    style: DashboardTextStyles.headerTitle.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (etfData.exchange != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Exchange:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          etfData.exchange!,
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (etfData.domicile != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Domicile:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          etfData.domicile!,
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (etfData.assetClass != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Asset Class:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          etfData.assetClass!,
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (etfData.investmentSegment != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Segment:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          etfData.investmentSegment!,
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (etfData.inceptionDate != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Inception:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          etfData.inceptionDate!,
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const Spacer(),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(width: 8),
-          
-          // Container 3: Key Metrics
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Key Metrics',
-                    style: DashboardTextStyles.headerTitle.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (etfData.numberOfHoldings != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Holdings:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          '${etfData.numberOfHoldings}',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (etfData.expenseRatio != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Expense Ratio:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          '${etfData.expenseRatio!.toStringAsFixed(2)}%',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (etfData.nav != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'NAV:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          '\$${etfData.nav!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'AUM:',
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      Text(
-                        Constants.getShortenedMarketCapV2(etfData.aum),
-                        style: DashboardTextStyles.headerMetric.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if (etfData.dividentAmount != null && etfData.dividentAmount! > 0) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Dividend:',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                        Text(
-                          '\$${etfData.dividentAmount!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.headerMetric.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const Spacer(),
-                ],
-              ),
+            flex: 5,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: maxLines,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  HomeUi.tableCellEmphasis(isDarkMode).copyWith(fontSize: 13),
             ),
           ),
         ],
@@ -721,7 +599,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
       ['Prev Close', '\$${etfData.previousClose?.toStringAsFixed(2) ?? '--'}'],
       ['Volume', '${((etfData.volume ?? 0) / 1000000).toStringAsFixed(1)}M'],
     ];
-    
+
     return _buildCompactTable('Trading Data', data, isDarkMode);
   }
 
@@ -729,24 +607,32 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     // Format ETF Total Assets
     String etfTotalAssetsFormatted = '--';
     if (etfData.etfTotalAssets != null && etfData.etfTotalAssets! > 0) {
-      etfTotalAssetsFormatted = Constants.getShortenedMarketCapV2(etfData.etfTotalAssets!);
+      etfTotalAssetsFormatted =
+          Constants.getShortenedMarketCapV2(etfData.etfTotalAssets!);
     }
-    
+
     // Format Avg Volume 10D
     String avgVolume10DFormatted = '--';
     if (etfData.avgVolume10days != null && etfData.avgVolume10days! > 0) {
-      avgVolume10DFormatted = '${((etfData.avgVolume10days! / 1000000).toStringAsFixed(1))}M';
+      avgVolume10DFormatted =
+          '${((etfData.avgVolume10days! / 1000000).toStringAsFixed(1))}M';
     }
-    
+
     final data = [
       ['P/E Ratio', etfData.priceToEarnings?.toStringAsFixed(2) ?? '--'],
       ['P/B Ratio', etfData.priceToBook?.toStringAsFixed(2) ?? '--'],
       ['ETF Total Assets', etfTotalAssetsFormatted],
       ['Avg Volume 10D', avgVolume10DFormatted],
-      ['Interest Assets', '${etfData.interestBearingAssetsRatio?.toStringAsFixed(1) ?? '--'}%'],
-      ['Interest Debt', '${etfData.interestBearingDebtRatio?.toStringAsFixed(1) ?? '--'}%'],
+      [
+        'Interest Assets',
+        '${etfData.interestBearingAssetsRatio?.toStringAsFixed(1) ?? '--'}%'
+      ],
+      [
+        'Interest Debt',
+        '${etfData.interestBearingDebtRatio?.toStringAsFixed(1) ?? '--'}%'
+      ],
     ];
-    
+
     return _buildCompactTable('Key Metrics', data, isDarkMode);
   }
 
@@ -759,7 +645,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
       ['Return 6M', '${etfData.totalReturn6M?.toStringAsFixed(2) ?? '--'}%'],
       ['Return 1W', '${etfData.totalReturn1W?.toStringAsFixed(2) ?? '--'}%'],
     ];
-    
+
     return _buildCompactTable('Total Returns', data, isDarkMode);
   }
 
@@ -805,7 +691,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     // Sort by value in descending order (highest first)
     final sortedEntries = sectorData.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
+
     final sortedSectorData = <String, num>{};
     for (final entry in sortedEntries) {
       sortedSectorData[entry.key] = entry.value;
@@ -824,29 +710,18 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     required bool isDarkMode,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
+      padding: HomeUi.cardPadding,
+      decoration: HomeUi.cardDecoration(isDarkMode),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-            ),
+          HomeUi.tableToolbarHeader(
+            isDarkMode,
+            icon: Icons.donut_large_rounded,
+            title: title,
+            subtitleText: 'Allocation breakdown',
           ),
-          const SizedBox(height: 16),
-          
+          const SizedBox(height: 14),
           if (data.isEmpty)
             Center(
               child: Padding(
@@ -854,7 +729,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 child: Text(
                   'No data available',
                   style: TextStyle(
-                    color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                    color: isDarkMode
+                        ? const Color(0xFF6B7280)
+                        : const Color(0xFF9CA3AF),
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -874,7 +751,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Legend
                 Expanded(
                   flex: 3,
@@ -890,7 +767,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   Widget _buildChartLegend(Map<String, num> data, bool isDarkMode) {
     final colors = _getChartColors();
     final entries = data.entries.toList();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -899,18 +776,18 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
         (index) {
           final entry = entries[index];
           final color = colors[index % colors.length];
-          
+
           return Padding(
-            padding: const EdgeInsets.only(bottom: 6,right: 18),
+            padding: const EdgeInsets.only(bottom: 6, right: 18),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 12,
-                  height: 12,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
-                    color: color,
                     shape: BoxShape.circle,
+                    gradient: _etfSliceGradient(color, isDarkMode),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -921,7 +798,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       fontFamily: Constants.FONT_DEFAULT_NEW,
-                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                      color: isDarkMode
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF6B7280),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -933,7 +812,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
+                    color: isDarkMode
+                        ? const Color(0xFFE5E7EB)
+                        : const Color(0xFF374151),
                   ),
                 ),
               ],
@@ -953,23 +834,26 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             final localPosition = box.globalToLocal(details.globalPosition);
             final center = Offset(box.size.width / 2, box.size.height / 2);
             final radius = box.size.width / 2 * 0.8;
-            
+
             // Calculate which segment was tapped
             final dx = localPosition.dx - center.dx;
             final dy = localPosition.dy - center.dy;
             final distance = math.sqrt(dx * dx + dy * dy);
-            
+
             if (distance <= radius && distance >= radius * 0.5) {
               final angle = math.atan2(dy, dx);
               final normalizedAngle = (angle + math.pi / 2) % (2 * math.pi);
-              
-              final total = data.values.fold<num>(0, (sum, value) => sum + value);
+
+              final total =
+                  data.values.fold<num>(0, (sum, value) => sum + value);
               double currentAngle = 0;
-              
+
               for (final entry in data.entries) {
                 final sweepAngle = (entry.value / total) * 2 * math.pi;
-                if (normalizedAngle >= currentAngle && normalizedAngle <= currentAngle + sweepAngle) {
-                  _showTooltip(context, entry.key, entry.value, details.globalPosition);
+                if (normalizedAngle >= currentAngle &&
+                    normalizedAngle <= currentAngle + sweepAngle) {
+                  _showTooltip(
+                      context, entry.key, entry.value, details.globalPosition);
                   break;
                 }
                 currentAngle += sweepAngle;
@@ -987,10 +871,11 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     );
   }
 
-  void _showTooltip(BuildContext context, String label, num value, Offset position) {
+  void _showTooltip(
+      BuildContext context, String label, num value, Offset position) {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
-    
+
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         left: position.dx - 50,
@@ -1034,9 +919,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
         ),
       ),
     );
-    
+
     overlay.insert(overlayEntry);
-    
+
     // Remove tooltip after 2 seconds
     Future.delayed(const Duration(seconds: 2), () {
       overlayEntry.remove();
@@ -1044,344 +929,372 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   }
 
   Widget _buildHoldingsTable(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Top Holdings',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-                      ),
-                    ),
-                    Obx(() {
-                      final totalHoldings = controller.holdingsData.value?.holdings.length ?? 0;
-                      return Text(
-                        '$totalHoldings Holdings',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-                const SizedBox(height: 12),
-          
-          Obx(() {
-            if (controller.isLoadingHoldings.value) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            
-            if (controller.holdingsErrorMessage.value.isNotEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Text(
-                    controller.holdingsErrorMessage.value,
-                    style: TextStyle(
-                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 12,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  ),
-                ),
-              );
-            }
-            
-            final enrichedHoldings = controller.enrichedHoldings;
-            if (enrichedHoldings.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Text(
-                    'No holdings data available',
-                    style: TextStyle(
-                      color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                      fontSize: 12,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  ),
-                ),
-              );
-            }
-            
-            // Convert to SimpleRowModel for DynamicTable (already sorted by controller)
-            final tableRows = enrichedHoldings.map((enrichedHolding) {
-              final holding = enrichedHolding.holding;
-              final stockData = enrichedHolding.stockData;
-              final companyProfile = enrichedHolding.companyProfile;
-              
-              return SimpleRowModel(
-                symbol: holding.symbol,
-                name: companyProfile?.name ?? holding.name,
-                logo: companyProfile?.logo,
-                price: stockData?.currentPrice,
-                changePercent: stockData?.priceChange1DPercent,
-                currency: 'USD',
-                fields: {
-                  'weight': '${holding.percent.toStringAsFixed(2)}%',
-                  'value': Constants.getShortenedMarketCapV2(holding.value),
-                  'currentPrice': stockData?.currentPrice != null ? '\$${stockData!.currentPrice!.toStringAsFixed(2)}' : '--',
-                  'change': stockData?.priceChange1D != null ? '${stockData!.priceChange1D!.toStringAsFixed(2)}' : '--',
-                  'changePercent': stockData?.priceChange1DPercent != null ? '${stockData!.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
-                  'volume': stockData?.volume != null ? '${((stockData!.volume! / 1000000).toStringAsFixed(1))}M' : '--',
-                  'marketCap': stockData?.usdMarketCap != null ? Constants.getShortenedMarketCapV2(stockData!.usdMarketCap!) : '--',
-                  'pe': stockData?.peTTM != null ? '${stockData!.peTTM!.toStringAsFixed(1)}' : '--',
-                  'pb': stockData?.pbAnnual != null ? '${stockData!.pbAnnual!.toStringAsFixed(2)}' : '--',
-                  'ps': stockData?.psTTM != null ? '${stockData!.psTTM!.toStringAsFixed(1)}' : '--',
-                  'eps': stockData?.epsTTM != null ? '\$${stockData!.epsTTM!.toStringAsFixed(2)}' : '--',
-                  'dividend': stockData?.currentDividendYieldTTM != null ? '${stockData!.currentDividendYieldTTM!.toStringAsFixed(2)}%' : '--',
-                  'beta': stockData?.beta != null ? '${stockData!.beta!.toStringAsFixed(2)}' : '--',
-                  'roe': stockData?.rOE != null ? '${stockData!.rOE!.toStringAsFixed(1)}%' : '--',
-                  'margin': stockData?.netProfitMarginTTM != null ? '${stockData!.netProfitMarginTTM!.toStringAsFixed(1)}%' : '--',
-                  'debt': stockData?.longTermDebtEquityAnnual != null ? '${stockData!.longTermDebtEquityAnnual!.toStringAsFixed(1)}%' : '--',
-                  '52wHigh': stockData?.d52WeekHigh != null ? '\$${stockData!.d52WeekHigh!.toStringAsFixed(2)}' : '--',
-                  '52wLow': stockData?.d52WeekLow != null ? '\$${stockData!.d52WeekLow!.toStringAsFixed(2)}' : '--',
-                  'return1Y': stockData?.priceChange1YPercent != null ? '${stockData!.priceChange1YPercent!.toStringAsFixed(1)}%' : '--',
-                  'return3Y': stockData?.priceChange3YPercent != null ? '${stockData!.priceChange3YPercent!.toStringAsFixed(1)}%' : '--',
-                },
-                changeColor: stockData?.priceChange1D != null 
-                    ? (stockData!.priceChange1D! >= 0 ? Colors.green : Colors.red)
-                    : null,
-              );
-            }).toList();
-            
-            return DynamicTable(
-              columns: const [
-                SimpleColumn(label: 'WEIGHT', fieldName: 'weight', isNumeric: true),
-                SimpleColumn(label: 'VALUE', fieldName: 'value', isNumeric: true),
-                SimpleColumn(label: 'PRICE', fieldName: 'currentPrice', isNumeric: true),
-                SimpleColumn(label: 'CHANGE', fieldName: 'change', isNumeric: true),
-                SimpleColumn(label: 'CHANGE %', fieldName: 'changePercent', isNumeric: true),
-                SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
-                SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
-                SimpleColumn(label: 'P/E', fieldName: 'pe', isNumeric: true),
-                SimpleColumn(label: 'P/B', fieldName: 'pb', isNumeric: true),
-                SimpleColumn(label: 'P/S', fieldName: 'ps', isNumeric: true),
-                SimpleColumn(label: 'EPS', fieldName: 'eps', isNumeric: true),
-                SimpleColumn(label: 'DIV YIELD', fieldName: 'dividend', isNumeric: true),
-                SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
-                SimpleColumn(label: 'ROE', fieldName: 'roe', isNumeric: true),
-                SimpleColumn(label: 'MARGIN', fieldName: 'margin', isNumeric: true),
-                SimpleColumn(label: 'DEBT/EQUITY', fieldName: 'debt', isNumeric: true),
-                SimpleColumn(label: '52W HIGH', fieldName: '52wHigh', isNumeric: true),
-                SimpleColumn(label: '52W LOW', fieldName: '52wLow', isNumeric: true),
-                SimpleColumn(label: '1Y RETURN', fieldName: 'return1Y', isNumeric: true),
-                SimpleColumn(label: '3Y RETURN', fieldName: 'return3Y', isNumeric: true),
-              ],
-              rows: tableRows,
-              showFixedColumn: true,
-              considerPadding: false,
-              columnSpacing: 16,
-              fixedColumnWidth: 300,
-              enableDragging: true,
-              enableLivePrices: true,
-              enableColumnCustomization: true,
-              tableId: 'etf_holdings_table',
-              onDragStarted: () {
-                // Drag started
-              },
-              onDragEnd: () {
-                // Drag ended
-              },
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHoldingsPaginationControls() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
     return Obx(() {
-      if (controller.totalHoldingsPages.value <= 1) return const SizedBox.shrink();
-      
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Page info in the center-left
-          Text(
-            'Page ${controller.currentHoldingsPage.value + 1} of ${controller.totalHoldingsPages.value} (${controller.holdingsData.value?.holdings.length ?? 0} holdings)',
-            style: TextStyle(
-              fontSize: 12,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+      if (controller.isLoadingHoldings.value) {
+        return Container(
+          padding: HomeUi.cardPadding,
+          decoration: HomeUi.cardDecoration(isDarkMode),
+          child: const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40),
+              child: CircularProgressIndicator(),
             ),
           ),
-          
-          // Navigation buttons on the right
-          Row(
-            children: [
-              // Previous button - only show if not on first page (Secondary)
-              if (controller.hasPreviousHoldingsPage) ...[
-                GestureDetector(
-                  onTap: () => controller.previousHoldingsPage(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(90),
-                      border: Border.all(
-                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      'Previous',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                      ),
-                    ),
-                  ),
+        );
+      }
+
+      if (controller.holdingsErrorMessage.value.isNotEmpty) {
+        return Container(
+          padding: HomeUi.cardPadding,
+          decoration: HomeUi.cardDecoration(isDarkMode),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Text(
+                controller.holdingsErrorMessage.value,
+                style: TextStyle(
+                  color: isDarkMode
+                      ? const Color(0xFF9CA3AF)
+                      : const Color(0xFF6B7280),
+                  fontSize: 12,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
                 ),
-                const SizedBox(width: 12),
-              ],
-              
-              // Next button - only show if there are more pages (Primary)
-              if (controller.hasNextHoldingsPage)
-                GestureDetector(
-                  onTap: () => controller.nextHoldingsPage(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                      borderRadius: BorderRadius.circular(90),
-                    ),
-                    child: Text(
-                      'Next',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+              ),
+            ),
           ),
+        );
+      }
+
+      final enrichedHoldings = controller.enrichedHoldings;
+      if (enrichedHoldings.isEmpty) {
+        return Container(
+          padding: HomeUi.cardPadding,
+          decoration: HomeUi.cardDecoration(isDarkMode),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Text(
+                'No holdings data available',
+                style: TextStyle(
+                  color: isDarkMode
+                      ? const Color(0xFF6B7280)
+                      : const Color(0xFF9CA3AF),
+                  fontSize: 12,
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      final tableRows = enrichedHoldings.map((enrichedHolding) {
+        final holding = enrichedHolding.holding;
+        final stockData = enrichedHolding.stockData;
+        final companyProfile = enrichedHolding.companyProfile;
+
+        return SimpleRowModel(
+          symbol: holding.symbol,
+          name: companyProfile?.name ?? holding.name,
+          logo: companyProfile?.logo,
+          price: stockData?.currentPrice,
+          changePercent: stockData?.priceChange1DPercent,
+          currency: 'USD',
+          fields: {
+            'weight': '${holding.percent.toStringAsFixed(2)}%',
+            'value': Constants.getShortenedMarketCapV2(holding.value),
+            'currentPrice': stockData?.currentPrice != null
+                ? '\$${stockData!.currentPrice!.toStringAsFixed(2)}'
+                : '--',
+            'change': stockData?.priceChange1D != null
+                ? '${stockData!.priceChange1D!.toStringAsFixed(2)}'
+                : '--',
+            'changePercent': stockData?.priceChange1DPercent != null
+                ? '${stockData!.priceChange1DPercent!.toStringAsFixed(2)}%'
+                : '--',
+            'volume': stockData?.volume != null
+                ? '${((stockData!.volume! / 1000000).toStringAsFixed(1))}M'
+                : '--',
+            'marketCap': stockData?.usdMarketCap != null
+                ? Constants.getShortenedMarketCapV2(stockData!.usdMarketCap!)
+                : '--',
+            'pe': stockData?.peTTM != null
+                ? '${stockData!.peTTM!.toStringAsFixed(1)}'
+                : '--',
+            'pb': stockData?.pbAnnual != null
+                ? '${stockData!.pbAnnual!.toStringAsFixed(2)}'
+                : '--',
+            'ps': stockData?.psTTM != null
+                ? '${stockData!.psTTM!.toStringAsFixed(1)}'
+                : '--',
+            'eps': stockData?.epsTTM != null
+                ? '\$${stockData!.epsTTM!.toStringAsFixed(2)}'
+                : '--',
+            'dividend': stockData?.currentDividendYieldTTM != null
+                ? '${stockData!.currentDividendYieldTTM!.toStringAsFixed(2)}%'
+                : '--',
+            'beta': stockData?.beta != null
+                ? '${stockData!.beta!.toStringAsFixed(2)}'
+                : '--',
+            'roe': stockData?.rOE != null
+                ? '${stockData!.rOE!.toStringAsFixed(1)}%'
+                : '--',
+            'margin': stockData?.netProfitMarginTTM != null
+                ? '${stockData!.netProfitMarginTTM!.toStringAsFixed(1)}%'
+                : '--',
+            'debt': stockData?.longTermDebtEquityAnnual != null
+                ? '${stockData!.longTermDebtEquityAnnual!.toStringAsFixed(1)}%'
+                : '--',
+            '52wHigh': stockData?.d52WeekHigh != null
+                ? '\$${stockData!.d52WeekHigh!.toStringAsFixed(2)}'
+                : '--',
+            '52wLow': stockData?.d52WeekLow != null
+                ? '\$${stockData!.d52WeekLow!.toStringAsFixed(2)}'
+                : '--',
+            'return1Y': stockData?.priceChange1YPercent != null
+                ? '${stockData!.priceChange1YPercent!.toStringAsFixed(1)}%'
+                : '--',
+            'return3Y': stockData?.priceChange3YPercent != null
+                ? '${stockData!.priceChange3YPercent!.toStringAsFixed(1)}%'
+                : '--',
+          },
+          changeColor: stockData?.priceChange1D != null
+              ? (stockData!.priceChange1D! >= 0 ? Colors.green : Colors.red)
+              : null,
+        );
+      }).toList();
+
+      final totalHoldings = controller.holdingsData.value?.holdings.length ?? 0;
+
+      return DynamicTable(
+        title: 'Top Holdings',
+        subtitle: 'Constituents inside this ETF · $totalHoldings holdings',
+        toolbarLeadingIcon: Icons.account_balance_outlined,
+        showOuterShadow: true,
+        columns: const [
+          SimpleColumn(label: 'WEIGHT', fieldName: 'weight', isNumeric: true),
+          SimpleColumn(label: 'VALUE', fieldName: 'value', isNumeric: true),
+          SimpleColumn(
+              label: 'PRICE', fieldName: 'currentPrice', isNumeric: true),
+          SimpleColumn(label: 'CHANGE', fieldName: 'change', isNumeric: true),
+          SimpleColumn(
+              label: 'CHANGE %', fieldName: 'changePercent', isNumeric: true),
+          SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
+          SimpleColumn(
+              label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
+          SimpleColumn(label: 'P/E', fieldName: 'pe', isNumeric: true),
+          SimpleColumn(label: 'P/B', fieldName: 'pb', isNumeric: true),
+          SimpleColumn(label: 'P/S', fieldName: 'ps', isNumeric: true),
+          SimpleColumn(label: 'EPS', fieldName: 'eps', isNumeric: true),
+          SimpleColumn(
+              label: 'DIV YIELD', fieldName: 'dividend', isNumeric: true),
+          SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true),
+          SimpleColumn(label: 'ROE', fieldName: 'roe', isNumeric: true),
+          SimpleColumn(label: 'MARGIN', fieldName: 'margin', isNumeric: true),
+          SimpleColumn(
+              label: 'DEBT/EQUITY', fieldName: 'debt', isNumeric: true),
+          SimpleColumn(
+              label: '52W HIGH', fieldName: '52wHigh', isNumeric: true),
+          SimpleColumn(label: '52W LOW', fieldName: '52wLow', isNumeric: true),
+          SimpleColumn(
+              label: '1Y RETURN', fieldName: 'return1Y', isNumeric: true),
+          SimpleColumn(
+              label: '3Y RETURN', fieldName: 'return3Y', isNumeric: true),
         ],
+        rows: tableRows,
+        showFixedColumn: true,
+        tickerHeaderLabel: 'COMPANY',
+        considerPadding: false,
+        columnSpacing: 12,
+        fixedColumnWidth: 280,
+        enableDragging: true,
+        enableLivePrices: true,
+        zebraStripes: true,
+        enableColumnCustomization: true,
+        showColumnActionMenu: true,
+        showColumnResizeHandle: true,
+        compactHeaderText: true,
+        tableId: 'etf_holdings_table',
+        onDragStarted: () {},
+        onDragEnd: () {},
       );
     });
   }
 
+  Widget _buildHoldingsPaginationControls() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
+    return Obx(() {
+      if (controller.totalHoldingsPages.value <= 1) {
+        return const SizedBox.shrink();
+      }
 
-  List<Color> _getChartColors() {
-    return [
-      const Color(0xFF60A5FA), // Blue
-      const Color(0xFF34D399), // Green
-      const Color(0xFFFBBF24), // Yellow
-      const Color(0xFFF87171), // Red
-      const Color(0xFFA78BFA), // Purple
-      const Color(0xFFFB923C), // Orange
-      const Color(0xFF2DD4BF), // Teal
-      const Color(0xFFFB7185), // Pink
-      const Color(0xFF4ADE80), // Light Green
-      const Color(0xFF818CF8), // Indigo
-      const Color(0xFFFCD34D), // Light Yellow
-      const Color(0xFF9CA3AF), // Gray
-    ];
-  }
+      final int currentPage = controller.currentHoldingsPage.value;
+      final int totalPages = controller.totalHoldingsPages.value;
+      final int currentDisplayPage = currentPage + 1;
+      final int totalHoldings =
+          controller.holdingsData.value?.holdings.length ?? 0;
+      final List<int?> visiblePages =
+          _holdingsPageItems(currentDisplayPage, totalPages);
 
-  Widget _buildCompactTable(String title, List<List<String>> data, bool isDarkMode) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
-              ),
-            ),
-            child: Text(
-              title,
-              style: DashboardTextStyles.columnHeader.copyWith(
-                fontWeight: FontWeight.w400,
-                fontSize: 13,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-              ),
-            ),
-          ),
-          ...data.map((row) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)).withOpacity(0.3),
-                  width: 0.5,
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: RichText(
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
+                  style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12.5),
+                  children: [
+                    const TextSpan(text: 'Page '),
+                    TextSpan(
+                      text: '$currentDisplayPage',
+                      style: HomeUi.tableCell(isDarkMode).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                    const TextSpan(text: ' of '),
+                    TextSpan(
+                      text: '$totalPages',
+                      style: HomeUi.tableCell(isDarkMode).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                    TextSpan(text: '  ·  $totalHoldings holdings'),
+                  ],
                 ),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  row[0],
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                  ),
+                _EtfPaginationIconButton(
+                  icon: Icons.chevron_left_rounded,
+                  enabled: controller.hasPreviousHoldingsPage,
+                  isDarkMode: isDarkMode,
+                  onTap: () => controller.previousHoldingsPage(),
                 ),
-                Text(
-                  row[1],
-                  style: DashboardTextStyles.dataCell.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                  ),
+                const SizedBox(width: 6),
+                ...visiblePages.map((int? page) {
+                  if (page == null) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        '…',
+                        style: HomeUi.subtitle(isDarkMode).copyWith(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _EtfPaginationPageButton(
+                      page: page,
+                      selected: page == currentDisplayPage,
+                      isDarkMode: isDarkMode,
+                      onTap: () => controller.goToHoldingsPage(page - 1),
+                    ),
+                  );
+                }),
+                const SizedBox(width: 6),
+                _EtfPaginationIconButton(
+                  icon: Icons.chevron_right_rounded,
+                  enabled: controller.hasNextHoldingsPage,
+                  isDarkMode: isDarkMode,
+                  onTap: () => controller.nextHoldingsPage(),
                 ),
               ],
             ),
-          )).toList(),
+          ],
+        ),
+      );
+    });
+  }
+
+  List<int?> _holdingsPageItems(int current, int total) {
+    if (total <= 7) {
+      return [for (var i = 1; i <= total; i++) i];
+    }
+    final set = <int>{1, total, current};
+    if (current - 1 > 1) set.add(current - 1);
+    if (current + 1 < total) set.add(current + 1);
+    if (current <= 3) set.addAll({2, 3, 4});
+    if (current >= total - 2) set.addAll({total - 3, total - 2, total - 1});
+    final sorted = set.toList()..sort();
+    final out = <int?>[];
+    int? prev;
+    for (final page in sorted) {
+      if (prev != null && page - prev > 1) out.add(null);
+      out.add(page);
+      prev = page;
+    }
+    return out;
+  }
+
+  List<Color> _getChartColors() => _etfChartPalette;
+
+  Widget _buildCompactTable(
+      String title, List<List<String>> data, bool isDarkMode) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      decoration: HomeUi.cardDecoration(isDarkMode),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          HomeUi.tableToolbarHeader(
+            isDarkMode,
+            icon: Icons.grid_view_rounded,
+            title: title,
+            subtitleText: 'Snapshot view',
+          ),
+          const SizedBox(height: 12),
+          ...data
+              .map((row) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: HomeUi.elevatedBg(isDarkMode),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            row[0],
+                            style: HomeUi.subtitle(isDarkMode)
+                                .copyWith(fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          row[1],
+                          style: HomeUi.bodyText(isDarkMode).copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
         ],
       ),
     );
   }
 
-  Widget _buildPerformanceHeatmap(EtfsData etfData, bool isDarkMode, double height) {
+  Widget _buildPerformanceHeatmap(
+      EtfsData etfData, bool isDarkMode, double height) {
     final performanceData = {
       '1D': etfData.change1DPercent ?? 0,
       '1W': etfData.priceChange1WPercent ?? 0,
@@ -1397,28 +1310,18 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     return Container(
       width: double.infinity,
       height: height,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
-        ),
-      ),
+      padding: HomeUi.cardPadding,
+      decoration: HomeUi.cardDecoration(isDarkMode),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Performance Heatmap',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-            ),
+          HomeUi.tableToolbarHeader(
+            isDarkMode,
+            icon: Icons.auto_graph_rounded,
+            title: 'Performance Heatmap',
+            subtitleText: 'Return trends across timeframes',
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
           Expanded(
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1443,25 +1346,35 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   Widget _buildHeatmapCell(String period, double value, bool isDarkMode) {
     final isPositive = value >= 0;
     final absValue = value.abs();
-    
+
     Color cellColor;
     Color textColor;
-    
+
     if (absValue == 0) {
-      cellColor = isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-      textColor = isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+      cellColor =
+          isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
+      textColor =
+          isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
     } else if (absValue <= 1) {
-      cellColor = isPositive ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2);
-      textColor = isPositive ? const Color(0xFF065F46) : const Color(0xFF991B1B);
+      cellColor =
+          isPositive ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2);
+      textColor =
+          isPositive ? const Color(0xFF065F46) : const Color(0xFF991B1B);
     } else if (absValue <= 5) {
-      cellColor = isPositive ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA);
-      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
+      cellColor =
+          isPositive ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA);
+      textColor =
+          isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
     } else if (absValue <= 15) {
-      cellColor = isPositive ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5);
-      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
+      cellColor =
+          isPositive ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5);
+      textColor =
+          isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
     } else {
-      cellColor = isPositive ? const Color(0xFF34D399) : const Color(0xFFF87171);
-      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
+      cellColor =
+          isPositive ? const Color(0xFF34D399) : const Color(0xFFF87171);
+      textColor =
+          isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
     }
 
     return Container(
@@ -1499,10 +1412,33 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
       ),
     );
   }
-
 }
 
-// Custom Pie Chart Painter
+const List<Color> _etfChartPalette = <Color>[
+  Color(0xFF232C64),
+  Color(0xFF3D5A80),
+  Color(0xFFC45C3A),
+  Color(0xFF6A2C72),
+  Color(0xFF5C7A6A),
+  Color(0xFFA72669),
+  Color(0xFF8B7355),
+  Color(0xFF4A6B8A),
+  Color(0xFFB07D62),
+  Color(0xFF6B5B7B),
+  Color(0xFF7A8B7A),
+  Color(0xFF8B929C),
+];
+
+LinearGradient _etfSliceGradient(Color color, bool isDarkMode) {
+  final Color highlight =
+      Color.lerp(color, Colors.white, isDarkMode ? 0.18 : 0.22)!;
+  return LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[color, highlight],
+  );
+}
+
 class PieChartPainter extends CustomPainter {
   final Map<String, num> data;
   final bool isDarkMode;
@@ -1516,73 +1452,176 @@ class PieChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (data.isEmpty) return;
 
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 * 0.8; // 80% of half width
-    
-    // Calculate total
-    final total = data.values.fold<num>(0, (sum, value) => sum + value);
+    final Offset center = Offset(size.width / 2, size.height / 2);
+    final double radius = size.width / 2 * 0.82;
+    final Color surface = HomeUi.cardBg(isDarkMode);
+    final Rect chartRect = Rect.fromCircle(center: center, radius: radius);
+
+    final num total =
+        data.values.fold<num>(0, (num sum, num value) => sum + value);
     if (total == 0) return;
 
-    // Chart colors
-    final colors = [
-      const Color(0xFF60A5FA), // Blue
-      const Color(0xFF34D399), // Green
-      const Color(0xFFFBBF24), // Yellow
-      const Color(0xFFF87171), // Red
-      const Color(0xFFA78BFA), // Purple
-      const Color(0xFFFB923C), // Orange
-      const Color(0xFF2DD4BF), // Teal
-      const Color(0xFFFB7185), // Pink
-      const Color(0xFF4ADE80), // Light Green
-      const Color(0xFF818CF8), // Indigo
-      const Color(0xFFFCD34D), // Light Yellow
-      const Color(0xFF9CA3AF), // Gray
-    ];
-
-    double startAngle = -math.pi / 2; // Start from top (-90 degrees)
-    
-    final entries = data.entries.toList();
+    double startAngle = -math.pi / 2;
+    final List<MapEntry<String, num>> entries = data.entries.toList();
     for (int i = 0; i < entries.length; i++) {
-      final entry = entries[i];
-      final sweepAngle = (entry.value / total) * 2 * math.pi;
-      
-      final paint = Paint()
-        ..color = colors[i % colors.length]
-        ..style = PaintingStyle.fill;
+      final MapEntry<String, num> entry = entries[i];
+      final double sweepAngle = (entry.value / total) * 2 * math.pi;
+      final Color color = _etfChartPalette[i % _etfChartPalette.length];
 
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        true,
-        paint,
-      );
+      final Paint paint = Paint()
+        ..shader = _etfSliceGradient(color, isDarkMode).createShader(chartRect)
+        ..style = PaintingStyle.fill
+        ..isAntiAlias = true;
 
-      // Draw border between slices
-      final borderPaint = Paint()
-        ..color = isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA)
+      canvas.drawArc(chartRect, startAngle, sweepAngle, true, paint);
+
+      final Paint gapPaint = Paint()
+        ..color = surface
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
+        ..strokeWidth = 3
+        ..isAntiAlias = true;
 
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        true,
-        borderPaint,
-      );
+      canvas.drawArc(chartRect, startAngle, sweepAngle, true, gapPaint);
 
       startAngle += sweepAngle;
     }
 
-    // Draw center circle for donut effect
-    final centerPaint = Paint()
-      ..color = isDarkMode ? const Color(0xFF1A1A1A) : Colors.white
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, radius * 0.5, centerPaint);
+    final Paint centerPaint = Paint()
+      ..color = surface
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    canvas.drawCircle(center, radius * 0.58, centerPaint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class _EtfPaginationIconButton extends StatefulWidget {
+  final IconData icon;
+  final bool enabled;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+
+  const _EtfPaginationIconButton({
+    required this.icon,
+    required this.enabled,
+    required this.isDarkMode,
+    required this.onTap,
+  });
+
+  @override
+  State<_EtfPaginationIconButton> createState() =>
+      _EtfPaginationIconButtonState();
+}
+
+class _EtfPaginationIconButtonState extends State<_EtfPaginationIconButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.enabled;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: enabled ? widget.onTap : null,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 140),
+          opacity: enabled ? 1 : 0.38,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            width: HomeUi.controlHeight,
+            height: HomeUi.controlHeight,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: enabled && _hover
+                  ? HomeUi.iconFillGradient
+                  : HomeUi.iconWellGradient,
+              border: Border.all(
+                color: enabled && _hover
+                    ? HomeUi.buttonBorder
+                    : HomeUi.iconWellBorder,
+                width: 0.856,
+              ),
+            ),
+            child: enabled && _hover
+                ? Icon(widget.icon, size: 18, color: Colors.white)
+                : HomeUi.brandIcon(icon: widget.icon, size: 18),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EtfPaginationPageButton extends StatefulWidget {
+  final int page;
+  final bool selected;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+
+  const _EtfPaginationPageButton({
+    required this.page,
+    required this.selected,
+    required this.isDarkMode,
+    required this.onTap,
+  });
+
+  @override
+  State<_EtfPaginationPageButton> createState() =>
+      _EtfPaginationPageButtonState();
+}
+
+class _EtfPaginationPageButtonState extends State<_EtfPaginationPageButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.isDarkMode;
+    final selected = widget.selected;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: selected ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: selected ? null : widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          constraints: BoxConstraints(
+            minWidth: HomeUi.controlHeight,
+            minHeight: HomeUi.controlHeight,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: selected ? HomeUi.iconFillGradient : null,
+            color: selected
+                ? null
+                : (_hover ? HomeUi.elevatedBg(dark) : Colors.transparent),
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(
+              color: selected
+                  ? HomeUi.buttonBorder
+                  : (_hover
+                        ? HomeUi.borderStrong(dark)
+                        : Colors.transparent),
+              width: 0.856,
+            ),
+          ),
+          child: Text(
+            '${widget.page}',
+            style: HomeUi.control(dark, active: true).copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : HomeUi.title(dark),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

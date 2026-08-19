@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
@@ -10,6 +9,8 @@ import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/utils.dart';
 
 class AppSidebarPanel extends StatefulWidget {
   const AppSidebarPanel({super.key});
@@ -354,11 +355,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SvgPicture.asset(
-                                  'resources/Small Logo.svg',
-                                  height: 22,
-                                  fit: BoxFit.contain,
-                                ),
+                                const MusaffaLogo(height: 22),
                                 const SizedBox(height: 14),
                                 Text(
                                   name,
@@ -740,29 +737,40 @@ class _SidebarMenuButtonState extends State<SidebarMenuButton>
         child: MouseRegion(
           onEnter: (_) => setState(() => _hovering = true),
           onExit: (_) => setState(() => _hovering = false),
-          cursor: SystemMouseCursors.basic,
+          cursor: SystemMouseCursors.click,
           child: Tooltip(
             message: isOpen ? 'Close menu' : 'Open menu',
             child: GestureDetector(
               onTap: _onTap,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                width: 34,
-                height: 34,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                width: HomeUi.controlHeight,
+                height: HomeUi.controlHeight,
                 decoration: BoxDecoration(
-                  color: isOpen || _hovering
-                      ? (widget.isDarkMode
-                          ? const Color(0xFF2D2D2D)
-                          : const Color(0xFFF3F4F6))
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: isOpen || _hovering
+                      ? HomeUi.iconFillGradient
+                      : HomeUi.iconWellGradient,
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isOpen
-                        ? accent.withOpacity(0.55)
-                        : (widget.isDarkMode
-                            ? const Color(0xFF404040)
-                            : const Color(0xFFE5E7EB)),
+                        ? HomeUi.buttonBorder
+                        : (_hovering
+                            ? HomeUi.borderStrong(widget.isDarkMode)
+                            : HomeUi.iconWellBorder),
+                    width: 0.9,
                   ),
+                  boxShadow: isOpen || _hovering
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              widget.isDarkMode ? 0.22 : 0.08,
+                            ),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ]
+                      : const [],
                 ),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),
@@ -772,7 +780,7 @@ class _SidebarMenuButtonState extends State<SidebarMenuButton>
                         : CupertinoIcons.line_horizontal_3,
                     key: ValueKey(isOpen),
                     size: 17,
-                    color: isOpen ? accent : idle,
+                    color: isOpen || _hovering ? Colors.white : idle,
                   ),
                 ),
               ),

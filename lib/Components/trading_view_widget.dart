@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/models/trading_chart_ticker.dart';
 import 'package:musaffa_terminal/utils/platform_capabilities.dart';
@@ -350,21 +350,13 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
-    
+
     return Container(
-      width: screenWidth,
       height: widget.height,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
-        ),
-      ),
+      decoration: HomeUi.cardDecoration(isDarkMode),
+      clipBehavior: Clip.antiAlias,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
         child: Stack(
           children: [
             // WebView with overscan to clip gaps - only show if chart should be displayed
@@ -393,16 +385,12 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                    color: HomeUi.elevatedBg(isDarkMode),
                   ),
                   child: Center(
                     child: Text(
                       'Chart not available for this symbol',
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                        fontSize: 14,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
+                      style: HomeUi.subtitle(isDarkMode),
                     ),
                   ),
                 ),
@@ -417,25 +405,28 @@ class _TradingViewWidgetState extends State<TradingViewWidget> {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
+                    color: HomeUi.elevatedBg(isDarkMode),
                   ),
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            const Color(0xFF81AACE),
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              HomeUi.accent(isDarkMode),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
-                          _webViewController == null ? 'Initializing Chart...' : 'Loading Chart...',
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                            fontSize: 14,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
+                          _webViewController == null
+                              ? 'Initializing chart…'
+                              : 'Loading chart…',
+                          style: HomeUi.subtitle(isDarkMode),
                         ),
                       ],
                   ),

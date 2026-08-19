@@ -11,3 +11,5 @@ export 'models/quarterly_metric_labels.dart';
 export 'models/stock_quarterly_financials.dart';
 export 'widgets/quarterly_bar_chart.dart';
 export 'widgets/ticker_charts_tab_content.dart';
+export 'controllers/ticker_custom_charts_controller.dart';
+export 'widgets/ticker_custom_charts_tab_content.dart';

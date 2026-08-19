@@ -13,6 +13,7 @@ import 'package:musaffa_terminal/services/websocket_service.dart';
 import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
@@ -110,6 +111,7 @@ class DynamicTable extends StatefulWidget {
     required this.rows,
     this.title,
     this.subtitle,
+    this.toolbarLeadingIcon,
     this.showOuterShadow = false,
     this.outerBoxShadow,
     this.sortState,
@@ -136,12 +138,15 @@ class DynamicTable extends StatefulWidget {
     this.showColumnResizeHandle = true,
     this.resizeHandleIndicatorHeight = 14,
     this.tickerHeaderLabel = 'COMPANY',
+    this.headerHeight,
+    this.rowHeight,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
   final List<SimpleRowModel> rows;
   final String? title;
   final String? subtitle;
+  final IconData? toolbarLeadingIcon;
   final bool showOuterShadow;
   final List<BoxShadow>? outerBoxShadow;
   final SortState? sortState;
@@ -168,6 +173,8 @@ class DynamicTable extends StatefulWidget {
   final bool showColumnResizeHandle;
   final double resizeHandleIndicatorHeight;
   final String tickerHeaderLabel;
+  final double? headerHeight;
+  final double? rowHeight;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -669,22 +676,10 @@ class _DynamicTableState extends State<DynamicTable> {
           (col) => DynamicTableColumn(
             key: col.fieldName,
             label: col.label,
-            headerWidget: widget.compactHeaderText
-                ? AutoSizeText(
-                    col.label,
-                    maxLines: 1,
-                    minFontSize: 9,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  )
-                : null,
+            headerWidget: null,
             width: col.width,
             sortable: true,
-            align: TextAlign.center,
+            align: col.isNumeric ? TextAlign.right : TextAlign.left,
           ),
         )
         .toList();
@@ -712,31 +707,28 @@ class _DynamicTableState extends State<DynamicTable> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFE6ECF5),
-            width: 1,
-          ),
+          color: HomeUi.cardBg(Theme.of(context).brightness == Brightness.dark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: widget.showOuterShadow
+              ? Border.all(
+                  color: HomeUi.borderLight(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ),
+                )
+              : null,
           boxShadow: widget.showOuterShadow
               ? (widget.outerBoxShadow ??
-                  [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(
-                        Theme.of(context).brightness == Brightness.dark ? 0.28 : 0.08,
-                      ),
-                      blurRadius: 18,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 8),
-                    ),
-                  ])
+                  HomeUi.cardShadow(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ))
               : null,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
           child: DynamicTableFromWeb(
             title: widget.title,
             subtitle: widget.subtitle,
+            toolbarLeadingIcon: widget.toolbarLeadingIcon,
             useOuterContainer: false,
             columns: mappedColumns,
             rows: mappedRows,
@@ -750,6 +742,7 @@ class _DynamicTableState extends State<DynamicTable> {
             companyKey: '_company_name',
             logoKey: '_logo_url',
             tickerHeaderLabel: widget.tickerHeaderLabel,
+            tickerColumnWidth: widget.fixedColumnWidth,
             enableColumnVisibilityToggle: widget.enableColumnCustomization,
             enableColumnReorder: widget.enableColumnCustomization,
             enableColumnPinning: true,
@@ -757,6 +750,13 @@ class _DynamicTableState extends State<DynamicTable> {
             showColumnActionMenu: widget.showColumnActionMenu,
             showColumnResizeHandle: widget.showColumnResizeHandle,
             resizeHandleIndicatorHeight: widget.resizeHandleIndicatorHeight,
+            horizontalMargin: widget.horizontalMargin,
+            columnSpacing: widget.columnSpacing,
+            showHeaderTooltip: false,
+            headerHeight: widget.headerHeight ?? 42,
+            rowHeight: widget.rowHeight ?? 52,
+            dataRowMinHeight: widget.rowHeight ?? 52,
+            dataRowMaxHeight: widget.rowHeight ?? 52,
             onTickerTap: widget.onTickerTap ?? (row) {
           final ticker = row.data['_ticker_symbol']?.toString() ?? '';
           if (ticker.isEmpty || ticker == '--') return;
@@ -1102,7 +1102,10 @@ class _DynamicTableState extends State<DynamicTable> {
           
           // Check if the field value is a Widget (like TargetPriceCell)
           if (fieldValue is Widget) {
-            Widget cellContent = fieldValue;
+            Widget cellContent = Align(
+              alignment: Alignment.centerLeft,
+              child: fieldValue,
+            );
             
             // Apply fixed width for price columns
             if (isPriceColumn) {

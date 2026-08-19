@@ -6,6 +6,7 @@ import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class MarketSummaryDynamicTable extends StatefulWidget {
   const MarketSummaryDynamicTable({
@@ -67,6 +68,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
           sortable: true,
           searchable: false,
           pinnable: true,
+          align: TextAlign.left,
         ),
       );
     }
@@ -82,6 +84,7 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
           sortable: true,
           searchable: false,
           pinnable: true,
+          align: TextAlign.right,
         ),
       );
     }
@@ -166,84 +169,68 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                 ),
               );
             } else {
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Text(
+              final isDarkMode =
+                  Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                width: double.infinity,
+                clipBehavior: Clip.antiAlias,
+                decoration: HomeUi.cardDecoration(isDarkMode).copyWith(
+                  border: Border.all(
+                    color: HomeUi.borderLight(isDarkMode),
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                      child: Text(
                         "Previous day closing data",
                         textAlign: TextAlign.start,
-                        style: DashboardTextStyles.titleSmall.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : DashboardTextStyles.newtextcolor,
-                        ),
+                        style: HomeUi.cardTitle(isDarkMode),
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-                  LayoutBuilder(
+                    ),
+                    const SizedBox(height: 12),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: HomeUi.borderLight(isDarkMode),
+                    ),
+                    LayoutBuilder(
                     builder: (context, constraints) {
                       final availableWidth = constraints.maxWidth;
-                      const fixedColumnWidth = 180.0;
+                      const fixedColumnWidth = 176.0;
                       final scrollableAreaWidth =
                           availableWidth - fixedColumnWidth;
 
                       final screenWidth = MediaQuery.of(context).size.width;
                       final bool isLargeScreen = screenWidth >= 1600;
-                      final dataRowMaxHeight = isLargeScreen ? 33.0 : 28.0;
-
-                      final baseColumnSpacing = 10.0;
+                      final dataRowMaxHeight = isLargeScreen ? 44.0 : 42.0;
+                      const headingRowHeight = 40.0;
+                      const columnSpacing = 8.0;
                       const numColumns = 6;
-                      const estimatedColumnWidth = 80.0;
-                      final minWidthNeeded =
-                          (numColumns * estimatedColumnWidth) +
-                              ((numColumns - 1) * baseColumnSpacing);
-
-                      double dynamicSpacing;
-                      if (scrollableAreaWidth > minWidthNeeded) {
-                        final extraSpace = scrollableAreaWidth - minWidthNeeded;
-                        final additionalSpacing = extraSpace / (numColumns - 1);
-                        dynamicSpacing = baseColumnSpacing + additionalSpacing;
-                        dynamicSpacing =
-                            dynamicSpacing.clamp(baseColumnSpacing, 50.0);
-                      } else {
-                        dynamicSpacing = baseColumnSpacing;
-                      }
-
-                      final borderWidth = isLargeScreen ? 0.2 : 0.2;
-                      final isDarkMode =
-                          Theme.of(context).brightness == Brightness.dark;
-                      final borderColor = Theme.of(context).primaryColorLight;
-                      final containerBorderColor = isDarkMode
-                          ? const Color(0xFF505050)
-                          : const Color(0xFFD1D5DB);
-                      final columnSpacing = isLargeScreen ? 42.0 : 15.0;
+                      final periodColumnWidth = scrollableAreaWidth > 0
+                          ? ((scrollableAreaWidth -
+                                      ((numColumns - 1) * columnSpacing)) /
+                                  numColumns)
+                              .clamp(96.0, 140.0)
+                          : 96.0;
                       final dynamicColumns = _mapToDynamicColumns(
-                        fixedSectorColumnWidth:
-                            fixedColumnWidth + columnSpacing,
-                        periodColumnWidth: estimatedColumnWidth,
+                        fixedSectorColumnWidth: fixedColumnWidth,
+                        periodColumnWidth: periodColumnWidth,
                       );
                       final dynamicRows = _mapToDynamicRows();
 
                       final calculatedTableHeight =
-                          24 + (dynamicRows.length * dataRowMaxHeight) + 1;
+                          headingRowHeight + (dynamicRows.length * dataRowMaxHeight) + 1;
                       final tableMaxHeight = calculatedTableHeight < 60
                           ? 60.0
                           : calculatedTableHeight;
 
-                      return Container(
-                        width: availableWidth,
-                        decoration: BoxDecoration(
-                          color: isDarkMode
-                              ? const Color(0xFF2D2D2D)
-                              : Colors.white,
-                          border: Border.all(
-                              color: containerBorderColor, width: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        padding: EdgeInsets.all(8),
-                        child: DynamicTableFromWeb(
+                      return DynamicTableFromWeb(
                           columns: dynamicColumns,
                           rows: dynamicRows,
                           title: null,
@@ -256,36 +243,37 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           loading: controller.isLoading.value,
                           maxHeight: tableMaxHeight,
                           enableColumnVisibilityToggle: false,
-                          enableColumnReorder: true,
+                          enableColumnReorder: false,
                           enableColumnPinning: true,
                           enableRowReorder: false,
                           showSortIndicators: false,
-                          headingRowHeight: 24,
-                          dataRowMinHeight: 20,
+                          headingRowHeight: headingRowHeight,
+                          dataRowMinHeight: 32,
                           dataRowMaxHeight: dataRowMaxHeight,
-                          horizontalMargin: 0,
-                          columnSpacing: dynamicSpacing,
-                          dividerThickness: borderWidth,
+                          horizontalMargin: 12,
+                          columnSpacing: columnSpacing,
+                          dividerThickness: 0.5,
                           showBottomBorder: false,
                           tableBorder: TableBorder(
                             bottom: BorderSide.none,
                             top: BorderSide.none,
                             verticalInside: BorderSide.none,
                             horizontalInside: BorderSide(
-                              color: borderColor,
-                              width: borderWidth,
+                              color: HomeUi.borderLight(isDarkMode),
+                              width: 0.5,
                             ),
                           ),
                           useOuterContainer: false,
-                          showColumnActionMenu: true,
-                          showColumnResizeHandle: true,
+                          showColumnActionMenu: false,
+                          showColumnResizeHandle: false,
+                          showHeaderTooltip: false,
                           enforceColumnWidths: true,
                           initialPinnedLeftColumnKeys: const <String>['sector'],
-                        ),
-                      );
+                        );
                     },
                   ),
                 ],
+                ),
               );
             }
           }),

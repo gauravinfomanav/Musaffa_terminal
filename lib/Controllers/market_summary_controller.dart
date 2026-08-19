@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/Screens/sector_details_screen.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
@@ -97,34 +98,31 @@ class MarketSummaryController extends GetxController {
     List<DataColumn> lst = [];
 
     final isDarkMode = Get.context?.theme.brightness == Brightness.dark;
-    final headerColor = isDarkMode == true ? Colors.white : Color(0xFF757576);
+    final headerStyle = HomeUi.tableHeader(isDarkMode == true);
 
     fixedLst.add(DataColumn(
-      label: Padding(
-        padding: const EdgeInsets.only(right: 12, bottom: 4),
+      headingRowAlignment: MainAxisAlignment.start,
+      label: Align(
+        alignment: Alignment.centerLeft,
         child: Text(
           "SECTOR",
-          style: TextStyle(
-            fontSize: 13,
-            color: headerColor,
-            fontWeight: FontWeight.w400,
-          ),
+          style: headerStyle,
+          textAlign: TextAlign.left,
         ),
       ),
     ));
 
     dataFieldsToDisplay.forEach((element) {
       var widget = DataColumn(
-        headingRowAlignment: MainAxisAlignment.center,
+        headingRowAlignment: MainAxisAlignment.end,
         label: Padding(
-          padding: const EdgeInsets.only(bottom: 4),
+          padding: EdgeInsets.zero,
           child: Text(
-            element.displayName ?? '',
-            style: TextStyle(
-              fontSize: 13,
-              color: headerColor,
-              fontWeight: FontWeight.w400,
-            ),
+            (element.displayName ?? '').toUpperCase(),
+            style: headerStyle,
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       );
@@ -137,7 +135,7 @@ class MarketSummaryController extends GetxController {
 
   void generateDataRows() {
     final isDarkMode = Get.context?.theme.brightness == Brightness.dark;
-    final rowTextColor = isDarkMode == true ? Colors.white : DashboardTextStyles.newtextcolor;
+    final rowTextStyle = HomeUi.tableCell(isDarkMode == true);
     List<DataRow> dataRowLst = [];
     List<DataRow> fixedRowLst = [];
 
@@ -165,14 +163,16 @@ class MarketSummaryController extends GetxController {
                 () => SectorDetailsScreen(sectorName: sector),
               );
             },
-            child: Container(
-              padding: EdgeInsets.only(right: 12),
-              child: Text(
-                sector,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: rowTextColor,
-                  fontWeight: FontWeight.w400,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  sector,
+                  style: rowTextStyle,
+                  textAlign: TextAlign.left,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -206,18 +206,24 @@ class MarketSummaryController extends GetxController {
             }
           }
 
-          var valueCell = DataCell(Container(
-            padding: EdgeInsets.symmetric(vertical: 7, horizontal: 12),
-            child: Text(
-              matchedFieldStr,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1,
-                color: isPos ? Colors.green : Colors.red,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+          var valueCell = DataCell(Align(
+            alignment: Alignment.centerRight,
+            child: numericValue == null || numericValue == 0
+                ? Text(
+                    numericValue == null ? '—' : '0.0%',
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: HomeUi.tableNumeric(isDarkMode == true),
+                  )
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: HomeUi.signedPercentPill(
+                      isDarkMode == true,
+                      matchedFieldStr,
+                      numericValue,
+                    ),
+                  ),
           ));
           cellArr.add(valueCell);
         });
@@ -238,12 +244,10 @@ class MarketSummaryController extends GetxController {
   /// (title + spacing + padded table body). Matches [MarketSummaryDynamicTable].
   double estimatedTableWidgetHeight(double screenWidth) {
     final bool isLargeScreen = screenWidth >= 1600;
-    final dataRowMaxHeight = isLargeScreen ? 33.0 : 28.0;
+    final dataRowMaxHeight = isLargeScreen ? 44.0 : 42.0;
     final rowCount = dataRows.isEmpty ? 11 : dataRows.length;
-    final tableBodyHeight = 24 + (rowCount * dataRowMaxHeight) + 1;
-    const titleHeight = 28.0;
-    const titleSpacing = 12.0;
-    const containerPadding = 16.0; // EdgeInsets.all(8) top + bottom
-    return titleHeight + titleSpacing + containerPadding + tableBodyHeight;
+    final tableBodyHeight = 40 + (rowCount * dataRowMaxHeight) + 1;
+    const headerChrome = 60.0;
+    return headerChrome + tableBodyHeight;
   }
 }

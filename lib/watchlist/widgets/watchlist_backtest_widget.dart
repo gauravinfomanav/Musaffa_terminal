@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/Controllers/portfolio_backtest_controller.dart';
 import 'package:musaffa_terminal/models/backtest_models.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class WatchlistBacktestWidget extends StatelessWidget {
   final List<String> watchlistStocks;
@@ -323,54 +324,11 @@ class WatchlistBacktestWidget extends StatelessWidget {
   }
 
   Future<void> _showDatePicker(PortfolioBacktestController controller) async {
-    final DateTime? picked = await showDatePicker(
-      context: Get.context!,
+    final DateTime? picked = await HomeUi.pickDate(
+      Get.context!,
       initialDate: controller.backtestDate.value,
       firstDate: DateTime(2020, 1, 1),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFF007AFF), // iOS blue
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: const Color(0xFF1C1C1E), // iOS dark text
-              onSurfaceVariant: const Color(0xFF8E8E93), // iOS secondary text
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF007AFF),
-                textStyle: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-            datePickerTheme: DatePickerThemeData(
-              backgroundColor: Colors.white,
-              headerBackgroundColor: const Color(0xFFF2F2F7), 
-              headerForegroundColor: const Color(0xFF1C1C1E),
-              dayForegroundColor: MaterialStateProperty.resolveWith((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return Colors.white;
-                }
-                return const Color(0xFF1C1C1E);
-              }),
-              dayBackgroundColor: MaterialStateProperty.resolveWith((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return const Color(0xFF007AFF);
-                }
-                return Colors.transparent;
-              }),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     
     if (picked != null) {

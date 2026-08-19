@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -6,6 +7,32 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/platform_capabilities.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_windows/webview_windows.dart';
+
+bool _forwardWheelToParent(BuildContext context, dynamic message) {
+  double? dy;
+  try {
+    final decoded = message is String ? jsonDecode(message) : message;
+    if (decoded is Map && decoded['type'] == 'wheel') {
+      dy = (decoded['dy'] as num?)?.toDouble();
+    }
+  } catch (_) {
+    return false;
+  }
+  if (dy == null || dy == 0) return false;
+
+  final controller = PrimaryScrollController.maybeOf(context);
+  if (controller == null || !controller.hasClients) return true;
+
+  final position = controller.position;
+  final next = (position.pixels + dy).clamp(
+    position.minScrollExtent,
+    position.maxScrollExtent,
+  );
+  if (next != position.pixels) {
+    controller.jumpTo(next);
+  }
+  return true;
+}
 
 /// Handle for running JS in the Windows WebView2 instance.
 class WindowsWebViewHandle {
@@ -48,6 +75,9 @@ class _WindowsHtmlWebViewState extends State<WindowsHtmlWebView> {
 
   static const String _channelBridge = r'''
 (function () {
+  if (window.__musaffaChannelBound) return;
+  window.__musaffaChannelBound = true;
+  if (window !== window.top) return;
   function bindChannel(name) {
     var target = window[name];
     if (target && typeof target === "function") {
@@ -66,7 +96,6 @@ class _WindowsHtmlWebViewState extends State<WindowsHtmlWebView> {
       }
     };
   }
-  bindChannel("ResizeObserver");
   bindChannel("Print");
 })();
 ''';
@@ -94,6 +123,8 @@ class _WindowsHtmlWebViewState extends State<WindowsHtmlWebView> {
         }
       });
       _messageSub = _controller.webMessage.listen((dynamic message) {
+        if (!mounted) return;
+        if (_forwardWheelToParent(context, message)) return;
         widget.onJsMessage?.call(message);
       });
       _urlSub = _controller.url.listen(_blockExternalSiteNavigation);

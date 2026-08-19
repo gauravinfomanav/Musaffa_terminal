@@ -1,4 +1,3 @@
-
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -19,7 +18,6 @@ class CommonStockEtfDataModel {
   EtfModel? etfProfile;
   List<StockEtfField> customDataFields;
   bool isOtherCommodity;
-  
 
   CommonStockEtfDataModel({
     this.id,
@@ -28,25 +26,21 @@ class CommonStockEtfDataModel {
     this.etfProfile,
     this.isOtherCommodity = false,
     required this.customDataFields,
-    
   });
 }
 
 class StockEtfField {
-  
   dynamic value;
   bool isCustomField;
   String? suffix;
   AmountWidgetObj? amountWidgetObj;
 
   StockEtfField(
-      {
-      this.value,
+      {this.value,
       this.isCustomField = false,
       this.suffix,
       this.amountWidgetObj});
 }
-
 
 class AmountWidget extends StatelessWidget {
   const AmountWidget(
@@ -66,8 +60,7 @@ class AmountWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color primaryColor = Theme.of(context).primaryColor;
-    
-    
+
     var isVerySmallAmount = false;
     var style = TextStyle(
       color: primaryColor,
@@ -125,6 +118,7 @@ class AmountWidget extends StatelessWidget {
     }
   }
 }
+
 String valueWithCurrency({
   num? price,
   String? currency,
@@ -174,8 +168,7 @@ String valueWithCurrency({
   var currencySymbol = "";
   if (currency != null && currency.isNotEmpty) {
     if (showCurrencySymbol == true) {
-      currencySymbol = 
-          "\$";
+      currencySymbol = "\$";
       if (currencySymbol.isEmpty)
         addCurrencySymbol = false;
       else
@@ -227,6 +220,7 @@ String modifyLeadingFractionDigits(
   else
     return startingPartStr;
 }
+
 String getShortenedT(num? value) {
   if (value == null) {
     return "-";
@@ -265,6 +259,7 @@ enum ShariahCompliantStatus {
   COMPLIANT,
   DEFAULT,
 }
+
 final shariahCompliantStatusValues = EnumValues({
   "NOT_UNDER_COVERAGE": ShariahCompliantStatus.NOT_UNDER_COVERAGE,
   "COMPLIANT": ShariahCompliantStatus.COMPLIANT,
@@ -272,7 +267,6 @@ final shariahCompliantStatusValues = EnumValues({
   "NON_COMPLIANT": ShariahCompliantStatus.NON_COMPLIANT,
   "DEFAULT": ShariahCompliantStatus.DEFAULT,
 });
-
 
 class EnumValues<T> {
   Map<String, T> map;
@@ -285,6 +279,26 @@ class EnumValues<T> {
       reverseMap = map.map((k, v) => new MapEntry(v, k));
     }
     return reverseMap;
+  }
+}
+
+class MusaffaLogo extends StatelessWidget {
+  const MusaffaLogo({super.key, this.height = 22});
+
+  final double height;
+  static const String assetPath = 'resources/Small Logo.png';
+  static const double _aspectRatio = 176 / 28;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = height * _aspectRatio;
+    return Image.asset(
+      assetPath,
+      width: width,
+      height: height,
+      fit: BoxFit.contain,
+      alignment: Alignment.centerLeft,
+    );
   }
 }
 
@@ -309,9 +323,14 @@ Widget showLogo(
       child: FittedBox(
         fit: BoxFit.contain,
         child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : symbol.isNotEmpty ? symbol[0].toUpperCase() : "?",
+          name.isNotEmpty
+              ? name[0].toUpperCase()
+              : symbol.isNotEmpty
+                  ? symbol[0].toUpperCase()
+                  : "?",
           style: TextStyle(
-            fontSize: fontsize ?? (sideWidth! * 0.4), // Dynamic font size based on container size
+            fontSize: fontsize ??
+                (sideWidth! * 0.4), // Dynamic font size based on container size
             fontWeight: FontWeight.w600,
             fontFamily: Constants.FONT_DEFAULT_NEW,
             color: Colors.grey.shade700,
@@ -323,14 +342,16 @@ Widget showLogo(
 
   // If no URL provided, return placeholder immediately
   if (url.isEmpty) {
-    return circular ? placeholder : ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: placeholder,
-    );
+    return circular
+        ? placeholder
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: placeholder,
+          );
   }
 
   Widget childWidget;
-  
+
   // Check if URL is valid
   bool isSvg = false;
   try {
@@ -338,36 +359,49 @@ Widget showLogo(
   } catch (e) {
     isSvg = false;
   }
-  
-  if (isSvg) {
-    childWidget = SvgPicture.network(
-      url,
-      width: sideWidth,
-      height: sideWidth,
-      fit: BoxFit.contain,
-      placeholderBuilder: (BuildContext context) {
-        return _buildShimmerPlaceholder(sideWidth!);
-      },
-      errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
-        return placeholder;
-      },
-    );
-  } else {
-    childWidget = Image.network(
-      url,
-      width: sideWidth,
-      height: sideWidth,
-      fit: BoxFit.contain,
-      loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-        if (loadingProgress == null) return child;
-        return _buildShimmerPlaceholder(sideWidth!);
-      },
-      errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
-        return placeholder;
-      },
-    );
-  }
-  
+
+  childWidget = Builder(
+    builder: (context) {
+      final dpr = MediaQuery.devicePixelRatioOf(context);
+      final size = sideWidth ?? 25;
+      final cachePx = (size * (dpr < 2 ? 2 : dpr) * 2).round();
+      if (isSvg) {
+        return SvgPicture.network(
+          url,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          placeholderBuilder: (BuildContext context) {
+            return _buildShimmerPlaceholder(size);
+          },
+          errorBuilder:
+              (BuildContext context, Object exception, StackTrace? stackTrace) {
+            return placeholder;
+          },
+        );
+      }
+      return Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
+        cacheWidth: cachePx,
+        cacheHeight: cachePx,
+        loadingBuilder: (BuildContext context, Widget child,
+            ImageChunkEvent? loadingProgress) {
+          if (loadingProgress == null) return child;
+          return _buildShimmerPlaceholder(size);
+        },
+        errorBuilder:
+            (BuildContext context, Object exception, StackTrace? stackTrace) {
+          return placeholder;
+        },
+      );
+    },
+  );
+
   // Apply circular clipping if requested
   if (circular) {
     return ClipRRect(
@@ -401,6 +435,7 @@ num? parseVariableAsNum(dynamic data) {
   else
     return null;
 }
+
 String getFormattedPrice(num? price, String? currency) {
   if (price == null) return "";
   var currencySymbol = "\$";
@@ -420,7 +455,6 @@ String getFormattedPrice(num? price, String? currency) {
   }
   return "$currencySymbol$priceStr";
 }
-
 
 class CustomColorsV2 {
   static const Color whiteColor = const Color(0xffffffff);
@@ -546,7 +580,6 @@ getPercentageChange(num? percentageChange) {
   } else
     return "";
 }
-
 
 class CustomColors {
   // crowdfundinhg  banner

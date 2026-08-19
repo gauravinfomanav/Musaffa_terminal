@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
@@ -112,65 +112,44 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
                 followerAnchor: Alignment.topLeft,
                 offset: const Offset(0, 4),
                 child: Material(
-                  elevation: 8,
-                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.transparent,
                   child: Container(
                     constraints: const BoxConstraints(
                       minWidth: 220,
                       maxWidth: 280,
                       maxHeight: 300,
                     ),
-                    decoration: BoxDecoration(
-                      color: widget.isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                        width: 1,
-                      ),
-                    ),
+                    decoration: HomeUi.cardDecoration(widget.isDarkMode),
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Header
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(6),
-                              topRight: Radius.circular(6),
-                            ),
-                            border: Border(
-                              bottom: BorderSide(
-                                color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                                width: 1,
-                              ),
-                            ),
-                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
                           child: Row(
                             children: [
-                              Text(
-                                'ADD TO WATCHLIST',
-                                style: DashboardTextStyles.columnHeader.copyWith(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
+                              Expanded(
+                                child: Text(
+                                  'Add to Watchlist',
+                                  style: HomeUi.sectionTitle(widget.isDarkMode)
+                                      .copyWith(fontSize: 13),
                                 ),
                               ),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: _removeOverlay,
-                                child: Icon(
-                                  Icons.close,
-                                  size: 14,
-                                  color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: _removeOverlay,
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    size: 16,
+                                    color: HomeUi.muted(widget.isDarkMode),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        
-                        // Watchlist items
+                        Divider(height: 1, color: HomeUi.borderLight(widget.isDarkMode)),
                         Flexible(
                           child: ListView.builder(
                             shrinkWrap: true,
@@ -199,63 +178,55 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
   }
 
   Widget _buildWatchlistItem(WatchlistModel watchlist, bool isDefault, WatchlistController controller) {
-    return GestureDetector(
-      onTap: () async {
-        _removeOverlay();
-        await _addToSpecificWatchlist(watchlist);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: widget.isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-          border: Border(
-            bottom: BorderSide(
-              color: widget.isDarkMode ? const Color(0xFF404040).withOpacity(0.3) : const Color(0xFFE5E7EB).withOpacity(0.3),
-              width: 0.5,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () async {
+          _removeOverlay();
+          await _addToSpecificWatchlist(watchlist);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: HomeUi.borderLight(widget.isDarkMode).withValues(alpha: 0.7)),
             ),
           ),
-        ),
-        child: Row(
-          children: [
-            if (isDefault)
-              Container(
-                margin: const EdgeInsets.only(right: 6),
-                child: Icon(
-                  Icons.star,
-                  size: 12,
-                  color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
+          child: Row(
+            children: [
+              if (isDefault)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: HomeUi.brandIcon(
+                    icon: Icons.star_rounded,
+                    size: 12,
+                  ),
+                ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      watchlist.name,
+                      style: HomeUi.tableCellEmphasis(widget.isDarkMode).copyWith(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${watchlist.stockCount} stocks',
+                      style: HomeUi.subtitle(widget.isDarkMode).copyWith(fontSize: 11),
+                    ),
+                  ],
                 ),
               ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    watchlist.name,
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    '${watchlist.stockCount} stocks',
-                    style: DashboardTextStyles.tickerSymbol.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      fontSize: 9,
-                    ),
-                  ),
-                ],
+              Icon(
+                Icons.add_rounded,
+                size: 16,
+                color: HomeUi.muted(widget.isDarkMode),
               ),
-            ),
-            Icon(
-              Icons.add_circle_outline,
-              size: 14,
-              color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -314,73 +285,50 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
     return CompositedTransformTarget(
       link: _layerLink,
       child: Container(
-        decoration: BoxDecoration(
-          color: widget.isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
+        height: HomeUi.controlHeight,
+        decoration: HomeUi.primaryButton(),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Main button - Add to default
-            GestureDetector(
-              onTap: _isAdding ? null : _addToDefaultWatchlist,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isAdding)
-                      SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: _isAdding ? null : _addToDefaultWatchlist,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isAdding)
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
-                        ),
-                      )
-                    else
-                      Icon(
-                        Icons.add,
-                        size: 14,
-                        color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'ADD TO WATCHLIST',
-                      style: DashboardTextStyles.columnHeader.copyWith(
-                        color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+                        )
+                      else
+                        const Icon(Icons.add_rounded, size: 14, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text('Watchlist', style: HomeUi.primaryActionLabel()),
+                    ],
+                  ),
                 ),
               ),
             ),
-            
-            // Divider
             Container(
               width: 1,
-              height: 24,
-              color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+              height: 16,
+              color: Colors.white.withValues(alpha: 0.28),
             ),
-            
-            // Dropdown button
-            GestureDetector(
-              onTap: _isAdding ? null : _showWatchlistDropdown,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Icon(
-                  Icons.arrow_drop_down,
-                  size: 16,
-                  color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: _isAdding ? null : _showWatchlistDropdown,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(Icons.expand_more_rounded, size: 16, color: Colors.white),
                 ),
               ),
             ),
@@ -392,35 +340,26 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
 
   Widget _buildInWatchlistButton() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      height: HomeUi.controlHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: widget.isDarkMode 
-            ? const Color(0xFF1A1A1A).withOpacity(0.5)
-            : const Color(0xFFF9FAFB).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: widget.isDarkMode 
-              ? const Color(0xFF81AACE).withOpacity(0.5)
-              : const Color(0xFF3B82F6).withOpacity(0.5),
-          width: 1,
-        ),
+        gradient: HomeUi.iconWellGradient,
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(color: HomeUi.iconWellBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.check_circle,
+          HomeUi.brandIcon(
+            icon: Icons.check_circle_rounded,
             size: 14,
-            color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
           ),
           const SizedBox(width: 6),
           Text(
-            'IN WATCHLIST',
-            style: DashboardTextStyles.columnHeader.copyWith(
-              color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-              fontSize: 10,
+            'In Watchlist',
+            style: HomeUi.control(widget.isDarkMode, active: true).copyWith(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
             ),
           ),
         ],

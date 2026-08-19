@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_search_service.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class ComplianceDetailSearch extends StatefulWidget {
   const ComplianceDetailSearch({
@@ -159,22 +159,12 @@ class _ComplianceDetailSearchState extends State<ComplianceDetailSearch> {
         left: position.dx,
         width: size.width,
         child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(6),
+          color: Colors.transparent,
+          elevation: 0,
           child: Container(
             constraints: const BoxConstraints(maxHeight: 300),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? const Color(0xFF1A1A1A)
-                  : const Color(0xFFFAFAFA),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: isDarkMode
-                    ? const Color(0xFF404040)
-                    : const Color(0xFFE5E7EB),
-                width: 1,
-              ),
-            ),
+            decoration: HomeUi.cardDecoration(isDarkMode),
+            clipBehavior: Clip.antiAlias,
             child: _isSearching
                 ? const ComplianceSearchResultsShimmer(itemCount: 4)
                 : ListView.builder(
@@ -201,94 +191,80 @@ class _ComplianceDetailSearchState extends State<ComplianceDetailSearch> {
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final double screenHeight = MediaQuery.of(context).size.height;
-    final double fieldHeight = widget.compact
-        ? (screenHeight * 0.055).clamp(40.0, 48.0)
-        : (screenHeight * 0.055).clamp(44.0, 56.0);
+    final bool hasQuery = _searchController.text.isNotEmpty;
+    final double fieldHeight = widget.compact ? 44.0 : 52.0;
 
     return SizedBox(
       key: _searchFieldKey,
       width: widget.maxWidth,
       height: fieldHeight,
-      child: TextField(
-        controller: _searchController,
-        focusNode: _searchFocusNode,
-        cursorColor: isDarkMode
-            ? const Color(0xFF81AACE)
-            : const Color(0xFF3B82F6),
-        textInputAction: TextInputAction.search,
-        onChanged: _onSearchChanged,
-        style: DashboardTextStyles.stockName.copyWith(
-          color: isDarkMode
-              ? const Color(0xFFE0E0E0)
-              : DashboardTextStyles.stockName.color,
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: widget.compact ? 14 : 16,
-        ),
-        decoration: InputDecoration(
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            size: widget.compact ? 18 : 20,
-            color: isDarkMode
-                ? const Color(0xFF9CA3AF)
-                : const Color(0xFF6B7280),
-          ),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  onPressed: _clearSearch,
-                  icon: Icon(
-                    Icons.close,
-                    size: 18,
-                    color: isDarkMode
-                        ? const Color(0xFF9CA3AF)
-                        : const Color(0xFF6B7280),
-                  ),
-                )
-              : null,
-          hintText: 'Search another compliance report',
-          hintStyle: DashboardTextStyles.tickerSymbol.copyWith(
-            color: isDarkMode
-                ? const Color(0xFF9CA3AF)
-                : const Color(0xFF6B7280),
-            fontSize: widget.compact ? 13 : 14,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: widget.compact ? 12 : 16,
-            vertical: widget.compact ? 10 : 12,
-          ),
-          filled: true,
-          fillColor: isDarkMode
-              ? const Color(0xFF1A1A1A)
-              : const Color(0xFFFAFAFA),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: isDarkMode
-                  ? const Color(0xFF404040)
-                  : const Color(0xFFE5E7EB),
-              width: 1,
+      child: AnimatedBuilder(
+        animation: _searchFocusNode,
+        builder: (BuildContext context, Widget? _) {
+          final bool focused = _searchFocusNode.hasFocus;
+          return HomeUi.filterFieldShell(
+            dark: isDarkMode,
+            accent: focused,
+            hover: focused,
+            height: fieldHeight,
+            radius: HomeUi.radiusCard,
+            padding: const EdgeInsets.only(left: 6, right: 6),
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              cursorColor: const Color(0xFFC42329),
+              cursorWidth: 1.2,
+              textInputAction: TextInputAction.search,
+              onChanged: _onSearchChanged,
+              style: HomeUi.control(isDarkMode, active: true).copyWith(
+                fontSize: 13.5,
+                height: 1.2,
+                color: HomeUi.title(isDarkMode),
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Search another compliance report',
+                hintStyle: HomeUi.subtitle(isDarkMode).copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 8, right: 4),
+                  child: focused
+                      ? HomeUi.brandIcon(
+                          icon: Icons.search_rounded,
+                          size: HomeUi.iconMd,
+                          gradient: HomeUi.iconFillGradient,
+                        )
+                      : HomeUi.vectorIcon(
+                          icon: Icons.search_rounded,
+                          size: HomeUi.iconMd,
+                          color: HomeUi.muted(isDarkMode),
+                        ),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
+                suffixIcon: hasQuery
+                    ? IconButton(
+                        tooltip: 'Clear',
+                        onPressed: _clearSearch,
+                        icon: HomeUi.vectorIcon(
+                          icon: Icons.close_rounded,
+                          size: HomeUi.iconSm,
+                          color: HomeUi.muted(isDarkMode),
+                        ),
+                      )
+                    : null,
+              ),
             ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: isDarkMode
-                  ? const Color(0xFF404040)
-                  : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: isDarkMode
-                  ? const Color(0xFF404040)
-                  : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -316,95 +292,99 @@ class _SearchSuggestionTile extends StatelessWidget {
       if ((ticker.exchange ?? '').isNotEmpty) ticker.exchange!,
       if ((ticker.countryName ?? '').isNotEmpty) ticker.countryName!,
     ].join(' · ');
-    final Color borderColor =
-        isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-    final Color primaryTextColor =
-        isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A);
-    final Color secondaryTextColor =
-        isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280);
-    final Color accentColor =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          border: isLast
-              ? null
-              : Border(
-                  bottom: BorderSide(
-                    color: borderColor.withValues(alpha: 0.3),
-                    width: 0.5,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            border: isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(color: HomeUi.borderLight(isDarkMode)),
+                  ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                constraints: const BoxConstraints(minWidth: 56),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: HomeUi.iconWellGradient,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: HomeUi.iconWellBorder),
+                ),
+                child: Text(
+                  symbol,
+                  textAlign: TextAlign.center,
+                  style: HomeUi.control(isDarkMode, active: true).copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: HomeUi.title(isDarkMode),
                   ),
                 ),
-        ),
-        child: Row(
-          children: <Widget>[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                symbol,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: accentColor,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: HomeUi.sectionTitle(isDarkMode)
+                                .copyWith(fontSize: 13.5),
+                          ),
+                        ),
+                        if (!ticker.isStock) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: HomeUi.elevatedBg(isDarkMode),
+                              borderRadius:
+                                  BorderRadius.circular(HomeUi.radiusPill),
+                              border: Border.all(
+                                color: HomeUi.borderLight(isDarkMode),
+                              ),
+                            ),
+                            child: Text(
+                              'ETF',
+                              style: HomeUi.overline(isDarkMode).copyWith(
+                                fontSize: 9,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (meta.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 2),
+                      Text(
+                        meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: primaryTextColor,
-                    ),
-                  ),
-                  if (!ticker.isStock) ...<Widget>[
-                    const SizedBox(height: 2),
-                    Text(
-                      'ETF',
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: accentColor,
-                      ),
-                    ),
-                  ],
-                  if (meta.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 2),
-                    Text(
-                      meta,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

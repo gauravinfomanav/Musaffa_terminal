@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class TickerFinnhubSectionCard extends StatelessWidget {
   const TickerFinnhubSectionCard({
     super.key,
     required this.isDarkMode,
     required this.child,
-    this.padding = const EdgeInsets.all(12),
+    this.padding = const EdgeInsets.all(16),
   });
 
   final bool isDarkMode;
@@ -17,14 +17,7 @@ class TickerFinnhubSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
+      decoration: HomeUi.cardDecoration(isDarkMode),
       child: child,
     );
   }
@@ -35,19 +28,29 @@ class TickerFinnhubSectionTitle extends StatelessWidget {
     super.key,
     required this.title,
     this.fontSize = 16,
+    this.icon,
+    this.subtitle,
   });
 
   final String title;
   final double fontSize;
+  final IconData? icon;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (icon != null) {
+      return HomeUi.tableToolbarHeader(
+        isDark,
+        icon: icon,
+        title: title,
+        subtitleText: subtitle,
+      );
+    }
     return Text(
       title,
-      style: DashboardTextStyles.stockName.copyWith(
-        fontSize: fontSize,
-        fontWeight: FontWeight.w500,
-      ),
+      style: HomeUi.sectionTitle(isDark).copyWith(fontSize: fontSize),
     );
   }
 }
@@ -66,7 +69,16 @@ class TickerFinnhubLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: height,
-      child: const Center(child: CircularProgressIndicator()),
+      child: Center(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(HomeUi.accent(isDarkMode)),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -85,10 +97,7 @@ class TickerFinnhubEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       message,
-      style: DashboardTextStyles.tickerSymbol.copyWith(
-        fontSize: 12,
-        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-      ),
+      style: HomeUi.subtitle(isDarkMode),
     );
   }
 }

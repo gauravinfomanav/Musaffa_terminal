@@ -1,3 +1,4 @@
+import 'package:musaffa_terminal/charts/models/ohlc_candle_point.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_api_client.dart';
 
@@ -87,5 +88,100 @@ class StockCandleService {
       to: to,
       forceRefresh: forceRefresh,
     );
+  }
+
+  /// Full OHLCV candles from Finnhub `stock/candle` proxy.
+  Future<List<OhlcCandlePoint>> fetchOhlc(
+    String symbol, {
+    required DateTime from,
+    required DateTime to,
+    String resolution = 'D',
+    bool forceRefresh = false,
+  }) async {
+    final String normalized = symbol.trim().toUpperCase();
+    if (normalized.isEmpty) {
+      return <OhlcCandlePoint>[];
+    }
+
+    final int fromEpoch = from.toUtc().millisecondsSinceEpoch ~/ 1000;
+    final int toEpoch = to.toUtc().millisecondsSinceEpoch ~/ 1000;
+    final String cacheKey =
+        'stock/candle:$normalized:$resolution:$fromEpoch:$toEpoch';
+
+    final dynamic decoded = await _client.get(
+      'stock/candle',
+      queryParameters: <String, String>{
+        'symbol': normalized,
+        'resolution': resolution,
+        'from': fromEpoch.toString(),
+        'to': toEpoch.toString(),
+      },
+      cacheKey: cacheKey,
+      forceRefresh: forceRefresh,
+    );
+
+    if (decoded is! Map<String, dynamic>) {
+      return <OhlcCandlePoint>[];
+    }
+    if (decoded['s'] != 'ok') {
+      return <OhlcCandlePoint>[];
+    }
+
+    final List<dynamic> opens =
+        decoded['o'] as List<dynamic>? ?? <dynamic>[];
+    final List<dynamic> highs =
+        decoded['h'] as List<dynamic>? ?? <dynamic>[];
+    final List<dynamic> lows = decoded['l'] as List<dynamic>? ?? <dynamic>[];
+    final List<dynamic> closes =
+        decoded['c'] as List<dynamic>? ?? <dynamic>[];
+    final List<dynamic> volumes =
+        decoded['v'] as List<dynamic>? ?? <dynamic>[];
+    final List<dynamic> timestamps =
+        decoded['t'] as List<dynamic>? ?? <dynamic>[];
+
+    final int count = <int>[
+      opens.length,
+      highs.length,
+      lows.length,
+      closes.length,
+      volumes.length,
+      timestamps.length,
+    ].reduce((int a, int b) => a < b ? a : b);
+
+    final List<OhlcCandlePoint> points = <OhlcCandlePoint>[];
+    for (int index = 0; index < count; index++) {
+      final dynamic openRaw = opens[index];
+      final dynamic highRaw = highs[index];
+      final dynamic lowRaw = lows[index];
+      final dynamic closeRaw = closes[index];
+      final dynamic volumeRaw = volumes[index];
+      final dynamic timestampRaw = timestamps[index];
+      if (openRaw is! num ||
+          highRaw is! num ||
+          lowRaw is! num ||
+          closeRaw is! num ||
+          volumeRaw is! num ||
+          timestampRaw is! num) {
+        continue;
+      }
+      points.add(
+        OhlcCandlePoint(
+          date: DateTime.fromMillisecondsSinceEpoch(
+            timestampRaw.toInt() * 1000,
+            isUtc: true,
+          ).toLocal(),
+          open: openRaw.toDouble(),
+          high: highRaw.toDouble(),
+          low: lowRaw.toDouble(),
+          close: closeRaw.toDouble(),
+          volume: volumeRaw.toDouble(),
+        ),
+      );
+    }
+
+    points.sort(
+      (OhlcCandlePoint a, OhlcCandlePoint b) => a.date.compareTo(b.date),
+    );
+    return points;
   }
 }

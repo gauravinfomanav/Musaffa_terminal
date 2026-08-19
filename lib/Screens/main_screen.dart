@@ -12,8 +12,9 @@ import 'package:musaffa_terminal/Components/stock_heatmap.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
-import 'package:musaffa_terminal/watchlist/widgets/watchlist_dropdown.dart';
+import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
@@ -32,9 +33,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   bool _showSplash = true;
   late AnimationController _watchlistAnimationController;
   late Animation<Offset> _watchlistSlideAnimation;
-  double _watchlistWidth = 0.0; 
-  bool _isHoveringResizeHandle = false;
-  bool _isDraggingResize = false;
   
   // Resizable table and chart - using width for smooth resizing
   double? _tableWidth; // null means use 50% default
@@ -53,8 +51,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     // Initialize watchlist slide animation
     _watchlistAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
-      reverseDuration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 360),
+      reverseDuration: const Duration(milliseconds: 280),
     );
     
     _watchlistSlideAnimation = Tween<Offset>(
@@ -145,10 +143,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       }
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF0F0F0F) 
-          : const Color(0xFFFAFAFA),
+      backgroundColor: HomeUi.pageBg(isDark),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Stack(
@@ -177,25 +174,35 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   if (!_watchlistService.isWatchlistOpen.value) {
                     return const SizedBox.shrink();
                   }
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
                   return Positioned.fill(
                     child: GestureDetector(
                       onTap: _toggleWatchlist,
-                      child: Container(
-                        color: Colors.black.withOpacity(0.3),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(),
+                      child: AnimatedBuilder(
+                        animation: _watchlistAnimationController,
+                        builder: (context, child) {
+                          return Container(
+                            color: Colors.black.withValues(
+                              alpha: 0.28 * _watchlistAnimationController.value,
                             ),
-                            SlideTransition(
-                              position: _watchlistSlideAnimation,
-                              child: GestureDetector(
-                                onTap: () {},
-                                child: _buildWatchlistSidebar(constraints),
-                              ),
+                            child: Row(
+                              children: [
+                                Expanded(child: Container()),
+                                SlideTransition(
+                                  position: _watchlistSlideAnimation,
+                                  child: GestureDetector(
+                                    onTap: () {},
+                                    child: WatchlistSidebar(
+                                      isDarkMode: isDark,
+                                      onClose: _toggleWatchlist,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     ),
                   );
@@ -249,17 +256,17 @@ Widget _buildVerticalLayout() {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Padding(
-        padding: LayoutConstants.screenPadding,
+        padding: LayoutConstants.dashboardBodyPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             MiniWidgetsRow(),
-            const SizedBox(height: 12),
+            const SizedBox(height: LayoutConstants.SECTION_GAP),
             Builder(
               builder: (context) =>
                   _buildTableAndChartRow(MediaQuery.of(context).size.width),
             ),
-            const SizedBox(height: 16),            
+            const SizedBox(height: LayoutConstants.SECTION_GAP),
             _buildHeatmapHub(context),
           ],
         ),
@@ -271,16 +278,15 @@ Widget _buildVerticalLayout() {
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Padding(
-        padding: LayoutConstants.screenPadding,
+        padding: LayoutConstants.dashboardBodyPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             
             MiniWidgetsRow(),
-            const SizedBox(height: 16),
+            const SizedBox(height: LayoutConstants.SECTION_GAP),
             _buildTableAndChartRow(screenWidth),
-            const SizedBox(height: 28),
-            // Bottom Section: Heatmap/Cross Rates hub
+            const SizedBox(height: LayoutConstants.SECTION_GAP),
             _buildHeatmapHub(context),
           ],
         ),
@@ -291,8 +297,8 @@ Widget _buildVerticalLayout() {
 
 
   static const double _chartNewsGap = 12.0;
-  static const int _chartPanelFlex = 58;
-  static const int _newsPanelFlex = 42;
+  static const int _chartPanelFlex = 68;
+  static const int _newsPanelFlex = 32;
 
   double _tableWidgetHeight(double screenWidth) {
     final summary = Get.isRegistered<MarketSummaryController>()
@@ -308,7 +314,6 @@ Widget _buildVerticalLayout() {
     final widgetWidth = availableWidth / 2;
 
     return Obx(() {
-      // Rebuild when market summary rows load so chart height can track table.
       final summary = Get.isRegistered<MarketSummaryController>()
           ? Get.find<MarketSummaryController>()
           : Get.put(MarketSummaryController());
@@ -327,38 +332,48 @@ Widget _buildVerticalLayout() {
           SizedBox(
             height: tableHeight,
             width: widgetWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: _chartPanelFlex,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final chartBodyHeight = (constraints.maxHeight -
-                              DynamicHeightTradingViewConstants.chromeHeight)
-                          .clamp(1.0, constraints.maxHeight);
-                      return DynamicHeightTradingView(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const indicesShrink = 40.0;
+                const newsShrink = 15.0;
+                final available =
+                    (constraints.maxHeight - _chartNewsGap).clamp(1.0, constraints.maxHeight);
+                final chartShare = _chartPanelFlex /
+                    (_chartPanelFlex + _newsPanelFlex);
+                var chartH = available * chartShare - indicesShrink;
+                var newsH = available - chartH - newsShrink;
+                if (chartH < 80) {
+                  chartH = 80;
+                  newsH = available - chartH - newsShrink;
+                }
+                if (newsH < 80) {
+                  newsH = 80;
+                  chartH = available - newsH - newsShrink;
+                }
+                final chartBodyHeight = (chartH -
+                        DynamicHeightTradingViewConstants.chromeHeight)
+                    .clamp(1.0, chartH);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: chartH,
+                      child: DynamicHeightTradingView(
                         height: chartBodyHeight,
                         minHeight: chartBodyHeight,
                         maxHeight: chartBodyHeight,
                         useResponsiveHeight: false,
                         contentPadding: EdgeInsets.zero,
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: _chartNewsGap),
-                Expanded(
-                  flex: _newsPanelFlex,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return LatestMarketNewsWidget(
-                        height: constraints.maxHeight,
-                      );
-                    },
-                  ),
-                ),
-              ],
+                      ),
+                    ),
+                    const SizedBox(height: _chartNewsGap),
+                    SizedBox(
+                      height: newsH,
+                      child: LatestMarketNewsWidget(height: newsH),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -381,14 +396,6 @@ Widget _buildVerticalLayout() {
   }
 
   Widget _buildHeatmapHub(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF151718) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
-    final textColor = isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-    final subTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final unifiedAccent = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    
-
     void _open(Widget page) {
       Navigator.of(context).push(
         PageRouteBuilder(
@@ -417,133 +424,14 @@ Widget _buildVerticalLayout() {
       required String title,
       required String subtitle,
       required VoidCallback onTap,
-      required Color accentColor,
     }) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          bool isHovering = false;
-          bool isChevronHovering = false;
-
-          void setHover(bool value) {
-            if (isHovering != value) {
-              setState(() => isHovering = value);
-            }
-          }
-
-          void setChevronHover(bool value) {
-            if (isChevronHovering != value) {
-              setState(() => isChevronHovering = value);
-            }
-          }
-
-          final bool shouldHighlight = isHovering || isChevronHovering;
-          final Color highlightColor = accentColor.withOpacity(0.2);
-          final Color arrowColor = shouldHighlight ? accentColor : subTextColor;
-          final Color iconBackgroundColor = shouldHighlight
-              ? accentColor.withOpacity(0.22)
-              : accentColor.withOpacity(0.12);
-          final Color borderHighlight = shouldHighlight
-              ? accentColor.withOpacity(0.45)
-              : borderColor;
-
-          return Expanded(
-            child: MouseRegion(
-              onEnter: (_) => setHover(true),
-              onExit: (_) => setHover(false),
-              cursor: SystemMouseCursors.basic,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onTap,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: borderHighlight,
-                      width: 1,
-                    ),
-                    boxShadow: shouldHighlight
-                        ? [
-                            BoxShadow(
-                              color: accentColor.withOpacity(0.14),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            ),
-                          ]
-                        : const [],
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: iconBackgroundColor,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(icon, size: 18, color: arrowColor),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: textColor,
-                                letterSpacing: 0.15,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              subtitle,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w400,
-                                height: 1.3,
-                                color: subTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      MouseRegion(
-                        onEnter: (_) => setChevronHover(true),
-                        onExit: (_) => setChevronHover(false),
-                        cursor: SystemMouseCursors.basic,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          padding: const EdgeInsets.all(8),
-                          alignment: Alignment.topCenter,
-                          decoration: BoxDecoration(
-                            color: shouldHighlight ? highlightColor : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 16,
-                            color: arrowColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+      return Expanded(
+        child: _HeatmapHubTile(
+          icon: icon,
+          title: title,
+          subtitle: subtitle,
+          onTap: onTap,
+        ),
       );
     }
 
@@ -567,9 +455,8 @@ Widget _buildVerticalLayout() {
                   FeatureKeys.heatmaps,
                   () => const StockHeatmapFullScreenPage(),
                 ),
-                accentColor: unifiedAccent,
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
               buildTile(
                 icon: CupertinoIcons.chart_pie_fill,
                 title: 'ETF Market Heatmap',
@@ -579,9 +466,8 @@ Widget _buildVerticalLayout() {
                   FeatureKeys.heatmaps,
                   () => const EtfHeatmapFullScreenPage(),
                 ),
-                accentColor: unifiedAccent,
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
               buildTile(
                 icon: CupertinoIcons.bitcoin_circle_fill,
                 title: 'Crypto Market Map',
@@ -591,9 +477,8 @@ Widget _buildVerticalLayout() {
                   FeatureKeys.heatmaps,
                   () => const CryptoHeatmapFullScreenPage(),
                 ),
-                accentColor: unifiedAccent,
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: LayoutConstants.SCREEN_COMPONENTS_PADDING),
               buildTile(
                 icon: CupertinoIcons.arrow_2_circlepath,
                 title: 'Forex Cross‑Rates Heatmap',
@@ -603,7 +488,6 @@ Widget _buildVerticalLayout() {
                   FeatureKeys.heatmaps,
                   () => const ForexCrossRatesFullScreenPage(),
                 ),
-                accentColor: unifiedAccent,
               ),
             ],
           );
@@ -617,150 +501,112 @@ Widget _buildVerticalLayout() {
     return EdgeInsets.all(padding);
   }
 
-  double _calculateResponsiveSidebarWidth(double screenWidth) {
-    if (screenWidth < 800) return screenWidth * 0.7;    // 70% of screen
-    if (screenWidth < 1200) return screenWidth * 0.8;   // 80% of screen  
-    return screenWidth * 0.55;                         // 55% of screen
-  }
+}
 
-  Widget _buildWatchlistSidebar(BoxConstraints constraints) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final screenWidth = constraints.maxWidth;
-    final defaultWidth = _calculateResponsiveSidebarWidth(screenWidth);
-    final minWidth = defaultWidth; 
-    final maxWidth = screenWidth * 0.9; 
-    
-    // Initialize width on first build or if not set
-    if (_watchlistWidth == 0.0) {
-      _watchlistWidth = defaultWidth;
-    }
-    
-    return Stack(
-      children: [
-        // Main sidebar content
-        AnimatedContainer(
-          duration: _isDraggingResize 
-              ? Duration.zero  // No animation during drag
-              : const Duration(milliseconds: 200),
-          width: _watchlistWidth.clamp(minWidth, maxWidth),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-              border: Border(
-                left: BorderSide(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(-2, 0),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                        width: 1,
-                      ),
-                    ),
+class _HeatmapHubTile extends StatefulWidget {
+  const _HeatmapHubTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  State<_HeatmapHubTile> createState() => _HeatmapHubTileState();
+}
+
+class _HeatmapHubTileState extends State<_HeatmapHubTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          constraints: const BoxConstraints(minHeight: 112),
+          padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+          decoration: HomeUi.cardDecoration(isDark, hover: _hover),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: HomeUi.iconWellBorder,
+                    width: 1,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.monitor,
-                        size: 16,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'MONITOR',
-                          style: DashboardTextStyles.columnHeader.copyWith(
-                            color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _toggleWatchlist,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(
-                            Icons.close,
-                            size: 14,
-                            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  gradient: HomeUi.iconWellGradient,
                 ),
-                
-                // Content - Watchlist Dropdown
-                Expanded(
-                  child: WatchlistDropdown(isDarkMode: isDarkMode),
-                ),
-              ],
-            ),
-          ),
-        ),
-        
-        // Resize handle on left edge
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: GestureDetector(
-            onHorizontalDragStart: (_) => setState(() => _isDraggingResize = true),
-            onHorizontalDragUpdate: (details) {
-              setState(() {
-                // Dragging left (negative delta) increases width, right decreases it
-                _watchlistWidth = (_watchlistWidth - details.delta.dx).clamp(minWidth, maxWidth);
-              });
-            },
-            onHorizontalDragEnd: (_) => setState(() => _isDraggingResize = false),
-            child: MouseRegion(
-              cursor: SystemMouseCursors.resizeColumn,
-              onEnter: (_) => setState(() => _isHoveringResizeHandle = true),
-              onExit: (_) => setState(() => _isHoveringResizeHandle = false),
-              child: Container(
-                width: 6.0,
-                color: Colors.transparent,
                 child: Center(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: _isHoveringResizeHandle || _isDraggingResize ? 3.0 : 1.0,
-                    height: _isHoveringResizeHandle || _isDraggingResize ? 40.0 : 20.0,
-                    decoration: BoxDecoration(
-                      color: _isHoveringResizeHandle || _isDraggingResize
-                          ? (isDarkMode 
-                              ? const Color(0xFF4A9EFF) 
-                              : const Color(0xFF2563EB))
-                          : (isDarkMode 
-                              ? const Color(0xFF404040).withOpacity(0.3)
-                              : const Color(0xFFE5E7EB).withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  child: HomeUi.brandIcon(
+                    icon: widget.icon,
+                    size: HomeUi.iconXl,
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(widget.title, style: HomeUi.sectionTitle(isDark)),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeUi.subtitle(isDark).copyWith(
+                        fontSize: 12.5,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _hover ? HomeUi.elevatedBg(isDark) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+                ),
+                child: _hover
+                    ? HomeUi.brandIcon(
+                        icon: Icons.arrow_forward_ios_rounded,
+                        size: HomeUi.iconXs,
+                      )
+                    : HomeUi.vectorIcon(
+                        icon: Icons.arrow_forward_ios_rounded,
+                        size: HomeUi.iconXs,
+                        color: HomeUi.muted(isDark),
+                      ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
-
 }
+

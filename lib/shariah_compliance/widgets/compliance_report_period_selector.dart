@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report_period.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_history_formatters.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class ComplianceReportPeriodSelector extends StatelessWidget {
   const ComplianceReportPeriodSelector({
@@ -73,63 +73,43 @@ class ComplianceReportPeriodSelector extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'REPORT PERIOD',
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: isDark ? 12 : 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.1,
-                        color: secondary,
+              Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.calendar_month_outlined,
+                      title: 'Report Period',
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: HomeUi.positiveSoft(isDark),
+                      borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                      border: Border.all(
+                        color: HomeUi.positive(isDark).withValues(alpha: 0.28),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Browse current and previous Shariah compliance filings',
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: isDark ? 15 : 14,
+                    child: Text(
+                      '${periods.length} historical reports',
+                      style: HomeUi.control(isDark, active: true).copyWith(
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? const Color(0xFFE5E7EB)
-                            : const Color(0xFF111827),
+                        color: HomeUi.positive(isDark),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF14532D).withOpacity(0.35)
-                      : const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF16A34A).withOpacity(0.45)
-                        : const Color(0xFF86EFAC),
-                  ),
-                ),
-                child: Text(
-                  '${periods.length} historical reports',
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? const Color(0xFF86EFAC)
-                        : const Color(0xFF166534),
-                  ),
-                ),
+              const SizedBox(height: 6),
+              Text(
+                'Browse current and previous Shariah compliance filings',
+                style: HomeUi.subtitle(isDark).copyWith(fontSize: 12.5),
               ),
             ],
           ),
@@ -178,15 +158,9 @@ class ComplianceReportPeriodSelector extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF111827)
-                  : const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isDark
-                    ? const Color(0xFF374151)
-                    : const Color(0xFFE5E7EB),
-              ),
+              color: HomeUi.elevatedBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
             ),
             child: viewingHistorical && selectedPeriod != null
                 ? _SummaryLine(
@@ -201,7 +175,8 @@ class ComplianceReportPeriodSelector extends StatelessWidget {
                     isDark: isDark,
                     secondary: secondary,
                     title: 'Viewing: Current Report (latest filing)',
-                    subtitle: 'Switch to a year above to explore previous filings.',
+                    subtitle:
+                        'Switch to a year above to explore previous filings.',
                   ),
           ),
         ],
@@ -242,30 +217,24 @@ class _SummaryLine extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
+          style: HomeUi.control(isDark, active: true).copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827),
+            color: HomeUi.title(isDark),
           ),
         ),
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 12,
-            color: secondary,
-          ),
+          style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
         ),
         if (note != null) ...[
           const SizedBox(height: 4),
           Text(
             note!,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
+            style: HomeUi.subtitle(isDark).copyWith(
               fontSize: 11,
-              color: isDark ? const Color(0xFFF59E0B) : const Color(0xFFB45309),
+              color: HomeUi.negative(isDark),
             ),
           ),
         ],
@@ -293,43 +262,34 @@ class _PeriodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color activeBg = isDark
-        ? const Color(0xFF14532D)
-        : const Color(0xFF16A34A);
-    final Color idleBg =
-        isDark ? const Color(0xFF262626) : const Color(0xFFF3F4F6);
-    final Color activeFg = Colors.white;
-    final Color idleFg =
-        isDark ? const Color(0xFFE5E7EB) : const Color(0xFF374151);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        splashFactory: NoSplash.splashFactory,
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 12 : (emphasized ? 14 : 12),
             vertical: compact ? 7 : 9,
           ),
-          decoration: BoxDecoration(
-            color: selected ? activeBg : idleBg,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected
-                  ? activeBg
-                  : (isDark
-                      ? const Color(0xFF404040)
-                      : const Color(0xFFE5E7EB)),
-            ),
-          ),
+          decoration: selected
+              ? HomeUi.primaryButton()
+              : BoxDecoration(
+                  color: HomeUi.elevatedBg(isDark),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
+            style: HomeUi.control(isDark, active: true).copyWith(
               fontSize: compact ? 12 : 13,
-              fontWeight: selected || emphasized ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? activeFg : idleFg,
+              fontWeight:
+                  selected || emphasized ? FontWeight.w600 : FontWeight.w500,
+              color: selected ? Colors.white : HomeUi.title(isDark),
             ),
           ),
         ),

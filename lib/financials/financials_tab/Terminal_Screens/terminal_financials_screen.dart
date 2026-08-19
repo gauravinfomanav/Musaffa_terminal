@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/term
 import 'package:musaffa_terminal/Components/reusable_bar_graph.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
 import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
@@ -88,9 +89,8 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(8),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
         child: Column(
@@ -103,7 +103,7 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
                   child: TerminalPerShareScreen(
                     symbol: widget.symbol,
                     currency: widget.currency,
-                    title: 'PER SHARE DATA',
+                    title: 'Per Share Data',
                     onMetricSelected: (metric) {
                       setState(() {
                         selectedMetric = metric;
@@ -117,15 +117,15 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TerminalRatiosScreen(
               symbol: widget.symbol,
-              title: 'COMPANY FINANCIALS',
+              title: 'Company Financials',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TerminalStatementsScreen(
               symbol: widget.symbol,
-              title: 'FINANCIAL STATEMENTS',
+              title: 'Financial Statements',
             ),
           ],
         ),
@@ -135,23 +135,14 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
 
   Widget _buildDynamicChart(bool isDarkMode) {
     return Container(
-      margin: const EdgeInsets.only(right: 12.0),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Obx(() {
+      decoration: HomeUi.cardDecoration(isDarkMode),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Obx(() {
           if (controller.isLoading.value) {
             return Center(
               child: ShimmerWidgets.chartShimmer(
-                baseColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
-                highlightColor: isDarkMode ? const Color(0xFF404040) : Colors.grey[100]!,
+                baseColor: HomeUi.elevatedBg(isDarkMode),
+                highlightColor: HomeUi.borderLight(isDarkMode),
                 width: 400,
                 height: 300,
               ),
@@ -163,16 +154,11 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
             return Center(
               child: Text(
                 'No data available',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                ),
+                style: HomeUi.subtitle(isDarkMode),
               ),
             );
           }
 
-          // Get real data based on selected metric
           List<BarData> chartData = _getRealChartDataForMetric(selectedMetric, financialData);
           
           return TerminalBarChart(
@@ -180,24 +166,23 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
             data: chartData,
             unit: '',
             height: 270,
+            barColor: const Color(0xFFE4621E),
             titleWidget: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedMetric,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF374151),
+                Expanded(
+                  child: HomeUi.tableToolbarHeader(
+                    isDarkMode,
+                    icon: Icons.show_chart_rounded,
+                    title: _getShortMetricName(selectedMetric),
+                    subtitleText: selectedMetric,
                   ),
                 ),
+                const SizedBox(width: 8),
                 _buildMetricToggleButton(isDarkMode),
               ],
             ),
           );
         }),
-      ),
     );
   }
 
@@ -243,48 +228,15 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
   }
 
   Widget _buildMetricToggleButton(bool isDarkMode) {
-    return GestureDetector(
+    return HomeUi.ghostAction(
+      label: 'Next',
+      dark: isDarkMode,
+      icon: Icons.swap_vert_rounded,
       onTap: () {
         final currentIndex = availableMetrics.indexOf(selectedMetric);
         final nextIndex = (currentIndex + 1) % availableMetrics.length;
         setState(() => selectedMetric = availableMetrics[nextIndex]);
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF4F5F7),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _getShortMetricName(selectedMetric),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.keyboard_arrow_up,
-              size: 14,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: 14,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

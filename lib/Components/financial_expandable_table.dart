@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 // Data model for financial expandable table
 class FinancialExpandableRowData {
@@ -116,6 +117,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
   bool _increaseShadow = false;
   Map<String, bool> _expandedRows = {};
   Set<String> _splashRowIds = {}; // Track which rows should show splash effect
+
+  TextOverflow _cellOverflow(String text, [String key = '']) {
+    return HomeUi.tableCellOverflow(text, columnKey: key);
+  }
 
   @override
   void initState() {
@@ -449,7 +454,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               title,
               style: titleStyle,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              overflow: _cellOverflow(title),
             ),
           ),
         if (subtitle != null && subtitle.isNotEmpty)
@@ -459,7 +464,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               subtitle,
               style: subtitleStyle,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              overflow: _cellOverflow(subtitle),
             ),
           ),
       ],
@@ -575,7 +580,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        overflow: TextOverflow.clip,
       );
     }
 
@@ -590,7 +595,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        overflow: _cellOverflow(formattedValue, column.key),
       );
     }
 
@@ -612,7 +617,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                       style: DashboardTextStyles.stockName,
                       textAlign: TextAlign.left,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      overflow: _cellOverflow(value, column.key),
                     ),
                   ),
                 ),
@@ -650,7 +655,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         style: DashboardTextStyles.dataCell.copyWith(color: textColor),
         textAlign: column.alignment,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        overflow: _cellOverflow(value, column.key),
       );
     }
 
@@ -659,7 +664,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
       textAlign: column.alignment,
       maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+      overflow: TextOverflow.clip,
     );
   }
 
@@ -672,7 +677,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         style: DashboardTextStyles.dataCell.copyWith(color: Colors.grey),
         textAlign: column.alignment,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        overflow: TextOverflow.clip,
       );
     }
 
@@ -687,7 +692,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        overflow: _cellOverflow(formattedValue, column.key),
       );
     }
 
@@ -713,7 +718,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
         style: textStyle.copyWith(color: textColor),
         textAlign: column.alignment,
         maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        overflow: _cellOverflow(value, column.key),
       );
     }
 

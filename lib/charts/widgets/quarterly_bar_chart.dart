@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/charts/engine/quarterly_bar_chart_engine.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 /// Reusable quarterly column chart matching Infomanav Terminal financial cards.
@@ -365,7 +366,7 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
 
     final bool hasPriceOverlay = widget.priceData.isNotEmpty;
 
-    final CartesianSeries<QuarterDataPoint, dynamic> series =
+    final List<CartesianSeries<QuarterDataPoint, dynamic>> series =
         QuarterlyBarChartEngine.buildColumnSeries(
       data: widget.data,
       latestIndex: widget.data.isEmpty ? -1 : widget.data.length - 1,
@@ -388,14 +389,67 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
             data: widget.priceData,
           );
 
+    final Widget chartCanvas = MouseRegion(
+      onEnter: _onChartEnter,
+      onExit: (_) => _clearHover(),
+      child: Listener(
+        onPointerHover: _onPointerHover,
+        child: Stack(
+          key: _chartStackKey,
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            _QuarterlyBarChartCanvas(
+              key: ValueKey<bool>(hasPriceOverlay),
+              data: widget.data,
+              series: series,
+              tooltipBehavior: _tooltipBehavior!,
+              onTooltipRender: _onTooltipRender,
+              yAxis: QuarterlyBarChartEngine.buildYAxis(
+                range: yRange,
+                theme: widget.theme,
+                axisLabelStyle: axisLabelStyle,
+                data: widget.data,
+              ),
+              xAxis: QuarterlyBarChartEngine.buildXAxis(
+                theme: widget.theme,
+                axisLabelStyle: axisLabelStyle,
+                data: widget.data,
+                priceData: widget.priceData,
+              ),
+              priceAxis: priceRange == null
+                  ? null
+                  : QuarterlyBarChartEngine.buildPriceYAxis(
+                      range: priceRange,
+                      theme: widget.theme,
+                      axisLabelStyle: axisLabelStyle,
+                    ),
+              priceSeries: priceSeries,
+              plotAreaLeftPadding: widget.theme.plotAreaLeftPadding,
+              plotAreaRightPadding: widget.theme.plotAreaRightPadding,
+              plotAreaTopPadding: widget.theme.plotAreaTopPadding,
+            ),
+            if (widget.priceData.isNotEmpty)
+              _HoverTooltipLayer(
+                key: _tooltipLayerKey,
+                isDark: isDark,
+              ),
+          ],
+        ),
+      ),
+    );
+
     return Container(
       padding: widget.theme.cardPadding,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: widget.theme.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
         border: Border.all(color: widget.theme.cardBorderColor),
+        boxShadow: HomeUi.cardShadow(_isDark),
       ),
       child: Column(
+        mainAxisSize:
+            widget.theme.expandChart ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _ChartHeader(
@@ -408,57 +462,13 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
             inlineHeader: widget.theme.inlineHeader,
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            height: widget.theme.chartHeight,
-            child: MouseRegion(
-              onEnter: _onChartEnter,
-              onExit: (_) => _clearHover(),
-              child: Listener(
-                onPointerHover: _onPointerHover,
-                child: Stack(
-                  key: _chartStackKey,
-                  clipBehavior: Clip.none,
-                  children: <Widget>[
-                    _QuarterlyBarChartCanvas(
-                    key: ValueKey<bool>(hasPriceOverlay),
-                    data: widget.data,
-                    series: series,
-                    tooltipBehavior: _tooltipBehavior!,
-                    onTooltipRender: _onTooltipRender,
-                    yAxis: QuarterlyBarChartEngine.buildYAxis(
-                      range: yRange,
-                      theme: widget.theme,
-                      axisLabelStyle: axisLabelStyle,
-                      data: widget.data,
-                    ),
-                    xAxis: QuarterlyBarChartEngine.buildXAxis(
-                      theme: widget.theme,
-                      axisLabelStyle: axisLabelStyle,
-                      data: widget.data,
-                      priceData: widget.priceData,
-                    ),
-                    priceAxis: priceRange == null
-                        ? null
-                        : QuarterlyBarChartEngine.buildPriceYAxis(
-                            range: priceRange,
-                            theme: widget.theme,
-                            axisLabelStyle: axisLabelStyle,
-                          ),
-                    priceSeries: priceSeries,
-                    plotAreaLeftPadding: widget.theme.plotAreaLeftPadding,
-                    plotAreaRightPadding: widget.theme.plotAreaRightPadding,
-                    plotAreaTopPadding: widget.theme.plotAreaTopPadding,
-                  ),
-                  if (widget.priceData.isNotEmpty)
-                    _HoverTooltipLayer(
-                      key: _tooltipLayerKey,
-                      isDark: isDark,
-                    ),
-                ],
-              ),
+          if (widget.theme.expandChart)
+            Expanded(child: chartCanvas)
+          else
+            SizedBox(
+              height: widget.theme.chartHeight,
+              child: chartCanvas,
             ),
-          ),
-        ),
         ],
       ),
     );
@@ -683,14 +693,24 @@ class _ChartHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (inlineHeader) {
-      return Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 8,
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
-          Text(title, style: titleStyle),
-          Text('-', style: titleStyle),
+          Expanded(
+            child: Text(
+              title,
+              style: titleStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 10),
           Text(displayValue, style: valueStyle),
-          Text(unit, style: unitStyle),
+          if (unit.isNotEmpty) ...<Widget>[
+            const SizedBox(width: 4),
+            Text(unit, style: unitStyle),
+          ],
         ],
       );
     }
@@ -733,7 +753,7 @@ class _QuarterlyBarChartCanvas extends StatelessWidget {
   });
 
   final List<QuarterDataPoint> data;
-  final CartesianSeries<QuarterDataPoint, dynamic> series;
+  final List<CartesianSeries<QuarterDataPoint, dynamic>> series;
   final LineSeries<PriceDataPoint, DateTime>? priceSeries;
   final TooltipBehavior tooltipBehavior;
   final void Function(TooltipArgs args) onTooltipRender;
@@ -764,7 +784,7 @@ class _QuarterlyBarChartCanvas extends StatelessWidget {
       primaryYAxis: yAxis,
       axes: priceAxis == null ? const <ChartAxis>[] : <ChartAxis>[priceAxis!],
       series: <CartesianSeries<dynamic, dynamic>>[
-        series,
+        ...series,
         if (priceSeries != null) priceSeries!,
       ],
     );

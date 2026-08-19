@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/portfolio_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
@@ -120,6 +121,7 @@ class PortfolioBuilderForm extends StatefulWidget {
   final VoidCallback? onSaveDraft;
   final VoidCallback? onSavePortfolio;
   final Portfolio? initialPortfolio; // For editing existing portfolio
+  final bool embeddedInModal;
 
   const PortfolioBuilderForm({
     super.key,
@@ -127,6 +129,7 @@ class PortfolioBuilderForm extends StatefulWidget {
     this.onSaveDraft,
     this.onSavePortfolio,
     this.initialPortfolio,
+    this.embeddedInModal = false,
   });
 
   @override
@@ -647,31 +650,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   }
 
   InputDecoration _tableFieldDecoration(bool isDark, {String hintText = '--'}) {
-    final baseFill = isDark ? const Color(0xFF1B1F25) : const Color(0xFFF4F6F8);
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 11,
-        color: isDark ? const Color(0xFF8B91A1) : const Color(0xFF9CA3AF),
-      ),
-      filled: true,
-      fillColor: baseFill,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      isDense: true,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-        borderSide: BorderSide.none,
-      ),
-    );
+    return HomeUi.tableInlineFieldDecoration(isDark, hintText: hintText);
   }
 
   String _formatMarketCap(double marketCap) {
@@ -732,39 +711,55 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
-    final cardColor = isDark ? const Color(0xFF151718) : Colors.white;
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionA(isDark, HomeUi.borderLight(isDark)),
+        const SizedBox(height: 24),
+        _buildSlidersAndChartContainer(
+          context,
+          isDark,
+          HomeUi.borderLight(isDark),
+        ),
+        const SizedBox(height: 24),
+        _buildAllocationProgressBar(isDark),
+        const SizedBox(height: 24),
+        _buildHoldingsTableSection(isDark, HomeUi.borderLight(isDark)),
+        const SizedBox(height: 24),
+        _buildSectionC(isDark, HomeUi.borderLight(isDark)),
+        if (!widget.embeddedInModal) ...[
+          const SizedBox(height: 24),
+          _buildActionButtons(isDark),
+        ],
+      ],
+    );
+
+    if (widget.embeddedInModal) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: content,
+            ),
+          ),
+          Divider(height: 1, color: HomeUi.borderLight(isDark)),
+          Container(
+            color: HomeUi.cardBg(isDark),
+            padding: const EdgeInsets.fromLTRB(0, 20, 0, 4),
+            child: _buildActionButtons(isDark),
+          ),
+        ],
+      );
+    }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section A: Client & Goal Context
-          _buildSectionA(isDark, borderColor),
-          const SizedBox(height: 24),
-          // Sliders and Chart Container
-          _buildSlidersAndChartContainer(context, isDark, borderColor),
-          const SizedBox(height: 24),
-          // Allocation Progress Bar
-          _buildAllocationProgressBar(isDark),
-          const SizedBox(height: 24),
-          // Section B: Holdings Table
-          _buildHoldingsTableSection(isDark, borderColor),
-          const SizedBox(height: 24),
-          // Section C: Supporting Information
-          _buildSectionC(isDark, borderColor),
-          const SizedBox(height: 24),
-          // Action Buttons
-          _buildActionButtons(isDark),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
+      decoration: HomeUi.cardDecoration(isDark),
+      clipBehavior: Clip.antiAlias,
+      child: content,
     );
   }
 
@@ -772,20 +767,18 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Client & Goal Context',
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
+        HomeUi.tableToolbarHeader(
+          isDark,
+          title: 'Client & Goal Context',
+          subtitleText: 'Define the client profile, mandate, and benchmark.',
+          icon: Icons.person_outline_rounded,
         ),
         const SizedBox(height: _kSectionGap),
-        // Row 1: Client Name, Age, Risk Profile
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
+              flex: 2,
               child: _buildTextField(
                 _clientNameController,
                 'Client Name/ID',
@@ -794,38 +787,20 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
               ),
             ),
             const SizedBox(width: _kFieldGap),
-            Expanded(
-              flex: 0,
-              child: SizedBox(
-                width: 100,
-                child: _buildTextField(
-                  _ageController,
-                  'Age',
-                  isDark: isDark,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  hintText: '--',
-                ),
+            SizedBox(
+              width: 110,
+              child: _buildTextField(
+                _ageController,
+                'Age',
+                isDark: isDark,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                hintText: '--',
               ),
             ),
             const SizedBox(width: _kFieldGap),
             Expanded(
-              child: _buildPillSelector(
-                'Risk Profile',
-                _riskProfiles,
-                _selectedRiskProfile,
-                (value) => setState(() => _selectedRiskProfile = value),
-                isDark: isDark,
-                showLabel: false,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: _kFieldGap),
-        // Row 2: Portfolio Name, Strategy Type, Benchmark
-        Row(
-          children: [
-            Expanded(
+              flex: 3,
               child: _buildTextField(
                 _portfolioNameController,
                 'Portfolio Name',
@@ -833,13 +808,27 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 hintText: 'e.g., AI Acceleration Basket',
               ),
             ),
-            const SizedBox(width: _kFieldGap),
+          ],
+        ),
+        const SizedBox(height: _kFieldGap),
+        FilterSegmentedSelector(
+          dark: isDark,
+          label: 'Risk Profile',
+          options: _riskProfiles,
+          selected: _selectedRiskProfile,
+          onChanged: (value) => setState(() => _selectedRiskProfile = value),
+        ),
+        const SizedBox(height: _kFieldGap),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Expanded(
               child: _buildDropdown(
                 'Strategy Type',
                 _strategies,
                 _selectedStrategy,
-                (value) => setState(() => _selectedStrategy = value ?? _selectedStrategy),
+                (value) =>
+                    setState(() => _selectedStrategy = value ?? _selectedStrategy),
                 isDark: isDark,
               ),
             ),
@@ -849,7 +838,9 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
                 'Benchmark',
                 _benchmarks,
                 _selectedBenchmark,
-                (value) => setState(() => _selectedBenchmark = value ?? _selectedBenchmark),
+                (value) => setState(
+                  () => _selectedBenchmark = value ?? _selectedBenchmark,
+                ),
                 isDark: isDark,
               ),
             ),
@@ -888,6 +879,25 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   }
 
 
+  Widget _sliderValueChip(bool isDark, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        gradient: HomeUi.iconWellGradient,
+        border: Border.all(color: HomeUi.iconWellBorder),
+      ),
+      child: Text(
+        value,
+        style: HomeUi.control(isDark, active: true).copyWith(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFFC42329),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSliderItem({
     required BuildContext context,
     required bool isDark,
@@ -901,75 +911,18 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     required int divisions,
     required ValueChanged<double> onChanged,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF81AACE),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: const Color(0xFF81AACE),
-            inactiveTrackColor:
-                isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
-            thumbColor: Colors.white,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-            overlayColor: const Color(0xFF81AACE).withOpacity(0.15),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            trackHeight: 4,
-          ),
-          child: Slider(
-            value: sliderValue,
-            min: min,
-            max: max,
-            divisions: divisions,
-            label: value,
-            onChanged: onChanged,
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              minLabel,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 11,
-                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-              ),
-            ),
-            Text(
-              maxLabel,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 11,
-                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-              ),
-            ),
-          ],
-        ),
-      ],
+    return FilterRangeSlider(
+      dark: isDark,
+      label: label,
+      value: sliderValue,
+      min: min,
+      max: max,
+      divisions: divisions,
+      minLabel: minLabel,
+      maxLabel: maxLabel,
+      activeColor: const Color(0xFFE4681F),
+      labelTrailing: _sliderValueChip(isDark, value),
+      onChanged: onChanged,
     );
   }
 
@@ -981,124 +934,39 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Initial Capital',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
-            ),
-            Text(
-              valueLabel,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF81AACE),
-              ),
-            ),
-          ],
+        FilterRangeSlider(
+          dark: isDark,
+          label: 'Initial Capital',
+          value: _capitalSliderValue,
+          min: _kMinCapital,
+          max: _kMaxCapital,
+          divisions: 100,
+          minLabel: minLabel,
+          maxLabel: maxLabel,
+          activeColor: const Color(0xFFE4681F),
+          labelTrailing: _sliderValueChip(isDark, valueLabel),
+          onChanged: _onCapitalSliderChanged,
         ),
         const SizedBox(height: 12),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: const Color(0xFF81AACE),
-            inactiveTrackColor:
-                isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
-            thumbColor: Colors.white,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-            overlayColor: const Color(0xFF81AACE).withOpacity(0.15),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            trackHeight: 4,
-          ),
-          child: Slider(
-            value: _capitalSliderValue,
-            min: _kMinCapital,
-            max: _kMaxCapital,
-            label: valueLabel,
-            onChanged: _onCapitalSliderChanged,
-          ),
-        ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              minLabel,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 11,
-                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-              ),
-            ),
-            Text(
-              maxLabel,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 11,
-                color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              flex: 1,
-              child: TextField(
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Enter Amount',
                 controller: _initialCapitalController,
+                hintText: 'Enter amount',
                 keyboardType: TextInputType.number,
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[\d,]')),
                   _CurrencyInputFormatter(),
                 ],
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white : const Color(0xFF111827),
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Enter Amount',
-                  labelStyle: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                  ),
-                  prefixText: '\$ ',
-                  prefixStyle: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                prefix: Text(
+                  '\$',
+                  style: HomeUi.control(isDark, active: true).copyWith(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF111827),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  hintText: 'Enter amount',
-                  hintStyle: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
                   ),
                 ),
                 onChanged: _updateCapital,
@@ -1106,79 +974,21 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              flex: 1,
-              child: TextField(
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Expected Rate of Return',
                 controller: _rateOfReturnController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                hintText: 'e.g., 8.5',
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
                 ],
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white : const Color(0xFF111827),
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Expected Rate of Return',
-                  labelStyle: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                  ),
-                  suffixText: '%',
-                  suffixStyle: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  hintText: 'e.g., 8.5',
-                  hintStyle: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-                  ),
+                suffix: Text(
+                  '%',
+                  style: HomeUi.control(isDark).copyWith(fontSize: 13),
                 ),
                 onChanged: _updateRateOfReturn,
-                onEditingComplete: () {
-                  // When user finishes editing, validate and set minimum if empty
-                  if (_rateOfReturnController.text.isEmpty) {
-                    setState(() {
-                      _rateOfReturnValue = 1.0;
-                      _rateOfReturnController.text = '1.0';
-                    });
-                  } else {
-                    // Validate the current value
-                    final rate = double.tryParse(_rateOfReturnController.text);
-                    if (rate != null) {
-                      final clamped = rate.clamp(1.0, 30.0);
-                      if (rate != clamped) {
-                        setState(() {
-                          _rateOfReturnValue = clamped;
-                          _rateOfReturnController.text = clamped.toStringAsFixed(1);
-                        });
-                      }
-                    }
-                  }
-                },
               ),
             ),
           ],
@@ -1220,8 +1030,8 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121417) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        color: HomeUi.elevatedBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Row(
@@ -1296,71 +1106,15 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   }
 
   Widget _buildAllocationProgressBar(bool isDark) {
-    final percentage = _totalCapital > 0 ? (_allocatedAmount / _totalCapital * 100) : 0.0;
-    final isComplete = (percentage - 100.0).abs() < 0.01;
-    final progressColor = isComplete
-        ? const Color(0xFF10B981)
-        : percentage > 100
-            ? const Color(0xFFEF4444)
-            : const Color(0xFF81AACE);
+    final percentage =
+        _totalCapital > 0 ? (_allocatedAmount / _totalCapital * 100) : 0.0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121417) : Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Allocation Progress',
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF111827),
-                ),
-              ),
-              Text(
-                '${_formatCurrency(_allocatedAmount)} / ${_formatCurrency(_totalCapital)} (${percentage.toStringAsFixed(1)}%)',
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: progressColor,
-                ),
-              ),
-            ],
-          ),
-        const SizedBox(height: _kCompactGap),
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(
-              begin: 0.0,
-              end: percentage / 100,
-            ),
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOutCubic,
-            builder: (context, animatedValue, child) {
-              return ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-                  value: animatedValue.clamp(0.0, 1.0),
-              minHeight: 8,
-              backgroundColor: isDark ? const Color(0xFF1F2530) : const Color(0xFFE5E7EB),
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            ),
-              );
-            },
-          ),
-        ],
-      ),
+    return HomeUi.allocationProgressCard(
+      dark: isDark,
+      title: 'Allocation Progress',
+      amountLabel:
+          '${_formatCurrency(_allocatedAmount)} of ${_formatCurrency(_totalCapital)} allocated',
+      percentage: percentage,
     );
   }
 
@@ -1371,32 +1125,24 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Holdings',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
+            HomeUi.tableToolbarHeader(
+              isDark,
+              title: 'Holdings',
+              subtitleText: 'Add stocks and set allocation targets.',
+              icon: Icons.account_balance_wallet_outlined,
             ),
-            _SecondaryPillButton(
+            HomeUi.primaryAction(
               label: 'Add Stock',
-              icon: Icons.add,
+              icon: Icons.add_rounded,
               onTap: _addLeg,
-              isDarkMode: isDark,
             ),
           ],
         ),
         const SizedBox(height: _kSectionGap),
         Container(
           width: double.infinity,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF121417) : Colors.white,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: borderColor),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: HomeUi.cardDecoration(isDark),
+          clipBehavior: Clip.antiAlias,
           child: _buildHoldingsTable(isDark),
         ),
       ],
@@ -1406,32 +1152,52 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   Widget _buildHoldingsTable(bool isDark) {
     if (_legs.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
         child: Center(
-          child: Text(
-            'No holdings added yet. Click "Add Stock" to get started.',
-            style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 13,
-              color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: HomeUi.iconWellGradient,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: HomeUi.iconWellBorder),
+                ),
+                child: HomeUi.brandIcon(
+                  icon: Icons.candlestick_chart_rounded,
+                  size: HomeUi.iconMd,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No holdings yet',
+                style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Click "Add Stock" to build your portfolio allocation.',
+                style: HomeUi.subtitle(isDark),
+              ),
+            ],
           ),
         ),
       );
     }
 
     final columns = [
-      SimpleColumn(label: 'TICKER', fieldName: 'ticker', width: 120),
-      SimpleColumn(label: 'COMPANY', fieldName: 'company', width: 180),
+      SimpleColumn(label: 'TICKER', fieldName: 'ticker', width: 160),
       SimpleColumn(label: 'EXCHANGE', fieldName: 'exchange', width: 100),
       SimpleColumn(label: 'CURRENT', fieldName: 'current', isNumeric: true, width: 100),
-      SimpleColumn(label: 'TARGET', fieldName: 'target', isNumeric: true, width: 100),
-      SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 120),
-      SimpleColumn(label: 'P/E', fieldName: 'peRatio', isNumeric: true, width: 100),
-      SimpleColumn(label: 'ALLOC %', fieldName: 'allocPct', isNumeric: true, width: 100),
-      SimpleColumn(label: 'AMOUNT', fieldName: 'amount', isNumeric: true, width: 120),
+      SimpleColumn(label: 'TARGET', fieldName: 'target', isNumeric: true, width: 110),
+      SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 110),
+      SimpleColumn(label: 'P/E', fieldName: 'peRatio', isNumeric: true, width: 80),
+      SimpleColumn(label: 'ALLOC %', fieldName: 'allocPct', isNumeric: true, width: 90),
+      SimpleColumn(label: 'AMOUNT', fieldName: 'amount', isNumeric: true, width: 110),
       SimpleColumn(label: 'QTY', fieldName: 'qty', isNumeric: true, width: 100),
-      SimpleColumn(label: '', fieldName: 'remove', width: 60),
+      SimpleColumn(label: '', fieldName: 'remove', width: 48),
     ];
 
     final rows = _legs.asMap().entries.map((entry) {
@@ -1444,7 +1210,6 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
         price: leg.currentPrice,
         fields: {
           'ticker': _buildTickerSearchCell(index, isDark),
-          'company': leg.company ?? '--',
           'exchange': leg.exchange ?? '--',
           'current': leg.currentPrice != null ? '\$${leg.currentPrice!.toStringAsFixed(2)}' : '--',
           'target': _buildTargetPriceCell(index, isDark),
@@ -1461,7 +1226,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
           child: SizedBox(
             width: constraints.maxWidth,
             child: DynamicTable(
@@ -1469,14 +1234,18 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
               rows: rows,
               showFixedColumn: true,
               considerPadding: false,
-              columnSpacing: 20,
-              horizontalMargin: 0,
-              fixedColumnWidth: 320,
+              showOuterShadow: false,
+              fixedColumnWidth: 220,
+              headerHeight: 44,
+              rowHeight: 56,
+              columnSpacing: 24,
+              horizontalMargin: 16,
               enableLivePrices: false,
-              zebraStripes: false,
-              evenRowColor: Colors.transparent,
-              oddRowColor: Colors.transparent,
+              zebraStripes: true,
               enableColumnCustomization: true,
+              showColumnActionMenu: true,
+              showColumnResizeHandle: true,
+              tickerHeaderLabel: 'COMPANY',
               tableId: 'portfolio_builder_holdings_table',
             ),
           ),
@@ -1489,22 +1258,9 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     final leg = _legs[index];
     final hasTicker = leg.ticker != null && leg.ticker!.isNotEmpty;
     
-    // If ticker is selected, show read-only text
+    // If ticker is selected, fixed column shows company — keep cell empty.
     if (hasTicker) {
-      return SizedBox(
-            width: 120,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Text(
-            leg.ticker ?? '--',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: isDark ? Colors.white : const Color(0xFF111827),
-              ),
-          ),
-        ),
-      );
+      return const SizedBox(width: 160, height: 40);
     }
     
     // Otherwise show search field
@@ -1534,8 +1290,8 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   Widget _buildTargetPriceCell(int index, bool isDark) {
     final leg = _legs[index];
     return SizedBox(
-            width: 100,
-      height: 60,
+      width: 110,
+      height: 40,
       child: Center(
             child: TextField(
           controller: _targetPriceControllers[index]!,
@@ -1567,8 +1323,8 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
   Widget _buildQuantityCell(int index, bool isDark) {
     final leg = _legs[index];
     return SizedBox(
-            width: 100,
-      height: 60,
+      width: 110,
+      height: 40,
       child: Center(
             child: TextField(
           controller: _quantityControllers[index]!,
@@ -1606,15 +1362,35 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
 
   Widget _buildRemoveButton(int index, bool isDark) {
     if (_legs.length <= 1) {
-      return const SizedBox(width: 60);
+      return const SizedBox(width: 48);
     }
     return SizedBox(
-            width: 60,
-            child: IconButton(
-              icon: const Icon(Icons.remove_circle_outline, size: 20),
-              color: const Color(0xFFEF4444),
-              onPressed: () => _removeLeg(index),
+      width: 48,
+      child: Center(
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => _removeLeg(index),
+            child: Container(
+              width: 28,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: HomeUi.negative(isDark).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: HomeUi.negative(isDark).withValues(alpha: 0.22),
+                ),
+              ),
+              child: Icon(
+                Icons.remove_rounded,
+                size: 16,
+                color: HomeUi.negative(isDark),
+              ),
             ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1622,102 +1398,71 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Supporting Information',
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
+        HomeUi.tableToolbarHeader(
+          isDark,
+          title: 'Supporting Information',
+          subtitleText: 'Rationale, key points, or market outlook.',
+          icon: Icons.notes_rounded,
         ),
         const SizedBox(height: _kSectionGap),
-        TextField(
+        FilterTextField(
+          dark: isDark,
+          label: 'Supporting Commentary',
           controller: _commentaryController,
-          maxLines: 4,
-          decoration: _fieldDecoration(
-            'Supporting Commentary',
-            hintText: 'Enter rationale, key points, or market outlook...',
-            isDark: isDark,
-          ),
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 13,
-            height: 1.2,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
+          hintText: 'Enter rationale, key points, or market outlook...',
+          minLines: 3,
+          maxLines: 5,
         ),
+        const SizedBox(height: 8),
       ],
     );
   }
 
   Widget _buildActionButtons(bool isDark) {
-    // Get or create controller
     final controller = Get.put(PortfolioController());
-    
+
     return Obx(() {
       final isSaving = controller.isSaving.value;
-      
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        _SecondaryPillButton(
-          label: 'Cancel',
-          icon: Icons.close,
-            onTap: isSaving ? null : widget.onCancel,
-          isDarkMode: isDark,
-        ),
-            const SizedBox(width: _kFieldGap),
-        _SecondaryPillButton(
-            label: isSaving ? 'Saving...' : 'Save Draft',
-            icon: isSaving ? null : Icons.save_outlined,
-            onTap: isSaving ? null : _handleSaveDraft,
-          isDarkMode: isDark,
-        ),
-        const SizedBox(width: _kFieldGap),
-        _PrimaryPillButton(
-            label: isSaving ? 'Saving...' : 'Save Portfolio',
-            icon: isSaving ? null : Icons.check,
-            onTap: isSaving ? null : _handleSavePortfolio,
-          isDarkMode: isDark,
-        ),
-      ],
-    );
+
+      Widget wrapEnabled(Widget child) {
+        if (!isSaving) return child;
+        return Opacity(
+          opacity: 0.5,
+          child: IgnorePointer(child: child),
+        );
+      }
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          wrapEnabled(
+            HomeUi.ghostAction(
+              label: 'Cancel',
+              icon: Icons.close_rounded,
+              dark: isDark,
+              onTap: widget.onCancel ?? () {},
+            ),
+          ),
+          const SizedBox(width: _kFieldGap),
+          wrapEnabled(
+            HomeUi.ghostAction(
+              label: isSaving ? 'Saving...' : 'Save Draft',
+              icon: Icons.drafts_rounded,
+              dark: isDark,
+              onTap: _handleSaveDraft,
+            ),
+          ),
+          const SizedBox(width: _kFieldGap),
+          wrapEnabled(
+            HomeUi.primaryAction(
+              label: isSaving ? 'Saving...' : 'Save Portfolio',
+              icon: isSaving ? null : Icons.check_rounded,
+              onTap: _handleSavePortfolio,
+            ),
+          ),
+        ],
+      );
     });
-  }
-
-  InputDecoration _fieldDecoration(String label, {String? hintText, bool isDark = false}) {
-    final labelColor = isDark ? Colors.white : const Color(0xFF111827);
-    final baseLabelStyle = TextStyle(
-      fontFamily: Constants.FONT_DEFAULT_NEW,
-      fontSize: 13,
-      height: 1.2,
-      color: labelColor,
-    );
-
-    return InputDecoration(
-      labelText: label,
-      hintText: hintText,
-      labelStyle: baseLabelStyle,
-      floatingLabelStyle: baseLabelStyle,
-      hintStyle: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        color: isDark ? const Color(0xFF8F9BB3) : const Color(0xFF6B7280),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-        borderSide: BorderSide(
-          color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFD1D5DB),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-        borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-      ),
-    );
   }
 
   Widget _buildTextField(
@@ -1729,18 +1474,14 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     String? hintText,
     ValueChanged<String>? onChanged,
   }) {
-    return TextField(
+    return FilterTextField(
+      dark: isDark,
+      label: label,
       controller: controller,
+      hintText: hintText,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       onChanged: onChanged,
-      decoration: _fieldDecoration(label, hintText: hintText, isDark: isDark),
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
-        color: isDark ? Colors.white : const Color(0xFF111827),
-      ),
     );
   }
 
@@ -1751,88 +1492,24 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     ValueChanged<String?> onChanged, {
     required bool isDark,
   }) {
-    return DropdownButtonFormField<String>(
+    return FilterDropdown<String>(
+      dark: isDark,
+      label: label,
       value: selected,
-      decoration: _fieldDecoration(label, isDark: isDark),
-      dropdownColor: isDark ? const Color(0xFF111315) : Colors.white,
-      items: items.map((item) => DropdownMenuItem(
-        value: item,
-        child: Text(
-          item,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 13,
-            color: isDark ? Colors.white : const Color(0xFF111827),
-          ),
-        ),
-      )).toList(),
-      onChanged: onChanged,
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
-        color: isDark ? Colors.white : const Color(0xFF111827),
-      ),
-    );
-  }
-
-  Widget _buildPillSelector(
-    String label,
-    List<String> options,
-    String selected,
-    ValueChanged<String> onChanged, {
-    required bool isDark,
-    bool showLabel = true,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (showLabel) ...[
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 12,
-              color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-        const SizedBox(height: _kCompactGap),
-        ],
-        Wrap(
-          spacing: 8,
-          children: options.map((option) {
-            final isSelected = option == selected;
-            return GestureDetector(
-              onTap: () => onChanged(option),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? (isDark ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected
-                        ? (isDark ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-                        : (isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB)),
-                  ),
-                ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark ? Colors.white70 : const Color(0xFF111827)),
-                  ),
+      items: items
+          .map(
+            (item) => DropdownMenuItem<String>(
+              value: item,
+              child: Text(
+                item,
+                style: HomeUi.control(isDark, active: true).copyWith(
+                  fontSize: 13,
                 ),
               ),
-            );
-          }).toList(),
-        ),
-      ],
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
     );
   }
 }
@@ -1858,68 +1535,6 @@ class _CurrencyInputFormatter extends TextInputFormatter {
   }
 }
 
-class _PrimaryPillButton extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final VoidCallback? onTap;
-  final bool isDarkMode;
-
-  const _PrimaryPillButton({
-    required this.label,
-    this.icon,
-    required this.isDarkMode,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final primaryColor =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
-    final disabledBg =
-        isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: enabled ? primaryColor : disabledBg,
-          borderRadius: BorderRadius.circular(90),
-          border: Border.all(
-            color: enabled ? primaryColor : disabledBg,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 16,
-                color: enabled ? Colors.white : const Color(0xFF9CA3AF),
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label.toUpperCase(),
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: enabled ? Colors.white : const Color(0xFF9CA3AF),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Animated Donut Chart Widget
 class _AnimatedDonutChart extends StatefulWidget {
   final double investedAmount;
   final double estimatedReturns;
@@ -2151,6 +1766,8 @@ class _AnimatedDonutChartState extends State<_AnimatedDonutChart>
     required double estimatedReturns,
   }) {
     final isDark = widget.isDark;
+    const investedColor = Color(0xFFE4681F);
+    const returnsColor = Color(0xFF6C78A8);
     String label;
     String value;
     Color color;
@@ -2158,11 +1775,11 @@ class _AnimatedDonutChartState extends State<_AnimatedDonutChart>
     if (segment == 'invested') {
       label = 'Invested Amount';
       value = _formatCurrency(investedAmount);
-      color = const Color(0xFFFB923C);
+      color = investedColor;
     } else {
       label = 'Est. Returns';
       value = _formatCurrency(estimatedReturns);
-      color = const Color(0xFF81AACE);
+      color = returnsColor;
     }
     
     return Material(
@@ -2173,12 +1790,12 @@ class _AnimatedDonutChartState extends State<_AnimatedDonutChart>
           color: isDark ? const Color(0xFF1F2530) : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -2225,6 +1842,7 @@ class _AnimatedDonutChartState extends State<_AnimatedDonutChart>
       ),
     );
   }
+
 }
 
 // Donut Chart Painter
@@ -2248,9 +1866,9 @@ class _DonutChartPainter extends CustomPainter {
     final total = investedAmount + estimatedReturns;
     if (total == 0) return;
 
-    // Colors
-    const investedColor = Color(0xFFFB923C); // Orange
-    const returnsColor = Color(0xFF81AACE); // Blue
+    // Solid theme-matched premium colors
+    const investedColor = Color(0xFFE4681F);
+    const returnsColor = Color(0xFF6C78A8);
     final backgroundColor = isDark ? const Color(0xFF121417) : const Color(0xFFF4F5F7);
 
     double startAngle = -math.pi / 2; // Start from top
@@ -2258,13 +1876,12 @@ class _DonutChartPainter extends CustomPainter {
     // Draw invested amount (orange) as donut segment
     if (investedAmount > 0) {
       final investedSweep = (investedAmount / total) * 2 * math.pi;
+      final innerRect = Rect.fromCircle(center: center, radius: innerRadius);
       final investedPaint = Paint()
         ..color = investedColor
         ..style = PaintingStyle.fill;
 
-      // Draw outer arc
       final outerRect = Rect.fromCircle(center: center, radius: radius);
-      final innerRect = Rect.fromCircle(center: center, radius: innerRadius);
       
       // Create path for donut segment
       final path = Path()
@@ -2279,13 +1896,12 @@ class _DonutChartPainter extends CustomPainter {
     // Draw estimated returns (blue) as donut segment
     if (estimatedReturns > 0) {
       final returnsSweep = (estimatedReturns / total) * 2 * math.pi;
+      final innerRect = Rect.fromCircle(center: center, radius: innerRadius);
       final returnsPaint = Paint()
         ..color = returnsColor
         ..style = PaintingStyle.fill;
 
-      // Draw outer arc
       final outerRect = Rect.fromCircle(center: center, radius: radius);
-      final innerRect = Rect.fromCircle(center: center, radius: innerRadius);
       
       // Create path for donut segment
       final path = Path()
@@ -2423,15 +2039,13 @@ class _TickerSearchCellState extends State<_TickerSearchCell> {
         width: 300,
         child: Material(
           elevation: 8,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
           child: Container(
             constraints: const BoxConstraints(maxHeight: 200),
             decoration: BoxDecoration(
-              color: widget.isDark ? const Color(0xFF111315) : Colors.white,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: widget.isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
-              ),
+              color: HomeUi.cardBg(widget.isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(widget.isDark)),
             ),
             child: _isSearching
                 ? const Padding(
@@ -2488,10 +2102,9 @@ class _TickerSearchCellState extends State<_TickerSearchCell> {
 
   @override
   Widget build(BuildContext context) {
-    final fillColor =
-        widget.isDark ? const Color(0xFF1B1F25) : const Color(0xFFF4F6F8);
     return SizedBox(
-      width: 120,
+      width: 160,
+      height: 40,
       child: TextField(
         controller: _searchController,
         focusNode: _searchFocusNode,
@@ -2501,102 +2114,14 @@ class _TickerSearchCellState extends State<_TickerSearchCell> {
             _showResultsOverlay();
           }
         },
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: 12,
-          color: widget.isDark ? Colors.white : const Color(0xFF111827),
-        ),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: fillColor,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          hintText: 'Search...',
-          hintStyle: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 11,
-            color: widget.isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: widget.isDark
-                  ? const Color(0xFF81AACE).withOpacity(0.4)
-                  : const Color(0xFF3B82F6).withOpacity(0.3),
-              width: 1.2,
-            ),
-          ),
+        style: HomeUi.control(widget.isDark, active: true).copyWith(fontSize: 12),
+        decoration: HomeUi.tableInlineFieldDecoration(
+          widget.isDark,
+          hintText: 'Search ticker...',
         ),
       ),
     );
   }
 }
 
-class _SecondaryPillButton extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final VoidCallback? onTap;
-  final bool isDarkMode;
-
-  const _SecondaryPillButton({
-    required this.label,
-    this.icon,
-    required this.isDarkMode,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final accent =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
-    final disabledColor =
-        isDarkMode ? const Color(0xFF4B5563) : const Color(0xFF9CA3AF);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(90),
-          border: Border.all(
-            color: enabled ? accent : disabledColor,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 16,
-                color: enabled ? accent : disabledColor,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label.toUpperCase(),
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: enabled ? accent : disabledColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
+// Animated Donut Chart Widget

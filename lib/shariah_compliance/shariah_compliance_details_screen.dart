@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
@@ -19,6 +18,7 @@ import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_detail_se
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_report_period_selector.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -63,6 +63,7 @@ class _ShariahComplianceDetailsScreenState
     'debt': true,
   };
   final Set<String> _expandedRows = <String>{};
+  int? _hoveredHistoryRow;
 
   @override
   void initState() {
@@ -84,9 +85,8 @@ class _ShariahComplianceDetailsScreenState
 
     final ShariahComplianceResult apiResult =
         results[0] as ShariahComplianceResult;
-    final ComplianceReport? currentReport = apiResult.isSuccess
-        ? ComplianceReport.fromJson(apiResult.data!)
-        : null;
+    final ComplianceReport? currentReport =
+        apiResult.isSuccess ? ComplianceReport.fromJson(apiResult.data!) : null;
     setState(() {
       _currentReport = currentReport;
       _history = results[1] as List<ComplianceHistoryItem>;
@@ -102,9 +102,8 @@ class _ShariahComplianceDetailsScreenState
     });
   }
 
-  ComplianceReport? get _activeReport => _viewingHistorical
-      ? _selectedHistoricalPeriod?.report
-      : _currentReport;
+  ComplianceReport? get _activeReport =>
+      _viewingHistorical ? _selectedHistoricalPeriod?.report : _currentReport;
 
   ComplianceReportPeriod? get _selectedHistoricalPeriod {
     if (_selectedHistoricalPeriodId == null) return null;
@@ -277,21 +276,23 @@ class _ShariahComplianceDetailsScreenState
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color bg = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
-    final Color primary =
-        isDark ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A);
-    final Color secondary =
-        isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final Color primary = HomeUi.title(isDark);
+    final Color secondary = HomeUi.muted(isDark);
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape): _exitScreening,
       },
       child: Scaffold(
-        backgroundColor: bg,
+        backgroundColor: HomeUi.pageBg(isDark),
         body: SafeArea(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: HomeUi.accent(isDark),
+                  ),
+                )
               : _currentReport == null
                   ? _buildError(primary, secondary)
                   : Column(
@@ -302,12 +303,15 @@ class _ShariahComplianceDetailsScreenState
                             thumbVisibility: true,
                             child: SingleChildScrollView(
                               physics: const ClampingScrollPhysics(),
-                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                              padding: HomeUi.pagePadding(
+                                MediaQuery.sizeOf(context).width,
+                              ).copyWith(top: 4),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildStockHeaderRow(primary, secondary, isDark),
-                                  if (_historicalPeriods.isNotEmpty) ...<Widget>[
+                                  _buildStockHeaderRow(isDark),
+                                  if (_historicalPeriods
+                                      .isNotEmpty) ...<Widget>[
                                     const SizedBox(height: 16),
                                     ComplianceReportPeriodSelector(
                                       periods: _historicalPeriods,
@@ -329,7 +333,8 @@ class _ShariahComplianceDetailsScreenState
                                     showMsciPanel: _showMsciPanel,
                                   ),
                                   const SizedBox(height: 16),
-                                  _buildScreeningSection(_activeReport!, isDark),
+                                  _buildScreeningSection(
+                                      _activeReport!, isDark),
                                   const SizedBox(height: 16),
                                   _buildRevenueSection(
                                     _activeReport!,
@@ -337,7 +342,6 @@ class _ShariahComplianceDetailsScreenState
                                     secondary,
                                     isDark,
                                   ),
-                                  const SizedBox(height: 16),
                                   // _buildMsciSection(_activeReport!, isDark),
                                   if (_history.isNotEmpty) ...<Widget>[
                                     const SizedBox(height: 16),
@@ -386,42 +390,26 @@ class _ShariahComplianceDetailsScreenState
   }
 
   Widget _sectionLabel(String text, bool isDark, {double? fontSize}) {
-    if (isDark) {
-      return Text(
-        text,
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: fontSize ?? 16,
-          fontWeight: FontWeight.w600,
-        ),
-      );
-    }
     return Text(
-      text.toUpperCase(),
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: fontSize ?? 14,
-        color: const Color.fromARGB(255, 0, 0, 0),
-        letterSpacing: 0.2,
-        fontWeight: FontWeight.w600,
-      ),
+      text,
+      style: HomeUi.sectionTitle(isDark).copyWith(fontSize: fontSize ?? 15),
     );
   }
 
   Widget _topBarCompliancePill(String status, {double fontSize = 13}) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final bool compliant = _isCompliantStatus(status);
     final Color bg =
-        compliant ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+        compliant ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
       ),
       child: Text(
         ComplianceFormatters.statusLabel(status),
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
+        style: HomeUi.control(isDark, active: true).copyWith(
           fontSize: fontSize,
           fontWeight: FontWeight.w600,
           color: Colors.white,
@@ -430,21 +418,48 @@ class _ShariahComplianceDetailsScreenState
     );
   }
 
-  Widget _inlineComplianceBadge(String status) {
+  Widget _historyStatusChip(String status) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final bool compliant = _isCompliantStatus(status);
     final Color color =
-        compliant ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+        compliant ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.35)),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(color: color, width: 1),
       ),
       child: Text(
         ComplianceFormatters.statusLabel(status),
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
+        style: HomeUi.control(isDark, active: true).copyWith(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          height: 1.1,
+          letterSpacing: 0.2,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _inlineComplianceBadge(String status) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool compliant = _isCompliantStatus(status);
+    final Color color =
+        compliant ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: compliant
+            ? HomeUi.positiveSoft(isDark)
+            : HomeUi.negativeSoft(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Text(
+        ComplianceFormatters.statusLabel(status),
+        style: HomeUi.control(isDark, active: true).copyWith(
           fontSize: 10,
           fontWeight: FontWeight.w600,
           color: color,
@@ -463,18 +478,15 @@ class _ShariahComplianceDetailsScreenState
       value != null ? value.toStringAsFixed(digits) : '--';
 
   Widget _buildTopBar(Color primary, Color secondary, bool isDark) {
-    final Color backColor =
-        isDark ? const Color(0xFF93C5FD) : const Color(0xFF3B82F6);
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       child: Row(
         children: [
-          ComplianceOutlinedActionButton(
-            onPressed: _goBack,
+          HomeUi.ghostAction(
             label: 'Back',
-            leadingIcon: Icons.arrow_back_rounded,
-            color: backColor,
+            dark: isDark,
+            icon: Icons.arrow_back_rounded,
+            onTap: _goBack,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -487,64 +499,48 @@ class _ShariahComplianceDetailsScreenState
             ),
           ),
           const SizedBox(width: 16),
-          ComplianceOutlinedActionButton(
-            onPressed: _exitScreening,
+          HomeUi.ghostAction(
             label: 'Exit',
-            trailingIcon: Icons.close_rounded,
-            color: secondary,
+            dark: isDark,
+            icon: Icons.close_rounded,
+            onTap: _exitScreening,
           ),
         ],
       ),
     );
   }
 
-  Widget _stockInfoCard(bool isDark, Widget child) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: child,
-    );
-  }
-
-  Widget _overviewRow(String label, String value, bool isDark,
-      {Color? valueColor}) {
+  Widget _headerKv(
+    bool isDark,
+    String label,
+    String value, {
+    int maxLines = 1,
+    Color? valueColor,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: [
-          Flexible(
-            flex: 2,
+          Expanded(
+            flex: 4,
             child: Text(
               label,
-              style: DashboardTextStyles.tickerSymbol.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color:
-                    isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              ),
+              style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
             ),
           ),
-          const SizedBox(width: 6),
-          Flexible(
-            flex: 3,
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 5,
             child: Text(
               value,
               textAlign: TextAlign.right,
-              maxLines: 2,
+              maxLines: maxLines,
               overflow: TextOverflow.ellipsis,
-              style: DashboardTextStyles.tickerSymbol.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: valueColor ??
-                    (isDark ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A)),
+              style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                fontSize: 13,
+                color: valueColor ?? HomeUi.title(isDark),
               ),
             ),
           ),
@@ -553,7 +549,7 @@ class _ShariahComplianceDetailsScreenState
     );
   }
 
-  Widget _buildStockHeaderRow(Color primary, Color secondary, bool isDark) {
+  Widget _buildStockHeaderRow(bool isDark) {
     final String name = _activeReport?.companyName ??
         widget.companyName ??
         widget.ticker?.companyName ??
@@ -561,299 +557,259 @@ class _ShariahComplianceDetailsScreenState
         '';
     final String status = _activeReport?.status ?? '';
     final String logo = widget.ticker?.logo ?? '';
+    final String ticker = widget.tickerSymbol.toUpperCase();
     final StocksData? stock = _stockData;
+    final num? change = stock?.change1DPercent;
+    final bool isUp = change != null && change >= 0;
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _stockInfoCard(
-              isDark,
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      showLogo(
-                        widget.tickerSymbol,
-                        logo,
-                        sideWidth: 32,
-                        name: widget.tickerSymbol,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name.isNotEmpty
-                                  ? name
-                                  : widget.tickerSymbol.toUpperCase(),
-                              style: DashboardTextStyles.stockName.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: primary,
+    return Container(
+      decoration: HomeUi.cardDecoration(isDark),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 11,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: HomeUi.elevatedBg(isDark),
+                            borderRadius: BorderRadius.circular(10),
+                            border:
+                                Border.all(color: HomeUi.borderLight(isDark)),
+                          ),
+                          child: showLogo(
+                            ticker,
+                            logo,
+                            sideWidth: 28,
+                            name: ticker,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name.isNotEmpty ? name : ticker,
+                                style: HomeUi.sectionTitle(isDark)
+                                    .copyWith(fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Row(
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Text(
+                                    ticker,
+                                    style: HomeUi.overline(isDark).copyWith(
+                                      letterSpacing: 1.2,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  if (status.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    _inlineComplianceBadge(status),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: _openTickerDetail,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
+                                HomeUi.brandIcon(
+                                  icon: Icons.open_in_new_rounded,
+                                  size: HomeUi.iconXs,
+                                ),
+                                const SizedBox(width: 4),
                                 Text(
-                                  widget.tickerSymbol.toUpperCase(),
-                                  style:
-                                      DashboardTextStyles.tickerSymbol.copyWith(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: secondary,
+                                  'Full Analysis',
+                                  style: HomeUi.control(isDark, active: true)
+                                      .copyWith(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: HomeUi.accent(isDark),
                                   ),
                                 ),
-                                if (status.isNotEmpty) ...[
-                                  const SizedBox(width: 6),
-                                  _inlineComplianceBadge(status),
-                                ],
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: _openTickerDetail,
-                        icon: Icon(
-                          Icons.open_in_new,
-                          size: 14,
-                          color: isDark
-                              ? const Color(0xFF93C5FD)
-                              : const Color(0xFF3B82F6),
-                        ),
-                        label: Text(
-                          'Full Analysis',
-                          style: TextStyle(
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? const Color(0xFF93C5FD)
-                                : const Color(0xFF3B82F6),
                           ),
                         ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Current Price',
-                            style: DashboardTextStyles.tickerSymbol.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: secondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _fmtPrice(stock?.currentPrice),
-                            style: DashboardTextStyles.stockName.copyWith(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              color: primary,
-                              height: 1.1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Change',
-                            style: DashboardTextStyles.tickerSymbol.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: secondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            stock?.change1DPercent != null
-                                ? '${stock!.change1DPercent! >= 0 ? '+' : ''}${stock.change1DPercent!.toStringAsFixed(2)}%'
-                                : '--',
-                            style: DashboardTextStyles.stockName.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: stock?.change1DPercent != null
-                                  ? (stock!.change1DPercent! >= 0
-                                      ? const Color(0xFF16A34A)
-                                      : const Color(0xFFDC2626))
-                                  : secondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Market Cap: ${stock?.usdMarketCap != null ? Constants.getShortenedMarketCapV2(stock!.usdMarketCap) : '--'}',
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: primary,
-                        ),
-                      ),
-                      Text(
-                        'Volume: ${stock?.volume != null ? '${((stock!.volume!) / 1000000).toStringAsFixed(1)}M' : '--'}',
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _stockInfoCard(
-              isDark,
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Market Overview',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: primary,
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                
-                  _overviewRow(
-                    'Industry:',
-                    stock?.industry ?? '--',
-                    isDark,
-                  ),
-                  _overviewRow(
-                    'Shares Outstanding:',
-                    stock?.sharesOutStanding != null
-                        ? Constants.getShortenedMarketCapV2(
-                                stock!.sharesOutStanding! * 1000000)
-                            .replaceAll('\$', '')
-                        : '--',
-                    isDark,
-                  ),
-                  _overviewRow(
-                    'IPO Date:',
-                    stock?.ipoDate ?? '--',
-                    isDark,
-                  ),
-                  _overviewRow('Beta:', _fmtNum(stock?.beta), isDark),
-                  _overviewRow(
-                    '52W High:',
-                    _fmtPrice(stock?.d52WeekHigh),
-                    isDark,
-                  ),
-                  // _overviewRow(
-                  //   '52W Low:',
-                  //   _fmtPrice(stock?.d52WeekLow),
-                  //   isDark,
-                  // ),
-                  // _overviewRow(
-                  //   'P/E Ratio:',
-                  //   _fmtNum(stock?.peTTM),
-                  //   isDark,
-                  // ),
-                  const Spacer(),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _stockInfoCard(
-              isDark,
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Key Highlights',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: primary,
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'CURRENT PRICE',
+                                style: HomeUi.overline(isDark).copyWith(
+                                  fontSize: 10,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _fmtPrice(stock?.currentPrice),
+                                style: HomeUi.display(isDark).copyWith(
+                                  fontSize: 24,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            change == null
+                                ? '--'
+                                : '${isUp ? '+' : ''}${change.toStringAsFixed(2)}%',
+                            style: HomeUi.tableNumeric(
+                              isDark,
+                              positiveValue: change == null ? null : isUp,
+                            ).copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _overviewRow(
-                    'Book Value:',
-                    stock?.bookValuePerShareAnnual != null
-                        ? _fmtPrice(stock!.bookValuePerShareAnnual)
-                        : '--',
-                    isDark,
-                  ),
-                  _overviewRow(
-                    'Cash/Share:',
-                    stock?.cashPerSharePerShareAnnual != null
-                        ? _fmtPrice(stock!.cashPerSharePerShareAnnual)
-                        : '--',
-                    isDark,
-                  ),
-                  _overviewRow(
-                    'Dividend Yield:',
-                    _fmtPercent(stock?.currentDividendYieldTTM),
-                    isDark,
-                  ),
-                  _overviewRow(
-                    'Enterprise Value:',
-                    stock?.enterpriseValue != null
-                        ? Constants.getShortenedMarketCapV2(stock!.enterpriseValue)
-                        : '--',
-                    isDark,
-                  ),
-                  _overviewRow(
-                    'P/B Ratio:',
-                    _fmtNum(stock?.pbAnnual),
-                    isDark,
-                  ),
-                  // _overviewRow(
-                  //   'ROE:',
-                  //   stock?.rOE != null ? _fmtPercent(stock!.rOE) : '--',
-                  //   isDark,
-                  // ),
-                  // _overviewRow(
-                  //   'Gross Margin:',
-                  //   stock?.grossMarginAnnual != null
-                  //       ? _fmtPercent(stock!.grossMarginAnnual)
-                  //       : '--',
-                  //   isDark,
-                  // ),
-                  const Spacer(),
-                ],
+                    const SizedBox(height: 14),
+                    _headerKv(
+                      isDark,
+                      'Market Cap',
+                      stock?.usdMarketCap != null
+                          ? Constants.getShortenedMarketCapV2(
+                              stock!.usdMarketCap)
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDark,
+                      'Volume',
+                      stock?.volume != null
+                          ? '${((stock!.volume!) / 1000000).toStringAsFixed(1)}M'
+                          : '--',
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: HomeUi.borderLight(isDark),
+            ),
+            Expanded(
+              flex: 10,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.public_outlined,
+                      title: 'Market Overview',
+                    ),
+                    const SizedBox(height: 12),
+                    _headerKv(
+                      isDark,
+                      'Industry',
+                      stock?.industry ?? '--',
+                      maxLines: 2,
+                    ),
+                    _headerKv(
+                      isDark,
+                      'Shares Out',
+                      stock?.sharesOutStanding != null
+                          ? Constants.getShortenedMarketCapV2(
+                                  stock!.sharesOutStanding! * 1000000)
+                              .replaceAll('\$', '')
+                          : '--',
+                    ),
+                    _headerKv(isDark, 'IPO Date', stock?.ipoDate ?? '--'),
+                    _headerKv(isDark, 'Beta', _fmtNum(stock?.beta)),
+                    _headerKv(
+                        isDark, '52W High', _fmtPrice(stock?.d52WeekHigh)),
+                  ],
+                ),
+              ),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: HomeUi.borderLight(isDark),
+            ),
+            Expanded(
+              flex: 10,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.auto_graph_outlined,
+                      title: 'Key Highlights',
+                    ),
+                    const SizedBox(height: 12),
+                    _headerKv(
+                      isDark,
+                      'Book Value',
+                      stock?.bookValuePerShareAnnual != null
+                          ? _fmtPrice(stock!.bookValuePerShareAnnual)
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDark,
+                      'Cash/Share',
+                      stock?.cashPerSharePerShareAnnual != null
+                          ? _fmtPrice(stock!.cashPerSharePerShareAnnual)
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDark,
+                      'Dividend Yield',
+                      _fmtPercent(stock?.currentDividendYieldTTM),
+                    ),
+                    _headerKv(
+                      isDark,
+                      'Enterprise Value',
+                      stock?.enterpriseValue != null
+                          ? Constants.getShortenedMarketCapV2(
+                              stock!.enterpriseValue)
+                          : '--',
+                    ),
+                    _headerKv(isDark, 'P/B Ratio', _fmtNum(stock?.pbAnnual)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -862,40 +818,16 @@ class _ShariahComplianceDetailsScreenState
       Color secondary, bool isDark, String sectionKey,
       {double fontSize = 13}) {
     final bool showPercent = _sectionShowPercent(sectionKey);
-    return CupertinoSlidingSegmentedControl<bool>(
-      padding: const EdgeInsets.all(2),
-      groupValue: showPercent,
-      thumbColor: isDark ? const Color(0xFF4B5563) : CupertinoColors.white,
-      backgroundColor: isDark
-          ? const Color(0xFF1F2937)
-          : const Color(0xFFE5E7EB),
-      children: <bool, Widget>{
-        true: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          child: Text(
-            '%',
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        false: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          child: Text(
-            '\$',
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      },
-      onValueChanged: (bool? value) {
-        if (value != null) _setSectionShowPercent(sectionKey, value);
-      },
+    return SizedBox(
+      width: 92,
+      height: HomeUi.filterFieldHeight,
+      child: HomeUi.segmentedControl(
+        dark: isDark,
+        options: const <String>['%', '\$'],
+        selectedIndex: showPercent ? 0 : 1,
+        onChanged: (int index) =>
+            _setSectionShowPercent(sectionKey, index == 0),
+      ),
     );
   }
 
@@ -909,8 +841,7 @@ class _ShariahComplianceDetailsScreenState
   }) {
     return Row(
       children: [
-        Expanded(
-            child: _sectionLabel(title, isDark, fontSize: labelFontSize)),
+        Expanded(child: _sectionLabel(title, isDark, fontSize: labelFontSize)),
         if (sectionKey != null)
           _buildPercentCurrencyToggle(secondary, isDark, sectionKey,
               fontSize: toggleFontSize ?? 13),
@@ -923,9 +854,7 @@ class _ShariahComplianceDetailsScreenState
       width: 1,
       height: 28,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      color: isDark
-          ? const Color(0xFF6B7280).withOpacity(0.35)
-          : const Color(0xFF6B7280).withOpacity(0.4),
+      color: HomeUi.borderLight(isDark),
     );
   }
 
@@ -966,7 +895,7 @@ class _ShariahComplianceDetailsScreenState
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF3B82F6),
+                    color: HomeUi.accent(isDark),
                     decoration: TextDecoration.underline,
                   ),
                 )
@@ -991,14 +920,14 @@ class _ShariahComplianceDetailsScreenState
                             fontFamily: Constants.FONT_DEFAULT_NEW,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF3B82F6),
+                            color: HomeUi.accent(isDark),
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(
+                        Icon(
                           Icons.arrow_outward,
                           size: 12,
-                          color: Color(0xFF3B82F6),
+                          color: HomeUi.accent(isDark),
                         ),
                       ],
                     ),
@@ -1038,7 +967,7 @@ class _ShariahComplianceDetailsScreenState
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF3B82F6),
+                    color: HomeUi.accent(isDark),
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -1066,19 +995,16 @@ class _ShariahComplianceDetailsScreenState
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: isDark ? 11 : 10,
-            color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-          ),
+          style: HomeUi.overline(isDark)
+              .copyWith(fontSize: 10, letterSpacing: 0.8),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: isDark ? 13 : 12,
+          style: HomeUi.control(isDark, active: true).copyWith(
+            fontSize: 13,
             fontWeight: FontWeight.w600,
+            color: HomeUi.title(isDark),
           ),
         ),
       ],
@@ -1094,7 +1020,12 @@ class _ShariahComplianceDetailsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('Screening Overview', isDark),
+          HomeUi.tableToolbarHeader(
+            isDark,
+            icon: Icons.verified_outlined,
+            title: 'Screening Overview',
+            subtitleText: 'Our analysis versus MSCI screening',
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -1211,102 +1142,79 @@ class _ShariahComplianceDetailsScreenState
     List<String>? lines,
     List<_PanelLine>? structuredLines,
   }) {
-    if (isDark) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: accent.withOpacity(0.25)),
-          color: accent.withOpacity(0.05),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(title,
-                    style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600)),
-                const Spacer(),
-                ComplianceStatusBadge(
-                  label: status,
-                  compact: true,
-                  fontSize: 13,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...lines!.map(
-              (line) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(line,
-                    style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW, fontSize: 14)),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    final List<_PanelLine> rows = structuredLines ??
+        (lines ?? const <String>[])
+            .map((String line) => _PanelLine(label: '', value: line))
+            .toList();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: accent, width: 3),
-        ),
+        color: HomeUi.elevatedBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              Container(
+                width: 3,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(99),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: HomeUi.cardTitle(isDark).copyWith(fontSize: 15),
+                ),
+              ),
               ComplianceStatusBadge(
                 label: status,
                 compact: true,
-                fontSize: 13,
+                fontSize: 12,
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ...structuredLines!.map(_panelDataLine),
+          const SizedBox(height: 10),
+          ...rows.map(_panelDataLine),
         ],
       ),
     );
   }
 
   Widget _panelDataLine(_PanelLine line) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    if (line.label.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          line.value,
+          style: HomeUi.tableCell(isDark).copyWith(fontSize: 13),
+        ),
+      );
+    }
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Text(
-            line.label,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 13,
-              color: const Color(0xFF6B7280),
+          Expanded(
+            child: Text(
+              line.label,
+              style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           Text(
             line.value,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: line.valueColor,
+            style: HomeUi.tableCellEmphasis(isDark).copyWith(
+              fontSize: 13,
+              color: line.valueColor ?? HomeUi.title(isDark),
             ),
           ),
         ],
@@ -1322,7 +1230,12 @@ class _ShariahComplianceDetailsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('Screening', isDark),
+          HomeUi.tableToolbarHeader(
+            isDark,
+            icon: Icons.fact_check_outlined,
+            title: 'Screening',
+            subtitleText: 'Business activity, securities, and debt',
+          ),
           const SizedBox(height: 12),
           IntrinsicHeight(
             child: Row(
@@ -1387,12 +1300,11 @@ class _ShariahComplianceDetailsScreenState
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          ),
+          color: HomeUi.elevatedBg(isDark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+          border: Border.all(color: HomeUi.borderLight(isDark)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1406,17 +1318,13 @@ class _ShariahComplianceDetailsScreenState
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: HomeUi.cardTitle(isDark).copyWith(fontSize: 15),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       ComplianceStatusBadge(
                         label: status,
                         compact: true,
-                        fontSize: 14,
+                        fontSize: 12,
                       ),
                     ],
                   ),
@@ -1431,15 +1339,17 @@ class _ShariahComplianceDetailsScreenState
             Expanded(child: child),
             if (onViewCalculation != null) ...[
               const SizedBox(height: 10),
-              InkWell(
-                onTap: onViewCalculation,
-                child: Text(
-                  'View calculation',
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF3B82F6),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: onViewCalculation,
+                  child: Text(
+                    'View calculation',
+                    style: HomeUi.control(isDark, active: true).copyWith(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: HomeUi.accent(isDark),
+                    ),
                   ),
                 ),
               ),
@@ -1838,8 +1748,7 @@ class _ShariahComplianceDetailsScreenState
                 dense: true,
                 title: Text(item.name,
                     style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 14)),
+                        fontFamily: Constants.FONT_DEFAULT_NEW, fontSize: 14)),
                 trailing: Text(
                   showPercent
                       ? ComplianceFormatters.percent(item.percentage)
@@ -2292,9 +2201,8 @@ class _ShariahComplianceDetailsScreenState
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFFEFF6FF) : Colors.transparent,
                   borderRadius: BorderRadius.circular(999),
-                  border: isDark
-                      ? null
-                      : Border.all(color: const Color(0xFF3B82F6)),
+                  border:
+                      isDark ? null : Border.all(color: HomeUi.accent(isDark)),
                 ),
                 child: Text(
                   'External methodology',
@@ -2303,7 +2211,7 @@ class _ShariahComplianceDetailsScreenState
                     fontSize: 10,
                     color: isDark
                         ? const Color(0xFF1D4ED8)
-                        : const Color(0xFF3B82F6),
+                        : HomeUi.accent(isDark),
                   ),
                 ),
               ),
@@ -2406,27 +2314,22 @@ class _ShariahComplianceDetailsScreenState
       return const SizedBox.shrink();
     }
 
-    return ComplianceSectionCard(
-      padding: EdgeInsets.zero,
+    return Container(
+      width: double.infinity,
+      decoration: HomeUi.cardDecoration(isDark),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: _sectionLabel('Historical Reports', isDark),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                return _buildHistoryTable(
-                  isDark: isDark,
-                  secondary: secondary,
-                  tableWidth: constraints.maxWidth,
-                );
-              },
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: HomeUi.tableToolbarHeader(
+              isDark,
+              icon: Icons.history_rounded,
+              title: 'Historical Reports',
             ),
           ),
+          _buildHistoryTable(isDark: isDark),
         ],
       ),
     );
@@ -2468,20 +2371,23 @@ class _ShariahComplianceDetailsScreenState
         label: 'Not Halal',
         flex: 11,
         value: ComplianceHistoryFormatters.notHalalAmount,
-        valueColor: (ComplianceHistoryItem item) =>
-            item.notHalalAmount > 0 ? const Color(0xFFDC2626) : null,
+        tone: _HistoryValueTone.negative,
+        highlightWhen: (ComplianceHistoryItem item) => item.notHalalAmount > 0,
+        align: TextAlign.right,
       ),
       _HistoryTableColumn(
         label: 'Doubtful',
         flex: 11,
         value: ComplianceHistoryFormatters.doubtfulAmount,
-        valueColor: (ComplianceHistoryItem item) =>
-            item.doubtfulAmount > 0 ? const Color(0xFFF59E0B) : null,
+        tone: _HistoryValueTone.warning,
+        highlightWhen: (ComplianceHistoryItem item) => item.doubtfulAmount > 0,
+        align: TextAlign.right,
       ),
       _HistoryTableColumn(
         label: 'Shares O/S',
         flex: 11,
         value: ComplianceHistoryFormatters.sharesOutstanding,
+        align: TextAlign.right,
       ),
       _HistoryTableColumn(
         label: 'Currency',
@@ -2503,113 +2409,144 @@ class _ShariahComplianceDetailsScreenState
 
   Widget _buildHistoryTable({
     required bool isDark,
-    required Color secondary,
-    required double tableWidth,
   }) {
     final List<_HistoryTableColumn> columns = _historyTableColumns();
-    final TextStyle headerStyle = TextStyle(
-      fontFamily: Constants.FONT_DEFAULT_NEW,
-      fontSize: isDark ? 13 : 12,
-      color: isDark ? secondary : const Color(0xFF9CA3AF),
-      letterSpacing: 0.5,
-      fontWeight: FontWeight.w600,
-    );
-    final TextStyle dataStyle = TextStyle(
-      fontFamily: Constants.FONT_DEFAULT_NEW,
-      fontSize: 14,
-      color: isDark ? const Color(0xFFE5E7EB) : null,
-    );
-    final Color borderColor =
-        isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-    final Color stripeA =
-        isDark ? const Color(0xFF141414) : const Color(0xFFF9FAFB);
-    final Color stripeB = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final int lastIndex = columns.length - 1;
+    final Color warning =
+        isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
 
-    return SizedBox(
-      width: tableWidth,
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor)),
-            ),
-            child: Row(
-              children: columns
-                  .map(
-                    (_HistoryTableColumn column) => Expanded(
-                      flex: column.flex,
-                      child: _historyHeaderCell(
-                        column.label,
-                        headerStyle,
-                        isDark: isDark,
-                      ),
-                    ),
-                  )
-                  .toList(),
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: HomeUi.tableHeaderBg(isDark),
+            border: Border(
+              top: BorderSide(color: HomeUi.borderLight(isDark)),
+              bottom: BorderSide(color: HomeUi.borderLight(isDark)),
             ),
           ),
-          ..._history.asMap().entries.map((MapEntry<int, ComplianceHistoryItem> e) {
-            final int index = e.key;
-            final ComplianceHistoryItem item = e.value;
+          child: Row(
+            children: [
+              for (int i = 0; i < columns.length; i++)
+                Expanded(
+                  flex: columns[i].flex,
+                  child: _historyHeaderCell(
+                    columns[i].label,
+                    isDark: isDark,
+                    padding: _historyCellPadding(i, lastIndex),
+                    align: columns[i].align,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        ..._history
+            .asMap()
+            .entries
+            .map((MapEntry<int, ComplianceHistoryItem> e) {
+          final int index = e.key;
+          final ComplianceHistoryItem item = e.value;
+          final bool lastRow = index == _history.length - 1;
 
-            return Container(
-              height: 48,
-              color: index.isEven ? stripeA : stripeB,
-              child: Row(
-                children: columns.map((_HistoryTableColumn column) {
-                  if (column.isStatus) {
-                    return Expanded(
-                      flex: column.flex,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: isDark
-                              ? ComplianceStatusBadge(
-                                  label: item.complianceStatus,
-                                  compact: true,
-                                  fontSize: 15,
-                                )
-                              : _topBarCompliancePill(
-                                  item.complianceStatus,
-                                  fontSize: 15,
-                                ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  final Color? color = column.valueColor?.call(item);
-                  return Expanded(
-                    flex: column.flex,
-                    child: _historyDataCell(
-                      column.value!(item),
-                      dataStyle: dataStyle.copyWith(color: color),
+          return MouseRegion(
+            onEnter: (_) => setState(() => _hoveredHistoryRow = index),
+            onExit: (_) {
+              if (_hoveredHistoryRow == index) {
+                setState(() => _hoveredHistoryRow = null);
+              }
+            },
+            child: Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: _hoveredHistoryRow == index
+                  ? HomeUi.tableRowHover(isDark)
+                  : index.isEven
+                      ? HomeUi.tableRowEven(isDark)
+                      : HomeUi.tableRowOdd(isDark),
+              border: lastRow
+                  ? null
+                  : Border(
+                      bottom: BorderSide(color: HomeUi.borderLight(isDark)),
                     ),
-                  );
-                }).toList(),
-              ),
-            );
-          }),
-        ],
-      ),
+            ),
+            child: Row(
+              children: [
+                for (int i = 0; i < columns.length; i++)
+                  Expanded(
+                    flex: columns[i].flex,
+                    child: columns[i].isStatus
+                        ? Padding(
+                            padding: _historyCellPadding(i, lastIndex),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _historyStatusChip(item.complianceStatus),
+                            ),
+                          )
+                        : _historyDataCell(
+                            columns[i].value!(item),
+                            isDark: isDark,
+                            padding: _historyCellPadding(i, lastIndex),
+                            color: _historyValueColor(
+                              columns[i],
+                              item,
+                              isDark,
+                              warning,
+                            ),
+                            align: columns[i].align,
+                          ),
+                  ),
+              ],
+            ),
+          ),
+          );
+        }),
+      ],
     );
   }
 
+  EdgeInsets _historyCellPadding(int index, int lastIndex) {
+    return EdgeInsets.fromLTRB(
+      index == 0 ? 16 : 10,
+      0,
+      index == lastIndex ? 16 : 10,
+      0,
+    );
+  }
+
+  Color? _historyValueColor(
+    _HistoryTableColumn column,
+    ComplianceHistoryItem item,
+    bool isDark,
+    Color warning,
+  ) {
+    if (column.tone == null) return null;
+    if (column.highlightWhen?.call(item) != true) return null;
+    switch (column.tone!) {
+      case _HistoryValueTone.negative:
+        return HomeUi.negative(isDark);
+      case _HistoryValueTone.warning:
+        return warning;
+    }
+  }
+
   Widget _historyHeaderCell(
-    String label,
-    TextStyle style, {
+    String label, {
     required bool isDark,
+    required EdgeInsets padding,
+    TextAlign align = TextAlign.left,
   }) {
     return SizedBox(
-      height: 40,
+      height: 44,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: padding,
         child: Align(
-          alignment: Alignment.centerLeft,
+          alignment: align == TextAlign.right
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
           child: Text(
-            isDark ? label : label.toUpperCase(),
-            style: style,
+            label.toUpperCase(),
+            style: HomeUi.tableHeader(isDark),
+            textAlign: align,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -2620,16 +2557,26 @@ class _ShariahComplianceDetailsScreenState
 
   Widget _historyDataCell(
     String value, {
-    required TextStyle dataStyle,
+    required bool isDark,
+    required EdgeInsets padding,
+    Color? color,
+    TextAlign align = TextAlign.left,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: padding,
       child: Align(
-        alignment: Alignment.centerLeft,
+        alignment: align == TextAlign.right
+            ? Alignment.centerRight
+            : Alignment.centerLeft,
         child: Text(
           value,
-          style: dataStyle,
-          maxLines: 2,
+          textAlign: align,
+          style: color != null
+              ? HomeUi.tableNumeric(isDark).copyWith(color: color)
+              : align == TextAlign.right
+                  ? HomeUi.tableNumeric(isDark)
+                  : HomeUi.tableCell(isDark),
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ),
@@ -2642,16 +2589,22 @@ class _HistoryTableColumn {
     required this.label,
     required this.flex,
     this.value,
-    this.valueColor,
+    this.tone,
+    this.highlightWhen,
     this.isStatus = false,
+    this.align = TextAlign.left,
   });
 
   final String label;
   final int flex;
   final String Function(ComplianceHistoryItem item)? value;
-  final Color? Function(ComplianceHistoryItem item)? valueColor;
+  final _HistoryValueTone? tone;
+  final bool Function(ComplianceHistoryItem item)? highlightWhen;
   final bool isStatus;
+  final TextAlign align;
 }
+
+enum _HistoryValueTone { negative, warning }
 
 class _PanelLine {
   const _PanelLine({
@@ -2777,11 +2730,10 @@ class _CalculationDialog extends StatelessWidget {
   }
 
   List<Widget> _businessBody() {
-    final num numerator =
-        report.notHalalRevenue + report.questionableRevenue;
+    final num numerator = report.notHalalRevenue + report.questionableRevenue;
     return <Widget>[
-      _breakdownRow(
-          'Halal Sales & Income', ComplianceFormatters.percent(report.halalPercent)),
+      _breakdownRow('Halal Sales & Income',
+          ComplianceFormatters.percent(report.halalPercent)),
       _breakdownRow('Doubtful Sales & Income',
           ComplianceFormatters.percent(report.questionablePercent)),
       _breakdownRow('Non Halal Sales & Income',
@@ -2791,8 +2743,7 @@ class _CalculationDialog extends StatelessWidget {
       _formulaTitle('Not Halal Business Activity Percentage ='),
       const SizedBox(height: 8),
       _formulaFraction(
-        numerator:
-            '( Not Halal Sales & Income + Doubtful Sales & Income )',
+        numerator: '( Not Halal Sales & Income + Doubtful Sales & Income )',
         denominator: '( Total Revenue )',
       ),
       const SizedBox(height: 12),
@@ -2821,8 +2772,7 @@ class _CalculationDialog extends StatelessWidget {
       const SizedBox(height: 8),
       _formulaFraction(
         numerator: '( Interest-bearing securities and assets )',
-        denominator:
-            '( Trailing 36-month average market capitalization )',
+        denominator: '( Trailing 36-month average market capitalization )',
       ),
       const SizedBox(height: 12),
       _resultLine(
@@ -2839,8 +2789,8 @@ class _CalculationDialog extends StatelessWidget {
         _breakdownRow('Short-term',
             ComplianceFormatters.percent(report.debtShortTerm!.ratio)),
       if (report.debtLongTerm != null)
-        _breakdownRow(
-            'Long-term', ComplianceFormatters.percent(report.debtLongTerm!.ratio)),
+        _breakdownRow('Long-term',
+            ComplianceFormatters.percent(report.debtLongTerm!.ratio)),
       _breakdownRow(
         'Total Interest-bearing debt',
         ComplianceFormatters.percent(report.debtRatio),
@@ -2850,8 +2800,7 @@ class _CalculationDialog extends StatelessWidget {
       const SizedBox(height: 8),
       _formulaFraction(
         numerator: '( Total interest-bearing debt )',
-        denominator:
-            '( Trailing 36-month average market capitalization )',
+        denominator: '( Trailing 36-month average market capitalization )',
       ),
       const SizedBox(height: 12),
       _resultLine(
@@ -2873,7 +2822,8 @@ class _CalculationDialog extends StatelessWidget {
               style: TextStyle(
                 fontFamily: Constants.FONT_DEFAULT_NEW,
                 fontSize: 13,
-                color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                color:
+                    isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
               ),
             ),
           ),

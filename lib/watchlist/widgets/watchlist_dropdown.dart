@@ -310,16 +310,13 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
             ?.size
             .width;
 
-    return Positioned(
-      left: 0,
-      top: 0,
-      child: CompositedTransformFollower(
-        link: _layerLink,
-        showWhenUnlinked: false,
-        targetAnchor: Alignment.bottomLeft,
-        followerAnchor: Alignment.topLeft,
-        offset: const Offset(0, 4),
-        child: GestureDetector(
+    return CompositedTransformFollower(
+      link: _layerLink,
+      showWhenUnlinked: false,
+      targetAnchor: Alignment.bottomLeft,
+      followerAnchor: Alignment.topLeft,
+      offset: const Offset(0, 4),
+      child: GestureDetector(
           onTap: () {},
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
@@ -386,7 +383,6 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
             ),
           ),
         ),
-      ),
     );
   }
 

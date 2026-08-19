@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
 // ============================================================================
@@ -106,6 +106,7 @@ class DynamicTableFromWeb extends StatefulWidget {
   final List<DynamicTableRow> rows;
   final String? title;
   final String? subtitle;
+  final IconData? toolbarLeadingIcon;
   final bool searchable;
   final bool paginated;
   final bool selectable;
@@ -138,6 +139,7 @@ class DynamicTableFromWeb extends StatefulWidget {
   final String companyKey;
   final String? logoKey;
   final String tickerHeaderLabel;
+  final double? tickerColumnWidth;
   final Function(DynamicTableRow)? onTickerTap;
   final double headingRowHeight;
   final double dataRowMinHeight;
@@ -170,6 +172,7 @@ class DynamicTableFromWeb extends StatefulWidget {
   final bool autoPinMetricColumn;
   final bool autoPinStatColumns;
   final bool showPinnedSectionDividers;
+  final bool showHeaderTooltip;
 
   const DynamicTableFromWeb({
     Key? key,
@@ -177,6 +180,7 @@ class DynamicTableFromWeb extends StatefulWidget {
     required this.rows,
     this.title,
     this.subtitle,
+    this.toolbarLeadingIcon,
     this.searchable = true,
     this.paginated = true,
     this.selectable = false,
@@ -210,11 +214,12 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.companyKey = 'company',
     this.logoKey,
     this.tickerHeaderLabel = 'Ticker',
+    this.tickerColumnWidth,
     this.onTickerTap,
     this.headingRowHeight = 44,
     this.dataRowMinHeight = 48,
     this.dataRowMaxHeight = 48,
-    this.horizontalMargin = 24,
+    this.horizontalMargin = 16,
     this.columnSpacing,
     this.dividerThickness,
     this.tableBorder,
@@ -242,6 +247,7 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.autoPinMetricColumn = true,
     this.autoPinStatColumns = true,
     this.showPinnedSectionDividers = true,
+    this.showHeaderTooltip = true,
   }) : super(key: key);
 
   @override
@@ -318,6 +324,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     }
     if (oldWidget.rows != widget.rows) {
       _initializeExpandedRows(widget.rows);
+      _naturalMinWidths.clear();
     }
   }
 
@@ -340,7 +347,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         sortable: true,
         searchable: false,
         pinnable: true,
-        align: TextAlign.center,
+        align: TextAlign.right,
       );
     }
 
@@ -372,6 +379,34 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     if (widget.showFiveYearCAGR) keys.add('five_year_cagr');
     if (widget.showStandardDeviation) keys.add('standard_deviation');
     return keys;
+  }
+
+  double get _headerActionReserve => widget.showColumnActionMenu ? 20 : 0;
+  double get _headerResizeReserve => widget.showColumnResizeHandle ? 8 : 0;
+  double get _headerTrailing => 8 + _headerActionReserve + _headerResizeReserve;
+  static const double _headerLeading = 8;
+  /// Matches [tableToolbarHeader] card inset so the company column lines up with the icon.
+  static const double _toolbarInset = 16;
+
+  bool _isEndAlign(TextAlign align) =>
+      align == TextAlign.right || align == TextAlign.end;
+
+  bool _isCenterAlign(TextAlign align) => align == TextAlign.center;
+
+  Alignment _alignmentFor(TextAlign align) {
+    if (_isEndAlign(align)) return Alignment.centerRight;
+    if (_isCenterAlign(align)) return Alignment.center;
+    return Alignment.centerLeft;
+  }
+
+  MainAxisAlignment _headingAlignmentFor(TextAlign align) {
+    if (_isEndAlign(align)) return MainAxisAlignment.end;
+    if (_isCenterAlign(align)) return MainAxisAlignment.center;
+    return MainAxisAlignment.start;
+  }
+
+  EdgeInsets _columnInsets() {
+    return EdgeInsets.only(left: _headerLeading, right: _headerTrailing);
   }
 
   double get _effectiveHeadingRowHeight =>
@@ -538,29 +573,56 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     return a.toString().compareTo(b.toString());
   }
 
-  double _getNaturalMinWidth(DynamicTableColumn col) {
-    if (col.width != null) return col.width!;
-    final cached = _naturalMinWidths[col.key];
-    if (cached != null) return cached;
-
+  double _measureTextWidth(String text, TextStyle style) {
     final painter = TextPainter(
-      text: TextSpan(
-        text: col.label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-        ),
-      ),
+      text: TextSpan(text: text, style: style),
       maxLines: 1,
       textDirection: TextDirection.ltr,
     )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
 
-    // label width + header padding/menu affordance
-    final measured = painter.width + 64;
-    final minWidth = measured < 120 ? 120.0 : measured;
-    _naturalMinWidths[col.key] = minWidth;
-    return minWidth;
+  double _cellRightPadding(DynamicTableColumn col) {
+    return _headerTrailing;
+  }
+
+  void _refreshNaturalMinWidths(List<DynamicTableColumn> columns) {
+    final headerStyle = HomeUi.tableHeader(false);
+    final cellStyle = HomeUi.tableCell(false).copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    const double maxShortContentWidth = 300;
+
+    for (final col in columns) {
+      final headerWidth =
+          _measureTextWidth(col.label.toUpperCase(), headerStyle);
+      var minWidth = headerWidth + 8 + _headerTrailing + 4;
+      if (col.width != null && col.width! > minWidth) {
+        minWidth = col.width!;
+      }
+
+      for (final row in widget.rows) {
+        final value = row.data[col.key];
+        if (value == null || value is Widget) continue;
+        final text = value.toString().trim();
+        if (text.isEmpty || text == '--' || text == '—') continue;
+        if (HomeUi.isCommentLikeTableText(text, columnKey: col.key)) continue;
+        final contentWidth =
+            _measureTextWidth(text, cellStyle) + 8 + _cellRightPadding(col);
+        if (contentWidth > minWidth) {
+          minWidth = contentWidth > maxShortContentWidth
+              ? maxShortContentWidth
+              : contentWidth;
+        }
+      }
+      _naturalMinWidths[col.key] = minWidth;
+    }
+  }
+
+  double _getNaturalMinWidth(DynamicTableColumn col) {
+    return _naturalMinWidths[col.key] ?? col.width ?? 96;
   }
 
   double _resolveColumnWidth(DynamicTableColumn col) {
@@ -661,7 +723,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     }
 
     return PopupMenuButton<String>(
-      tooltip: 'Column actions',
+      tooltip: widget.showHeaderTooltip ? 'Column actions' : '',
       onSelected: (value) => _applyColumnAction(col, value),
       position: PopupMenuPosition.under,
       constraints: const BoxConstraints(minWidth: 180),
@@ -672,12 +734,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
       ),
       padding: EdgeInsets.zero,
-      child: Padding(
-        padding: EdgeInsets.zero,
-        child: Icon(
-          Icons.more_vert,
-          size: 16,
-          color: iconColor,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Padding(
+          padding: EdgeInsets.zero,
+          child: Icon(
+            Icons.more_vert,
+            size: 16,
+            color: iconColor,
+          ),
         ),
       ),
       itemBuilder: (context) => [
@@ -712,58 +777,124 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
   Widget _buildTickerCell(
       DynamicTableRow row, Color textColor, Color mutedColor) {
-    final ticker = row.data[widget.tickerKey]?.toString() ?? '--';
-    final company = row.data[widget.companyKey]?.toString() ?? '--';
+    final ticker = (row.data[widget.tickerKey]?.toString() ?? '').trim();
+    final company = (row.data[widget.companyKey]?.toString() ?? '').trim();
     final logoUrl = widget.logoKey != null
         ? row.data[widget.logoKey!]?.toString() ?? ''
         : '';
+    final hasTicker = ticker.isNotEmpty && ticker != '--';
+    final hasCompany = company.isNotEmpty && company != '--';
+    final sameLabel = hasTicker &&
+        hasCompany &&
+        ticker.toLowerCase() == company.toLowerCase();
+    final showTickerSubtitle = hasTicker && hasCompany && !sameLabel;
+    final fullTitle = (hasCompany ? company : (hasTicker ? ticker : '--'))
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final tickerSubtitle = showTickerSubtitle
+        ? (fullTitle.toLowerCase() == company.toLowerCase() ? ticker : company)
+        : '';
+    final split = showTickerSubtitle
+        ? (title: fullTitle, subtitle: tickerSubtitle)
+        : _splitSingleLabel(fullTitle);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-          width: 26,
-          height: 26,
+          width: 32,
+          height: 32,
           child: showLogo(
-            ticker,
+            hasTicker ? ticker : fullTitle,
             logoUrl,
-            sideWidth: 24,
+            sideWidth: 32,
             circular: true,
-            name: company,
+            name: fullTitle,
           ),
         ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 180,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                ticker,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Tooltip(
+            message: fullTitle,
+            waitDuration: const Duration(milliseconds: 400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  split.title,
+                  maxLines: 1,
+                  overflow: HomeUi.tableCellOverflow(split.title),
+                  style: HomeUi.tableCellEmphasis(isDark),
                 ),
-              ),
-              Text(
-                company,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: mutedColor,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                ),
-              ),
-            ],
+                if (split.subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    split.subtitle,
+                    maxLines: 1,
+                    overflow: HomeUi.tableCellOverflow(split.subtitle),
+                    style: HomeUi.tableCellSecondary(isDark).copyWith(
+                      fontSize: 11,
+                      height: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  ({String title, String subtitle}) _splitSingleLabel(String name) {
+    if (name.length <= 22) return (title: name, subtitle: '');
+    var idx = name.lastIndexOf(' ', 22);
+    if (idx < 8) idx = name.indexOf(' ', 8);
+    if (idx < 0) return (title: name, subtitle: '');
+    final title = name.substring(0, idx).trim();
+    final subtitle = name.substring(idx).trim();
+    if (title.isEmpty || subtitle.isEmpty) {
+      return (title: name, subtitle: '');
+    }
+    return (title: title, subtitle: subtitle);
+  }
+
+  Widget _maybeHeaderTooltip(String message, Widget child) {
+    if (!widget.showHeaderTooltip) return child;
+    return Tooltip(message: message, child: child);
+  }
+
+  Widget _headerLabel({
+    required DynamicTableColumn col,
+    required TextStyle headerStyle,
+  }) {
+    final sorted = _sortState?.key == col.key;
+    final label = col.headerWidget ??
+        Text(
+          col.label.toUpperCase(),
+          style: headerStyle,
+          textAlign: col.align,
+          maxLines: 1,
+          softWrap: false,
+          overflow: HomeUi.tableCellOverflow(col.label),
+        );
+    if (!sorted) return label;
+    final icon = Icon(
+      _sortState!.direction == 'asc'
+          ? Icons.arrow_upward_rounded
+          : Icons.arrow_downward_rounded,
+      size: 11,
+      color: headerStyle.color,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: _isEndAlign(col.align)
+          ? [icon, const SizedBox(width: 4), label]
+          : [label, const SizedBox(width: 4), icon],
     );
   }
 
@@ -772,14 +903,19 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     DynamicTableColumn col,
     Color mutedColor,
   ) {
-    const headerTextColor = Color(0xFF475569);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerStyle = HomeUi.tableHeader(isDark);
+    final headerTextColor = headerStyle.color ?? mutedColor;
     final resolvedWidth =
         widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
 
     return DataColumn(
-      label: Tooltip(
-        message: col.label,
-        child: DragTarget<String>(
+      tooltip: widget.showHeaderTooltip ? col.label : '',
+      numeric: _isEndAlign(col.align),
+      headingRowAlignment: _headingAlignmentFor(col.align),
+      label: _maybeHeaderTooltip(
+        col.label,
+        DragTarget<String>(
           onWillAcceptWithDetails: (details) {
             if (!widget.enableColumnReorder) return false;
             final canAccept = details.data != col.key;
@@ -881,7 +1017,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 },
                 cursor:
                     col.sortable ? SystemMouseCursors.click : MouseCursor.defer,
-                child: GestureDetector(
+                  child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: col.sortable
                       ? () {
@@ -904,15 +1040,14 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                           );
                         }
                       : null,
-                  child: SizedBox(
+                  child: Align(
+                    alignment: _alignmentFor(col.align),
+                    child: SizedBox(
                     width: resolvedWidth,
                     child: Stack(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 2,
-                          ),
+                          padding: EdgeInsets.zero,
                           decoration: isDragOver
                               ? BoxDecoration(
                                   color:
@@ -923,34 +1058,22 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                           child: Stack(
                             children: [
                               Align(
-                                alignment: Alignment.center,
+                                alignment: _alignmentFor(col.align),
                                 child: Padding(
-                                  padding: EdgeInsets.only(
-                                    right: widget.showColumnActionMenu ? 28 : 0,
+                                  padding: _columnInsets(),
+                                  child: _headerLabel(
+                                    col: col,
+                                    headerStyle: headerStyle,
                                   ),
-                                  child: col.headerWidget ??
-                                      Text(
-                                        col.label,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: headerTextColor,
-                                          fontFamily:
-                                              Constants.FONT_DEFAULT_NEW,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
                                 ),
                               ),
                               if (widget.showColumnActionMenu)
                                 Positioned(
-                                  right: 0,
+                                  right: _headerResizeReserve,
                                   top: 0,
                                   bottom: 0,
                                   child: SizedBox(
-                                    width: 24,
+                                    width: 20,
                                     height: 24,
                                     child: _buildColumnActionMenu(
                                       context,
@@ -1001,13 +1124,22 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                                   duration: const Duration(milliseconds: 120),
                                   opacity: _hoveredResizeColumnKey == col.key
                                       ? 1
-                                      : 1,
-                                  child: Center(
-                                    child: Container(
-                                      width: 1,
-                                      height: widget.resizeHandleIndicatorHeight,
-                                      color: const Color.fromARGB(
-                                          255, 172, 173, 174),
+                                      : 0.45,
+                                  child: SizedBox(
+                                    width: 8,
+                                    child: Center(
+                                      child: Container(
+                                        width: 1.5,
+                                        height: 14,
+                                        decoration: BoxDecoration(
+                                          color: HomeUi.borderStrong(
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(1),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1018,6 +1150,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                     ),
                   ),
                 ),
+              ),
               ),
             );
           },
@@ -1037,24 +1170,90 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       final resolvedWidth =
           widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
       final cellText = value?.toString() ?? '--';
-      final defaultCell = value is Widget
-          ? value
-          : Text(
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      Widget defaultCell;
+
+      if (value is Widget) {
+        defaultCell = SizedBox(
+          height: _effectiveDataRowHeight,
+          child: Align(
+            alignment: _alignmentFor(col.align),
+            child: value,
+          ),
+        );
+      } else {
+        final parsed = _parseNumericString(cellText);
+        final looksPercent = cellText.contains('%');
+        final looksSigned = cellText.startsWith('+') ||
+            cellText.startsWith('-') ||
+            cellText.startsWith('−');
+        final isEmpty = cellText == '--' || cellText == '—';
+        final isEmphasis = HomeUi.isEmphasisTableColumn(col.key);
+        final isSecondary = HomeUi.isSecondaryTableColumn(col.key);
+
+        TextStyle style;
+        if (isEmpty) {
+          style = HomeUi.tableCellSecondary(isDark);
+        } else if (isEmphasis) {
+          style = HomeUi.tableCellEmphasis(isDark);
+        } else if (isSecondary) {
+          style = HomeUi.tableCellSecondary(isDark);
+        } else if (parsed != null && looksPercent) {
+          style = HomeUi.tableNumeric(isDark);
+        } else if (col.align == TextAlign.right || parsed != null) {
+          style = HomeUi.tableCell(isDark).copyWith(
+            color: HomeUi.body(isDark),
+            fontWeight: FontWeight.w600,
+          );
+        } else {
+          style = HomeUi.tableCell(isDark).copyWith(color: textColor);
+        }
+
+        if (parsed != null && looksSigned) {
+          defaultCell = Align(
+            alignment: _alignmentFor(col.align),
+            child: HomeUi.signedPercentPill(isDark, cellText, parsed),
+          );
+        } else if (cellText.toLowerCase() == 'buy' ||
+            cellText.toLowerCase() == 'sell') {
+          final isBuy = cellText.toLowerCase() == 'buy';
+          defaultCell = Align(
+            alignment: _alignmentFor(col.align),
+            child: HomeUi.signedPercentPill(
+              isDark,
               cellText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: col.align,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-              ),
+              isBuy ? 1 : -1,
+            ),
+          );
+        } else {
+          final commentLike =
+              HomeUi.isCommentLikeTableText(cellText, columnKey: col.key);
+          Widget text = Text(
+            cellText,
+            maxLines: 1,
+            softWrap: false,
+            overflow: commentLike ? TextOverflow.ellipsis : TextOverflow.clip,
+            textAlign: col.align,
+            style: style,
+          );
+          if (commentLike) {
+            text = Tooltip(
+              message: cellText,
+              waitDuration: const Duration(milliseconds: 400),
+              child: text,
             );
+          }
+          defaultCell = Align(
+            alignment: _alignmentFor(col.align),
+            child: text,
+          );
+        }
+      }
 
       final isExpanderColumn =
           expanderColumnKey != null && col.key == expanderColumnKey;
 
-      final content = isExpanderColumn
+      final content = isExpanderColumn && (row.isExpandable || row.level > 0)
           ? Padding(
               padding: EdgeInsets.only(left: row.level * widget.indentSize),
               child: Row(
@@ -1077,24 +1276,25 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           : defaultCell;
 
       return DataCell(
-        SizedBox(
-          width: resolvedWidth,
-          child: MouseRegion(
-            cursor: SystemMouseCursors.basic,
-            child: AnimatedOpacity(
-              opacity: 1.0,
-              duration: const Duration(milliseconds: 150),
-              child: content,
+        Align(
+          alignment: _alignmentFor(col.align),
+          child: SizedBox(
+            width: resolvedWidth,
+            height: _effectiveDataRowHeight,
+            child: Padding(
+              padding: _columnInsets(),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.basic,
+                child: content,
+              ),
             ),
           ),
         ),
-        onTap: () {
-          if (isExpanderColumn && row.isExpandable) {
-            _toggleRowExpansion(row);
-            return;
-          }
-          widget.onRowDoubleClick?.call(row);
-        },
+        onTap: (isExpanderColumn && row.isExpandable)
+            ? () => _toggleRowExpansion(row)
+            : widget.onRowDoubleClick != null
+                ? () => widget.onRowDoubleClick!(row)
+                : null,
       );
     }).toList();
   }
@@ -1114,91 +1314,153 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       return const SizedBox.shrink();
     }
 
-    return DataTable(
-      headingRowHeight: _effectiveHeadingRowHeight,
-      dataRowMinHeight: widget.rowHeight ?? widget.dataRowMinHeight,
-      dataRowMaxHeight: _effectiveDataRowHeight,
-      horizontalMargin: widget.horizontalMargin,
-      columnSpacing: widget.columnSpacing,
-      dividerThickness: widget.dividerThickness,
-      showBottomBorder: widget.showBottomBorder,
-      border: widget.tableBorder,
-      headingRowColor: const MaterialStatePropertyAll(Color(0xFFF5F7FA)),
-      columns: [
-        if (includeSelectable)
-          DataColumn(
-            label: Checkbox(
-              value: _selectedRowIds.length == rows.length && rows.isNotEmpty,
-              onChanged: (val) {
-                setState(() {
-                  if (val == true) {
-                    _selectedRowIds.clear();
-                    _selectedRowIds.addAll(rows.map((r) => r.id));
-                  } else {
-                    _selectedRowIds.clear();
-                  }
-                });
-              },
-            ),
-          ),
-        if (includeTicker)
-          DataColumn(
-            label: Text(
-              widget.tickerHeaderLabel,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF475569),
-                letterSpacing: 0.04,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
+    _refreshNaturalMinWidths(columns);
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final line = HomeUi.borderLight(isDark);
+    return Theme(
+      data: Theme.of(context).copyWith(
+        dividerColor: line,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
+        dividerTheme: DividerThemeData(
+          color: line,
+          thickness: widget.dividerThickness ?? 0.5,
+          space: 0,
+        ),
+      ),
+      child: DataTable(
+        showCheckboxColumn: false,
+        headingRowHeight: _effectiveHeadingRowHeight,
+        dataRowMinHeight: widget.rowHeight ?? widget.dataRowMinHeight,
+        dataRowMaxHeight: _effectiveDataRowHeight,
+        horizontalMargin: widget.horizontalMargin,
+        columnSpacing: widget.columnSpacing,
+        dividerThickness: widget.dividerThickness ?? 0.5,
+        showBottomBorder: widget.showBottomBorder,
+        border: widget.tableBorder ??
+            TableBorder(
+              horizontalInside: BorderSide(
+                color: line,
+                width: 0.5,
               ),
-            ),
-          ),
-        ...columns.map((col) => _buildHeaderColumn(context, col, mutedColor)),
-      ],
-      rows: rows.map((row) {
-        return DataRow(
-          cells: [
-            if (includeSelectable)
-              DataCell(
-                Checkbox(
-                  value: _selectedRowIds.contains(row.id),
-                  onChanged: (val) {
-                    setState(() {
-                      if (val == true) {
-                        _selectedRowIds.add(row.id);
-                      } else {
-                        _selectedRowIds.remove(row.id);
-                      }
-                    });
-                    widget.onSelectionChange?.call(
-                      widget.rows
-                          .where((r) => _selectedRowIds.contains(r.id))
-                          .toList(),
-                    );
-                  },
-                ),
+              top: BorderSide(
+                color: line,
+                width: 0.5,
               ),
-            if (includeTicker)
-              DataCell(
-                _buildTickerCell(row, textColor, mutedColor),
-                onTap: () {
-                  if (widget.onTickerTap != null) {
-                    widget.onTickerTap!.call(row);
-                    return;
-                  }
-                  widget.onRowDoubleClick?.call(row);
+              bottom: BorderSide.none,
+              verticalInside: BorderSide.none,
+            ),
+        headingRowColor: WidgetStatePropertyAll(HomeUi.tableHeaderBg(isDark)),
+        dataRowColor: const WidgetStatePropertyAll(Colors.transparent),
+        columns: [
+          if (includeSelectable)
+            DataColumn(
+              label: Checkbox(
+                value: _selectedRowIds.length == rows.length && rows.isNotEmpty,
+                onChanged: (val) {
+                  setState(() {
+                    if (val == true) {
+                      _selectedRowIds.clear();
+                      _selectedRowIds.addAll(rows.map((r) => r.id));
+                    } else {
+                      _selectedRowIds.clear();
+                    }
+                  });
                 },
               ),
-            ..._buildRowCellsForColumns(
-              row,
-              columns,
-              textColor,
-              expanderColumnKey,
             ),
-          ],
-        );
-      }).toList(),
+          if (includeTicker)
+            DataColumn(
+              tooltip: widget.showHeaderTooltip ? widget.tickerHeaderLabel : '',
+              headingRowAlignment: MainAxisAlignment.start,
+              label: SizedBox(
+                width: widget.tickerColumnWidth,
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: _toolbarInset,
+                    right: 8,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      widget.tickerHeaderLabel.toUpperCase(),
+                      style: HomeUi.tableHeader(isDark),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ...columns.map((col) => _buildHeaderColumn(context, col, mutedColor)),
+        ],
+        rows: rows.asMap().entries.map((entry) {
+          final row = entry.value;
+          final rowIndex = entry.key;
+          return DataRow(
+            color: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return HomeUi.tableRowHover(isDark);
+              }
+              return rowIndex.isEven
+                  ? HomeUi.tableRowEven(isDark)
+                  : HomeUi.tableRowOdd(isDark);
+            }),
+            cells: [
+              if (includeSelectable)
+                DataCell(
+                  Checkbox(
+                    value: _selectedRowIds.contains(row.id),
+                    onChanged: (val) {
+                      setState(() {
+                        if (val == true) {
+                          _selectedRowIds.add(row.id);
+                        } else {
+                          _selectedRowIds.remove(row.id);
+                        }
+                      });
+                      widget.onSelectionChange?.call(
+                        widget.rows
+                            .where((r) => _selectedRowIds.contains(r.id))
+                            .toList(),
+                      );
+                    },
+                  ),
+                ),
+              if (includeTicker)
+                DataCell(
+                  SizedBox(
+                    width: widget.tickerColumnWidth,
+                    height: _effectiveDataRowHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                    left: _toolbarInset,
+                    right: 8,
+                  ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _buildTickerCell(row, textColor, mutedColor),
+                      ),
+                    ),
+                  ),
+                  onTap: widget.onTickerTap != null
+                      ? () => widget.onTickerTap!(row)
+                      : widget.onRowDoubleClick != null
+                          ? () => widget.onRowDoubleClick!(row)
+                          : null,
+                ),
+              ..._buildRowCellsForColumns(
+                row,
+                columns,
+                textColor,
+                expanderColumnKey,
+              ),
+            ],
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1292,12 +1554,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF111827) : Colors.white;
-    const borderColor = Color(0xFFF1F5F9);
-    final textColor =
-        isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-    final mutedColor =
-        isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final bgColor = HomeUi.cardBg(isDark);
+    final borderColor = HomeUi.borderLight(isDark);
+    final textColor = HomeUi.title(isDark);
+    final mutedColor = HomeUi.muted(isDark);
 
     final effectiveColumns = _getEffectiveColumns();
     final filteredRows = _getFilteredRows();
@@ -1352,8 +1612,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         .where((c) => effectiveRightPinned.contains(c.key))
         .toList();
 
-    final expanderColumnKey =
-        allVisibleColumns.isNotEmpty ? allVisibleColumns.first.key : null;
+    final expanderColumnKey = flattenedRows.any((r) => r.isExpandable)
+        ? (allVisibleColumns.isNotEmpty ? allVisibleColumns.first.key : null)
+        : null;
 
     final tableContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1364,46 +1625,31 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             widget.enableColumnVisibilityToggle ||
             widget.toolbar != null)
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor)),
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Title & Subtitle
                 if (widget.title != null || widget.subtitle != null)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (widget.title != null)
-                        Text(
-                          widget.title!,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: textColor,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      if (widget.subtitle != null)
-                        Text(
-                          widget.subtitle!,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: mutedColor,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                    ],
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      title: widget.title ?? '',
+                      subtitleText: widget.subtitle,
+                      icon: widget.toolbarLeadingIcon,
+                    ),
                   ),
-                // If there is no title/subtitle, place custom toolbar content on the left.
-                if (widget.title == null && widget.subtitle == null && widget.toolbar != null)
-                  widget.toolbar!,
-                const Spacer(),
-                if (widget.enableColumnVisibilityToggle && widget.title != null)
+                if (widget.title == null &&
+                    widget.subtitle == null &&
+                    widget.toolbar != null)
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: widget.toolbar!,
+                    ),
+                  ),
+                if (widget.enableColumnVisibilityToggle) ...[
                   const SizedBox(width: 12),
-                // Columns visibility toggle
-                if (widget.enableColumnVisibilityToggle)
                   ColumnVisibilityButton(
                     columns: effectiveColumns,
                     visibleColumns: _visibleColumns,
@@ -1418,13 +1664,20 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                     },
                     isDark: isDark,
                   ),
-                // Custom toolbar
-                if ((widget.title != null || widget.subtitle != null) && widget.toolbar != null) ...[
+                ],
+                if ((widget.title != null || widget.subtitle != null) &&
+                    widget.toolbar != null) ...[
                   const SizedBox(width: 12),
                   widget.toolbar!,
                 ],
               ],
             ),
+          ),
+        if (widget.title != null || widget.subtitle != null)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: HomeUi.borderLight(isDark),
           ),
         // Table
         if (widget.loading)
@@ -1679,20 +1932,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor, width: 1),
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
         boxShadow: widget.showOuterShadow
-            ? (widget.outerBoxShadow ??
-                [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.8 : 0.8),
-                    blurRadius: 18,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 8),
-                  ),
-                ])
+            ? (widget.outerBoxShadow ?? HomeUi.cardShadow(isDark))
             : null,
       ),
+      clipBehavior: Clip.antiAlias,
       child: paddedTableContent,
     );
   }
@@ -1757,12 +2003,6 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
     _overlayEntry = OverlayEntry(
       builder: (context) {
         final isDark = widget.isDark;
-        final backgroundColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
-        final borderColor =
-            isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-        final textColor =
-            isDark ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-
         return Stack(
           children: [
             Positioned.fill(
@@ -1775,7 +2015,9 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
             CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              offset: const Offset(0, 46),
+              targetAnchor: Alignment.bottomRight,
+              followerAnchor: Alignment.topRight,
+              offset: const Offset(0, 8),
               child: Material(
                 color: Colors.transparent,
                 child: TweenAnimationBuilder<double>(
@@ -1786,77 +2028,76 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                     return Opacity(
                       opacity: value,
                       child: Transform.translate(
-                        offset: Offset(0, (1 - value) * -8),
+                        offset: Offset(0, (1 - value) * -6),
                         child: child,
                       ),
                     );
                   },
-                  child: GestureDetector(
-                    onTap: () {},
-                    child: Container(
-                      width: 250,
-                      constraints: const BoxConstraints(maxHeight: 320),
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: borderColor),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.16),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          )
-                        ],
+                  child: Container(
+                    width: 268,
+                    constraints: const BoxConstraints(maxHeight: 380),
+                    decoration: BoxDecoration(
+                      color: HomeUi.cardBg(isDark),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: HomeUi.borderStrong(isDark),
+                        width: 1,
                       ),
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shrinkWrap: true,
-                        children: widget.columns.map((col) {
-                          final isVisible =
-                              _overlayVisibleColumns.contains(col.key);
-                          return InkWell(
-                            onTap: () {
-                              if (isVisible) {
-                                _overlayVisibleColumns.remove(col.key);
-                              } else {
-                                _overlayVisibleColumns.add(col.key);
-                              }
-                              widget.onColumnToggle(col.key);
-                              _overlayEntry?.markNeedsBuild();
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 9,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isVisible
-                                        ? Icons.check_box_outlined
-                                        : Icons.check_box_outline_blank,
-                                    size: 17,
-                                    color: textColor,
-                                  ),
-                                  const SizedBox(width: 9),
-                                  Expanded(
-                                    child: Text(
-                                      col.label,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.40 : 0.10),
+                          blurRadius: 28,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                          child: Text(
+                            'SHOW COLUMNS',
+                            style: HomeUi.overline(isDark).copyWith(
+                              letterSpacing: 1.2,
                             ),
-                          );
-                        }).toList(),
-                      ),
+                          ),
+                        ),
+                        Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          color: HomeUi.borderLight(isDark),
+                        ),
+                        Flexible(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                            shrinkWrap: true,
+                            itemCount: widget.columns.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final col = widget.columns[index];
+                              final isVisible =
+                                  _overlayVisibleColumns.contains(col.key);
+                              return _ColumnMenuRow(
+                                label: col.label,
+                                selected: isVisible,
+                                isDark: isDark,
+                                onTap: () {
+                                  if (isVisible) {
+                                    _overlayVisibleColumns.remove(col.key);
+                                  } else {
+                                    _overlayVisibleColumns.add(col.key);
+                                  }
+                                  widget.onColumnToggle(col.key);
+                                  _overlayEntry?.markNeedsBuild();
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1874,72 +2115,156 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: GestureDetector(
-        onTap: _showOverlay,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          height: 40,
-          decoration: BoxDecoration(
-            boxShadow: _menuOpen
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
-            border: Border.all(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: _showOverlay,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            height: HomeUi.controlHeight,
+            decoration: BoxDecoration(
               color: _menuOpen
-                  ? (widget.isDark
-                      ? const Color(0xFF64748B)
-                      : const Color(0xFF94A3B8))
-                  : (widget.isDark
-                      ? const Color(0xFF404040)
-                      : const Color(0xFFE5E7EB)),
-              width: _menuOpen ? 1.2 : 1,
+                  ? HomeUi.elevatedBg(widget.isDark)
+                  : HomeUi.cardBg(widget.isDark),
+              border: Border.all(
+                color: _menuOpen
+                    ? HomeUi.iconWellBorder
+                    : HomeUi.borderLight(widget.isDark),
+              ),
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
             ),
-            borderRadius: BorderRadius.circular(8),
-            color: widget.isDark ? const Color(0xFF1A1A1A) : Colors.white,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.string(
-                '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14.67 5v14H9.33V5h5.34zm1 14H21V5h-5.33v14zm-7.34 0V5H3v14h5.33z"/></svg>',
-                width: 18,
-                height: 18,
-                colorFilter: ColorFilter.mode(
-                  widget.isDark ? Colors.white : Colors.black,
-                  BlendMode.srcIn,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Columns',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: widget.isDark ? Colors.white : Colors.black,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                ),
-              ),
-              const SizedBox(width: 6),
-              AnimatedRotation(
-                turns: _menuOpen ? 0.5 : 0,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                child: Icon(
-                  Icons.expand_more,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.view_column_rounded,
                   size: 16,
-                  color: widget.isDark
-                      ? const Color(0xFFE5E7EB)
-                      : const Color(0xFF374151),
+                  color: HomeUi.muted(widget.isDark),
                 ),
+                const SizedBox(width: 6),
+                Text(
+                  'Columns',
+                  style: HomeUi.control(widget.isDark, active: true).copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  turns: _menuOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: Icon(
+                    Icons.expand_more,
+                    size: 16,
+                    color: HomeUi.muted(widget.isDark),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ColumnMenuRow extends StatefulWidget {
+  final String label;
+  final bool selected;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ColumnMenuRow({
+    required this.label,
+    required this.selected,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  State<_ColumnMenuRow> createState() => _ColumnMenuRowState();
+}
+
+class _ColumnMenuRowState extends State<_ColumnMenuRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.isDark;
+    const radius = 10.0;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            gradient: _hover ? HomeUi.iconFillGradient : null,
+            color: _hover ? null : HomeUi.borderLight(dark),
+            borderRadius: BorderRadius.circular(radius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(
+                  dark ? (_hover ? 0.28 : 0.16) : (_hover ? 0.08 : 0.04),
+                ),
+                blurRadius: _hover ? 10 : 6,
+                offset: Offset(0, _hover ? 4 : 2),
               ),
             ],
+          ),
+          padding: EdgeInsets.all(_hover ? 1.5 : 1),
+          child: Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(dark),
+              borderRadius: BorderRadius.circular(radius - 1),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    gradient: widget.selected ? HomeUi.iconFillGradient : null,
+                    color: widget.selected ? null : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: widget.selected
+                          ? HomeUi.buttonBorder
+                          : HomeUi.borderStrong(dark),
+                      width: 1,
+                    ),
+                  ),
+                  child: widget.selected
+                      ? const Icon(
+                          Icons.check_rounded,
+                          size: 11,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: HomeUi.control(dark, active: true).copyWith(
+                      fontSize: 12.5,
+                      fontWeight:
+                          widget.selected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

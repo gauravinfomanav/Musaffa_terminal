@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/platform_capabilities.dart';
 import 'package:musaffa_terminal/Components/windows_html_webview.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -138,9 +139,9 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
         <title>TradingView Widget</title>        
         <style>
           
-            body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
-            
-            .tradingview-widget-container { height: 100%; width: 100%; }
+            body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-user-select: none; user-select: none; }
+            .tradingview-widget-container { height: 100%; width: 100%; overflow: hidden; }
+            iframe { width: 100%; height: 100%; border: 0; }
             
         </style>
     </head>
@@ -273,22 +274,21 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
       "showChart": true,
       "showFloatingTooltip": false,
       "locale": "en",
-      "plotLineColorGrowing": "#1FB16E",
-      "plotLineColorFalling": "#1FB16E",
-      "belowLineFillColorGrowing": "rgba(31, 177, 110, 0.12)",
-      "belowLineFillColorFalling": "rgba(31, 177, 110, 0.12)",
-      "belowLineFillColorGrowingBottom": "rgba(31, 177, 110, 0)",
-      "belowLineFillColorFallingBottom": "rgba(31, 177, 110, 0)",
-      "gridLineColor": "rgba(240, 243, 250, 0)",
-      "scaleFontColor": "rgba(120, 123, 134, 1)",
+      "plotLineColorGrowing": "#059669",
+      "plotLineColorFalling": "#DC2626",
+      "belowLineFillColorGrowing": "rgba(5, 150, 105, 0.10)",
+      "belowLineFillColorFalling": "rgba(220, 38, 38, 0.08)",
+      "belowLineFillColorGrowingBottom": "rgba(5, 150, 105, 0)",
+      "belowLineFillColorFallingBottom": "rgba(220, 38, 38, 0)",
+      "gridLineColor": "rgba(238, 240, 243, 0)",
+      "scaleFontColor": "rgba(107, 114, 128, 1)",
       "showSymbolLogo": true,
-      "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+      "symbolActiveColor": "rgba(247, 248, 250, 1)",
       "colorTheme": "$colorTheme"
     }
           </script>
         </div>
         <!-- TradingView Widget END -->
-
     </body>
     </html>
     ''';
@@ -523,86 +523,64 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
     // Calculate the height to use
     final calculatedHeight = _calculateHeight(context);
     final effectiveHeight = _webViewHeight ?? calculatedHeight;
-    final EdgeInsetsGeometry contentPadding =
-        widget.contentPadding ?? DynamicHeightTradingViewConstants.contentPadding;
     
     // Use AnimatedSize for smoother height transitions
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Visibility(
       visible: true,
       child: SizedBox(
-        width: widget.width ?? double.infinity, // Ensure full width
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // Make column take minimum space
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          Padding(
-            padding: contentPadding,
-            child: Text(
-              widget.title ?? "Market Indices",
-              textAlign: TextAlign.start,
-              style: DashboardTextStyles.titleSmall.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : const Color(0xFF0A0A0A),
+        width: widget.width ?? double.infinity,
+        child: Container(
+          decoration: HomeUi.cardDecoration(isDark).copyWith(
+            border: Border.all(color: HomeUi.borderLight(isDark), width: 1),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Text(
+                  widget.title ?? "Market Indices",
+                  textAlign: TextAlign.start,
+                  style: HomeUi.cardTitle(isDark),
+                ),
               ),
-            ),
-          ),
-           const SizedBox(height: 14),
-          AnimatedSize(
-            duration: DynamicHeightTradingViewConstants.animationDuration,
-            curve: Curves.easeInOut, // Animation curve
-            child: Builder(
-              builder: (context) {
-                final screenWidth = MediaQuery.of(context).size.width;
-                final isDark = Theme.of(context).brightness == Brightness.dark;
-                final bgColor = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
-                final borderColor = isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-                
-                return Container(
-                  height: effectiveHeight.clamp(
-                    widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
-                    widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
-                  ),
-                  width: screenWidth,
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    border: Border.all(
-                      color: borderColor,
-                      width: 0.5,
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Stack(
-                      // Use Stack to overlay loading indicator
-                      children: [
-                        // WebView content with overscan
-                        Transform.scale(
-                          scaleX: 1.011,
-                          scaleY: 1.02,
-                          child: Padding(
-                            padding: contentPadding,
-                            child: AdaptiveHtmlWebView(
-                              html: _generateTradingViewHtml(
-                                isDark ? 'dark' : 'light',
-                              ),
-                              flutterController: _controller,
-                              backgroundColor: bgColor,
+              const SizedBox(height: 12),
+              Divider(height: 1, thickness: 1, color: HomeUi.borderLight(isDark)),
+              AnimatedSize(
+                duration: DynamicHeightTradingViewConstants.animationDuration,
+                curve: Curves.easeInOut,
+                child: Builder(
+                  builder: (context) {
+                    final bgColor = HomeUi.cardBg(isDark);
+
+                    return SizedBox(
+                      height: effectiveHeight.clamp(
+                        widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
+                        widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
+                      ),
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          AdaptiveHtmlWebView(
+                            html: _generateTradingViewHtml(
+                              isDark ? 'dark' : 'light',
                             ),
+                            flutterController: _controller,
+                            backgroundColor: bgColor,
                           ),
-                        ),
-                        // Show loading indicator only when actually loading
-                        if (_isLoading)
-                          const Center(child: CircularProgressIndicator()),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                          if (_isLoading)
+                            const Center(child: CircularProgressIndicator()),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
         ),
       ),
     );

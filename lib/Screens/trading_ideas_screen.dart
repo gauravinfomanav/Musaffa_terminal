@@ -12,6 +12,7 @@ import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
@@ -70,10 +71,35 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
   }
 
   Future<void> _openAddIdeaModal() async {
-    final result = await showDialog<bool>(
+    final result = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AddTradingIdeaModal(controller: _controller),
+      barrierLabel: 'New Trading Idea',
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return AddTradingIdeaModal(controller: _controller);
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.018),
+              end: Offset.zero,
+            ).animate(curved),
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+              child: child,
+            ),
+          ),
+        );
+      },
     );
 
     if (result == true && mounted) {
@@ -95,8 +121,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     return FeatureGuard(
       featureKey: FeatureKeys.tradingIdeas,
       child: Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA),
+      backgroundColor: HomeUi.pageBg(isDark),
       body: GestureDetector(
         onTap: () {
           if (_watchlistService.isWatchlistOpen.value) {
@@ -167,36 +192,42 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
   Widget _buildHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Analyst Ideas Board',
-              style: DashboardTextStyles.titleSmall.copyWith(
-                fontSize: 20,
-                color: isDark ? Colors.white : const Color(0xFF111827),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Analyst Ideas Board', style: HomeUi.heading(isDark)),
+              const SizedBox(height: 4),
+              Text(
+                'Research calls and conviction scores from your team.',
+                style: HomeUi.subtitle(isDark),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const Spacer(),
         Obx(() {
           final isSubmitting = _controller.isSubmitting.value;
           return Row(
             children: [
-              _SecondaryPillButton(
+              _HeaderGhostButton(
                 label: 'Refresh',
-                icon: Icons.refresh,
-                onTap: () => _controller.fetchTradingIdeas(force: true),
+                icon: Icons.refresh_rounded,
                 isDarkMode: isDark,
+                onTap: () => _controller.fetchTradingIdeas(force: true),
               ),
               const SizedBox(width: 8),
-              _PrimaryPillButton(
-                label: isSubmitting ? 'Submitting...' : 'Add Idea',
-                icon: Icons.add,
-                onTap: isSubmitting ? null : _openAddIdeaModal,
-                isDarkMode: isDark,
+              IgnorePointer(
+                ignoring: isSubmitting,
+                child: Opacity(
+                  opacity: isSubmitting ? 0.55 : 1,
+                  child: HomeUi.primaryAction(
+                    label: isSubmitting ? 'Submitting...' : 'Add Idea',
+                    icon: Icons.add_rounded,
+                    onTap: _openAddIdeaModal,
+                  ),
+                ),
               ),
             ],
           );
@@ -207,9 +238,6 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
 
   Widget _buildIdeasCard(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor =
-        isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
-    final cardColor = isDark ? const Color(0xFF151718) : Colors.white;
 
     return Obx(() {
       final ideas = _controller.ideas;
@@ -219,61 +247,68 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
       Widget content;
       if (isLoading && ideas.isEmpty) {
         content = Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: _buildIdeasTableShimmer(isDark),
         );
       } else if (error.isNotEmpty && ideas.isEmpty) {
-        content = Center(
-          child: Text(
-            error,
-            style: DashboardTextStyles.errorMessage.copyWith(
-              color: const Color(0xFFF87171),
+        content = Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+          child: Center(
+            child: Text(
+              error,
+              style: HomeUi.subtitle(isDark).copyWith(
+                color: HomeUi.negative(isDark),
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         );
       } else if (ideas.isEmpty) {
-        content = SizedBox(
-          height: 400,
+        content = Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48),
           child: Center(
             child: Text(
               'No trading ideas published yet.',
-              style: DashboardTextStyles.noData.copyWith(
-                color:
-                    isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-              ),
+              style: HomeUi.subtitle(isDark),
+              textAlign: TextAlign.center,
             ),
           ),
         );
       } else {
         final columns = _buildIdeaColumns(context);
         final rows = _mapIdeasToRows(context, ideas, columns);
-        content = Padding(
-          padding: const EdgeInsets.all(12),
-          child: DynamicTable(
-            columns: columns,
-            rows: rows,
-            showFixedColumn: true,
-            considerPadding: false,
-            columnSpacing: 20,
-            fixedColumnWidth: 320,
-            enableLivePrices: false,
-            zebraStripes: true,
-            evenRowColor: Colors.transparent,
-            oddRowColor:
-                isDark ? const Color(0xFF14171C) : const Color(0xFFF5F6F8),
-            enableColumnCustomization: true,
-            tableId: 'trading_ideas_table',
-          ),
+        content = DynamicTable(
+          columns: columns,
+          rows: rows,
+          title: 'Published Ideas',
+          subtitle: ideas.length == 1
+              ? '1 research idea from your team'
+              : '${ideas.length} research ideas from your team',
+          toolbarLeadingIcon: Icons.insights_rounded,
+          showFixedColumn: true,
+          considerPadding: false,
+          showOuterShadow: false,
+          columnSpacing: 24,
+          fixedColumnWidth: 220,
+          headerHeight: 44,
+          rowHeight: 56,
+          enableLivePrices: false,
+          zebraStripes: true,
+          enableColumnCustomization: true,
+          showColumnActionMenu: true,
+          showColumnResizeHandle: true,
+          tickerHeaderLabel: 'COMPANY',
+          tableId: 'trading_ideas_table',
         );
       }
 
       return Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor, width: 1),
-        ),
+        padding: ideas.isEmpty && !isLoading
+            ? EdgeInsets.zero
+            : const EdgeInsets.fromLTRB(0, 16, 0, 16),
+        decoration: HomeUi.cardDecoration(isDark),
+        clipBehavior: Clip.antiAlias,
         child: content,
       );
     });
@@ -293,7 +328,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
 
   List<SimpleColumn> _buildIdeaColumns(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    const fixedTickerWidth = 320.0;
+    const fixedTickerWidth = 220.0;
     final padding = LayoutConstants.screenPadding.horizontal + 48;
     final availableWidth = max(screenWidth - padding - fixedTickerWidth, 720.0);
 
@@ -360,25 +395,17 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
         logo: meta?.logo,
         price: idea.current,
         fields: {
-          'analyst': _wrappedTextCell(
-            context,
-            idea.name,
-            width: widthByField['analyst'],
-            maxLines: 2,
-          ),
+          'analyst': idea.name.trim().isEmpty ? '--' : idea.name.trim(),
           'title': _wrappedTextCell(
             context,
             idea.title,
             width: widthByField['title'],
-            maxLines: 2,
+            maxLines: 1,
             enableTooltip: true,
+            emphasized: true,
           ),
-          'researchOrg': _wrappedTextCell(
-            context,
-            idea.researchOrg.isEmpty ? '--' : idea.researchOrg,
-            width: widthByField['researchOrg'],
-            maxLines: 2,
-          ),
+          'researchOrg':
+              idea.researchOrg.trim().isEmpty ? '--' : idea.researchOrg.trim(),
           'action': _buildActionWidget(
             idea.action,
             width: widthByField['action'],
@@ -390,12 +417,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
           ),
           'target': _formatNumber(idea.target),
           'current': _formatNumber(idea.current),
-          'dateAdded': _wrappedTextCell(
-            context,
-            _formatDate(idea.createdAt),
-            width: widthByField['dateAdded'],
-            maxLines: 1,
-          ),
+          'dateAdded': _formatDate(idea.createdAt),
           'reports': _buildReportsWidget(
             context,
             idea.supportingReports,
@@ -429,29 +451,39 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     final label = _convictionLabel(clamped);
 
     final content = Padding(
-      padding: const EdgeInsets.only(top: 5.0),
+      padding: const EdgeInsets.only(top: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              Text(
-                '${clamped.toStringAsFixed(1)} / 5',
-                style: DashboardTextStyles.dataCell.copyWith(
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  '${clamped.toStringAsFixed(1)} / 5',
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.tableCellEmphasis(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(99),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusPill),
                   color: color.withOpacity(0.12),
-                  border: Border.all(color: color.withOpacity(0.4)),
+                  border: Border.all(color: color.withOpacity(0.35)),
                 ),
                 child: Text(
                   label.toUpperCase(),
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
+                  maxLines: 1,
+                  softWrap: false,
+                  style: HomeUi.control(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ).copyWith(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: color,
@@ -461,29 +493,24 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
             child: Stack(
               children: [
                 Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF272B30)
-                        : const Color(0xFFE5E7EB),
+                  height: 5,
+                  color: HomeUi.elevatedBg(
+                    Theme.of(context).brightness == Brightness.dark,
                   ),
                 ),
                 FractionallySizedBox(
                   widthFactor: normalized,
                   child: Container(
-                    height: 6,
+                    height: 5,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
-                          color.withOpacity(0.8),
-                          color,
-                        ],
+                        colors: [color.withOpacity(0.75), color],
                       ),
                     ),
                   ),
@@ -520,23 +547,25 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
 
   Widget _buildActionWidget(String action, {double? width}) {
     final color = _actionColor(action);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final chip = Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(color: color.withOpacity(0.6), width: 0.8),
+          borderRadius: BorderRadius.circular(HomeUi.radiusPill),
           color: color.withOpacity(0.12),
+          border: Border.all(color: color.withOpacity(0.35)),
         ),
         child: Text(
           action.toUpperCase(),
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
+          maxLines: 1,
+          softWrap: false,
+          style: HomeUi.control(isDark).copyWith(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: color,
-            letterSpacing: 0.5,
+            letterSpacing: 0.4,
           ),
         ),
       ),
@@ -584,20 +613,20 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     BuildContext context,
     String text, {
     double? width,
-    int maxLines = 2,
+    int maxLines = 1,
     bool enableTooltip = false,
+    bool emphasized = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final display = text.isEmpty ? '--' : text.trim();
     final label = Text(
       display,
-      style: DashboardTextStyles.dataCell.copyWith(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFFE5E7EB)
-            : const Color(0xFF1F2937),
-      ),
+      style: emphasized
+          ? HomeUi.tableCellEmphasis(isDark)
+          : HomeUi.tableCellSecondary(isDark),
       maxLines: maxLines,
       overflow: TextOverflow.ellipsis,
-      softWrap: true,
+      softWrap: false,
     );
     Widget aligned = Align(
       alignment: Alignment.centerLeft,
@@ -627,120 +656,60 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
   }
 }
 
-class _PrimaryPillButton extends StatelessWidget {
+class _HeaderGhostButton extends StatefulWidget {
   final String label;
-  final IconData? icon;
-  final VoidCallback? onTap;
+  final IconData icon;
+  final VoidCallback onTap;
   final bool isDarkMode;
 
-  const _PrimaryPillButton({
+  const _HeaderGhostButton({
     required this.label,
-    this.icon,
+    required this.icon,
+    required this.onTap,
     required this.isDarkMode,
-    this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final primaryColor =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
-    final disabledBg =
-        isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: enabled ? primaryColor : disabledBg,
-          borderRadius: BorderRadius.circular(90),
-          border: Border.all(
-            color: enabled ? primaryColor : disabledBg,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 16,
-                color: enabled ? Colors.white : const Color(0xFF9CA3AF),
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label.toUpperCase(),
-              style: DashboardTextStyles.columnHeader.copyWith(
-                color: enabled ? Colors.white : const Color(0xFF9CA3AF),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  State<_HeaderGhostButton> createState() => _HeaderGhostButtonState();
 }
 
-class _SecondaryPillButton extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final VoidCallback? onTap;
-  final bool isDarkMode;
-
-  const _SecondaryPillButton({
-    required this.label,
-    this.icon,
-    required this.isDarkMode,
-    this.onTap,
-  });
+class _HeaderGhostButtonState extends State<_HeaderGhostButton> {
+  bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final accent =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
-    final disabledColor =
-        isDarkMode ? const Color(0xFF4B5563) : const Color(0xFF9CA3AF);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(90),
-          border: Border.all(
-            color: enabled ? accent : disabledColor,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 16,
-                color: enabled ? accent : disabledColor,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label.toUpperCase(),
-              style: DashboardTextStyles.columnHeader.copyWith(
-                color: enabled ? accent : disabledColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
-              ),
+    final dark = widget.isDarkMode;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          height: HomeUi.controlHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: _hover ? HomeUi.elevatedBg(dark) : HomeUi.cardBg(dark),
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(
+              color: _hover ? HomeUi.borderStrong(dark) : HomeUi.borderLight(dark),
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, size: 14, color: HomeUi.muted(dark)),
+              const SizedBox(width: 6),
+              Text(
+                widget.label,
+                style: HomeUi.control(dark).copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -908,46 +877,51 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final width = min(MediaQuery.of(context).size.width * 0.75, 960.0);
+    final maxWidth = min(MediaQuery.of(context).size.width * 0.85, 880.0);
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        width: width,
-        padding: const EdgeInsets.all(1),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1D1F) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildModalHeader(isDark),
-                  const SizedBox(height: 20),
-                  _buildFormFields(isDark),
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: _PrimaryPillButton(
-                      label: _submitting ? 'Saving...' : 'Save Idea',
-                      icon: Icons.save_outlined,
-                      isDarkMode: isDark,
-                      onTap: _submitting ? null : _handleSubmit,
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
+                  blurRadius: 40,
+                  offset: const Offset(0, 18),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 22, 20, 20),
+                  child: _buildModalHeader(isDark),
+                ),
+                Divider(height: 1, thickness: 1, color: HomeUi.borderLight(isDark)),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                    child: Form(
+                      key: _formKey,
+                      child: _buildFormFields(isDark),
                     ),
                   ),
-                ],
-              ),
+                ),
+                Divider(height: 1, thickness: 1, color: HomeUi.borderLight(isDark)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+                  child: _buildModalFooter(isDark),
+                ),
+              ],
             ),
           ),
         ),
@@ -955,23 +929,94 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     );
   }
 
-  Widget _buildModalHeader(bool isDark) {
+  Widget _buildModalFooter(bool isDark) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'New Trading Idea',
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : const Color(0xFF111827),
+        Expanded(
+          child: Text(
+            'All fields marked with validation are required.',
+            style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
           ),
         ),
-        IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: Icon(Icons.close,
-              color: isDark ? Colors.white70 : Colors.black87),
+        IgnorePointer(
+          ignoring: _submitting,
+          child: Opacity(
+            opacity: _submitting ? 0.55 : 1,
+            child: _HeaderGhostButton(
+              label: 'Cancel',
+              icon: Icons.close_rounded,
+              isDarkMode: isDark,
+              onTap: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IgnorePointer(
+          ignoring: _submitting,
+          child: Opacity(
+            opacity: _submitting ? 0.55 : 1,
+            child: HomeUi.primaryAction(
+              label: _submitting ? 'Saving...' : 'Save Idea',
+              icon: Icons.check_rounded,
+              onTap: _handleSubmit,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModalHeader(bool isDark) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            gradient: HomeUi.iconWellGradient,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: HomeUi.iconWellBorder),
+          ),
+          child: HomeUi.brandIcon(
+            icon: Icons.lightbulb_outline_rounded,
+            size: HomeUi.iconMd,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'New Trading Idea',
+                style: HomeUi.heading(isDark).copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Publish a research call with conviction and supporting links.',
+                style: HomeUi.subtitle(isDark),
+              ),
+            ],
+          ),
+        ),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: HomeUi.controlHeight,
+              height: HomeUi.controlHeight,
+              decoration: BoxDecoration(
+                color: HomeUi.elevatedBg(isDark),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: HomeUi.muted(isDark),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -981,79 +1026,127 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     return Column(
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-                child: _buildTextField(_nameController, 'Analyst Name',
-                    onlyLetters: true)),
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Analyst Name',
+                controller: _nameController,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r"[A-Za-z\s&.,'\-]"),
+                  ),
+                ],
+                validator: _requiredLettersValidator,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-                child: _buildTextField(_titleController, 'Idea Title',
-                    onlyLetters: true)),
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Idea Title',
+                controller: _titleController,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r"[A-Za-z\s&.,'\-]"),
+                  ),
+                ],
+                validator: _requiredLettersValidator,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
-                child: _buildTextField(_orgController, 'Research Org / Desk',
-                    onlyLetters: true)),
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Research Org / Desk',
+                controller: _orgController,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r"[A-Za-z\s&.,'\-]"),
+                  ),
+                ],
+                validator: _requiredLettersValidator,
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         TickerSearchField(
           tickerController: _tickerController,
           companyController: _companyController,
           onTickerSelected: _onTickerSelected,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _buildDropdownField(isDark),
-            ),
+            Expanded(child: _buildDropdownField(isDark)),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildTextField(
-                _targetController,
-                'Target Price',
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Target Price',
+                controller: _targetController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                numericOnly: true,
+                inputFormatters: [_NumericInputFormatter()],
+                validator: _requiredNumericValidator,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildTextField(
-                _currentController,
-                'Current Price',
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Current Price',
+                controller: _currentController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                numericOnly: true,
+                inputFormatters: [_NumericInputFormatter()],
+                validator: _requiredNumericValidator,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _buildConvictionField(isDark),
-        const SizedBox(height: 12),
-        _buildReportsField(),
+        const SizedBox(height: 14),
+        _buildReportsField(isDark),
       ],
     );
   }
 
+  String? _requiredLettersValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Required field';
+    }
+    if (!RegExp(r"^[A-Za-z\s&.,'\-]+$").hasMatch(value.trim())) {
+      return 'Only alphabetic characters are allowed';
+    }
+    return null;
+  }
+
+  String? _requiredNumericValidator(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return 'Required field';
+    }
+    if (trimmed != '.' && double.tryParse(trimmed) == null) {
+      return 'Enter a valid number';
+    }
+    return null;
+  }
+
   Widget _buildDropdownField(bool isDark) {
-    return DropdownButtonFormField<String>(
+    return FilterDropdown<String>(
+      dark: isDark,
+      label: 'Action',
       value: _selectedAction,
-      decoration: _fieldDecoration('Action'),
-      icon: const Icon(Icons.keyboard_arrow_down),
-      dropdownColor: isDark ? const Color(0xFF111315) : Colors.white,
       items: kTradingIdeaActions
           .map(
             (action) => DropdownMenuItem(
               value: action,
-              child: Text(
-                action,
-                style: const TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                ),
-              ),
+              child: Text(action),
             ),
           )
           .toList(),
@@ -1065,157 +1158,53 @@ class _AddTradingIdeaModalState extends State<AddTradingIdeaModal> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label,
-      {TextInputType keyboardType = TextInputType.text,
-      bool onlyLetters = false,
-      bool numericOnly = false,
-      bool readOnly = false,
-      Widget? suffix}) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      readOnly: readOnly,
-      autovalidateMode: AutovalidateMode.disabled,
-      inputFormatters: [
-        if (onlyLetters)
-          FilteringTextInputFormatter.allow(RegExp(r"[A-Za-z\s&.,'\-]")),
-        if (numericOnly) _NumericInputFormatter(),
-      ],
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Required field';
-        }
-        if (onlyLetters &&
-            !RegExp(r"^[A-Za-z\s&.,'\-]+$").hasMatch(value.trim())) {
-          return 'Only alphabetic characters are allowed';
-        }
-        if (numericOnly) {
-          final trimmed = value.trim();
-          if (trimmed.isEmpty) {
-            return 'Required field';
-          }
-          // Allow intermediate states like "5." but validate final number
-          if (trimmed != '.' && double.tryParse(trimmed) == null) {
-            return 'Enter a valid number';
-          }
-        }
-        return null;
-      },
-      decoration: suffix != null
-          ? _fieldDecoration(label).copyWith(suffixIcon: suffix)
-          : _fieldDecoration(label),
-      style: const TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildReportsField() {
-    return TextFormField(
+  Widget _buildReportsField(bool isDark) {
+    return FilterTextField(
+      dark: isDark,
+      label: 'Supporting Reports',
       controller: _reportsController,
+      hintText: 'Comma or newline separated http/https links',
       minLines: 3,
       maxLines: 4,
-      decoration: _fieldDecoration(
-        'Supporting Reports (comma or newline separated links)',
-      ).copyWith(errorText: _reportsError),
-      style: const TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
-      ),
+      errorText: _reportsError,
     );
   }
 
   Widget _buildConvictionField(bool isDark) {
-    final textColor =
-        isDark ? const Color(0xFFE5E7EB) : const Color(0xFF1F2937);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF121417) : const Color(0xFFF4F5F7),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2F3338) : const Color(0xFFE5E7EB),
+    final scoreColor = _convictionColor(_convictionValue);
+    return FilterRangeSlider(
+      dark: isDark,
+      label: 'Confidence Score',
+      value: _convictionValue,
+      min: 0,
+      max: 5,
+      divisions: 10,
+      midLabel: '2.5',
+      activeColor: scoreColor,
+      labelTrailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+          color: scoreColor.withValues(alpha: 0.12),
+          border: Border.all(color: scoreColor.withValues(alpha: 0.35)),
+        ),
+        child: Text(
+          '${_convictionValue.toStringAsFixed(1)} / 5',
+          style: HomeUi.control(isDark, active: true).copyWith(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: scoreColor,
+          ),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Confidence Score (0 – 5)',
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 13,
-                        height: 1.2,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Current: ${_convictionValue.toStringAsFixed(1)}',
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 13,
-                        height: 1.2,
-                        color: textColor.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Slider(
-            value: _convictionValue,
-            onChanged: (value) {
-              setState(() => _convictionValue = value);
-            },
-            min: 0,
-            max: 5,
-            divisions: 10,
-            label: _convictionValue.toStringAsFixed(1),
-            activeColor: const Color(0xFF81AACE),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('0', style: TextStyle(fontSize: 11, color: textColor)),
-              Text('2.5', style: TextStyle(fontSize: 11, color: textColor)),
-              Text('5', style: TextStyle(fontSize: 11, color: textColor)),
-            ],
-          ),
-        ],
-      ),
+      onChanged: (value) => setState(() => _convictionValue = value),
     );
   }
 
-  InputDecoration _fieldDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        height: 1.2,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4),
-        borderSide: const BorderSide(color: Color(0xFF81AACE), width: 1.5),
-      ),
-    );
+  Color _convictionColor(double score) {
+    if (score >= 4) return const Color(0xFF10B981);
+    if (score >= 3) return const Color(0xFFFBBF24);
+    return const Color(0xFFEF4444);
   }
 }
 
@@ -1240,7 +1229,14 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
   final FocusNode _searchFocusNode = FocusNode();
   List<TickerModel> _results = [];
   bool _isSearching = false;
+  bool _hover = false;
   Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -1296,31 +1292,85 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final focused = _searchFocusNode.hasFocus;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: _searchController,
-          focusNode: _searchFocusNode,
-          onChanged: _onQueryChanged,
-          decoration: InputDecoration(
-            labelText: 'Search ticker / company',
-            prefixIcon: const Icon(Icons.search, size: 18),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide:
-                  const BorderSide(color: Color(0xFF81AACE), width: 1.5),
+        HomeUi.filterFieldColumn(
+          dark: isDark,
+          label: 'Search ticker / company',
+          field: MouseRegion(
+            onEnter: (_) => setState(() => _hover = true),
+            onExit: (_) => setState(() => _hover = false),
+            child: HomeUi.filterFieldShell(
+              dark: isDark,
+              accent: focused,
+              hover: _hover,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search_rounded,
+                    size: 16,
+                    color: HomeUi.muted(isDark),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      onChanged: _onQueryChanged,
+                      cursorColor: HomeUi.title(isDark),
+                      style: HomeUi.control(isDark, active: true)
+                          .copyWith(fontSize: 13),
+                      decoration: HomeUi.filterTextFieldDecoration(
+                        isDark,
+                        hintText: 'Type symbol or company name',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          style: const TextStyle(
-            fontFamily: 'RobotoMono',
-            fontFamilyFallback: ['SFMono-Regular', 'Menlo', 'monospace'],
-            fontSize: 13,
-          ),
         ),
-        const SizedBox(height: 8),
+        if (widget.tickerController.text.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          HomeUi.filterFieldShell(
+            dark: isDark,
+            child: Row(
+              children: [
+                HomeUi.brandIcon(
+                  icon: Icons.check_circle_outline_rounded,
+                  size: HomeUi.iconMd,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.tickerController.text,
+                        style: HomeUi.control(isDark, active: true).copyWith(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (widget.companyController.text.isNotEmpty)
+                        Text(
+                          widget.companyController.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           child: _buildResultsPanel(isDark),
@@ -1333,18 +1383,16 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
     final showPanel = _isSearching || _results.isNotEmpty;
     if (!showPanel) return const SizedBox.shrink();
 
-    return Container(
+    return KeyedSubtree(
       key: ValueKey('${_isSearching}_${_results.length}'),
+      child: HomeUi.filterFieldShell(
+      dark: isDark,
       height: 180,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111315) : Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
-      child: _isSearching
+      padding: EdgeInsets.zero,
+      alignment: Alignment.topCenter,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(9),
+        child: _isSearching
           ? ShimmerWidgets.NewlistItem(
               index: 0,
               avatarSize: 40,
@@ -1353,52 +1401,81 @@ class _TickerSearchFieldState extends State<TickerSearchField> {
               subtitleWidth: 180,
               subtitleHeight: 14,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              baseColor: isDark ? const Color(0xFF1F2530) : Colors.grey[200],
+              baseColor: isDark ? const Color(0xFF1F2530) : Colors.grey[200]!,
               highlightColor:
-                  isDark ? const Color(0xFF2A2F33) : Colors.grey[100],
+                  isDark ? const Color(0xFF2A2F33) : Colors.grey[100]!,
             )
           : _results.isNotEmpty
-              ? ListView.builder(
+              ? ListView.separated(
                   padding: EdgeInsets.zero,
                   itemCount: _results.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: HomeUi.borderLight(isDark),
+                  ),
                   itemBuilder: (_, index) {
                     final ticker = _results[index];
-                    return ListTile(
-                      dense: true,
-                      title: Text(
-                        ticker.symbol ?? ticker.ticker ?? '',
-                        style: TextStyle(
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _handleSelection(ticker),
+                        overlayColor:
+                            const WidgetStatePropertyAll(Colors.transparent),
+                        splashFactory: NoSplash.splashFactory,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      ticker.symbol ?? ticker.ticker ?? '',
+                                      style: HomeUi.control(
+                                        isDark,
+                                        active: true,
+                                      ).copyWith(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      ticker.companyName ?? ticker.name ?? '',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: HomeUi.subtitle(isDark).copyWith(
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.north_west_rounded,
+                                size: 14,
+                                color: HomeUi.muted(isDark),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      subtitle: Text(
-                        ticker.companyName ?? ticker.name ?? '',
-                        style: TextStyle(
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          fontSize: 12,
-                          color: isDark
-                              ? const Color(0xFF9CA3AF)
-                              : const Color(0xFF6B7280),
-                        ),
-                      ),
-                      onTap: () => _handleSelection(ticker),
                     );
                   },
                 )
               : Center(
                   child: Text(
                     'No matches found.',
-                    style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: 12,
-                      color: isDark
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF4B5563),
-                    ),
+                    style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
                   ),
                 ),
+      ),
+    ),
     );
   }
 }

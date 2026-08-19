@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_details_screen.dart';
 import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_etf_details_screen.dart';
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_search_service.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
@@ -14,7 +14,8 @@ class ShariahComplianceScreen extends StatefulWidget {
   const ShariahComplianceScreen({super.key});
 
   @override
-  State<ShariahComplianceScreen> createState() => _ShariahComplianceScreenState();
+  State<ShariahComplianceScreen> createState() =>
+      _ShariahComplianceScreenState();
 }
 
 class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
@@ -90,9 +91,7 @@ class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
     final String symbol = (ticker.symbol ?? ticker.ticker ?? '').trim();
     if (symbol.isEmpty) return;
 
-    final String? name = ticker.companyName ??
-        ticker.name ??
-        ticker.stockName;
+    final String? name = ticker.companyName ?? ticker.name ?? ticker.stockName;
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -113,449 +112,404 @@ class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color backgroundColor =
-        isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
-    final Color primaryTextColor =
-        isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A);
-    final Color secondaryTextColor =
-        isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final Color borderColor =
-        isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-    final Color fillColor =
-        isDarkMode ? const Color(0xFF1A1A1A) : Colors.white;
-    final Color accentColor =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
-    final Color surfaceColor =
-        isDarkMode ? const Color(0xFF111827) : Colors.white;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool hasQuery = _searchController.text.isNotEmpty;
 
     return FeatureGuard(
       featureKey: FeatureKeys.shariahCompliance,
       child: CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.escape): _closeScreen,
-      },
-      child: Focus(
-        autofocus: true,
-        focusNode: _screenFocusNode,
-        child: Scaffold(
-          backgroundColor: backgroundColor,
-          body: SafeArea(
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 16, right: 20),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _closeScreen,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Esc',
-                                style: TextStyle(
-                                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: secondaryTextColor,
-                                ),
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.escape): _closeScreen,
+        },
+        child: Focus(
+          autofocus: true,
+          focusNode: _screenFocusNode,
+          child: Scaffold(
+            backgroundColor: HomeUi.pageBg(isDark),
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 16,
+                    right: 20,
+                    child: HomeUi.ghostAction(
+                      label: 'Esc',
+                      dark: isDark,
+                      icon: Icons.close_rounded,
+                      onTap: _closeScreen,
+                    ),
+                  ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 680),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const MusaffaLogo(height: 28),
+                            const SizedBox(height: 22),
+                            Text(
+                              'SHARIAH SCREENING',
+                              style: HomeUi.overline(isDark),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Shariah Stock & ETF Screener',
+                              textAlign: TextAlign.center,
+                              style: HomeUi.heading(isDark).copyWith(
+                                fontSize: 28,
+                                height: 1.15,
                               ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.close,
-                                color: secondaryTextColor,
-                                size: 22,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Find Shariah compliance details for any stock or ETF.',
+                              textAlign: TextAlign.center,
+                              style: HomeUi.subtitle(isDark),
+                            ),
+                            const SizedBox(height: 28),
+                            AnimatedBuilder(
+                              animation: _searchFocusNode,
+                              builder: (context, _) {
+                                final bool hasFocus = _searchFocusNode.hasFocus;
+                                return HomeUi.filterFieldShell(
+                                  dark: isDark,
+                                  accent: hasFocus,
+                                  hover: hasFocus,
+                                  height: 52,
+                                  radius: HomeUi.radiusCard,
+                                  padding: const EdgeInsets.only(
+                                    left: 6,
+                                    right: 6,
+                                  ),
+                                  child: TextField(
+                                    controller: _searchController,
+                                    focusNode: _searchFocusNode,
+                                    cursorColor: const Color(0xFFC42329),
+                                    cursorWidth: 1.2,
+                                    textInputAction: TextInputAction.search,
+                                    onChanged: (value) {
+                                      setState(() {});
+                                      _onSearchChanged(value);
+                                    },
+                                    style: HomeUi.control(isDark, active: true)
+                                        .copyWith(
+                                      fontSize: 14,
+                                      height: 1.2,
+                                      color: HomeUi.title(isDark),
+                                    ),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      hintText:
+                                          'Search stocks and ETFs for Shariah compliance',
+                                      hintStyle:
+                                          HomeUi.subtitle(isDark).copyWith(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      prefixIcon: Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: 8,
+                                          right: 4,
+                                        ),
+                                        child: hasFocus
+                                            ? HomeUi.brandIcon(
+                                                icon: Icons.search_rounded,
+                                                size: HomeUi.iconMd,
+                                                gradient:
+                                                    HomeUi.iconFillGradient,
+                                              )
+                                            : HomeUi.vectorIcon(
+                                                icon: Icons.search_rounded,
+                                                size: HomeUi.iconMd,
+                                                color: HomeUi.muted(isDark),
+                                              ),
+                                      ),
+                                      prefixIconConstraints:
+                                          const BoxConstraints(
+                                        minWidth: 36,
+                                        minHeight: 36,
+                                      ),
+                                      suffixIcon: hasQuery
+                                          ? IconButton(
+                                              tooltip: 'Clear',
+                                              onPressed: _clearSearch,
+                                              icon: HomeUi.vectorIcon(
+                                                icon: Icons.close_rounded,
+                                                size: HomeUi.iconSm,
+                                                color: HomeUi.muted(isDark),
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            if (_isSearching || _searchResults.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                width: double.infinity,
+                                decoration: HomeUi.cardDecoration(isDark),
+                                clipBehavior: Clip.antiAlias,
+                                child: _isSearching
+                                    ? const ComplianceSearchResultsShimmer(
+                                        itemCount: 4,
+                                      )
+                                    : Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: _searchResults
+                                            .asMap()
+                                            .entries
+                                            .map(
+                                              (entry) => _SearchSuggestionTile(
+                                                ticker: entry.value,
+                                                isLast: entry.key ==
+                                                    _searchResults.length - 1,
+                                                isDark: isDark,
+                                                onTap: () =>
+                                                    _selectTicker(entry.value),
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
                               ),
                             ],
-                          ),
+                            const SizedBox(height: 22),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: const [
+                                _FeatureChip(
+                                  icon: Icons.verified_outlined,
+                                  label: 'Compliance status',
+                                ),
+                                _FeatureChip(
+                                  icon: Icons.business_center_outlined,
+                                  label: 'Business screening',
+                                ),
+                                _FeatureChip(
+                                  icon: Icons.bar_chart_rounded,
+                                  label: 'Financial ratios',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Press Esc or click × to return to terminal',
+                              textAlign: TextAlign.center,
+                              style: HomeUi.subtitle(isDark).copyWith(
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 720),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SvgPicture.asset(
-                            'resources/Small Logo.svg',
-                            height: 34,
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Shariah Stock & ETF Screener',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: Constants.FONT_DEFAULT_NEW,
-                              fontSize: 36,
-                              fontWeight: FontWeight.w600,
-                              color: primaryTextColor,
-                              height: 1.2,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Find Shariah compliance details for any stock or ETF.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: Constants.FONT_DEFAULT_NEW,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w400,
-                              color: secondaryTextColor,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          AnimatedBuilder(
-                            animation: _searchFocusNode,
-                            builder: (context, child) {
-                              final bool hasFocus = _searchFocusNode.hasFocus;
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: hasFocus
-                                      ? [
-                                          BoxShadow(
-                                            color: accentColor.withOpacity(
-                                              isDarkMode ? 0.18 : 0.14,
-                                            ),
-                                            blurRadius: 22,
-                                            spreadRadius: 1,
-                                            offset: const Offset(0, 10),
-                                          ),
-                                        ]
-                                      : [],
-                                ),
-                                child: child,
-                              );
-                            },
-                            child: Material(
-                              elevation: 0,
-                              shadowColor: Colors.transparent,
-                              color: Colors.transparent,
-                              child: TextField(
-                                controller: _searchController,
-                                focusNode: _searchFocusNode,
-                                cursorColor: accentColor,
-                                textInputAction: TextInputAction.search,
-                                  onChanged: _onSearchChanged,
-                                style: TextStyle(
-                                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w400,
-                                  color: primaryTextColor,
-                                ),
-                                decoration: InputDecoration(
-                                  prefixIcon: Icon(
-                                    Icons.search_rounded,
-                                    size: 24,
-                                    color: secondaryTextColor,
-                                  ),
-                                    suffixIcon: _searchController.text.isNotEmpty
-                                        ? IconButton(
-                                            onPressed: _clearSearch,
-                                            icon: Icon(
-                                              Icons.close,
-                                              size: 18,
-                                              color: secondaryTextColor,
-                                            ),
-                                          )
-                                        : null,
-                                  hintText:
-                                      'Search stocks and ETFs for Shariah compliance details',
-                                  hintStyle: TextStyle(
-                                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w400,
-                                    color: secondaryTextColor,
-                                  ),
-                                  filled: true,
-                                  fillColor: fillColor,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 22,
-                                    vertical: 22,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(
-                                      color: borderColor,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(
-                                      color: borderColor,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(
-                                      color: accentColor,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (_isSearching || _searchResults.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: surfaceColor,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: borderColor),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(
-                                      isDarkMode ? 0.24 : 0.08,
-                                    ),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 12),
-                                  ),
-                                ],
-                              ),
-                              child: _isSearching
-                                  ? const ComplianceSearchResultsShimmer(
-                                      itemCount: 4,
-                                    )
-                                  : Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: _searchResults
-                                          .asMap()
-                                          .entries
-                                          .map(
-                                            (entry) => _SearchSuggestionTile(
-                                              ticker: entry.value,
-                                              isFirst: entry.key == 0,
-                                              isLast:
-                                                  entry.key ==
-                                                  _searchResults.length - 1,
-                                              primaryTextColor:
-                                                  primaryTextColor,
-                                              secondaryTextColor:
-                                                  secondaryTextColor,
-                                              accentColor: accentColor,
-                                              borderColor: borderColor,
-                                              onTap: () =>
-                                                  _selectTicker(entry.value),
-                                            ),
-                                          )
-                                          .toList(),
-                                    ),
-                            ),
-                          ],
-                          const SizedBox(height: 22),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 18,
-                            runSpacing: 10,
-                            children: [
-                              _FeatureItem(
-                                icon: Icons.verified_outlined,
-                                label: 'Compliance status',
-                                color: accentColor,
-                                textColor: secondaryTextColor,
-                              ),
-                              _FeatureItem(
-                                icon: Icons.business_center_outlined,
-                                label: 'Business screening',
-                                color: accentColor,
-                                textColor: secondaryTextColor,
-                              ),
-                              _FeatureItem(
-                                icon: Icons.bar_chart_rounded,
-                                label: 'Financial ratios',
-                                color: accentColor,
-                                textColor: secondaryTextColor,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          Text(
-                            'Click × to return to terminal',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: Constants.FONT_DEFAULT_NEW,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }
 
-class _FeatureItem extends StatelessWidget {
-  const _FeatureItem({
+class _FeatureChip extends StatelessWidget {
+  const _FeatureChip({
     required this.icon,
     required this.label,
-    required this.color,
-    required this.textColor,
   });
 
   final IconData icon;
   final String label;
-  final Color color;
-  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: textColor,
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
+      decoration: BoxDecoration(
+        color: HomeUi.cardBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: HomeUi.iconWellGradient,
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(color: HomeUi.iconWellBorder),
+            ),
+            child: HomeUi.brandIcon(
+              icon: icon,
+              size: 12,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: HomeUi.control(isDark, active: true).copyWith(
+              fontSize: 12,
+              color: HomeUi.body(isDark),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _SearchSuggestionTile extends StatelessWidget {
+class _SearchSuggestionTile extends StatefulWidget {
   const _SearchSuggestionTile({
     required this.ticker,
-    required this.isFirst,
     required this.isLast,
-    required this.primaryTextColor,
-    required this.secondaryTextColor,
-    required this.accentColor,
-    required this.borderColor,
+    required this.isDark,
     required this.onTap,
   });
 
   final TickerModel ticker;
-  final bool isFirst;
   final bool isLast;
-  final Color primaryTextColor;
-  final Color secondaryTextColor;
-  final Color accentColor;
-  final Color borderColor;
+  final bool isDark;
   final VoidCallback onTap;
 
   @override
+  State<_SearchSuggestionTile> createState() => _SearchSuggestionTileState();
+}
+
+class _SearchSuggestionTileState extends State<_SearchSuggestionTile> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    final String symbol = ticker.symbol ?? ticker.ticker ?? '-';
-    final String name =
-        ticker.companyName ?? ticker.name ?? ticker.stockName ?? 'Unknown';
+    final bool isDark = widget.isDark;
+    final String symbol = widget.ticker.symbol ?? widget.ticker.ticker ?? '-';
+    final String name = widget.ticker.companyName ??
+        widget.ticker.name ??
+        widget.ticker.stockName ??
+        'Unknown';
     final String meta = [
-      if ((ticker.exchange ?? '').isNotEmpty) ticker.exchange!,
-      if ((ticker.countryName ?? '').isNotEmpty) ticker.countryName!,
+      if ((widget.ticker.exchange ?? '').isNotEmpty) widget.ticker.exchange!,
+      if ((widget.ticker.countryName ?? '').isNotEmpty)
+        widget.ticker.countryName!,
     ].join(' · ');
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.vertical(
-        top: isFirst ? const Radius.circular(12) : Radius.zero,
-        bottom: isLast ? const Radius.circular(12) : Radius.zero,
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(
-                  bottom: BorderSide(color: borderColor.withOpacity(0.8)),
-                ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                symbol,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: accentColor,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: primaryTextColor,
-                    ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: _hover ? HomeUi.tableRowHover(isDark) : Colors.transparent,
+            border: widget.isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(color: HomeUi.borderLight(isDark)),
                   ),
-                  if (!ticker.isStock) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'ETF',
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: accentColor,
-                      ),
-                    ),
-                  ],
-                  if (meta.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      meta,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                  ],
-                ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                constraints: const BoxConstraints(minWidth: 56),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: HomeUi.iconWellGradient,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: HomeUi.iconWellBorder),
+                ),
+                child: Text(
+                  symbol,
+                  textAlign: TextAlign.center,
+                  style: HomeUi.control(isDark, active: true).copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: HomeUi.title(isDark),
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: HomeUi.sectionTitle(isDark).copyWith(
+                              fontSize: 13.5,
+                            ),
+                          ),
+                        ),
+                        if (!widget.ticker.isStock) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: HomeUi.elevatedBg(isDark),
+                              borderRadius:
+                                  BorderRadius.circular(HomeUi.radiusPill),
+                              border: Border.all(
+                                color: HomeUi.borderLight(isDark),
+                              ),
+                            ),
+                            child: Text(
+                              'ETF',
+                              style: HomeUi.overline(isDark).copyWith(
+                                fontSize: 9,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (meta.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              HomeUi.vectorIcon(
+                icon: Icons.chevron_right_rounded,
+                size: HomeUi.iconMd,
+                color: HomeUi.muted(isDark),
+              ),
+            ],
+          ),
         ),
       ),
     );

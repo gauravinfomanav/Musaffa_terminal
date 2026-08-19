@@ -8,7 +8,7 @@ import 'package:musaffa_terminal/charts/models/financial_statement_type.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_chart_view_model.dart';
 import 'package:musaffa_terminal/charts/widgets/quarterly_bar_chart.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 /// Charts tab body for ticker detail — live quarterly bar charts from Infomanav API.
 class TickerChartsTabContent extends StatefulWidget {
@@ -70,25 +70,24 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final QuarterlyBarChartTheme baseTheme = QuarterlyBarChartTheme(
-      cardBackgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-      cardBorderColor:
-          isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-      gridLineColor:
-          isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB),
-      axisLineColor:
-          isDark ? const Color(0xFF4B5563) : const Color(0xFFD1D5DB),
-      priceAxisLabelColor:
-          isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
+      cardBackgroundColor: HomeUi.cardBg(isDark),
+      cardBorderColor: HomeUi.borderLight(isDark),
+      gridLineColor: HomeUi.borderLight(isDark),
+      axisLineColor: HomeUi.borderStrong(isDark),
+      priceAxisLabelColor: HomeUi.accent(isDark),
+      barGradient: HomeUi.chartBarGradient(isDark),
+      barCornerRadius: 6,
+      barWidth: 0.48,
     );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           child: Obx(() => _buildTopControls(isDark)),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Expanded(
           child: Obx(() {
             if (_controller.isLoading.value) {
@@ -106,7 +105,7 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
               child: SingleChildScrollView(
                 controller: _scrollController,
                 physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                 child: _buildChartsGrid(
                   charts: _controller.charts.toList(),
                   baseTheme: baseTheme,
@@ -131,49 +130,18 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
   }
 
   Widget _buildStatementTabs(bool isDark) {
-    final FinancialStatementType selected = _controller.selectedStatement.value;
+    final List<String> labels =
+        FinancialStatementType.values.map((s) => s.label).toList();
+    final int selectedIndex = FinancialStatementType.values
+        .indexOf(_controller.selectedStatement.value)
+        .clamp(0, labels.length - 1);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List<Widget>.generate(
-        FinancialStatementType.values.length,
-        (int index) {
-          final FinancialStatementType statement =
-              FinancialStatementType.values[index];
-          final bool isSelected = selected == statement;
-
-          return Padding(
-            padding: EdgeInsets.only(
-              right: index == FinancialStatementType.values.length - 1 ? 0 : 4,
-            ),
-            child: GestureDetector(
-              onTap: () => _controller.selectStatement(statement),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.blue : Colors.transparent,
-                  borderRadius: BorderRadius.circular(90),
-                ),
-                child: Text(
-                  statement.label,
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 11,
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w400,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark
-                            ? const Color(0xFF9CA3AF)
-                            : const Color(0xFF6B7280)),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+    return HomeUi.segmentedControl(
+      dark: isDark,
+      options: labels,
+      selectedIndex: selectedIndex,
+      onChanged: (index) =>
+          _controller.selectStatement(FinancialStatementType.values[index]),
     );
   }
 
@@ -181,33 +149,15 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
     final FinancialStatementType statement = _controller.selectedStatement.value;
     final bool isEnabled = _showPriceOverlayByStatement[statement] ?? false;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          'Add Price',
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color:
-                isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Transform.scale(
-          scale: 0.78,
-          child: Switch(
-            value: isEnabled,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            onChanged: (bool value) {
-              setState(() {
-                _showPriceOverlayByStatement[statement] = value;
-              });
-            },
-          ),
-        ),
-      ],
+    return HomeUi.ghostAction(
+      label: isEnabled ? 'Price on' : 'Add Price',
+      dark: isDark,
+      icon: isEnabled ? Icons.show_chart_rounded : Icons.add_chart_outlined,
+      onTap: () {
+        setState(() {
+          _showPriceOverlayByStatement[statement] = !isEnabled;
+        });
+      },
     );
   }
 
@@ -257,18 +207,25 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
     final FinancialStatementType statement = _controller.selectedStatement.value;
     final bool showPrice = _showPriceOverlayByStatement[statement] ?? false;
 
-    return QuarterlyBarChart(
-      title: chart.title,
-      displayValue: chart.displayValue,
-      unit: chart.unit,
-      data: chart.data,
-      priceData: showPrice ? chart.priceData : const <PriceDataPoint>[],
-      theme: QuarterlyBarChartTheme(
-        cardBackgroundColor: baseTheme.cardBackgroundColor,
-        cardBorderColor: baseTheme.cardBorderColor,
-        gridLineColor: baseTheme.gridLineColor,
-        axisLineColor: baseTheme.axisLineColor,
-        priceAxisLabelColor: baseTheme.priceAxisLabelColor,
+    return SizedBox(
+      height: 300,
+      child: QuarterlyBarChart(
+        title: chart.title,
+        displayValue: chart.displayValue,
+        unit: chart.unit,
+        data: chart.data,
+        priceData: showPrice ? chart.priceData : const <PriceDataPoint>[],
+        theme: QuarterlyBarChartTheme(
+          cardBackgroundColor: baseTheme.cardBackgroundColor,
+          cardBorderColor: baseTheme.cardBorderColor,
+          gridLineColor: baseTheme.gridLineColor,
+          axisLineColor: baseTheme.axisLineColor,
+          priceAxisLabelColor: baseTheme.priceAxisLabelColor,
+          barGradient: baseTheme.barGradient,
+          barCornerRadius: baseTheme.barCornerRadius,
+          barWidth: baseTheme.barWidth,
+          expandChart: true,
+        ),
       ),
     );
   }
@@ -283,7 +240,7 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
       child: ListView.separated(
         controller: _scrollController,
         physics: const ClampingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         itemCount: 5,
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (BuildContext context, int rowIndex) {
@@ -314,10 +271,8 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 13,
-            color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+          style: HomeUi.bodyText(isDark).copyWith(
+            color: HomeUi.negative(isDark),
           ),
         ),
       ),

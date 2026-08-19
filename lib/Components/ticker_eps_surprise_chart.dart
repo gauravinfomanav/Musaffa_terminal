@@ -21,7 +21,7 @@ class TickerEpsSurpriseChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double resolvedHeight =
-        containerHeight ?? TickerEarningsCompactChart.defaultHeight;
+        containerHeight ?? TickerEarningsCompactChart.cardHeight;
 
     if (isLoading) {
       return SizedBox(

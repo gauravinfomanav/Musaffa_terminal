@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:musaffa_terminal/utils/platform_capabilities.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/Components/windows_html_webview.dart';
 import 'shimmer.dart';
 import 'dart:convert';
@@ -10,18 +11,11 @@ import 'dart:async';
 class MiniWidgetsRowConstants {
   /// Minimum height for responsive sizing (smallest screens)
   static const double minHeight = 140.0;
-
-  /// Maximum height for responsive sizing (largest screens)
-  static const double maxHeight = 280.0;
-
-  static const double baseHeightPercentage = 0.11;
-
-  static const double minHeightPercentage = 0.08;
-
-  static const double maxHeightPercentage = 0.14;
-
-  /// Gap between mini chart cards
-  static const double widgetGap = 8.0;
+  static const double maxHeight = 260.0;
+  static const double baseHeightPercentage = 0.105;
+  static const double minHeightPercentage = 0.085;
+  static const double maxHeightPercentage = 0.135;
+  static const double widgetGap = 12.0;
 
   static const int chartCount = 5;
 
@@ -53,11 +47,31 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
   // --- Function to Generate Mini Widgets HTML ---
   String _generateMiniWidgetsHtml(String colorTheme) {
     // App background color (for gaps between widgets)
-    final appBgColor = colorTheme == 'dark' ? '#0F0F0F' : '#FAFAFA';
-    // Widget background color (inside each widget box)
-    final widgetBgColor = colorTheme == 'dark' ? '#2D2D2D' : '#FFFFFF';
-    // Theme-aware border color (very light)
-    final borderColor = colorTheme == 'dark' ? '#505050' : '#D1D5DB';
+    final appBgColor = colorTheme == 'dark' ? '#0C0D0F' : '#F5F6F8';
+    final widgetBgColor = colorTheme == 'dark' ? '#14161A' : '#FFFFFF';
+    final borderColor = colorTheme == 'dark' ? '#2A2E34' : '#E8EAEE';
+    final hoverBorder = colorTheme == 'dark' ? '#3A4048' : '#D9DDE3';
+    final shadow = colorTheme == 'dark'
+        ? '0 1px 0 rgba(255,255,255,0.04)'
+        : 'none';
+    final hoverShadow = colorTheme == 'dark'
+        ? '0 8px 28px rgba(0,0,0,0.28)'
+        : '0 10px 28px rgba(15,23,42,0.045)';
+    const gap = MiniWidgetsRowConstants.widgetGap;
+
+    String tvConfig(String symbol) => '''
+                    {
+                        "symbol": "$symbol",
+                        "chartOnly": false,
+                        "dateRange": "12M",
+                        "noTimeScale": true,
+                        "colorTheme": "$colorTheme",
+                        "isTransparent": true,
+                        "locale": "en",
+                        "width": "100%",
+                        "autosize": true,
+                        "height": "100%"
+                    }''';
     
     return '''
     <!DOCTYPE html>
@@ -88,44 +102,43 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
             .widgets-container { 
                 display: flex !important; 
-                gap: 0 !important; 
+                gap: ${gap}px !important; 
                 height: 100% !important; 
-                width: 100% !important; 
+                width: 100% !important;
                 background: $appBgColor !important;
-                border: none !important;
-                border-width: 0 !important;
-                border-style: none !important;
-                border-color: transparent !important;
-                outline: none !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                box-sizing: border-box !important;
+                align-items: stretch !important;
             }
             .mini-widget { 
-                flex: 1 !important; 
+                flex: 1 1 0 !important;
+                min-width: 0 !important;
                 height: 100% !important; 
                 background: $widgetBgColor !important;
-                border: none !important;
-                border-width: 0 !important;
-                box-shadow: inset 0 0 0 0.5px $borderColor !important;
-                border-radius: 6px !important;
-                outline: none !important;
+                border: 1px solid $borderColor !important;
+                border-radius: 10px !important;
+                box-shadow: $shadow !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 box-sizing: border-box !important;
                 overflow: hidden !important;
+                transition: box-shadow 180ms ease, border-color 180ms ease !important;
             }
-            .mini-widget:not(:last-child) {
-                margin-right: ${MiniWidgetsRowConstants.widgetGap}px !important;
-                box-sizing: border-box !important;
+            .mini-widget:hover {
+                border-color: $hoverBorder !important;
+                box-shadow: $hoverShadow !important;
             }
             .mini-widget-wrapper {
                 height: 100% !important;
                 width: 100% !important;
                 background: $widgetBgColor !important;
                 display: flex !important;
-                align-items: center !important;
+                align-items: stretch !important;
                 overflow: hidden !important;
-                border-radius: 6px !important;
+                border-radius: 10px !important;
+                padding: 4px 8px 2px !important;
+                box-sizing: border-box !important;
             }
             .tradingview-widget-container { 
                 height: 100% !important; 
@@ -179,76 +192,11 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            * { 
-                border: none !important; 
-                border-width: 0 !important;
-                border-style: none !important;
-                border-color: transparent !important;
-                outline: none !important; 
-            }
-            
-            /* Remove WebView borders and shadows */
-            body, html, div, iframe, * { 
-                border: none !important; 
-                border-width: 0 !important;
-                border-style: none !important;
-                border-color: transparent !important;
-                outline: none !important; 
-                box-shadow: none !important;
-                -webkit-box-shadow: none !important;
-                -moz-box-shadow: none !important;
-            }
-            
-            /* Force remove any default WebView styling */
-            .widgets-container, .tradingview-widget-container {
-                border: 0 !important;
-                border-width: 0 !important;
-                border-style: none !important;
-                border-color: transparent !important;
-                outline: 0 !important;
-                box-shadow: none !important;
-                -webkit-appearance: none !important;
-                -moz-appearance: none !important;
-                appearance: none !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            /* Remove blue highlight on scroll */
             * { -webkit-tap-highlight-color: transparent !important; }
-            * { -webkit-touch-callout: none !important; }
-            * { -webkit-user-select: none !important; }
-            * { -moz-user-select: none !important; }
-            * { -ms-user-select: none !important; }
             * { user-select: none !important; }
-            
-            /* Remove scroll bounce and blue header */
-            body { -webkit-overflow-scrolling: touch !important; }
-            * { -webkit-overflow-scrolling: touch !important; }
-            
-            /* Hide scrollbars and prevent scrolling */
-            ::-webkit-scrollbar { display: none !important; }
-            * { scrollbar-width: none !important; }
-            
-            /* Prevent any scrolling within the widget */
-            * { overflow: hidden !important; }
-            body { overflow: hidden !important; }
-            html { overflow: hidden !important; }
-            
-            /* Disable all interactions and clicks */
-            * { pointer-events: none !important; }
-            body { pointer-events: none !important; }
-            html { pointer-events: none !important; }
-            a { pointer-events: none !important; }
-            button { pointer-events: none !important; }
-            iframe { pointer-events: none !important; }
-            
-            /* Apply border to each mini-widget (must be after general border removal rules) */
-            div.mini-widget {
-                border: none !important;
-                border-width: 0 !important;
-                box-shadow: inset 0 0 0 0.5px $borderColor !important;
-                border-radius: 6px !important;
+            html, body { overflow: hidden !important; }
+            .widgets-container { overflow: hidden !important; }
+            .mini-widget, .mini-widget-wrapper, .tradingview-widget-container {
                 overflow: hidden !important;
             }
         </style>
@@ -261,18 +209,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    {
-                        "symbol": "CAPITALCOM:US100",
-                        "chartOnly": false,
-                        "dateRange": "12M",
-                        "noTimeScale": false,
-                        "colorTheme": "$colorTheme",
-                        "isTransparent": false,
-                        "locale": "en",
-                        "width": "100%",
-                        "autosize": true,
-                        "height": "100%"
-                    }
+                    ${tvConfig("CAPITALCOM:US100")}
                     </script>
                 </div>
                 </div>
@@ -284,18 +221,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    {
-                        "symbol": "CAPITALCOM:US500",
-                        "chartOnly": false,
-                        "dateRange": "12M",
-                        "noTimeScale": false,
-                        "colorTheme": "$colorTheme",
-                        "isTransparent": false,
-                        "locale": "en",
-                        "width": "100%",
-                        "autosize": true,
-                        "height": "100%"
-                    }
+                    ${tvConfig("CAPITALCOM:US500")}
                     </script>
                 </div>
                 </div>
@@ -307,18 +233,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    {
-                        "symbol": "PEPPERSTONE:XAUUSD",
-                        "chartOnly": false,
-                        "dateRange": "12M",
-                        "noTimeScale": false,
-                        "colorTheme": "$colorTheme",
-                        "isTransparent": false,
-                        "locale": "en",
-                        "width": "100%",
-                        "autosize": true,
-                        "height": "100%"
-                    }
+                    ${tvConfig("PEPPERSTONE:XAUUSD")}
                     </script>
                 </div>
                 </div>
@@ -330,18 +245,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    {
-                        "symbol": "ICMARKETS:USTEC",
-                        "chartOnly": false,
-                        "dateRange": "12M",
-                        "noTimeScale": false,
-                        "colorTheme": "$colorTheme",
-                        "isTransparent": false,
-                        "locale": "en",
-                        "width": "100%",
-                        "autosize": true,
-                        "height": "100%"
-                    }
+                    ${tvConfig("ICMARKETS:USTEC")}
                     </script>
                 </div>
                 </div>
@@ -353,18 +257,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    {
-                        "symbol": "BITSTAMP:BTCUSD",
-                        "chartOnly": false,
-                        "dateRange": "12M",
-                        "noTimeScale": false,
-                        "colorTheme": "$colorTheme",
-                        "isTransparent": false,
-                        "locale": "en",
-                        "width": "100%",
-                        "autosize": true,
-                        "height": "100%"
-                    }
+                    ${tvConfig("BITSTAMP:BTCUSD")}
                     </script>
                 </div>
                 </div>
@@ -540,22 +433,14 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDarkMode 
-        ? const Color(0xFF505050) 
-        : const Color.fromARGB(255, 235, 235, 235); // Very light border
-    // App background color (for container/gaps between widgets)
-    final appBackgroundColor = isDarkMode ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
+    final appBackgroundColor = isDarkMode ? const Color(0xFF0C0D0F) : const Color(0xFFF5F6F8);
     final widgetHeight = _calculateHeight(context);
     
-    // Get screen width for explicit sizing (prevents layout ambiguity)
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    return ClipRect(
-      clipBehavior: Clip.hardEdge,
-      child: Container(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: SizedBox(
         height: widgetHeight,
-        width: screenWidth,
-        color: appBackgroundColor,
+        width: double.infinity,
         child: _isLoading
             ? Row(
                 children: List.generate(MiniWidgetsRowConstants.chartCount, (index) => Expanded(
@@ -565,9 +450,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                           ? MiniWidgetsRowConstants.widgetGap
                           : 0,
                     ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: borderColor, width: 0.1),
-                    ),
+                    decoration: HomeUi.cardDecoration(isDarkMode),
                     child: ShimmerWidgets.box(
                       width: double.infinity,
                       height: widgetHeight,
@@ -581,10 +464,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                   ),
                 )),
               )
-            : Transform.scale(
-                scaleX: 1.01,   // No horizontal scaling (left/right)
-                scaleY: 1.011, // Vertical scaling (top/bottom only)
-                child: AdaptiveHtmlWebView(
+            : AdaptiveHtmlWebView(
                   html: _generateMiniWidgetsHtml(
                     Theme.of(context).brightness == Brightness.dark
                         ? 'dark'
@@ -593,7 +473,6 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                   flutterController: _controller,
                   backgroundColor: appBackgroundColor,
                 ),
-              ),
       ),
     );
   }

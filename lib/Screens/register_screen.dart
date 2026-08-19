@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/Screens/login_screen.dart';
 import 'package:musaffa_terminal/models/auth_models.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/utils.dart';
 
 /// Email-first registration: check-email → set password → go to Login.
 class RegisterScreen extends StatefulWidget {
@@ -233,11 +233,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Center(
-                            child: SvgPicture.asset(
-                              'resources/Small Logo.svg',
-                              height: 28,
-                              fit: BoxFit.contain,
-                            ),
+                            child: const MusaffaLogo(height: 28),
                           ),
                           const SizedBox(height: 20),
                           Text(

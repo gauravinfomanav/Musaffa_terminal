@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:musaffa_terminal/utils/auto_size_text.dart';
 import 'package:musaffa_terminal/controllers/finhub_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
@@ -28,7 +29,6 @@ import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/services/feature_access_service.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
-
 class HomeTabBar extends StatelessWidget {
   final ValueChanged<String>? onSearch;
   final VoidCallback? onSearchSubmit;
@@ -38,8 +38,8 @@ class HomeTabBar extends StatelessWidget {
   final bool isWatchlistOpen;
 
   const HomeTabBar({
-    super.key, 
-    this.onSearch, 
+    super.key,
+    this.onSearch,
     this.onSearchSubmit,
     this.onThemeToggle,
     this.onWatchlistToggle,
@@ -69,37 +69,49 @@ class HomeTabBar extends StatelessWidget {
             ? (isDarkMode
                 ? const Color(0xFF2D4A6B).withOpacity(0.8)
                 : const Color(0xFFDBEAFE).withOpacity(0.8))
-            : (isDarkMode ? const Color(0xFF1A1A1A) : Colors.white);
+            : (isDarkMode ? const Color(0xFF121417) : const Color(0xFFFFFFFF));
         final borderColor =
-            isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
+            isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE8EAED);
         final screenWidth = MediaQuery.sizeOf(context).width;
         // Responsive centered search: ~45% of screen, clamped.
         final searchWidth = (screenWidth * 0.45).clamp(300.0, 680.0);
 
         return Container(
           decoration: BoxDecoration(
-            color: barBg,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                barBg,
+                isDarkMode ? const Color(0xFF101317) : const Color(0xFFFBFBFC),
+              ],
+            ),
+            border: Border(
+              bottom: BorderSide(color: borderColor, width: 0.5),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.06),
-                blurRadius: isDarkMode ? 8 : 12,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(isDarkMode ? 0.28 : 0.04),
+                blurRadius: isDarkMode ? 16 : 18,
+                offset: const Offset(0, 4),
               ),
             ],
-            border: candidateData.isNotEmpty
-                ? Border.all(
+          ),
+          foregroundDecoration: candidateData.isNotEmpty
+              ? BoxDecoration(
+                  border: Border.all(
                     color: isDarkMode
                         ? const Color(0xFF4A9EFF)
                         : const Color(0xFF2563EB),
                     width: 2,
-                  )
-                : null,
-          ),
+                  ),
+                )
+              : null,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -107,25 +119,12 @@ class HomeTabBar extends StatelessWidget {
                       child: Row(
                         children: [
                           SidebarMenuButton(isDarkMode: isDarkMode),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           if (showBackButton) ...[
-                            GestureDetector(
-                              onTap: () => Get.back(),
-                              child: Icon(
-                                CupertinoIcons.back,
-                                size: 20,
-                                color: isDarkMode
-                                    ? const Color(0xFFE0E0E0)
-                                    : const Color(0xFF374151),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
+                            _HeaderBackButton(isDarkMode: isDarkMode),
+                            const SizedBox(width: 10),
                           ],
-                          SvgPicture.asset(
-                            'resources/Small Logo.svg',
-                            height: 22,
-                            fit: BoxFit.contain,
-                          ),
+                          _HeaderLogoLockup(isDarkMode: isDarkMode),
                         ],
                       ),
                     ),
@@ -174,13 +173,16 @@ class HomeTabBar extends StatelessWidget {
               ),
               Container(
                 width: double.infinity,
-                height: 32,
+                height: HomeUi.indicesStripHeight,
                 decoration: BoxDecoration(
                   color: isDarkMode
-                      ? const Color(0xFF141414)
-                      : const Color(0xFFF8F9FA),
+                      ? const Color(0xFF0E1012)
+                      : const Color(0xFFF7F8FA),
                   border: Border(
-                    top: BorderSide(color: borderColor, width: 1),
+                    top: BorderSide(
+                      color: HomeUi.borderLight(isDarkMode),
+                      width: 1,
+                    ),
                   ),
                 ),
                 alignment: Alignment.centerLeft,
@@ -203,7 +205,7 @@ class _SearchField extends StatefulWidget {
   final bool isDarkMode;
 
   const _SearchField({
-    this.onChanged, 
+    this.onChanged,
     this.onSubmitted,
     required this.isDarkMode,
   });
@@ -212,18 +214,93 @@ class _SearchField extends StatefulWidget {
   State<_SearchField> createState() => _SearchFieldState();
 }
 
-class _SearchFieldState extends State<_SearchField> {
+class _HeaderBackButton extends StatefulWidget {
+  const _HeaderBackButton({required this.isDarkMode});
+
+  final bool isDarkMode;
+
+  @override
+  State<_HeaderBackButton> createState() => _HeaderBackButtonState();
+}
+
+class _HeaderBackButtonState extends State<_HeaderBackButton> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.isDarkMode;
+    final color = _hovering
+        ? (dark ? const Color(0xFFFFFFFF) : const Color(0xFF111827))
+        : (dark ? const Color(0xFFB0B7C3) : const Color(0xFF6B7280));
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => Get.back(),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            Icons.arrow_back_rounded,
+            size: 20,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderLogoLockup extends StatelessWidget {
+  const _HeaderLogoLockup({required this.isDarkMode});
+
+  final bool isDarkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    return const MusaffaLogo(height: 25);
+  }
+}
+
+class _SearchFieldState extends State<_SearchField>
+    with SingleTickerProviderStateMixin {
+  static const List<String> _searchKeywords = ['Symbols', 'ETFs', 'Stocks'];
   final TextEditingController _searchController = TextEditingController();
   List<TickerModel> _searchResults = [];
   OverlayEntry? _overlayEntry;
   final GlobalKey _searchFieldKey = GlobalKey();
   late FocusNode _focusNode;
+  late final AnimationController _keywordAnimationController;
+  bool _hovered = false;
+  Timer? _keywordTimer;
+  int _keywordIndex = 0;
+  int _nextKeywordIndex = 1;
+  bool _isKeywordAnimating = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
-    // Register the focus node with global service
+    _keywordAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          setState(() {
+            _keywordIndex = _nextKeywordIndex;
+            _nextKeywordIndex = (_keywordIndex + 1) % _searchKeywords.length;
+            _isKeywordAnimating = false;
+          });
+          _keywordAnimationController.reset();
+        }
+      });
+    _focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _searchController.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _startKeywordCarousel();
     if (Get.isRegistered<GlobalSearchService>()) {
       Get.find<GlobalSearchService>().registerSearchFocusNode(_focusNode);
     }
@@ -237,69 +314,115 @@ class _SearchFieldState extends State<_SearchField> {
     }
     _searchController.dispose();
     _focusNode.dispose();
+    _stopKeywordCarousel();
+    _keywordAnimationController.dispose();
     _removeOverlay();
     super.dispose();
   }
-
-
-
-
 
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
   }
 
+  void _startKeywordCarousel() {
+    _keywordTimer?.cancel();
+    _keywordTimer = Timer.periodic(const Duration(milliseconds: 2600), (_) {
+      if (!mounted ||
+          _searchController.text.isNotEmpty ||
+          _isKeywordAnimating) {
+        return;
+      }
+      _animateKeywordTransition();
+    });
+  }
+
+  void _stopKeywordCarousel() {
+    _keywordTimer?.cancel();
+    _keywordTimer = null;
+  }
+
+  void _animateKeywordTransition() {
+    if (_isKeywordAnimating) return;
+    setState(() {
+      _nextKeywordIndex = (_keywordIndex + 1) % _searchKeywords.length;
+      _isKeywordAnimating = true;
+    });
+    _keywordAnimationController.forward(from: 0);
+  }
+
   void _showOverlay() {
     _removeOverlay();
-    
+
     // Only show overlay if there are search results AND the text field is not empty
     if (_searchResults.isEmpty || _searchController.text.isEmpty) {
       return;
     }
-    
-    final RenderBox? renderBox = _searchFieldKey.currentContext?.findRenderObject() as RenderBox?;
+
+    final RenderBox? renderBox =
+        _searchFieldKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) {
       return;
     }
-    
+
     final position = renderBox.localToGlobal(Offset.zero);
     final size = renderBox.size;
-    
+
     _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: position.dy + size.height + 4,
-        left: position.dx,
-        width: size.width,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(6),
-          child: Container(
-            constraints: const BoxConstraints(maxHeight: 300),
-            decoration: BoxDecoration(
-              color: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFFAFAFA),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                width: 1,
+      builder: (context) {
+        final dark = widget.isDarkMode;
+        return Positioned(
+          top: position.dy + size.height + 8,
+          left: position.dx,
+          width: size.width,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 360),
+              decoration: BoxDecoration(
+                color: HomeUi.cardBg(dark),
+                borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                border: Border.all(color: HomeUi.borderLight(dark), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(dark ? 0.28 : 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(dark ? 0.32 : 0.08),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                shrinkWrap: true,
+                itemCount: _searchResults.length,
+                separatorBuilder: (_, __) => Padding(
+                  padding: const EdgeInsets.only(left: 56, right: 12),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: HomeUi.borderLight(dark).withOpacity(0.85),
+                  ),
+                ),
+                itemBuilder: (context, index) {
+                  return _SearchResultRow(
+                    ticker: _searchResults[index],
+                    isDarkMode: dark,
+                    onTap: () => _onTickerSelected(_searchResults[index]),
+                  );
+                },
               ),
             ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _searchResults.length,
-              itemBuilder: (context, index) {
-                final ticker = _searchResults[index];
-                return Container(
-                  color: Colors.transparent,
-                  child: _buildSearchResultItem(ticker),
-                );
-              },
-            ),
           ),
-        ),
-      ),
+        );
+      },
     );
-    
+
     Overlay.of(context).insert(_overlayEntry!);
   }
 
@@ -312,13 +435,12 @@ class _SearchFieldState extends State<_SearchField> {
       return;
     }
 
-
     try {
       final results = await SearchService.searchStocks(query.trim());
       setState(() {
         _searchResults = results;
       });
-      
+
       if (results.isNotEmpty) {
         _showOverlay();
       } else {
@@ -337,7 +459,7 @@ class _SearchFieldState extends State<_SearchField> {
     _removeOverlay();
     _searchController.clear();
     _focusNode.unfocus();
-    
+
     // Navigate to appropriate screen based on isStock flag
     if (ticker.isStock) {
       FeatureNavigation.pushIfAllowed(
@@ -354,194 +476,360 @@ class _SearchFieldState extends State<_SearchField> {
     }
   }
 
+  @override
+  Widget build(BuildContext context) {
+    const fieldHeight = HomeUi.controlHeight;
+    final dark = widget.isDarkMode;
+    final focused = _focusNode.hasFocus;
+    final active = focused || _hovered;
+    final hasQuery = _searchController.text.isNotEmpty;
+    final radius = BorderRadius.circular(HomeUi.radiusMd);
+    final fill =
+        (focused || active) ? HomeUi.cardBg(dark) : HomeUi.elevatedBg(dark);
+    final placeholderStyle = HomeUi.subtitle(dark).copyWith(
+      fontSize: 12.5,
+      height: 1.15,
+      fontWeight: FontWeight.w400,
+    );
+    final borderColor = focused
+        ? const Color(0xFFC42329).withOpacity(dark ? 0.55 : 0.42)
+        : (active ? HomeUi.borderStrong(dark) : HomeUi.borderLight(dark));
 
+    OutlineInputBorder outline(Color color, double width) => OutlineInputBorder(
+          borderRadius: radius,
+          borderSide: BorderSide(color: color, width: width),
+        );
 
-
-
-  Widget _buildSearchResultItem(TickerModel ticker) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque, // This ensures the entire area is tappable
-      onTap: () {
-        _onTickerSelected(ticker);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.text,
+      child: AnimatedContainer(
+        key: _searchFieldKey,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        height: fieldHeight,
         decoration: BoxDecoration(
-          color: Colors.transparent, // Make sure background is transparent
-          border: Border(
-            bottom: BorderSide(
-              color: (widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)).withOpacity(0.3),
-              width: 0.5,
-            ),
-          ),
+          borderRadius: radius,
+          boxShadow: focused
+              ? [
+                  BoxShadow(
+                    color:
+                        const Color(0xFFC42329).withOpacity(dark ? 0.18 : 0.10),
+                    blurRadius: 8,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : HomeUi.cardShadow(dark, hover: active),
         ),
-        child: Row(
+        child: Stack(
           children: [
-            // Logo or Icon
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
+            TextField(
+              controller: _searchController,
+              focusNode: _focusNode,
+              cursorColor: const Color(0xFFC42329),
+              cursorWidth: 1.2,
+              cursorHeight: 14,
+              onChanged: (value) {
+                widget.onChanged?.call(value);
+                if (value.isEmpty) {
+                  _startKeywordCarousel();
+                } else {
+                  _stopKeywordCarousel();
+                }
+                if (value.length >= 2) {
+                  _performSearch(value);
+                } else {
+                  setState(() {
+                    _searchResults = [];
+                  });
+                  _removeOverlay();
+                }
+              },
+              onSubmitted: (value) => widget.onSubmitted?.call(value),
+              textInputAction: TextInputAction.search,
+              style: HomeUi.control(dark, active: true).copyWith(
+                fontSize: 12.5,
+                height: 1.15,
+                color: HomeUi.title(dark),
               ),
-              child: showLogo(
-                ticker.symbol ?? '',
-                ticker.logo ?? '',
-                sideWidth: 20,
-                name: ticker.symbol ?? '',
-              ),
-            ),
-            
-            const SizedBox(width: 12),
-            
-            // Ticker and Company Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ticker.symbol ?? ticker.ticker ?? '',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFFE0E0E0) : DashboardTextStyles.stockName.color,
-                    ),
-                  ),
-                  Text(
-                    ticker.companyName ?? ticker.name ?? '',
-                    style: DashboardTextStyles.tickerSymbol.copyWith(
-                      color: widget.isDarkMode ? const Color(0xFF6B7280) : DashboardTextStyles.tickerSymbol.color,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            
-            // Price with change indicator
-            if (ticker.currentPrice != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        ticker.percentChange != null && ticker.percentChange! >= 0 
-                            ? Icons.keyboard_arrow_up 
-                            : Icons.keyboard_arrow_down,
-                        size: 12,
-                        color: ticker.percentChange != null && ticker.percentChange! >= 0 
-                            ? Colors.green.shade600 
-                            : Colors.red.shade600,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '\$${ticker.currentPrice!.toStringAsFixed(2)}',
-                        style: DashboardTextStyles.dataCell.copyWith(
-                          color: ticker.percentChange != null && ticker.percentChange! >= 0 
-                              ? Colors.green.shade600 
-                              : Colors.red.shade600,
+              decoration: InputDecoration(
+                isDense: true,
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 10, right: 4),
+                  child: active
+                      ? HomeUi.brandIcon(
+                          icon: CupertinoIcons.search,
+                          size: HomeUi.iconSm,
+                          gradient: HomeUi.iconFillGradient,
+                        )
+                      : HomeUi.vectorIcon(
+                          icon: CupertinoIcons.search,
+                          size: HomeUi.iconSm,
+                          color: HomeUi.muted(dark),
                         ),
+                ),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: fieldHeight,
+                ),
+                suffixIcon: hasQuery
+                    ? IconButton(
+                        tooltip: 'Clear',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: fieldHeight,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchResults = []);
+                          _startKeywordCarousel();
+                          _removeOverlay();
+                          widget.onChanged?.call('');
+                        },
+                        icon: HomeUi.vectorIcon(
+                          icon: CupertinoIcons.xmark_circle_fill,
+                          size: HomeUi.iconSm,
+                          color: HomeUi.muted(dark),
+                        ),
+                      )
+                    : null,
+                suffixIconConstraints: const BoxConstraints(
+                  minWidth: 28,
+                  minHeight: fieldHeight,
+                ),
+                hintText: '',
+                hintStyle: placeholderStyle,
+                contentPadding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
+                filled: true,
+                fillColor: fill,
+                border: outline(borderColor, active ? 1 : 0.5),
+                enabledBorder: outline(borderColor, active ? 1 : 0.5),
+                focusedBorder: outline(borderColor, 1),
+                errorBorder: outline(const Color(0xFFDC2626), 1),
+                focusedErrorBorder: outline(const Color(0xFFDC2626), 1),
+              ),
+            ),
+            if (!hasQuery)
+              IgnorePointer(
+                child: Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(36, 8, 12, 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Search by ',
+                            style: placeholderStyle,
+                          ),
+                          ClipRect(
+                            child: SizedBox(
+                              height: 16,
+                              width: 54,
+                              child: AnimatedBuilder(
+                                animation: _keywordAnimationController,
+                                builder: (context, child) {
+                                  final t = Curves.easeInOutCubic.transform(
+                                    _keywordAnimationController.value,
+                                  );
+                                  final currentDy =
+                                      _isKeywordAnimating ? -16.0 * t : 0.0;
+                                  final nextDy = _isKeywordAnimating
+                                      ? 16.0 * (1 - t)
+                                      : 16.0;
+                                  final currentOpacity =
+                                      _isKeywordAnimating ? (1 - t) : 1.0;
+                                  final nextOpacity =
+                                      _isKeywordAnimating ? t : 0.0;
+
+                                  return Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Transform.translate(
+                                        offset: Offset(0, currentDy),
+                                        child: Opacity(
+                                          opacity: currentOpacity,
+                                          child: Text(
+                                            _searchKeywords[_keywordIndex],
+                                            style: placeholderStyle,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.visible,
+                                          ),
+                                        ),
+                                      ),
+                                      Transform.translate(
+                                        offset: Offset(0, nextDy),
+                                        child: Opacity(
+                                          opacity: nextOpacity,
+                                          child: Text(
+                                            _searchKeywords[_nextKeywordIndex],
+                                            style: placeholderStyle,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.visible,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ],
+                ),
               ),
           ],
         ),
       ),
     );
   }
+}
+
+class _SearchResultRow extends StatefulWidget {
+  const _SearchResultRow({
+    required this.ticker,
+    required this.isDarkMode,
+    required this.onTap,
+  });
+
+  final TickerModel ticker;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+
+  @override
+  State<_SearchResultRow> createState() => _SearchResultRowState();
+}
+
+class _SearchResultRowState extends State<_SearchResultRow> {
+  bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
-    const fieldHeight = 30.0;
+    final dark = widget.isDarkMode;
+    final ticker = widget.ticker;
+    final symbol = ticker.symbol ?? ticker.ticker ?? '';
+    final name = ticker.companyName ?? ticker.name ?? '';
+    final up = ticker.percentChange == null || ticker.percentChange! >= 0;
+    final priceColor = ticker.percentChange == null
+        ? HomeUi.body(dark)
+        : (up ? HomeUi.positive(dark) : HomeUi.negative(dark));
 
-    return SizedBox(
-      key: _searchFieldKey,
-      height: fieldHeight,
-      child: TextField(
-          controller: _searchController,
-          focusNode: _focusNode,
-          cursorColor: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-          onChanged: (value) {
-          if (value.length >= 2) {
-            _performSearch(value);
-          } else if (value.isEmpty) {
-            setState(() {
-              _searchResults = [];
-            });
-            _removeOverlay();
-          } else {
-            // Clear results when text is less than 2 characters but not empty
-            setState(() {
-              _searchResults = [];
-            });
-            _removeOverlay();
-          }
-        },
-        textInputAction: TextInputAction.search,
-        style: DashboardTextStyles.stockName.copyWith(
-          color: widget.isDarkMode ? const Color(0xFFE0E0E0) : DashboardTextStyles.stockName.color,
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: 12.5,
-          height: 1.15,
-        ),
-        decoration: InputDecoration(
-          isDense: true,
-          prefixIcon: Icon(
-            CupertinoIcons.search,
-            size: 15,
-            color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-          ),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: 32,
-            minHeight: 30,
-          ),
-          hintText: 'Search symbols, ETFs, or stocks...',
-          hintStyle: DashboardTextStyles.tickerSymbol.copyWith(
-            color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            fontSize: 12,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          filled: true,
-          fillColor: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFFAFAFA),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-              width: 1,
-            ),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: Color(0xFFDC2626),
-              width: 1,
-            ),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(
-              color: Color(0xFFDC2626),
-              width: 1.5,
-            ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+          color: _hover ? HomeUi.tableRowHover(dark) : Colors.transparent,
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: HomeUi.elevatedBg(dark),
+                  border: Border.all(color: HomeUi.borderLight(dark), width: 1),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: showLogo(
+                  symbol,
+                  ticker.logo ?? '',
+                  sideWidth: 28,
+                  name: symbol,
+                  circular: true,
+                  borderColor: Colors.transparent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            symbol,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: HomeUi.control(dark, active: true).copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: HomeUi.title(dark),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: HomeUi.elevatedBg(dark),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            ticker.isStock ? 'Stock' : 'ETF',
+                            style: HomeUi.overline(dark).copyWith(
+                              fontSize: 9,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeUi.subtitle(dark).copyWith(
+                        fontSize: 12,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (ticker.currentPrice != null) ...[
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '\$${ticker.currentPrice!.toStringAsFixed(2)}',
+                      style: HomeUi.tableNumeric(dark).copyWith(
+                        color: priceColor,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (ticker.percentChange != null)
+                      Text(
+                        '${up ? '+' : ''}${ticker.percentChange!.toStringAsFixed(2)}%',
+                        style: HomeUi.subtitle(dark).copyWith(
+                          fontSize: 11,
+                          color: priceColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -563,35 +851,34 @@ class _MarketIndicesStrip extends StatefulWidget {
 }
 
 class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
-  late ScrollController _scrollController;
+  late final ScrollController _scrollController;
+  final GlobalKey _loopKey = GlobalKey();
   Timer? _scrollTimer;
   bool _isHovered = false;
-  double _scrollPosition = 0.0;
-  double _contentWidth = 0.0;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    _startScrolling();
+    _scrollTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
+      _advance(0.55);
+    });
   }
 
-  void _startScrolling() {
-    _scrollTimer?.cancel();
-    _scrollTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
-      if (!_isHovered && mounted && _scrollController.hasClients) {
-        setState(() {
-          _scrollPosition += 1.5; // Slow scroll increment
-          // For infinite scroll: when we reach the end of one set, jump back to the start of the next set
-          // Since we have 4 duplicates, we can loop seamlessly
-          if (_contentWidth > 0 && _scrollPosition >= _contentWidth) {
-            // Jump back to the start of the second set (which looks identical to the first)
-            _scrollPosition = _scrollPosition - _contentWidth;
-          }
-        });
-        _scrollController.jumpTo(_scrollPosition);
-      }
-    });
+  double get _loopWidth => _loopKey.currentContext?.size?.width ?? 0;
+
+  void _advance(double delta) {
+    if (!mounted || _isHovered || !_scrollController.hasClients) return;
+    final loop = _loopWidth;
+    if (loop <= 0) return;
+    var next = _scrollController.offset + delta;
+    while (next >= loop) {
+      next -= loop;
+    }
+    while (next < 0) {
+      next += loop;
+    }
+    _scrollController.jumpTo(next);
   }
 
   @override
@@ -601,23 +888,38 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
     super.dispose();
   }
 
+  Widget _divider() {
+    return Container(
+      width: 1,
+      height: 12,
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      color:
+          widget.isDarkMode ? const Color(0xFF2A2E34) : const Color(0xFFE6E8EC),
+    );
+  }
+
   Widget _buildIndexItems(List<MarketIndex> indices) {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: indices
-          .map(
-            (index) => Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: _IndexItem(
-                  index: index,
-                  isDarkMode: widget.isDarkMode,
-                ),
-              ),
-            ),
-          )
-          .toList(),
+      children: [
+        for (var i = 0; i < indices.length; i++) ...[
+          if (i > 0) _divider(),
+          _IndexItem(
+            index: indices[i],
+            isDarkMode: widget.isDarkMode,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _loopCopy(List<MarketIndex> indices) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildIndexItems(indices),
+        _divider(),
+      ],
     );
   }
 
@@ -634,7 +936,7 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
               8,
               (i) => Padding(
                 padding: const EdgeInsets.only(left: 12),
-                  child: Container(
+                child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: ShimmerWidgets.box(
                     width: 120,
@@ -659,40 +961,54 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
       }
 
       final indices = widget.controller.indices.take(20).toList();
-      // Create multiple duplicates for seamless infinite scrolling
-      final duplicatedIndices = [...indices, ...indices, ...indices, ...indices];
 
       return MouseRegion(
-        onEnter: (_) {
-          setState(() {
-            _isHovered = true;
-          });
-        },
-        onExit: (_) {
-          setState(() {
-            _isHovered = false;
-          });
-        },
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          physics: const NeverScrollableScrollPhysics(), 
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_scrollController.hasClients && _contentWidth == 0.0) {
-                  final maxScroll = _scrollController.position.maxScrollExtent;
-                  if (maxScroll > 0) {
-                    setState(() {
-                      // Calculate width of one set of indices (we have 4 duplicates)
-                      _contentWidth = maxScroll / 4; 
-                    });
-                  }
-                }
-              });
-
-              return _buildIndexItems(duplicatedIndices);
-            },
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.basic,
+        child: Listener(
+          onPointerSignal: (event) {
+            if (event is PointerScrollEvent && _scrollController.hasClients) {
+              final loop = _loopWidth;
+              if (loop <= 0) return;
+              var next = _scrollController.offset + event.scrollDelta.dy;
+              while (next >= loop) {
+                next -= loop;
+              }
+              while (next < 0) {
+                next += loop;
+              }
+              _scrollController.jumpTo(next);
+            }
+          },
+          child: ShaderMask(
+            blendMode: BlendMode.dstIn,
+            shaderCallback: (rect) => const LinearGradient(
+              colors: [
+                Colors.transparent,
+                Colors.black,
+                Colors.black,
+                Colors.transparent,
+              ],
+              stops: [0.0, 0.035, 0.965, 1.0],
+            ).createShader(rect),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  KeyedSubtree(
+                    key: _loopKey,
+                    child: _loopCopy(indices),
+                  ),
+                  _loopCopy(indices),
+                  _loopCopy(indices),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -711,30 +1027,59 @@ class _IndexItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = index.isPositive 
-        ? const Color(0xFF10B981) 
-        : const Color(0xFFEF4444);
-    final icon = index.isPositive 
-        ? Icons.arrow_upward 
-        : Icons.arrow_downward;
+    final up = index.isPositive;
+    final color =
+        up ? HomeUi.positive(isDarkMode) : HomeUi.negative(isDarkMode);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        MusaffaAutoSizeText.labelMedium(
+        Text(
           index.displayName,
-          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF1F2937),
-          group: MusaffaAutoSizeText.groups.labelMediumGroup,
+          style: TextStyle(
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            fontFamilyFallback: Constants.FONT_FALLBACK,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+            height: 1,
+            color: HomeUi.title(isDarkMode),
+          ),
         ),
         const SizedBox(width: 6),
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
-        MusaffaAutoSizeText.labelMedium(
-          index.formattedChangePercent,
-          color: color,
-          group: MusaffaAutoSizeText.groups.labelMediumGroup,
+        Container(
+          padding: const EdgeInsets.fromLTRB(5, 3, 6, 3),
+          decoration: BoxDecoration(
+            color: color.withOpacity(isDarkMode ? 0.14 : 0.08),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                up
+                    ? CupertinoIcons.arrowtriangle_up_fill
+                    : CupertinoIcons.arrowtriangle_down_fill,
+                size: 7,
+                color: color,
+              ),
+              const SizedBox(width: 3),
+              Text(
+                index.formattedChangePercent,
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontFamilyFallback: Constants.FONT_FALLBACK,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  height: 1,
+                  letterSpacing: -0.15,
+                  color: color,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
         ),
-        
       ],
     );
   }
@@ -800,11 +1145,6 @@ class _NavToolsCluster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border =
-        isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-    final divider =
-        isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE5E7EB);
-
     return Obx(() {
       final fab = Get.find<FloatingActionButtonsController>();
       // Ensure Obx tracks feature map changes.
@@ -819,22 +1159,25 @@ class _NavToolsCluster extends StatelessWidget {
         if (canScreener && !fab.shouldHideInTabbar(FABType.screener))
           _ToolSpec(
             label: 'Screener',
-            icon: CupertinoIcons.slider_horizontal_3,
+            icon: Icons.tune_rounded,
             fabType: FABType.screener,
+            tooltip: 'Open Screener  ·  Drag to pin',
             onTap: () => _goScreener(context),
           ),
         if (canIdeas && !fab.shouldHideInTabbar(FABType.ideas))
           _ToolSpec(
             label: 'Ideas',
-            icon: CupertinoIcons.lightbulb,
+            icon: CupertinoIcons.lightbulb_fill,
             fabType: FABType.ideas,
+            tooltip: 'Open Ideas  ·  Drag to pin',
             onTap: () => _goIdeas(context),
           ),
         if (canPortfolios && !fab.shouldHideInTabbar(FABType.portfolio))
           _ToolSpec(
             label: 'Portfolios',
-            icon: CupertinoIcons.chart_pie,
+            icon: CupertinoIcons.chart_pie_fill,
             fabType: FABType.portfolio,
+            tooltip: 'Open Portfolios  ·  Drag to pin',
             onTap: () => _goPortfolio(context),
           ),
       ];
@@ -842,11 +1185,25 @@ class _NavToolsCluster extends StatelessWidget {
       if (tools.isEmpty) return const SizedBox.shrink();
 
       return Container(
-        height: 30,
+        height: HomeUi.controlHeight,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: border),
-          color: isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+          border: Border.all(color: HomeUi.borderLight(isDarkMode), width: 0.9),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              isDarkMode ? const Color(0xFF1A1D22) : Colors.white,
+              isDarkMode ? const Color(0xFF13161A) : const Color(0xFFF6F7F9),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.16 : 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Row(
@@ -854,7 +1211,11 @@ class _NavToolsCluster extends StatelessWidget {
           children: [
             for (var i = 0; i < tools.length; i++) ...[
               if (i > 0)
-                Container(width: 1, height: 18, color: divider),
+                Container(
+                  width: 1,
+                  height: 16,
+                  color: HomeUi.borderLight(isDarkMode),
+                ),
               _ToolSegment(
                 spec: tools[i],
                 isDarkMode: isDarkMode,
@@ -871,14 +1232,66 @@ class _ToolSpec {
   final String label;
   final IconData icon;
   final FABType fabType;
+  final String tooltip;
   final VoidCallback onTap;
 
   const _ToolSpec({
     required this.label,
     required this.icon,
     required this.fabType,
+    required this.tooltip,
     required this.onTap,
   });
+}
+
+class _HeaderTooltip extends StatelessWidget {
+  const _HeaderTooltip({
+    required this.message,
+    required this.isDarkMode,
+    required this.child,
+  });
+
+  final String message;
+  final bool isDarkMode;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: message,
+      waitDuration: const Duration(milliseconds: 280),
+      showDuration: const Duration(seconds: 4),
+      preferBelow: true,
+      verticalOffset: 14,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1D22) : const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF3A4048) : const Color(0xFF1F2937),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.35 : 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      textStyle: TextStyle(
+        fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        height: 1.25,
+        color: isDarkMode ? const Color(0xFFF3F4F6) : Colors.white,
+      ),
+      child: child,
+    );
+  }
 }
 
 class _ToolSegment extends StatefulWidget {
@@ -902,76 +1315,87 @@ class _ToolSegmentState extends State<_ToolSegment> {
     final idle =
         widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
     final active =
-        widget.isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+        widget.isDarkMode ? const Color(0xFFF3F4F6) : const Color(0xFF111827);
     final hoverBg = widget.isDarkMode
-        ? Colors.white.withOpacity(0.06)
-        : Colors.black.withOpacity(0.04);
+        ? Colors.white.withOpacity(0.1)
+        : const Color(0xFFF8FAFC);
     final fabController = Get.find<FloatingActionButtonsController>();
     final color = _hovering ? active : idle;
 
-    final chip = MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      cursor: SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: widget.spec.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          color: _hovering ? hoverBg : Colors.transparent,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.spec.icon, size: 13, color: color),
-              const SizedBox(width: 6),
-              Text(
-                widget.spec.label,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                  color: color,
-                  height: 1,
-                ),
-              ),
-            ],
+    final chip = AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOutCubic,
+      height: HomeUi.controlHeight - 2,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: _hovering ? hoverBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd - 2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HomeUi.brandIcon(icon: widget.spec.icon, size: HomeUi.iconSm),
+          const SizedBox(width: 6),
+          Text(
+            widget.spec.label,
+            style: TextStyle(
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontFamilyFallback: Constants.FONT_FALLBACK,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: color,
+              height: 1,
+            ),
           ),
-        ),
+        ],
       ),
     );
 
-    return Tooltip(
-      message: 'Drag out to pin as floating button',
-      waitDuration: const Duration(milliseconds: 600),
-      child: Draggable<FABType>(
-        data: widget.spec.fabType,
-        onDragEnd: (_) => fabController.addFAB(widget.spec.fabType),
-        feedback: Material(
-          elevation: 6,
-          borderRadius: BorderRadius.circular(6),
-          color: widget.isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(widget.spec.icon, size: 14, color: active),
-                const SizedBox(width: 6),
-                Text(
-                  widget.spec.label,
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: active,
-                  ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      cursor: SystemMouseCursors.click,
+      child: _HeaderTooltip(
+        message: widget.spec.tooltip,
+        isDarkMode: widget.isDarkMode,
+        child: GestureDetector(
+          onTap: widget.spec.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Draggable<FABType>(
+            data: widget.spec.fabType,
+            onDragEnd: (_) => fabController.addFAB(widget.spec.fabType),
+            feedback: Material(
+              elevation: 8,
+              shadowColor: Colors.black.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(8),
+              color: widget.isDarkMode ? const Color(0xFF1A1D22) : Colors.white,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    HomeUi.brandIcon(
+                        icon: widget.spec.icon, size: HomeUi.iconSm),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.spec.label,
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontFamilyFallback: Constants.FONT_FALLBACK,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: active,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
+            childWhenDragging: Opacity(opacity: 0.35, child: chip),
+            child: chip,
           ),
         ),
-        childWhenDragging: Opacity(opacity: 0.35, child: chip),
-        child: chip,
       ),
     );
   }
@@ -992,63 +1416,35 @@ class _WatchlistToggleButton extends StatefulWidget {
   State<_WatchlistToggleButton> createState() => _WatchlistToggleButtonState();
 }
 
-class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
+class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
   bool _isHovered = false;
   bool _isDragOver = false;
 
-  @override
-  void initState() {
-    super.initState();
-    
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
   void _onTap() {
-    _animationController.forward().then((_) {
-      _animationController.reverse();
-    });
     widget.onToggle?.call();
   }
 
   Future<void> _handleStockDrop(SimpleRowModel stockData) async {
     try {
       final watchlistController = Get.find<WatchlistController>();
-      
+
       // Check if we have a default watchlist
       if (watchlistController.defaultWatchlistId == null) {
         // If no default watchlist, use the first available watchlist
         if (watchlistController.watchlists.isNotEmpty) {
-          watchlistController.selectedWatchlist.value = watchlistController.watchlists.first;
+          watchlistController.selectedWatchlist.value =
+              watchlistController.watchlists.first;
         } else {
           // Show error if no watchlists exist
-          _showErrorSnackBar('No watchlists available. Please create a watchlist first.');
+          _showErrorSnackBar(
+              'No watchlists available. Please create a watchlist first.');
           return;
         }
       }
 
       // Extract current price from multiple sources
       double currentPrice = 0.0;
-      
+
       // First try to get price from the price field
       if (stockData.price != null) {
         currentPrice = stockData.price!.toDouble();
@@ -1057,7 +1453,8 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
         final priceField = stockData.fields['price'];
         if (priceField is String && priceField != '-') {
           // Remove $ and parse the number
-          final cleanPrice = priceField.replaceAll('\$', '').replaceAll(',', '');
+          final cleanPrice =
+              priceField.replaceAll('\$', '').replaceAll(',', '');
           currentPrice = double.tryParse(cleanPrice) ?? 0.0;
         }
       }
@@ -1078,13 +1475,15 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
       // Prepare stock data for API
       final stockToAdd = {
         'ticker': stockData.symbol,
-        'current_price': currentPrice,  // Backend expects underscore, not camelCase
+        'current_price':
+            currentPrice, // Backend expects underscore, not camelCase
         'addedAt': DateTime.now().toIso8601String(),
       };
 
       // Add stock to the default/selected watchlist
-      final success = await watchlistController.addStocksToWatchlist([stockToAdd]);
-      
+      final success =
+          await watchlistController.addStocksToWatchlist([stockToAdd]);
+
       if (success) {
         _showSuccessSnackBar('${stockData.symbol} added to watchlist');
       } else {
@@ -1121,14 +1520,16 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final hits = (data['hits'] as List?) ?? [];
-        
+
         if (hits.isNotEmpty) {
-          final doc = (hits.first['document'] as Map?)?.cast<String, dynamic>() ?? {};
+          final doc =
+              (hits.first['document'] as Map?)?.cast<String, dynamic>() ?? {};
           Map<String, dynamic>? sd;
           final v = doc['\$stocks_data'] ?? doc['stocks_data'];
           if (v is Map) sd = v.cast<String, dynamic>();
-          if (v is List && v.isNotEmpty) sd = (v.first as Map).cast<String, dynamic>();
-          
+          if (v is List && v.isNotEmpty)
+            sd = (v.first as Map).cast<String, dynamic>();
+
           if (sd != null && sd['currentPrice'] != null) {
             return double.tryParse(sd['currentPrice'].toString());
           }
@@ -1168,79 +1569,71 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton>
   }
 
   Widget _buildButtonContent() {
-    final border =
-        widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
     final idle =
         widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
     final active =
         widget.isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
-    final accent = const Color(0xFF81AACE);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: _onTap,
-        child: AnimatedBuilder(
-          animation: _scaleAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _scaleAnimation.value,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                height: 30,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: _isDragOver
-                      ? accent.withOpacity(widget.isDarkMode ? 0.2 : 0.12)
-                      : widget.isOpen
-                          ? (widget.isDarkMode
-                              ? const Color(0xFF1C2430)
-                              : const Color(0xFFEFF6FF))
-                          : (_isHovered
-                              ? (widget.isDarkMode
-                                  ? const Color(0xFF1A1A1A)
-                                  : const Color(0xFFF3F4F6))
-                              : (widget.isDarkMode
-                                  ? const Color(0xFF161616)
-                                  : const Color(0xFFFAFAFA))),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: _isDragOver || widget.isOpen ? accent : border,
-                    width: 1,
+      cursor: SystemMouseCursors.click,
+      child: _HeaderTooltip(
+        message: widget.isOpen ? 'Close watchlist' : 'Open watchlist',
+        isDarkMode: widget.isDarkMode,
+        child: GestureDetector(
+          onTap: _onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            height: HomeUi.controlHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: _isDragOver
+                  ? const Color(0xFFC42329)
+                      .withOpacity(widget.isDarkMode ? 0.16 : 0.08)
+                  : widget.isOpen
+                      ? (widget.isDarkMode
+                          ? const Color(0xFF1C2430)
+                          : const Color(0xFFEFF6FF))
+                      : (_isHovered
+                          ? HomeUi.cardBg(widget.isDarkMode)
+                          : HomeUi.elevatedBg(widget.isDarkMode)),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(
+                color: _isDragOver || widget.isOpen
+                    ? const Color(0xFFC42329).withOpacity(0.55)
+                    : (_isHovered
+                        ? HomeUi.borderStrong(widget.isDarkMode)
+                        : HomeUi.borderLight(widget.isDarkMode)),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                HomeUi.brandIcon(
+                  icon: _isDragOver
+                      ? CupertinoIcons.plus_circle_fill
+                      : CupertinoIcons.bookmark_fill,
+                  size: HomeUi.iconSm,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _isDragOver ? 'Add' : 'Watchlist',
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontFamilyFallback: Constants.FONT_FALLBACK,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    height: 1,
+                    color: widget.isOpen || _isDragOver || _isHovered
+                        ? active
+                        : idle,
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _isDragOver
-                        ? Icon(CupertinoIcons.plus_circle, size: 14, color: accent)
-                        : SvgPicture.asset(
-                            'resources/bookmark.svg',
-                            width: 13,
-                            height: 13,
-                            colorFilter: ColorFilter.mode(
-                              widget.isOpen ? accent : idle,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _isDragOver ? 'Add' : 'Watchlist',
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        height: 1,
-                        color: widget.isOpen || _isDragOver ? active : idle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         ),
       ),
     );

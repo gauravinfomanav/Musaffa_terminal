@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/Screens/register_screen.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/utils.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? initialEmail;
@@ -129,11 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Center(
-                            child: SvgPicture.asset(
-                              'resources/Small Logo.svg',
-                              height: 28,
-                              fit: BoxFit.contain,
-                            ),
+                            child: const MusaffaLogo(height: 28),
                           ),
                           const SizedBox(height: 20),
                           Text(

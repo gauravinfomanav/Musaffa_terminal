@@ -147,22 +147,11 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
         final columns =
             _buildFinancialColumns(quarterlyRatiosController.quarters);
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12.0),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDarkMode
-                  ? const Color(0xFF404040)
-                  : const Color(0xFFE5E7EB),
-              width: 0.5,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: DynamicTableFromWeb(
+        return DynamicTableFromWeb(
               title: widget.title,
+              subtitle: 'Quarterly financial ratios',
+              toolbarLeadingIcon: Icons.percent_rounded,
+              showOuterShadow: true,
               columns: columns,
               rows: _mapFinancialRowsToDynamicRows(transformedData),
               paginated: false,
@@ -184,9 +173,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               autoPinStatColumns: false,
               showPinnedSectionDividers: false,
               columnSpacing: responsiveColumnSpacing,
-            ),
-          ),
-        );
+            );
       } else {
         // Show Annual Ratios
         if (annualRatiosController.isLoading.value) {
@@ -220,22 +207,11 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
           _getResponsiveRatiosColumnSpacing(annualRatiosController.years);
         final columns = _buildFinancialColumns(annualRatiosController.years);
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12.0),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDarkMode
-                  ? const Color(0xFF404040)
-                  : const Color(0xFFE5E7EB),
-              width: 0.5,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: DynamicTableFromWeb(
+        return DynamicTableFromWeb(
               title: widget.title,
+              subtitle: 'Annual financial ratios',
+              toolbarLeadingIcon: Icons.percent_rounded,
+              showOuterShadow: true,
               columns: columns,
               rows: transformedData,
               paginated: false,
@@ -257,9 +233,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               autoPinStatColumns: false,
               showPinnedSectionDividers: false,
               columnSpacing: responsiveColumnSpacing,
-            ),
-          ),
-        );
+            );
       }
     });
   }
@@ -280,7 +254,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
         key: period,
         label: period,
         width: 80,
-        align: TextAlign.center,
+        align: TextAlign.right,
         sortable: true,
       );
     }));

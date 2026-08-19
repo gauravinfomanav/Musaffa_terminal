@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/models/recommendation_model.dart';
 import 'package:musaffa_terminal/models/recommendation_trend_model.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -21,15 +21,23 @@ class RecommendationWidget extends StatefulWidget {
 }
 
 class _RecommendationWidgetState extends State<RecommendationWidget> {
+  static const Color _strongBuy = Color(0xFF059669);
+  static const Color _buy = Color(0xFF34D399);
+  static const Color _hold = Color(0xFFE4621E);
+  static const Color _sell = Color(0xFFF87171);
+  static const Color _strongSell = Color(0xFFDC2626);
+
   @override
   void initState() {
     super.initState();
-    // Fetch is now called from ticker_detail_screen.dart to ensure it happens even if widget is hidden
-    // Only fetch here if controller doesn't have data and isn't loading
-    if (!widget.controller.isLoading && widget.controller.recommendation == null && widget.controller.error == null) {
-    widget.controller.fetchRecommendation(widget.symbol);
+    if (!widget.controller.isLoading &&
+        widget.controller.recommendation == null &&
+        widget.controller.error == null) {
+      widget.controller.fetchRecommendation(widget.symbol);
     }
   }
+
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   Widget build(BuildContext context) {
@@ -49,48 +57,31 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
           return const SizedBox.shrink();
         }
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left side: Recommendation Trend chart
-              Expanded(
-                flex: 2,
-                child: _buildTrendPanel(recommendation),
+              HomeUi.tableToolbarHeader(
+                _isDark,
+                icon: Icons.thumbs_up_down_outlined,
+                title: 'Recommendation Trend',
+                subtitleText: 'Analyst consensus over the last 12 months',
               ),
-              const SizedBox(width: 24),
-              // Right side: Recommendation bars
-              Expanded(
-                flex: 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Analyst Ratings',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildRecommendationBar('Strong Buy', recommendation.strongBuy, Colors.green, widget.controller.getStrongBuyPercentage()),
-                    _buildRecommendationBar('Buy', recommendation.buy, Colors.lightGreen, widget.controller.getBuyPercentage()),
-                    _buildRecommendationBar('Hold', recommendation.hold, Colors.orange, widget.controller.getHoldPercentage()),
-                    _buildRecommendationBar('Sell', recommendation.sell, Colors.red, widget.controller.getSellPercentage()),
-                    _buildRecommendationBar('Strong Sell', recommendation.strongSell, Colors.red[900]!, widget.controller.getStrongSellPercentage()),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Total: ${widget.controller.totalRecommendations}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: _buildTrendPanel(recommendation),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    flex: 1,
+                    child: _buildRatingsPanel(recommendation),
+                  ),
+                ],
               ),
             ],
           ),
@@ -100,7 +91,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
   }
 
   Widget _buildTrendPanel(RecommendationModel recommendation) {
-    if (widget.controller.isTrendLoading && widget.controller.trendHistory.isEmpty) {
+    if (widget.controller.isTrendLoading &&
+        widget.controller.trendHistory.isEmpty) {
       return _buildTrendLoading();
     }
     if (widget.controller.trendError != null &&
@@ -116,126 +108,112 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     final RecommendationTrendModel? previous =
         trends.length > 1 ? trends[trends.length - 2] : null;
     final String trendText = _deriveTrendText(latest, previous);
+    final Color? trendColor = trendText == 'More Bullish'
+        ? HomeUi.positive(_isDark)
+        : trendText == 'More Bearish'
+            ? HomeUi.negative(_isDark)
+            : null;
+    final Color? consensusColor = latest.consensusText.toLowerCase().contains('buy')
+        ? HomeUi.positive(_isDark)
+        : latest.consensusText.toLowerCase().contains('sell')
+            ? HomeUi.negative(_isDark)
+            : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          'Recommendation Trend',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w400,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-        ),
-        const SizedBox(height: 10),
         Row(
           children: <Widget>[
-            _summaryCard('Current Consensus', latest.consensusText),
-            const SizedBox(width: 8),
-            _summaryCard('Latest Analysts', latest.total.toString()),
-            const SizedBox(width: 8),
-            _summaryCard('Trend', trendText),
+            Expanded(
+              child: HomeUi.detailSummaryMetric(
+                dark: _isDark,
+                label: 'Current Consensus',
+                value: latest.consensusText,
+                valueColor: consensusColor,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: HomeUi.detailSummaryMetric(
+                dark: _isDark,
+                label: 'Latest Analysts',
+                value: latest.total.toString(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: HomeUi.detailSummaryMetric(
+                dark: _isDark,
+                label: 'Trend',
+                value: trendText,
+                valueColor: trendColor,
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
         SizedBox(
-          height: 210,
+          height: 248,
           child: SfCartesianChart(
-            legend: const Legend(
+            plotAreaBorderWidth: 0,
+            margin: const EdgeInsets.fromLTRB(0, 8, 8, 0),
+            legend: Legend(
               isVisible: true,
               position: LegendPosition.bottom,
               overflowMode: LegendItemOverflowMode.wrap,
-              textStyle: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-              ),
+              padding: 0,
+              itemPadding: 12,
+              iconHeight: 10,
+              iconWidth: 16,
+              textStyle: HomeUi.tableCellSecondary(_isDark).copyWith(fontSize: 12),
             ),
             tooltipBehavior: TooltipBehavior(
               enable: true,
-              builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+              color: Colors.transparent,
+              borderColor: Colors.transparent,
+              elevation: 0,
+              builder: (
+                dynamic data,
+                dynamic point,
+                dynamic series,
+                int pointIndex,
+                int seriesIndex,
+              ) {
                 if (pointIndex < 0 || pointIndex >= trends.length) {
                   return const SizedBox.shrink();
                 }
-                final RecommendationTrendModel p = trends[pointIndex];
-                return Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    'Period: ${p.period}\n'
-                    'Strong Buy: ${p.strongBuy}\n'
-                    'Buy: ${p.buy}\n'
-                    'Hold: ${p.hold}\n'
-                    'Sell: ${p.sell}\n'
-                    'Strong Sell: ${p.strongSell}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  ),
-                );
+                return _trendTooltip(trends[pointIndex]);
               },
             ),
             primaryXAxis: CategoryAxis(
-              labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
+              majorGridLines: const MajorGridLines(width: 0),
+              majorTickLines: const MajorTickLines(size: 0),
+              axisLine: AxisLine(width: 1, color: HomeUi.borderLight(_isDark)),
+              labelPlacement: LabelPlacement.onTicks,
+              labelIntersectAction: AxisLabelIntersectAction.none,
+              maximumLabels: 6,
+              labelStyle: HomeUi.subtitle(_isDark).copyWith(
+                fontSize: 11,
+                height: 1.15,
+                fontWeight: FontWeight.w500,
               ),
             ),
             primaryYAxis: NumericAxis(
-              title: const AxisTitle(
-                text: 'No. of Recommendations',
-                textStyle: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                ),
-              ),
-              labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
+              majorGridLines: const MajorGridLines(width: 0),
+              majorTickLines: const MajorTickLines(size: 0),
+              axisLine: AxisLine(width: 1, color: HomeUi.borderLight(_isDark)),
+              labelStyle: HomeUi.subtitle(_isDark).copyWith(
+                fontSize: 11,
+                height: 1.15,
+                fontWeight: FontWeight.w500,
               ),
             ),
             series: <CartesianSeries<RecommendationTrendModel, String>>[
-              LineSeries<RecommendationTrendModel, String>(
-                name: 'Strong Buy',
-                color: Colors.green,
-                dataSource: trends,
-                xValueMapper: (RecommendationTrendModel t, _) => t.period,
-                yValueMapper: (RecommendationTrendModel t, _) => t.strongBuy,
-              ),
-              LineSeries<RecommendationTrendModel, String>(
-                name: 'Buy',
-                color: Colors.lightGreen,
-                dataSource: trends,
-                xValueMapper: (RecommendationTrendModel t, _) => t.period,
-                yValueMapper: (RecommendationTrendModel t, _) => t.buy,
-              ),
-              LineSeries<RecommendationTrendModel, String>(
-                name: 'Hold',
-                color: Colors.orange,
-                dataSource: trends,
-                xValueMapper: (RecommendationTrendModel t, _) => t.period,
-                yValueMapper: (RecommendationTrendModel t, _) => t.hold,
-              ),
-              LineSeries<RecommendationTrendModel, String>(
-                name: 'Sell',
-                color: const Color(0xFFFF8A65),
-                dataSource: trends,
-                xValueMapper: (RecommendationTrendModel t, _) => t.period,
-                yValueMapper: (RecommendationTrendModel t, _) => t.sell,
-              ),
-              LineSeries<RecommendationTrendModel, String>(
-                name: 'Strong Sell',
-                color: Colors.red,
-                dataSource: trends,
-                xValueMapper: (RecommendationTrendModel t, _) => t.period,
-                yValueMapper: (RecommendationTrendModel t, _) => t.strongSell,
-              ),
+              _trendLine('Strong Buy', _strongBuy, trends, (t) => t.strongBuy),
+              _trendLine('Buy', _buy, trends, (t) => t.buy),
+              _trendLine('Hold', _hold, trends, (t) => t.hold),
+              _trendLine('Sell', _sell, trends, (t) => t.sell),
+              _trendLine('Strong Sell', _strongSell, trends, (t) => t.strongSell),
             ],
           ),
         ),
@@ -243,33 +221,166 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     );
   }
 
-  Widget _summaryCard(String label, String value) {
-    return Expanded(
+  SplineSeries<RecommendationTrendModel, String> _trendLine(
+    String name,
+    Color color,
+    List<RecommendationTrendModel> trends,
+    int Function(RecommendationTrendModel) y,
+  ) {
+    return SplineSeries<RecommendationTrendModel, String>(
+      name: name,
+      color: color,
+      width: 2.4,
+      dataSource: trends,
+      xValueMapper: (RecommendationTrendModel t, _) => _formatPeriod(t.period),
+      yValueMapper: (RecommendationTrendModel t, _) => y(t),
+      markerSettings: const MarkerSettings(isVisible: false),
+      legendIconType: LegendIconType.horizontalLine,
+    );
+  }
+
+  Widget _trendTooltip(RecommendationTrendModel p) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: HomeUi.cardBg(_isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(_isDark)),
+        boxShadow: HomeUi.cardShadow(_isDark),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            _formatPeriod(p.period),
+            style: HomeUi.tableCellSecondary(_isDark),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
+            'Strong Buy  ${p.strongBuy}\n'
+            'Buy  ${p.buy}\n'
+            'Hold  ${p.hold}\n'
+            'Sell  ${p.sell}\n'
+            'Strong Sell  ${p.strongSell}',
+            style: HomeUi.tableCellEmphasis(_isDark).copyWith(height: 1.45),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingsPanel(RecommendationModel recommendation) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ANALYST RATINGS',
+          style: HomeUi.overline(_isDark).copyWith(
+            fontSize: 10,
+            letterSpacing: 1.1,
+            color: HomeUi.title(_isDark),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _ratingRow('Strong Buy', recommendation.strongBuy, _strongBuy,
+            widget.controller.getStrongBuyPercentage()),
+        _ratingRow('Buy', recommendation.buy, _buy,
+            widget.controller.getBuyPercentage()),
+        _ratingRow('Hold', recommendation.hold, _hold,
+            widget.controller.getHoldPercentage()),
+        _ratingRow('Sell', recommendation.sell, _sell,
+            widget.controller.getSellPercentage()),
+        _ratingRow('Strong Sell', recommendation.strongSell, _strongSell,
+            widget.controller.getStrongSellPercentage()),
+        const SizedBox(height: 14),
+        Text(
+          'Total  ${widget.controller.totalRecommendations}',
+          style: HomeUi.tableCellSecondary(_isDark),
+        ),
+      ],
+    );
+  }
+
+  Widget _ratingRow(String label, int count, Color color, double percentage) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: HomeUi.tableCellSecondary(_isDark).copyWith(fontSize: 12.5),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              child: SizedBox(
+                height: 10,
+                child: Stack(
+                  children: [
+                    Container(color: HomeUi.elevatedBg(_isDark)),
+                    FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: (percentage / 100).clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 40,
+            child: Text(
+              '${percentage.toStringAsFixed(0)}%',
+              textAlign: TextAlign.right,
+              style: HomeUi.tableNumeric(_isDark),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 28,
+            child: Text(
+              count.toString(),
+              textAlign: TextAlign.right,
+              style: HomeUi.tableCellEmphasis(_isDark),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatPeriod(String period) {
+    final DateTime? date = DateTime.tryParse(period);
+    if (date == null) return period;
+    const List<String> months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final String year = (date.year % 100).toString().padLeft(2, '0');
+    return "${months[date.month - 1]} '$year";
   }
 
   String _deriveTrendText(
@@ -288,9 +399,9 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        ShimmerWidgets.box(height: 14, width: 150),
-        const SizedBox(height: 10),
-        ShimmerWidgets.box(height: 180, width: double.infinity),
+        ShimmerWidgets.box(height: 56, width: double.infinity),
+        const SizedBox(height: 14),
+        ShimmerWidgets.box(height: 220, width: double.infinity),
       ],
     );
   }
@@ -299,102 +410,58 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
-          'Recommendation Trend',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w400,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
+        Text(
+          'Unable to load recommendation trend',
+          style: HomeUi.subtitle(_isDark),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Unable to load recommendation trend',
-          style: TextStyle(
-            fontSize: 12,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: () => widget.controller.fetchRecommendationTrends(
+        HomeUi.ghostAction(
+          label: 'Retry',
+          onTap: () => widget.controller.fetchRecommendationTrends(
             widget.symbol,
             forceRefresh: true,
           ),
-          child: const Text('Retry'),
+          dark: _isDark,
         ),
       ],
     );
   }
 
   Widget _buildTrendEmpty() {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          'Recommendation Trend',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w400,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-        ),
-        SizedBox(height: 10),
-        Text(
-          'No recommendation trend data found',
-          style: TextStyle(
-            fontSize: 12,
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-          ),
-        ),
-      ],
+    return Text(
+      'No recommendation trend data found',
+      style: HomeUi.subtitle(_isDark),
     );
   }
 
   Widget _buildShimmerLoading() {
-    return Container(
-      padding: const EdgeInsets.all(12),
+    return Padding(
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          // Left side: Trend shimmer
           Expanded(
             flex: 2,
             child: Column(
               children: [
-                ShimmerWidgets.box(
-                  height: 14,
-                  width: 120,
-                ),
-                const SizedBox(height: 12),
-                ShimmerWidgets.box(
-                  height: 140,
-                  width: double.infinity,
-                ),
+                ShimmerWidgets.box(height: 36, width: 220),
+                const SizedBox(height: 16),
+                ShimmerWidgets.box(height: 220, width: double.infinity),
               ],
             ),
           ),
-          const SizedBox(width: 16),
-          // Right side: Bars shimmer
+          const SizedBox(width: 20),
           Expanded(
             flex: 1,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShimmerWidgets.box(
-                  height: 14,
-                  width: 100,
-                ),
-                const SizedBox(height: 12),
-                _buildShimmerBar(),
-                _buildShimmerBar(),
-                _buildShimmerBar(),
-                _buildShimmerBar(),
-                _buildShimmerBar(),
+                ShimmerWidgets.box(height: 14, width: 100),
                 const SizedBox(height: 16),
-                ShimmerWidgets.box(
-                  height: 11,
-                  width: 80,
-                ),
+                _buildShimmerBar(),
+                _buildShimmerBar(),
+                _buildShimmerBar(),
+                _buildShimmerBar(),
+                _buildShimmerBar(),
               ],
             ),
           ),
@@ -405,96 +472,14 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
 
   Widget _buildShimmerBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          ShimmerWidgets.box(
-            height: 11,
-            width: 70,
-          ),
+          ShimmerWidgets.box(height: 11, width: 70),
           const SizedBox(width: 8),
-          Expanded(
-            child: ShimmerWidgets.box(
-              height: 14,
-              width: double.infinity,
-            ),
-          ),
+          Expanded(child: ShimmerWidgets.box(height: 10, width: double.infinity)),
           const SizedBox(width: 8),
-          ShimmerWidgets.box(
-            height: 11,
-            width: 25,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationBar(String label, int count, Color color, double percentage) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 85,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 18,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Stack(
-                children: [
-                  FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: percentage / 100,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: color,
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                    ),
-                  ),
-                  if (percentage > 5)
-                    Center(
-                      child: Text(
-                        '${percentage.toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: percentage > 50 ? Colors.white : Colors.black87,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                  ),
-                ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 30,
-            child: Text(
-              count.toString(),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-              ),
-              textAlign: TextAlign.right,
-            ),
-          ),
+          ShimmerWidgets.box(height: 11, width: 28),
         ],
       ),
     );

@@ -29,6 +29,7 @@ import 'package:musaffa_terminal/Components/ticker_news_sentiment_section.dart';
 import 'package:musaffa_terminal/Components/ticker_fund_ownership_section.dart';
 import 'package:musaffa_terminal/Components/ticker_price_target_section.dart';
 import 'package:musaffa_terminal/charts/widgets/ticker_charts_tab_content.dart';
+import 'package:musaffa_terminal/charts/widgets/ticker_custom_charts_tab_content.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/terminal_financials_screen.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
@@ -72,7 +73,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late LivePriceService _livePriceService;
   late WebSocketService _webSocketService;
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
-  int _selectedTabIndex = 0; // 0 Overview, 1 Financial, 2 Charts
+  int _selectedTabIndex = 0; // 0 Overview, 1 Financial, 2 Charts, 3 Custom Charts
   bool _isInWatchlist = false;
   bool _isNotesPanelOpen = false;
   
@@ -315,7 +316,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 child: switch (_selectedTabIndex) {
                   0 => _buildOverviewTab(isDarkMode),
                   1 => _buildFinancialTab(isDarkMode),
-                  _ => _buildChartsTab(isDarkMode),
+                  2 => _buildChartsTab(isDarkMode),
+                  _ => _buildCustomChartsTab(isDarkMode),
                 },
               ),
             ],
@@ -358,9 +360,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   }
 
   Widget _buildSectionTabs(bool isDarkMode) {
-    const tabs = ['Overview', 'Financial', 'Charts'];
+    const tabs = ['Overview', 'Financial', 'Charts', 'Custom Charts'];
     return SizedBox(
-      width: 312,
+      width: 460,
       child: HomeUi.segmentedControl(
         dark: isDarkMode,
         options: tabs,
@@ -411,7 +413,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       [
         _MetricGroup(
           'Price & Market',
-          Icons.show_chart_rounded,
           [
             ('Market Cap', Constants.getShortenedMarketCapV2(stockData.usdMarketCap)),
             (
@@ -433,7 +434,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         ),
         _MetricGroup(
           'Valuation',
-          Icons.account_balance_outlined,
           [
             ('P/B Ratio', _fmtNum(stockData.pbAnnual)),
             ('P/S Ratio', _fmtNum(stockData.psTTM)),
@@ -445,7 +445,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         ),
         _MetricGroup(
           'Financial Ratios',
-          Icons.percent_rounded,
           [
             ('ROE', _fmtPct(stockData.rOE)),
             ('ROA', _fmtPct(stockData.roaTTM)),
@@ -459,7 +458,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       [
         _MetricGroup(
           'Growth',
-          Icons.trending_up_rounded,
           [
             ('Revenue (1Y)', _fmtPct(stockData.revenueGrowth1Y)),
             ('Revenue (3Y)', _fmtPct(stockData.revenueGrowth3Y)),
@@ -471,7 +469,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         ),
         _MetricGroup(
           'Risk & Efficiency',
-          Icons.shield_outlined,
           [
             ('Gross Margin', _fmtPct(stockData.grossMarginAnnual)),
             ('Operating Margin', _fmtPct(stockData.operatingMarginAnnual)),
@@ -483,7 +480,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         ),
         _MetricGroup(
           'Market & Trading',
-          Icons.candlestick_chart_outlined,
           [
             ('Avg Volume (10D)', _fmtVolume(stockData.avgVolume10days)),
             ('Avg Volume (30D)', _fmtVolume(stockData.avgVolume30days)),
@@ -516,6 +512,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return Container(
       width: double.infinity,
       decoration: HomeUi.cardDecoration(isDarkMode),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -530,47 +527,43 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           ),
           Divider(height: 1, color: HomeUi.borderLight(isDarkMode)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            child: Column(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: _KeyMetricsQuoteStrip(
+              isDark: isDarkMode,
+              marketCap: Constants.getShortenedMarketCapV2(
+                stockData.usdMarketCap,
+              ),
+              peRatio: _fmtNum(stockData.peTTM),
+              roe: _fmtPct(stockData.rOE),
+              roeValue: stockData.rOE?.toDouble(),
+              weekLow: stockData.d52WeekLow?.toDouble(),
+              weekHigh: stockData.d52WeekHigh?.toDouble(),
+              currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
+            ),
+          ),
+          for (var rowIndex = 0; rowIndex < groups.length; rowIndex++) ...[
+            Divider(height: 1, color: HomeUi.borderLight(isDarkMode)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _KeyMetricsSnapshotStrip(
-                  isDark: isDarkMode,
-                  marketCap: Constants.getShortenedMarketCapV2(
-                    stockData.usdMarketCap,
-                  ),
-                  peRatio: _fmtNum(stockData.peTTM),
-                  roe: _fmtPct(stockData.rOE),
-                  roeValue: stockData.rOE?.toDouble(),
-                  weekLow: stockData.d52WeekLow?.toDouble(),
-                  weekHigh: stockData.d52WeekHigh?.toDouble(),
-                  currentPrice:
-                      _livePrice ?? stockData.currentPrice?.toDouble(),
-                ),
-                const SizedBox(height: 14),
-                for (var rowIndex = 0; rowIndex < groups.length; rowIndex++) ...[
-                  if (rowIndex > 0) const SizedBox(height: 12),
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (var colIndex = 0;
-                            colIndex < groups[rowIndex].length;
-                            colIndex++) ...[
-                          if (colIndex > 0) const SizedBox(width: 12),
-                          Expanded(
-                            child: _KeyMetricGroupCard(
-                              isDarkMode: isDarkMode,
-                              group: groups[rowIndex][colIndex],
-                            ),
-                          ),
-                        ],
-                      ],
+                for (var colIndex = 0;
+                    colIndex < groups[rowIndex].length;
+                    colIndex++) ...[
+                  if (colIndex > 0)
+                    Container(
+                      width: 1,
+                      color: HomeUi.borderLight(isDarkMode),
+                    ),
+                  Expanded(
+                    child: _KeyMetricColumn(
+                      isDark: isDarkMode,
+                      group: groups[rowIndex][colIndex],
                     ),
                   ),
                 ],
               ],
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -684,18 +677,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: change == null
-                                ? HomeUi.elevatedBg(isDarkMode)
-                                : (isUp
-                                    ? HomeUi.positiveSoft(isDarkMode)
-                                    : HomeUi.negativeSoft(isDarkMode)),
-                            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 2),
                           child: Text(
                             change == null
                                 ? '--'
@@ -703,7 +685,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                             style: HomeUi.tableNumeric(
                               isDarkMode,
                               positiveValue: change == null ? null : isUp,
-                            ).copyWith(fontSize: 12),
+                            ).copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -1176,6 +1161,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     );
   }
 
+  Widget _buildCustomChartsTab(bool isDarkMode) {
+    return const TickerCustomChartsTabContent();
+  }
+
   Widget _buildNotesPanel(bool isDarkMode) {
     return Obx(() {
       return Container(
@@ -1313,10 +1302,9 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 }
 
 class _MetricGroup {
-  const _MetricGroup(this.title, this.icon, this.rows);
+  const _MetricGroup(this.title, this.rows);
 
   final String title;
-  final IconData icon;
   final List<(String, String)> rows;
 }
 
@@ -1342,8 +1330,8 @@ bool? _metricSignedTone(String label, String value) {
   return parsed > 0;
 }
 
-class _KeyMetricsSnapshotStrip extends StatelessWidget {
-  const _KeyMetricsSnapshotStrip({
+class _KeyMetricsQuoteStrip extends StatelessWidget {
+  const _KeyMetricsQuoteStrip({
     required this.isDark,
     required this.marketCap,
     required this.peRatio,
@@ -1365,52 +1353,76 @@ class _KeyMetricsSnapshotStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
+    return Container(
+      decoration: BoxDecoration(
+        color: HomeUi.tableHeaderBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        Expanded(
-          child: _SnapshotTile(
-            isDark: isDark,
-            label: 'Market Cap',
-            value: marketCap,
+          Container(
+            width: 3,
+            constraints: const BoxConstraints(minHeight: 72),
+            decoration: const BoxDecoration(
+              gradient: HomeUi.brandGradient,
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SnapshotTile(
-            isDark: isDark,
-            label: 'P/E Ratio',
-            value: peRatio,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+              child: _QuoteStat(
+                isDark: isDark,
+                label: 'Market Cap',
+                value: marketCap,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SnapshotTile(
-            isDark: isDark,
-            label: 'ROE',
-            value: roe,
-            signedValue: roeValue,
+          Container(width: 1, color: HomeUi.borderLight(isDark)),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+              child: _QuoteStat(
+                isDark: isDark,
+                label: 'P/E Ratio',
+                value: peRatio,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 2,
-          child: _RangeSnapshotTile(
-            isDark: isDark,
-            weekLow: weekLow,
-            weekHigh: weekHigh,
-            currentPrice: currentPrice,
+          Container(width: 1, color: HomeUi.borderLight(isDark)),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+              child: _QuoteStat(
+                isDark: isDark,
+                label: 'ROE',
+                value: roe,
+                signedValue: roeValue,
+              ),
+            ),
           ),
-        ),
+          Container(width: 1, color: HomeUi.borderLight(isDark)),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: _WeekRangeStat(
+                isDark: isDark,
+                weekLow: weekLow,
+                weekHigh: weekHigh,
+                currentPrice: currentPrice,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SnapshotTile extends StatefulWidget {
-  const _SnapshotTile({
+class _QuoteStat extends StatelessWidget {
+  const _QuoteStat({
     required this.isDark,
     required this.label,
     required this.value,
@@ -1423,74 +1435,47 @@ class _SnapshotTile extends StatefulWidget {
   final double? signedValue;
 
   @override
-  State<_SnapshotTile> createState() => _SnapshotTileState();
-}
-
-class _SnapshotTileState extends State<_SnapshotTile> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    final signed = widget.signedValue == null || widget.signedValue == 0
+    final signed = signedValue == null || signedValue == 0
         ? null
-        : widget.signedValue! > 0;
-    final valueColor = signed == null
-        ? HomeUi.title(widget.isDark)
-        : (signed ? HomeUi.positive(widget.isDark) : HomeUi.negative(widget.isDark));
+        : signedValue! > 0;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        decoration: BoxDecoration(
-          color: _hover
-              ? HomeUi.elevatedBg(widget.isDark)
-              : (widget.isDark
-                  ? HomeUi.elevatedBg(true)
-                  : const Color(0xFFFAFBFC)),
-          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-          border: Border.all(
-            color: _hover
-                ? HomeUi.borderStrong(widget.isDark)
-                : HomeUi.borderLight(widget.isDark),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.label(isDark).copyWith(
+            fontSize: 11,
+            letterSpacing: 0.2,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.label.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: HomeUi.overline(widget.isDark).copyWith(
-                fontSize: 10,
-                letterSpacing: 1.1,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              widget.value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: HomeUi.heading(widget.isDark).copyWith(
-                fontSize: 20,
-                letterSpacing: -0.6,
-                height: 1.1,
-                color: valueColor,
-              ),
-            ),
-          ],
+        const SizedBox(height: 6),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.heading(isDark).copyWith(
+            fontSize: 22,
+            letterSpacing: -0.7,
+            height: 1.05,
+            color: signed == null
+                ? HomeUi.title(isDark)
+                : (signed
+                    ? HomeUi.positive(isDark)
+                    : HomeUi.negative(isDark)),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _RangeSnapshotTile extends StatefulWidget {
-  const _RangeSnapshotTile({
+class _WeekRangeStat extends StatelessWidget {
+  const _WeekRangeStat({
     required this.isDark,
     required this.weekLow,
     required this.weekHigh,
@@ -1503,376 +1488,209 @@ class _RangeSnapshotTile extends StatefulWidget {
   final double? currentPrice;
 
   @override
-  State<_RangeSnapshotTile> createState() => _RangeSnapshotTileState();
-}
-
-class _RangeSnapshotTileState extends State<_RangeSnapshotTile> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    final low = widget.weekLow;
-    final high = widget.weekHigh;
-    final price = widget.currentPrice;
+    final low = weekLow;
+    final high = weekHigh;
+    final price = currentPrice;
     final hasRange = low != null && high != null && high > low;
     final t = hasRange && price != null
         ? ((price - low) / (high - low)).clamp(0.0, 1.0)
         : 0.5;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        decoration: BoxDecoration(
-          color: _hover
-              ? HomeUi.elevatedBg(widget.isDark)
-              : (widget.isDark
-                  ? HomeUi.elevatedBg(true)
-                  : const Color(0xFFFAFBFC)),
-          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-          border: Border.all(
-            color: _hover
-                ? HomeUi.borderStrong(widget.isDark)
-                : HomeUi.borderLight(widget.isDark),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '52-Week Range',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.label(isDark).copyWith(
+            fontSize: 11,
+            letterSpacing: 0.2,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 10),
+        Row(
           children: [
-            Text(
-              '52-WEEK RANGE',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: HomeUi.overline(widget.isDark).copyWith(
-                fontSize: 10,
-                letterSpacing: 1.1,
+            Expanded(
+              child: Text(
+                hasRange ? '\$${low.toStringAsFixed(2)}' : '--',
+                style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 11),
               ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    hasRange ? '\$${low.toStringAsFixed(2)}' : '--',
-                    style: HomeUi.tableCellSecondary(widget.isDark).copyWith(
-                      fontSize: 11,
-                    ),
-                  ),
+            if (price != null)
+              Text(
+                '\$${price.toStringAsFixed(2)}',
+                style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                  fontSize: 12,
+                  letterSpacing: -0.2,
                 ),
-                if (price != null)
-                  Text(
-                    '\$${price.toStringAsFixed(2)}',
-                    style: HomeUi.tableCellEmphasis(widget.isDark).copyWith(
-                      fontSize: 12,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                Expanded(
-                  child: Text(
-                    hasRange ? '\$${high.toStringAsFixed(2)}' : '--',
-                    textAlign: TextAlign.right,
-                    style: HomeUi.tableCellSecondary(widget.isDark).copyWith(
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            Expanded(
+              child: Text(
+                hasRange ? '\$${high.toStringAsFixed(2)}' : '--',
+                textAlign: TextAlign.right,
+                style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 11),
+              ),
             ),
-            const SizedBox(height: 8),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final thumb = (t * constraints.maxWidth).clamp(5.0, constraints.maxWidth - 5);
-                return SizedBox(
-                  height: 8,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        height: 6,
-                        margin: const EdgeInsets.only(top: 1),
+          ],
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final thumb =
+                (t * constraints.maxWidth).clamp(5.0, constraints.maxWidth - 5);
+            return SizedBox(
+              height: 8,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                      color: HomeUi.border(isDark),
+                      borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                    ),
+                  ),
+                  if (hasRange)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        width: (t * constraints.maxWidth).clamp(4.0, constraints.maxWidth),
+                        height: 4,
+                        margin: const EdgeInsets.only(top: 2),
                         decoration: BoxDecoration(
-                          color: widget.isDark
-                              ? const Color(0xFF2A2E34)
-                              : const Color(0xFFE6E8EC),
+                          gradient: HomeUi.iconFillGradient,
                           borderRadius: BorderRadius.circular(HomeUi.radiusPill),
                         ),
                       ),
-                      if (hasRange)
-                        FractionallySizedBox(
-                          widthFactor: t,
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            height: 6,
-                            margin: const EdgeInsets.only(top: 1),
-                            decoration: BoxDecoration(
-                              gradient: HomeUi.iconFillGradient,
-                              borderRadius:
-                                  BorderRadius.circular(HomeUi.radiusPill),
-                            ),
+                    ),
+                  if (hasRange)
+                    Positioned(
+                      left: thumb - 5,
+                      top: 0,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: HomeUi.cardBg(isDark),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFC42329),
+                            width: 1.5,
                           ),
                         ),
-                      if (hasRange)
-                        Positioned(
-                          left: thumb - 5,
-                          top: -1,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: HomeUi.cardBg(widget.isDark),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFD2364C),
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(
-                                    alpha: widget.isDark ? 0.28 : 0.08,
-                                  ),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KeyMetricGroupCard extends StatefulWidget {
-  const _KeyMetricGroupCard({
-    required this.isDarkMode,
-    required this.group,
-  });
-
-  final bool isDarkMode;
-  final _MetricGroup group;
-
-  @override
-  State<_KeyMetricGroupCard> createState() => _KeyMetricGroupCardState();
-}
-
-class _KeyMetricGroupCardState extends State<_KeyMetricGroupCard> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final group = widget.group;
-    final isDark = widget.isDarkMode;
-    final hero = group.rows.isEmpty ? null : group.rows.first;
-    final rest = group.rows.length <= 1 ? const <(String, String)>[] : group.rows.sublist(1);
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: isDark ? HomeUi.elevatedBg(true) : const Color(0xFFFAFBFC),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _hover ? HomeUi.borderStrong(isDark) : HomeUi.borderLight(isDark),
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: HomeUi.iconWellGradient,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: HomeUi.iconWellBorder),
-                    ),
-                    child: HomeUi.brandIcon(
-                      icon: group.icon,
-                      size: HomeUi.iconSm,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      group.title.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: HomeUi.overline(isDark).copyWith(
-                        fontSize: 10.5,
-                        letterSpacing: 1.15,
-                        color: HomeUi.body(isDark),
                       ),
                     ),
-                  ),
                 ],
               ),
-            ),
-            if (hero != null) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                child: _HeroMetric(
-                  isDark: isDark,
-                  label: hero.$1,
-                  value: hero.$2,
-                ),
-              ),
-              Divider(height: 1, color: HomeUi.borderLight(isDark)),
-            ],
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-              child: Column(
-                children: [
-                  for (var i = 0; i < rest.length; i++) ...[
-                    _MetricDataRow(
-                      isDark: isDark,
-                      label: rest[i].$1,
-                      value: rest[i].$2,
-                    ),
-                    if (i < rest.length - 1)
-                      Divider(
-                        height: 1,
-                        indent: 8,
-                        endIndent: 8,
-                        color: HomeUi.borderLight(isDark).withValues(alpha: 0.7),
-                      ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroMetric extends StatelessWidget {
-  const _HeroMetric({
-    required this.isDark,
-    required this.label,
-    required this.value,
-  });
-
-  final bool isDark;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final signed = _metricSignedTone(label, value);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: HomeUi.heading(isDark).copyWith(
-            fontSize: 22,
-            letterSpacing: -0.7,
-            height: 1.05,
-            color: signed == null
-                ? null
-                : (signed
-                    ? HomeUi.positive(isDark)
-                    : HomeUi.negative(isDark)),
-          ),
+            );
+          },
         ),
       ],
     );
   }
 }
 
-class _MetricDataRow extends StatefulWidget {
-  const _MetricDataRow({
+class _KeyMetricColumn extends StatelessWidget {
+  const _KeyMetricColumn({
+    required this.isDark,
+    required this.group,
+  });
+
+  final bool isDark;
+  final _MetricGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            group.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: HomeUi.sectionTitle(isDark).copyWith(
+              fontSize: 13.5,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: 20,
+            height: 2,
+            decoration: BoxDecoration(
+              gradient: HomeUi.iconFillGradient,
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (var i = 0; i < group.rows.length; i++)
+            _MetricKvRow(
+              isDark: isDark,
+              label: group.rows[i].$1,
+              value: group.rows[i].$2,
+              striped: i.isOdd,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricKvRow extends StatelessWidget {
+  const _MetricKvRow({
     required this.isDark,
     required this.label,
     required this.value,
+    required this.striped,
   });
 
   final bool isDark;
   final String label;
   final String value;
-
-  @override
-  State<_MetricDataRow> createState() => _MetricDataRowState();
-}
-
-class _MetricDataRowState extends State<_MetricDataRow> {
-  bool _hover = false;
+  final bool striped;
 
   @override
   Widget build(BuildContext context) {
-    final signed = _metricSignedTone(widget.label, widget.value);
-    final parsed = double.tryParse(
-      widget.value.replaceAll(RegExp(r'[^0-9.\-]'), ''),
-    );
+    final signed = _metricSignedTone(label, value);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          color: _hover ? HomeUi.tableRowHover(widget.isDark) : Colors.transparent,
-          borderRadius: BorderRadius.circular(HomeUi.radiusSm),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                widget.label,
-                style: HomeUi.tableCellSecondary(widget.isDark).copyWith(
-                  fontSize: 12,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      decoration: BoxDecoration(
+        color: striped ? HomeUi.tableRowOdd(isDark) : Colors.transparent,
+        borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Text(
+              label,
+              style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(width: 10),
-            if (signed != null && parsed != null)
-              HomeUi.signedPercentPill(widget.isDark, widget.value, parsed)
-            else
-              Text(
-                widget.value,
-                style: HomeUi.tableCellEmphasis(widget.isDark).copyWith(
-                  fontSize: 13,
-                  letterSpacing: -0.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 4,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: (signed == null
+                      ? HomeUi.tableCellEmphasis(isDark)
+                      : HomeUi.tableNumeric(isDark, positiveValue: signed))
+                  .copyWith(fontSize: 13, letterSpacing: -0.2),
+            ),
+          ),
+        ],
       ),
     );
   }

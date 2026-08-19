@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class Constants {
-  static const String FONT_DEFAULT_NEW = 'Poppins';
+  static const String FONT_DEFAULT_NEW = 'Inter';
+  static const List<String> FONT_FALLBACK = [
+    'system-ui',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'Segoe UI',
+    'sans-serif',
+  ];
 
   static String getShortenedMarketCapV2(num? value) {
     if (value == null) return "-";
@@ -41,11 +48,20 @@ class FirestoreConstants {
 // Layout Constants - Consistent spacing and padding across all screens
 class LayoutConstants {
   static const double SCREEN_PADDING = 18.0;
-  static EdgeInsets get screenPadding => 
+  static EdgeInsets get screenPadding =>
       const EdgeInsets.all(SCREEN_PADDING);
+  /// Horizontal/vertical gap between sibling cards in the same band.
   static const double SCREEN_COMPONENTS_PADDING = 12.0;
   static EdgeInsets get screenComponentsPadding =>
       const EdgeInsets.all(SCREEN_COMPONENTS_PADDING);
+  /// Vertical gap between stacked dashboard sections.
+  static const double SECTION_GAP = 12.0;
+  static EdgeInsets get dashboardBodyPadding => const EdgeInsets.fromLTRB(
+        SCREEN_PADDING,
+        SECTION_GAP,
+        SCREEN_PADDING,
+        SCREEN_PADDING,
+      );
 }
 
 class DashboardTextStyles {
@@ -60,6 +76,7 @@ class DashboardTextStyles {
         fontSize: 24,
         fontWeight: FontWeight.w600,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: primaryTextColor,
       );
 
@@ -68,6 +85,7 @@ class DashboardTextStyles {
         fontSize: 12,
         fontWeight: FontWeight.w500,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: secondaryTextColor,
       );
 
@@ -76,6 +94,7 @@ class DashboardTextStyles {
         fontSize: 14,
         fontWeight: FontWeight.w400,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: primaryTextColor,
       );
 
@@ -84,6 +103,7 @@ class DashboardTextStyles {
         fontSize: 12,
         fontWeight: FontWeight.w400,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: secondaryTextColor,
       );
 
@@ -92,6 +112,7 @@ class DashboardTextStyles {
         fontSize: 14,
         fontWeight: FontWeight.w400,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: primaryTextColor,
         height: 1,
       );
@@ -101,6 +122,7 @@ class DashboardTextStyles {
         fontSize: 12,
         fontWeight: FontWeight.w400,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: primaryTextColor,
       );
 
@@ -109,6 +131,7 @@ class DashboardTextStyles {
         fontSize: 12,
         fontWeight: FontWeight.w400,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: Colors.red.shade400,
       );
 
@@ -117,6 +140,7 @@ class DashboardTextStyles {
         fontSize: 14,
         fontWeight: FontWeight.w400,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: secondaryTextColor,
       );
 
@@ -125,6 +149,7 @@ class DashboardTextStyles {
         fontSize: 18,
         fontWeight: FontWeight.w600,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: primaryTextColor,
       );
 
@@ -132,6 +157,7 @@ class DashboardTextStyles {
         fontSize: 14,
         fontWeight: FontWeight.w500,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: secondaryTextColor,
       );
 
@@ -139,6 +165,7 @@ class DashboardTextStyles {
         fontSize: 16,
         fontWeight: FontWeight.w600,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: primaryTextColor,
       );
 
@@ -146,6 +173,7 @@ class DashboardTextStyles {
         fontSize: 14,
         fontWeight: FontWeight.w500,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: secondaryTextColor,
       );
 
@@ -153,6 +181,7 @@ class DashboardTextStyles {
         fontSize: 13,
         fontWeight: FontWeight.w500,
         fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
         color: secondaryTextColor,
       );
 }

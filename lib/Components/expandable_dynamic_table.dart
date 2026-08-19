@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 
 class ExpandableTableRowData {
@@ -326,8 +327,8 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
             child: Text(
               title,
               style: titleStyle,
-              maxLines: row.showAsId ? 2 : 1, // Allow 2 lines for IDs
-              overflow: TextOverflow.ellipsis,
+              maxLines: row.showAsId ? 2 : 1,
+              overflow: HomeUi.tableCellOverflow(title),
             ),
           ),
         if (subtitle != null && subtitle.isNotEmpty)
@@ -337,7 +338,7 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
               subtitle,
               style: subtitleStyle,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              overflow: HomeUi.tableCellOverflow(subtitle),
             ),
           ),
       ],
@@ -421,6 +422,8 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
         formattedValue,
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: HomeUi.tableCellOverflow(formattedValue, columnKey: column.key),
       );
     }
 
@@ -437,6 +440,8 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
         value,
         style: DashboardTextStyles.dataCell.copyWith(color: textColor),
         textAlign: column.alignment,
+        maxLines: 1,
+        overflow: HomeUi.tableCellOverflow(value, columnKey: column.key),
       );
     }
 

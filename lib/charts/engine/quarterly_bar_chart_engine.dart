@@ -232,11 +232,14 @@ class QuarterlyBarChartEngine {
     required QuarterlyBarChartTheme theme,
     required List<QuarterDataPoint> data,
   }) {
-    final double radius = theme.barCornerRadius;
-    if (hasMixedSigns(data)) {
-      return BorderRadius.zero;
-    }
-    if (isNegativeDominant(data)) {
+    return _barEndRadius(
+      theme.barCornerRadius,
+      negative: isNegativeDominant(data),
+    );
+  }
+
+  static BorderRadius _barEndRadius(double radius, {required bool negative}) {
+    if (negative) {
       return BorderRadius.only(
         bottomLeft: Radius.circular(radius),
         bottomRight: Radius.circular(radius),
@@ -263,15 +266,9 @@ class QuarterlyBarChartEngine {
         width: 1,
         color: theme.axisLineColor,
       ),
-      majorTickLines: MajorTickLines(
-        size: 4,
-        color: theme.axisLineColor,
-      ),
+      majorTickLines: const MajorTickLines(size: 0),
       minorTickLines: const MinorTickLines(size: 0),
-      majorGridLines: MajorGridLines(
-        width: 1,
-        color: theme.gridLineColor,
-      ),
+      majorGridLines: const MajorGridLines(width: 0),
       minorGridLines: const MinorGridLines(width: 0),
       labelStyle: axisLabelStyle,
       plotBands: const <PlotBand>[],
@@ -357,23 +354,21 @@ class QuarterlyBarChartEngine {
     required List<QuarterDataPoint> data,
   }) {
     return CategoryAxis(
-      arrangeByIndex: true,
-      labelPlacement: LabelPlacement.onTicks,
-      minimum: -0.5,
-      maximum: data.length - 0.5,
+      labelPlacement: LabelPlacement.betweenTicks,
       maximumLabels: data.length,
-      labelIntersectAction: AxisLabelIntersectAction.multipleRows,
+      labelIntersectAction: AxisLabelIntersectAction.none,
+      labelAlignment: LabelAlignment.center,
       axisLine: AxisLine(
         width: 1,
         color: theme.axisLineColor,
       ),
-      majorTickLines: MajorTickLines(
-        size: 4,
-        color: theme.axisLineColor,
-      ),
+      majorTickLines: const MajorTickLines(size: 0),
       majorGridLines: const MajorGridLines(width: 0),
-      labelStyle: axisLabelStyle,
-      plotOffset: theme.plotAreaBottomPadding,
+      labelStyle: axisLabelStyle.copyWith(
+        fontSize: 11,
+        height: 1.15,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 
@@ -403,10 +398,7 @@ class QuarterlyBarChartEngine {
         width: 1,
         color: theme.axisLineColor,
       ),
-      majorTickLines: MajorTickLines(
-        size: 4,
-        color: theme.axisLineColor,
-      ),
+      majorTickLines: const MajorTickLines(size: 0),
       majorGridLines: const MajorGridLines(width: 0),
       labelStyle: axisLabelStyle,
       interval: quarterMonths.toDouble(),
@@ -440,7 +432,7 @@ class QuarterlyBarChartEngine {
     );
   }
 
-  static CartesianSeries<QuarterDataPoint, dynamic> buildColumnSeries({
+  static List<CartesianSeries<QuarterDataPoint, dynamic>> buildColumnSeries({
     required List<QuarterDataPoint> data,
     required int latestIndex,
     int? hoveredIndex,
@@ -449,63 +441,57 @@ class QuarterlyBarChartEngine {
     bool enableTooltip = true,
     bool categoryXAxis = false,
   }) {
-    if (categoryXAxis) {
-      return ColumnSeries<QuarterDataPoint, String>(
-        dataSource: data,
-        xValueMapper: (QuarterDataPoint point, _) => point.label,
-        yValueMapper: (QuarterDataPoint point, _) => point.value,
-        pointColorMapper: (QuarterDataPoint point, int index) {
-          final bool isHighlighted =
-              index == latestIndex || index == hoveredIndex;
-          return QuarterlyChartColors.barColor(
-            point.value,
-            highlighted: isHighlighted,
+    final LinearGradient barGradient =
+        theme.barGradient ?? QuarterlyChartColors.fadedBarGradient;
+    final DataLabelSettings labels = DataLabelSettings(
+      isVisible: true,
+      labelPosition: ChartDataLabelPosition.outside,
+      labelAlignment: ChartDataLabelAlignment.auto,
+      overflowMode: OverflowMode.shift,
+      textStyle: dataLabelStyle,
+      margin: const EdgeInsets.only(top: 6, bottom: 6),
+    );
+    final BorderRadius radius = hasMixedSigns(data)
+        ? BorderRadius.circular(theme.barCornerRadius)
+        : _barEndRadius(
+            theme.barCornerRadius,
+            negative: isNegativeDominant(data),
           );
-        },
+
+    if (categoryXAxis) {
+      return <CartesianSeries<QuarterDataPoint, dynamic>>[
+        ColumnSeries<QuarterDataPoint, String>(
+          dataSource: data,
+          xValueMapper: (QuarterDataPoint point, _) => point.label,
+          yValueMapper: (QuarterDataPoint point, _) => point.value,
+          dataLabelMapper: (QuarterDataPoint point, _) =>
+              formatValue(point.value),
+          width: theme.barWidth,
+          spacing: theme.barSpacing,
+          borderRadius: radius,
+          animationDuration: 0,
+          enableTooltip: enableTooltip,
+          gradient: barGradient,
+          dataLabelSettings: labels,
+        ),
+      ];
+    }
+
+    return <CartesianSeries<QuarterDataPoint, dynamic>>[
+      ColumnSeries<QuarterDataPoint, DateTime>(
+        dataSource: data,
+        xValueMapper: (QuarterDataPoint point, _) => point.date,
+        yValueMapper: (QuarterDataPoint point, _) => point.value,
         dataLabelMapper: (QuarterDataPoint point, _) => formatValue(point.value),
         width: theme.barWidth,
         spacing: theme.barSpacing,
-        borderRadius: barBorderRadius(theme: theme, data: data),
+        borderRadius: radius,
         animationDuration: 0,
         enableTooltip: enableTooltip,
-        dataLabelSettings: DataLabelSettings(
-          isVisible: true,
-          labelPosition: ChartDataLabelPosition.outside,
-          labelAlignment: ChartDataLabelAlignment.auto,
-          overflowMode: OverflowMode.shift,
-          textStyle: dataLabelStyle,
-          margin: const EdgeInsets.only(top: 6, bottom: 6),
-        ),
-      );
-    }
-
-    return ColumnSeries<QuarterDataPoint, DateTime>(
-      dataSource: data,
-      xValueMapper: (QuarterDataPoint point, _) => point.date,
-      yValueMapper: (QuarterDataPoint point, _) => point.value,
-      pointColorMapper: (QuarterDataPoint point, int index) {
-        final bool isHighlighted =
-            index == latestIndex || index == hoveredIndex;
-        return QuarterlyChartColors.barColor(
-          point.value,
-          highlighted: isHighlighted,
-        );
-      },
-      dataLabelMapper: (QuarterDataPoint point, _) => formatValue(point.value),
-      width: theme.barWidth,
-      spacing: theme.barSpacing,
-      borderRadius: barBorderRadius(theme: theme, data: data),
-      animationDuration: 0,
-      enableTooltip: enableTooltip,
-      dataLabelSettings: DataLabelSettings(
-        isVisible: true,
-        labelPosition: ChartDataLabelPosition.outside,
-        labelAlignment: ChartDataLabelAlignment.auto,
-        overflowMode: OverflowMode.shift,
-        textStyle: dataLabelStyle,
-        margin: const EdgeInsets.only(top: 6, bottom: 6),
+        gradient: barGradient,
+        dataLabelSettings: labels,
       ),
-    );
+    ];
   }
 
   static LineSeries<PriceDataPoint, DateTime> buildPriceSeries({
@@ -613,7 +599,7 @@ class QuarterlyBarChartEngine {
 
     for (final double step in steps) {
       final int tickCount = (range / step).ceil();
-      if (tickCount >= 4 && tickCount <= 8) {
+      if (tickCount >= 2 && tickCount <= 4) {
         return step;
       }
     }

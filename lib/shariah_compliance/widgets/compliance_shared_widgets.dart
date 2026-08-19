@@ -3,6 +3,7 @@ import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class ComplianceStatusBadge extends StatelessWidget {
   const ComplianceStatusBadge({
@@ -18,23 +19,24 @@ class ComplianceStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final String normalized = label.toUpperCase();
-    Color bg;
-    Color fg;
+    final Color bg;
+    final Color fg;
     if (normalized.contains('COMPLIANT') && !normalized.contains('NON')) {
-      bg = const Color(0xFFDCFCE7);
-      fg = const Color(0xFF166534);
+      bg = HomeUi.positiveSoft(isDark);
+      fg = HomeUi.positive(isDark);
     } else if (normalized.contains('FAIL') ||
         normalized.contains('NON') ||
         normalized.contains('NOT')) {
-      bg = const Color(0xFFFEE2E2);
-      fg = const Color(0xFF991B1B);
+      bg = HomeUi.negativeSoft(isDark);
+      fg = HomeUi.negative(isDark);
     } else if (normalized.contains('QUESTION')) {
-      bg = const Color(0xFFFEF3C7);
-      fg = const Color(0xFF92400E);
+      bg = isDark ? const Color(0xFF3A2A10) : const Color(0xFFFEF3C7);
+      fg = isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E);
     } else {
-      bg = const Color(0xFFE5E7EB);
-      fg = const Color(0xFF374151);
+      bg = HomeUi.elevatedBg(isDark);
+      fg = HomeUi.muted(isDark);
     }
 
     return Container(
@@ -44,12 +46,12 @@ class ComplianceStatusBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(color: fg.withValues(alpha: 0.22)),
       ),
       child: Text(
         ComplianceFormatters.statusLabel(label),
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
+        style: HomeUi.control(isDark, active: true).copyWith(
           fontSize: fontSize ?? (compact ? 11 : 12),
           fontWeight: FontWeight.w600,
           color: fg,
@@ -75,13 +77,7 @@ class ComplianceSectionCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: padding,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-        ),
-      ),
+      decoration: HomeUi.cardDecoration(isDark),
       child: child,
     );
   }
@@ -101,11 +97,9 @@ class ComplianceMetricRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color secondary = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF6B7280);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -113,11 +107,7 @@ class ComplianceMetricRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 12,
-                color: secondary,
-              ),
+              style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
             ),
           ),
           Expanded(
@@ -128,21 +118,14 @@ class ComplianceMetricRow extends StatelessWidget {
                 Text(
                   value,
                   textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style:
+                      HomeUi.tableCellEmphasis(isDark).copyWith(fontSize: 13),
                 ),
                 if (subtitle != null)
                   Text(
                     subtitle!,
                     textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: 11,
-                      color: secondary,
-                    ),
+                    style: HomeUi.subtitle(isDark).copyWith(fontSize: 11),
                   ),
               ],
             ),
@@ -196,13 +179,15 @@ class ComplianceOutlinedActionButton extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color borderColor =
         isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-    final Color textColor = color ??
-        (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280));
+    final Color textColor =
+        color ?? (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280));
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        splashFactory: NoSplash.splashFactory,
         borderRadius: BorderRadius.circular(999),
         child: Ink(
           decoration: BoxDecoration(

@@ -1,6 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
@@ -9,6 +9,7 @@ import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class FloatingActionButtonWidget extends StatelessWidget {
   final FloatingActionButtonItem item;
@@ -86,33 +87,31 @@ class FloatingActionButtonWidget extends StatelessWidget {
 
   Widget _buildIcon() {
     final iconColor = isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF1E40AF);
-    
+
     switch (item.type) {
       case FABType.screener:
-        return SvgPicture.asset(
-          'resources/finance_mode.svg',
-          width: 24,
-          height: 24,
-          colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+        return HomeUi.vectorIcon(
+          icon: Icons.tune_rounded,
+          size: HomeUi.iconXl,
+          color: iconColor,
         );
       case FABType.ideas:
-        return Icon(
-          Icons.lightbulb_outline,
+        return HomeUi.vectorIcon(
+          icon: Icons.lightbulb,
+          size: HomeUi.iconXl,
           color: isDarkMode ? const Color(0xFFFCD34D) : const Color(0xFF92400E),
-          size: 24,
         );
       case FABType.portfolio:
-        return Icon(
-          Icons.account_balance_wallet_outlined,
+        return HomeUi.vectorIcon(
+          icon: Icons.pie_chart,
+          size: HomeUi.iconXl,
           color: iconColor,
-          size: 24,
         );
       case FABType.watchlist:
-        return SvgPicture.asset(
-          'resources/bookmark.svg',
-          width: 24,
-          height: 24,
-          colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+        return HomeUi.vectorIcon(
+          icon: Icons.bookmark,
+          size: HomeUi.iconXl,
+          color: iconColor,
         );
     }
   }

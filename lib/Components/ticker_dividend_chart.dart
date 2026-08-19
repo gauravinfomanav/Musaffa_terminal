@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
 import 'package:musaffa_terminal/models/dividend_entry.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class DividendChartPoint {
@@ -55,43 +55,54 @@ class TickerDividendChart extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final Color axisColor =
-        isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-    final Color textColor =
-        isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final Color lineColor =
-        isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
+    final Color axisColor = HomeUi.borderLight(isDarkMode);
+    final TextStyle axisLabelStyle = HomeUi.subtitle(isDarkMode).copyWith(
+      fontSize: 11,
+      height: 1.15,
+      fontWeight: FontWeight.w500,
+    );
+    final Color lineColor = const Color(0xFFE4621E);
 
     return TickerFinnhubSectionCard(
       isDarkMode: isDarkMode,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const TickerFinnhubSectionTitle(title: 'Dividend Growth'),
-          const SizedBox(height: 8),
+          HomeUi.tableToolbarHeader(
+            isDarkMode,
+            icon: Icons.show_chart,
+            title: 'Dividend Growth',
+            subtitleText: 'Historical dividend per share',
+          ),
+          const SizedBox(height: 14),
           SizedBox(
-            height: 220,
+            height: 228,
             child: SfCartesianChart(
               plotAreaBorderWidth: 0,
               margin: const EdgeInsets.only(top: 8, right: 8),
-              primaryXAxis: CategoryAxis(
-                majorGridLines: MajorGridLines(color: axisColor.withOpacity(0.3)),
-                axisLine: AxisLine(color: axisColor),
-                labelStyle: TextStyle(
-                  fontSize: 10,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: textColor,
-                ),
+              primaryXAxis: DateTimeAxis(
+                majorGridLines: const MajorGridLines(width: 0),
+                axisLine: AxisLine(width: 1, color: axisColor),
+                majorTickLines: const MajorTickLines(size: 0),
+                labelStyle: axisLabelStyle,
+                labelIntersectAction: AxisLabelIntersectAction.none,
+                edgeLabelPlacement: EdgeLabelPlacement.shift,
+                desiredIntervals: 5,
+                axisLabelFormatter: (AxisLabelRenderDetails details) {
+                  final DateTime date = DateTime.fromMillisecondsSinceEpoch(
+                    details.value.toInt(),
+                  );
+                  return ChartAxisLabel(
+                    FinnhubDisplayFormatters.formatShortDate(date),
+                    details.textStyle,
+                  );
+                },
               ),
               primaryYAxis: NumericAxis(
-                majorGridLines: MajorGridLines(color: axisColor.withOpacity(0.3)),
-                axisLine: AxisLine(color: axisColor),
-                labelStyle: TextStyle(
-                  fontSize: 10,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: textColor,
-                ),
-                numberFormat: null,
+                majorGridLines: const MajorGridLines(width: 0),
+                axisLine: AxisLine(width: 1, color: axisColor),
+                majorTickLines: const MajorTickLines(size: 0),
+                labelStyle: axisLabelStyle,
                 axisLabelFormatter: (AxisLabelRenderDetails details) {
                   return ChartAxisLabel(
                     '\$${details.value.toStringAsFixed(2)}',
@@ -101,12 +112,9 @@ class TickerDividendChart extends StatelessWidget {
               ),
               tooltipBehavior: TooltipBehavior(
                 enable: true,
-                color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFF374151),
-                textStyle: const TextStyle(
-                  fontSize: 10,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: Colors.white,
-                ),
+                color: HomeUi.cardBg(isDarkMode),
+                borderColor: HomeUi.borderLight(isDarkMode),
+                textStyle: HomeUi.tableCell(isDarkMode),
                 builder: (
                   dynamic data,
                   dynamic point,
@@ -117,29 +125,48 @@ class TickerDividendChart extends StatelessWidget {
                   if (data is! DividendChartPoint) {
                     return const SizedBox.shrink();
                   }
-                  final DividendChartPoint item = data;
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: HomeUi.cardBg(isDarkMode),
+                      borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                      border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+                    ),
                     child: Text(
-                      '${item.label}\n'
-                      'Amount: ${FinnhubDisplayFormatters.formatDividend(item.amount)}',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: Colors.white,
-                      ),
+                      '${data.label}\n'
+                      'Amount: ${FinnhubDisplayFormatters.formatDividend(data.amount)}',
+                      style: HomeUi.tableCell(isDarkMode).copyWith(fontSize: 12),
                     ),
                   );
                 },
               ),
-              series: <CartesianSeries<DividendChartPoint, String>>[
-                LineSeries<DividendChartPoint, String>(
+              series: <CartesianSeries<DividendChartPoint, DateTime>>[
+                SplineAreaSeries<DividendChartPoint, DateTime>(
                   dataSource: points,
-                  xValueMapper: (DividendChartPoint item, _) => item.label,
+                  xValueMapper: (DividendChartPoint item, _) => item.date,
                   yValueMapper: (DividendChartPoint item, _) => item.amount,
-                  color: lineColor,
-                  width: 2,
-                  markerSettings: const MarkerSettings(isVisible: true, height: 4, width: 4),
+                  borderWidth: 2.5,
+                  borderColor: lineColor,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      lineColor.withValues(alpha: isDarkMode ? 0.38 : 0.28),
+                      const Color(0xFF6A2C72)
+                          .withValues(alpha: isDarkMode ? 0.10 : 0.04),
+                    ],
+                  ),
+                  markerSettings: MarkerSettings(
+                    isVisible: true,
+                    height: 7,
+                    width: 7,
+                    color: HomeUi.cardBg(isDarkMode),
+                    borderWidth: 2,
+                    borderColor: lineColor,
+                  ),
                 ),
               ],
             ),

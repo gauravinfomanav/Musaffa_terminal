@@ -7,6 +7,7 @@ import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class MainTickerCell extends StatelessWidget {
   const MainTickerCell(
@@ -79,13 +80,15 @@ class MainTickerCell extends StatelessWidget {
                           Text(
                             model.companyName,
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: DashboardTextStyles.stockName,
+                            overflow: HomeUi.tableCellOverflow(model.companyName),
+                            style: DashboardTextStyles.stockName.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           Text(
                             model.tickerName,
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            overflow: HomeUi.tableCellOverflow(model.tickerName),
                             style: DashboardTextStyles.tickerSymbol,
                           ),
                         ],

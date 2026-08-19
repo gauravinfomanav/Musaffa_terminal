@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_stock_model.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
@@ -11,6 +12,8 @@ class WatchlistStocksTable extends StatefulWidget {
   final bool isLoading;
   final String? errorMessage;
   final bool isDarkMode;
+  final String? title;
+  final String? subtitle;
   final Function(List<SimpleRowModel>)? onDataReady;
 
   const WatchlistStocksTable({
@@ -19,6 +22,8 @@ class WatchlistStocksTable extends StatefulWidget {
     required this.isLoading,
     this.errorMessage,
     required this.isDarkMode,
+    this.title,
+    this.subtitle,
     this.onDataReady,
   }) : super(key: key);
 
@@ -326,32 +331,29 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.inbox_outlined,
-            color: Colors.grey,
-            size: 24,
-          ),
-          SizedBox(height: 8),
-          Text(
-            'No stocks in this watchlist',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 12,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inbox_outlined,
+              color: HomeUi.muted(widget.isDarkMode),
+              size: 28,
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Add stocks to get started',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 10,
+            const SizedBox(height: 10),
+            Text(
+              'No stocks in this watchlist',
+              style: HomeUi.sectionTitle(widget.isDarkMode),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              'Add stocks to get started',
+              style: HomeUi.subtitle(widget.isDarkMode),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -361,33 +363,31 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       SimpleColumn(label: 'ADDED', fieldName: 'addedPrice', isNumeric: true, width: 108),
       SimpleColumn(label: 'CURRENT', fieldName: 'currentPrice', isNumeric: true, width: 118),
       SimpleColumn(label: 'GAIN/LOSS', fieldName: 'gainLoss', isNumeric: true, width: 132),
-      SimpleColumn(label: 'TARGET', fieldName: 'targetPrice', isNumeric: false, width: 104),
+      SimpleColumn(label: 'TARGET', fieldName: 'targetPrice', isNumeric: true, width: 148),
       SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 112),
-      SimpleColumn(label: 'Volume', fieldName: 'volume', isNumeric: false, width: 96),
+      SimpleColumn(label: 'Volume', fieldName: 'volume', isNumeric: true, width: 96),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB), // Match watchlist background
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: DynamicTable(
-        columns: columns,
-        rows: _tableData,
-        considerPadding: false,
-        showFixedColumn: true,
-        columnSpacing: 10,
-        horizontalMargin: 6,
-        fixedColumnWidth: 155,
-        enableLivePrices: true,
-        enableColumnCustomization: true,
-        tableId: 'watchlist_stocks_table',
-        centerCellContent: true,
-        compactHeaderText: true,
-        showColumnActionMenu: true,
-        showColumnResizeHandle: true,
-        resizeHandleIndicatorHeight: 18,
-      ),
+    return DynamicTable(
+      columns: columns,
+      rows: _tableData,
+      title: widget.title,
+      subtitle: widget.subtitle,
+      toolbarLeadingIcon:
+          widget.title != null ? Icons.table_rows_rounded : null,
+      considerPadding: false,
+      showFixedColumn: true,
+      showOuterShadow: false,
+      fixedColumnWidth: 220,
+      headerHeight: 44,
+      rowHeight: 56,
+      columnSpacing: 24,
+      zebraStripes: true,
+      enableLivePrices: true,
+      enableColumnCustomization: true,
+      tableId: 'watchlist_stocks_table',
+      showColumnActionMenu: true,
+      showColumnResizeHandle: true,
     );
   }
 

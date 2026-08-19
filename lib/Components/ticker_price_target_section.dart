@@ -4,7 +4,7 @@ import 'package:musaffa_terminal/Components/ticker_price_target_chart.dart';
 import 'package:musaffa_terminal/Controllers/ticker_price_target_controller.dart';
 import 'package:musaffa_terminal/models/price_target_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class TickerPriceTargetSection extends StatelessWidget {
   const TickerPriceTargetSection({
@@ -53,9 +53,10 @@ class TickerPriceTargetSection extends StatelessWidget {
                   message: controller.error ?? 'No analyst price target data found',
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: onRetry,
-                  child: const Text('Retry'),
+                HomeUi.ghostAction(
+                  label: 'Retry',
+                  onTap: onRetry,
+                  dark: isDarkMode,
                 ),
               ],
             ),
@@ -71,9 +72,9 @@ class TickerPriceTargetSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _buildHeader(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               _buildSummaryCards(target),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TickerPriceTargetChart(
                 chartData: chartData,
                 priceTarget: target,
@@ -90,14 +91,10 @@ class TickerPriceTargetSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const TickerFinnhubSectionTitle(title: 'Analyst Price Target'),
-        const SizedBox(height: 4),
-        Text(
-          'Past 12 Months with 12 Month Forecast',
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            fontSize: 12,
-            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-          ),
+        const TickerFinnhubSectionTitle(
+          title: 'Analyst Price Target',
+          icon: Icons.ads_click_outlined,
+          subtitle: 'Past 12 months with 12-month forecast',
         ),
       ],
     );
@@ -121,56 +118,32 @@ class TickerPriceTargetSection extends StatelessWidget {
         if (useTwoRows) {
           return Column(
             children: <Widget>[
-              Row(
-                children: cards.take(3).map(_buildSummaryCard).toList(),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: cards.skip(3).map(_buildSummaryCard).toList(),
-              ),
+              _buildSummaryRow(cards.take(3).toList()),
+              const SizedBox(height: 10),
+              _buildSummaryRow(cards.skip(3).toList()),
             ],
           );
         }
 
-        return Row(
-          children: cards.map(_buildSummaryCard).toList(),
-        );
+        return _buildSummaryRow(cards);
       },
     );
   }
 
-  Widget _buildSummaryCard(List<String> card) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 0.5,
+  Widget _buildSummaryRow(List<List<String>> cards) {
+    return Row(
+      children: <Widget>[
+        for (var i = 0; i < cards.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: HomeUi.detailSummaryMetric(
+              dark: isDarkMode,
+              label: cards[i][0],
+              value: cards[i][1],
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              card[0],
-              style: DashboardTextStyles.tickerSymbol.copyWith(fontSize: 11),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              card[1],
-              style: DashboardTextStyles.dataCell.copyWith(fontSize: 12),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
+        ],
+      ],
     );
   }
 

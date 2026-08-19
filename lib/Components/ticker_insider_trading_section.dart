@@ -4,7 +4,7 @@ import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
 import 'package:musaffa_terminal/Controllers/ticker_insider_trading_controller.dart';
 import 'package:musaffa_terminal/models/insider_transaction_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
 class TickerInsiderTradingSection extends StatefulWidget {
@@ -36,9 +36,6 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
 
   @override
   Widget build(BuildContext context) {
-    final Color actionColor =
-        widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
-
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (BuildContext context, Widget? child) {
@@ -65,9 +62,10 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
                       widget.controller.error ?? 'No insider transactions found',
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: widget.onRetry,
-                  child: const Text('Retry'),
+                HomeUi.ghostAction(
+                  label: 'Retry',
+                  onTap: widget.onRetry,
+                  dark: widget.isDarkMode,
                 ),
               ],
             ),
@@ -75,15 +73,14 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
         }
 
         final List<SimpleColumn> columns = <SimpleColumn>[
-          const SimpleColumn(label: 'INSIDER NAME', fieldName: 'name', width: 170),
-          const SimpleColumn(label: 'ACTION', fieldName: 'action', width: 80),
+          const SimpleColumn(label: 'ACTION', fieldName: 'action', width: 90),
           const SimpleColumn(label: 'SHARES CHANGED', fieldName: 'change', isNumeric: true, width: 130),
-          const SimpleColumn(label: 'SHARES HELD', fieldName: 'share', isNumeric: true, width: 130),
+          const SimpleColumn(label: 'SHARES HELD', fieldName: 'share', isNumeric: true, width: 120),
           const SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true, width: 100),
           const SimpleColumn(label: 'TXN VALUE', fieldName: 'transactionValue', isNumeric: true, width: 120),
           const SimpleColumn(label: 'CURRENT PRICE', fieldName: 'currentPrice', isNumeric: true, width: 120),
           const SimpleColumn(label: 'HOLDINGS VALUE', fieldName: 'holdingsValue', isNumeric: true, width: 130),
-          const SimpleColumn(label: 'TIME AGO', fieldName: 'timeAgo', width: 110),
+          const SimpleColumn(label: 'TIME AGO', fieldName: 'timeAgo', width: 100),
           const SimpleColumn(label: 'TXN DATE', fieldName: 'transactionDate', width: 110),
           const SimpleColumn(label: 'FILING DATE', fieldName: 'filingDate', width: 110),
         ];
@@ -109,9 +106,10 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
                   message: 'No insider transactions found in the last 4 months',
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: widget.onRetry,
-                  child: const Text('Retry'),
+                HomeUi.ghostAction(
+                  label: 'Retry',
+                  onTap: widget.onRetry,
+                  dark: widget.isDarkMode,
                 ),
               ],
             ),
@@ -127,44 +125,13 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
           final num holdingsValue = (item.share * (currentPriceValue ?? 0));
           return SimpleRowModel(
             symbol: item.name,
-            name: '',
+            name: isRecent ? 'Recent' : '',
             fields: <String, dynamic>{
-              'name': Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: DashboardTextStyles.dataCell.copyWith(fontSize: 11),
-                    ),
-                  ),
-                ],
-              ),
-              'action': Row(
-                children: <Widget>[
-                  Text(
-                    item.isBuy ? 'Buy' : item.isSell ? 'Sell' : '—',
-                    style: DashboardTextStyles.dataCell.copyWith(fontSize: 13),
-                  ),
-                  if (isRecent) ...<Widget>[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: widget.isDarkMode
-                            ? const Color(0xFF2D2D2D)
-                            : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Recent',
-                        style: DashboardTextStyles.tickerSymbol.copyWith(fontSize: 9),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              'action': item.isBuy
+                  ? 'Buy'
+                  : item.isSell
+                      ? 'Sell'
+                      : '--',
               'change': changed,
               'share': _fmtInt(item.share),
               'price': valueWithCurrency(
@@ -198,9 +165,9 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
               'filingDate': FinnhubDisplayFormatters.formatDate(item.filingDate),
             },
             changeColor: item.isBuy
-                ? Colors.green.shade600
+                ? HomeUi.positive(widget.isDarkMode)
                 : item.isSell
-                    ? Colors.red.shade600
+                    ? HomeUi.negative(widget.isDarkMode)
                     : null,
           );
         }).toList();
@@ -208,80 +175,42 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
         final List<SimpleRowModel> rows =
             _showAll ? allRows : allRows.take(_collapsedRowLimit).toList();
 
-        return TickerFinnhubSectionCard(
-          isDarkMode: widget.isDarkMode,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-         
-              AnimatedSize(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOutCubic,
-                child: DynamicTable(
-                  title: 'Recent Transactions',
-                   columns: columns,
-                  rows: rows,
-                  showFixedColumn: false,
-                  considerPadding: false,
-                  columnSpacing: 16,
-                  enableLivePrices: false,
-                  zebraStripes: false,
-                  enableColumnCustomization: true,
-                  tableId: 'insider_trading_table',
-                  showColumnActionMenu: true,
-                  showColumnResizeHandle: true,
-                  compactHeaderText: true,
-                ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            DynamicTable(
+              title: 'Insider Transactions',
+              subtitle: 'Reported buys and sells in the last 4 months',
+              toolbarLeadingIcon: Icons.badge_outlined,
+              showOuterShadow: true,
+              columns: columns,
+              rows: rows,
+              showFixedColumn: true,
+              tickerHeaderLabel: 'INSIDER',
+              considerPadding: false,
+              columnSpacing: 10,
+              fixedColumnWidth: 220,
+              enableLivePrices: false,
+              zebraStripes: true,
+              enableColumnCustomization: true,
+              tableId: 'insider_trading_table',
+              showColumnActionMenu: true,
+              showColumnResizeHandle: true,
+            ),
+            if (hasMore) ...<Widget>[
+              const SizedBox(height: 12),
+              HomeUi.expandToggle(
+                dark: widget.isDarkMode,
+                expanded: _showAll,
+                remaining: allRows.length - _collapsedRowLimit,
+                onTap: () {
+                  setState(() {
+                    _showAll = !_showAll;
+                  });
+                },
               ),
-              if (hasMore) ...<Widget>[
-                const SizedBox(height: 8),
-                Center(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _showAll = !_showAll;
-                      });
-                    },
-                    icon: AnimatedRotation(
-                      turns: _showAll ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeInOut,
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: actionColor,
-                      ),
-                    ),
-                    label: Text(
-                      _showAll
-                          ? 'Show less'
-                          : 'Show more (${allRows.length - _collapsedRowLimit})',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: actionColor,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide(
-                        color: actionColor.withOpacity(0.6),
-                        width: 1,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ],
-          ),
+          ],
         );
       },
     );
@@ -296,10 +225,10 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
     if (date == null) return '--';
     final Duration diff = DateTime.now().difference(date);
     if (diff.inDays < 1) return 'Today';
-    if (diff.inDays < 7) return '${diff.inDays} days ago';
-    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} weeks ago';
-    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} months ago';
-    return '${(diff.inDays / 365).floor()} years ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
+    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
+    return '${(diff.inDays / 365).floor()}y ago';
   }
 
   String _fmtInt(num value) {

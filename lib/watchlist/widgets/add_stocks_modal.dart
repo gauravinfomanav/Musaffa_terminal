@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
@@ -14,10 +14,49 @@ class AddStocksModal extends StatefulWidget {
   final String watchlistId;
 
   const AddStocksModal({
-    Key? key,
+    super.key,
     required this.watchlistName,
     required this.watchlistId,
-  }) : super(key: key);
+  });
+
+  static Future<void> show({
+    required BuildContext context,
+    required String watchlistName,
+    required String watchlistId,
+  }) {
+    return showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Add Stocks',
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: AddStocksModal(
+              watchlistName: watchlistName,
+              watchlistId: watchlistId,
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
 
   @override
   State<AddStocksModal> createState() => _AddStocksModalState();
@@ -26,16 +65,21 @@ class AddStocksModal extends StatefulWidget {
 class _AddStocksModalState extends State<AddStocksModal> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  final WatchlistController _watchlistController = Get.find<WatchlistController>();
-  
+  final WatchlistController _watchlistController =
+      Get.find<WatchlistController>();
+
   List<TickerModel> _searchResults = [];
-  Set<String> _selectedTickers = {};
+  final Set<String> _selectedTickers = {};
   bool _isSearching = false;
+  bool _searchFocused = false;
+  bool _searchHover = false;
 
   @override
   void initState() {
     super.initState();
-    // Auto-focus the search field when modal opens
+    _searchFocusNode.addListener(() {
+      setState(() => _searchFocused = _searchFocusNode.hasFocus);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();
     });
@@ -57,17 +101,17 @@ class _AddStocksModalState extends State<AddStocksModal> {
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-    });
+    setState(() => _isSearching = true);
 
     try {
       final results = await SearchService.searchStocks(query.trim());
+      if (!mounted) return;
       setState(() {
         _searchResults = results;
         _isSearching = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         _searchResults = [];
         _isSearching = false;
@@ -76,29 +120,22 @@ class _AddStocksModalState extends State<AddStocksModal> {
   }
 
   void _toggleSelection(String ticker) {
-    print('DEBUG: Toggling selection for ticker: $ticker');
     setState(() {
       if (_selectedTickers.contains(ticker)) {
         _selectedTickers.remove(ticker);
-        print('DEBUG: Removed ticker: $ticker');
       } else {
         _selectedTickers.add(ticker);
-        print('DEBUG: Added ticker: $ticker');
-        
-        // Clear search field and results after selection
         _searchController.clear();
         _searchResults.clear();
-        _searchFocusNode.requestFocus(); // Keep focus on search field
+        _searchFocusNode.requestFocus();
       }
-      print('DEBUG: Current selected tickers: $_selectedTickers');
     });
   }
 
   Future<List<Map<String, dynamic>>> _fetchRealTimePricesForSelectedStocks() async {
     final stocksToAdd = <Map<String, dynamic>>[];
-    
+
     try {
-      // Get real-time prices from Typesense for selected stocks
       final tickerIds = _selectedTickers.toList();
       final params = {
         'q': '*',
@@ -106,14 +143,16 @@ class _AddStocksModalState extends State<AddStocksModal> {
         'include_fields': r'$stocks_data(id,currentPrice)',
         'per_page': '50'
       };
-      
-      final response = await WebService.getTypesense(['collections', 'stocks_data', 'documents', 'search'], params);
-      
+
+      final response = await WebService.getTypesense(
+        ['collections', 'stocks_data', 'documents', 'search'],
+        params,
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final hits = data['hits'] as List<dynamic>? ?? [];
-        
-        // Create a map of ticker -> current price
+
         final priceMap = <String, double>{};
         for (final hit in hits) {
           final document = hit['document'] as Map<String, dynamic>?;
@@ -123,56 +162,42 @@ class _AddStocksModalState extends State<AddStocksModal> {
             priceMap[ticker] = price;
           }
         }
-        
-        // Build stocks data with real-time prices
-        for (String selectedTicker in _selectedTickers) {
-          final currentPrice = priceMap[selectedTicker] ?? 1.0; // Fallback to 1.0 if no price found
+
+        for (final selectedTicker in _selectedTickers) {
           stocksToAdd.add({
             'ticker': selectedTicker,
-            'current_price': currentPrice,
+            'current_price': priceMap[selectedTicker] ?? 1.0,
           });
         }
       } else {
-        // Fallback: use 1.0 as price if API fails
-        for (String selectedTicker in _selectedTickers) {
+        for (final selectedTicker in _selectedTickers) {
           stocksToAdd.add({
             'ticker': selectedTicker,
             'current_price': 1.0,
           });
         }
       }
-    } catch (e) {
-      print('DEBUG: Error fetching real-time prices: $e');
-      // Fallback: use 1.0 as price if error occurs
-      for (String selectedTicker in _selectedTickers) {
+    } catch (_) {
+      for (final selectedTicker in _selectedTickers) {
         stocksToAdd.add({
           'ticker': selectedTicker,
           'current_price': 1.0,
         });
       }
     }
-    
+
     return stocksToAdd;
   }
 
   Future<void> _addSelectedStocks() async {
     if (_selectedTickers.isEmpty) return;
 
-    // Fetch real-time prices for selected stocks
     final stocksToAdd = await _fetchRealTimePricesForSelectedStocks();
-
-    print('DEBUG: Selected tickers: $_selectedTickers');
-    print('DEBUG: Search results count: ${_searchResults.length}');
-    for (var ticker in _searchResults) {
-      print('DEBUG: Search result - symbol: ${ticker.symbol}, ticker: ${ticker.ticker}, name: ${ticker.companyName}');
-    }
-    print('DEBUG: Stocks to add: $stocksToAdd');
-    print('DEBUG: Watchlist ID: ${widget.watchlistId}');
-
     final success = await _watchlistController.addStocksToWatchlist(stocksToAdd);
-    
+
+    if (!mounted) return;
     if (success) {
-      Get.back(); // Close modal
+      Navigator.of(context).pop();
       SnackBarUtils.showSuccess(
         context,
         'Added ${_selectedTickers.length} stocks to "${widget.watchlistName}"',
@@ -187,87 +212,91 @@ class _AddStocksModalState extends State<AddStocksModal> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final screenSize = MediaQuery.of(context).size;
-    
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-          child: Container(
-            width: screenSize.width * 0.9,
-            height: screenSize.height * 0.7,
-            constraints: const BoxConstraints(
-              maxWidth: 600,
-              maxHeight: 500,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.sizeOf(context);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: 560,
+        maxHeight: (size.height * 0.78).clamp(420.0, 620.0),
+      ),
+      child: Container(
+        width: size.width * 0.9,
+        height: (size.height * 0.7).clamp(420.0, 620.0),
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        decoration: BoxDecoration(
+          color: HomeUi.cardBg(isDark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: Border.all(color: HomeUi.borderLight(isDark)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
+              blurRadius: 40,
+              offset: const Offset(0, 18),
             ),
-            decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-              boxShadow: [
-                BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-                ),
-              ],
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            _buildHeader(isDark),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: _buildSearchField(isDark),
             ),
-            child: Column(
-              children: [
-                // Header
-                _buildHeader(isDarkMode),
-                
-                // Search bar
-                _buildSearchBar(isDarkMode),
-                
-                // Results section
-                Expanded(
-                  child: _buildResultsSection(isDarkMode),
-                ),
-                
-                // Bottom action bar
-                _buildBottomBar(isDarkMode),
-              ],
+            Expanded(child: _buildResultsSection(isDark)),
+            _buildBottomBar(isDark),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-      ),
+  Widget _buildHeader(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
       child: Row(
         children: [
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-            onTap: () => Get.back(),
-            child: Icon(
-              Icons.arrow_back_ios,
-              size: 20,
-              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+          Expanded(
+            child: HomeUi.tableToolbarHeader(
+              isDark,
+              icon: Icons.add_chart_rounded,
+              title: 'Add Stocks',
+              subtitle: Text.rich(
+                TextSpan(
+                  text: 'Search and add holdings to ',
+                  children: [
+                    TextSpan(
+                      text: widget.watchlistName,
+                      style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                        fontSize: 12,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Add Stocks to "${widget.watchlistName}"',
-              style: DashboardTextStyles.columnHeader.copyWith(
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: HomeUi.controlHeight,
+                height: HomeUi.controlHeight,
+                decoration: BoxDecoration(
+                  color: HomeUi.elevatedBg(isDark),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: HomeUi.muted(isDark),
+                ),
               ),
             ),
           ),
@@ -276,58 +305,70 @@ class _AddStocksModalState extends State<AddStocksModal> {
     );
   }
 
-  Widget _buildSearchBar(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _searchController,
-        focusNode: _searchFocusNode,
-        onChanged: _performSearch,
-        decoration: InputDecoration(
-          hintText: 'Search stocks...',
-          hintStyle: TextStyle(
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-            fontSize: 14,
+  Widget _buildSearchField(bool isDark) {
+    return HomeUi.filterFieldColumn(
+      dark: isDark,
+      label: 'Search',
+      field: MouseRegion(
+        onEnter: (_) => setState(() => _searchHover = true),
+        onExit: (_) => setState(() => _searchHover = false),
+        child: HomeUi.filterFieldShell(
+          dark: isDark,
+          accent: _searchFocused,
+          hover: _searchHover,
+          radius: HomeUi.radiusPill,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: [
+              Icon(Icons.search_rounded, size: 18, color: HomeUi.muted(isDark)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  onChanged: _performSearch,
+                  style: HomeUi.control(isDark, active: true).copyWith(fontSize: 13),
+                  cursorColor: HomeUi.title(isDark),
+                  decoration: HomeUi.filterTextFieldDecoration(
+                    isDark,
+                    hintText: 'Ticker or company name',
+                  ),
+                ),
+              ),
+              if (_searchController.text.isNotEmpty)
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      _performSearch('');
+                      _searchFocusNode.requestFocus();
+                    },
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: HomeUi.muted(isDark),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-            size: 20,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: isDarkMode ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
-              width: 2,
-            ),
-          ),
-          filled: true,
-          fillColor: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB),
-        ),
-        style: TextStyle(
-          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-          fontSize: 14,
         ),
       ),
     );
   }
 
-  Widget _buildResultsSection(bool isDarkMode) {
+  Widget _buildResultsSection(bool isDark) {
     if (_isSearching) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return Center(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(HomeUi.accent(isDark)),
+          ),
+        ),
       );
     }
 
@@ -335,123 +376,107 @@ class _AddStocksModalState extends State<AddStocksModal> {
       return Center(
         child: Text(
           'No stocks found',
-          style: TextStyle(
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-            fontSize: 14,
-          ),
+          style: HomeUi.subtitle(isDark),
         ),
       );
     }
 
     if (_searchResults.isEmpty) {
       if (_selectedTickers.isNotEmpty) {
-        return Column(
-          children: [
-            // Selected stocks header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Text(
-                    'Selected Stocks (${_selectedTickers.length})',
-                    style: DashboardTextStyles.columnHeader.copyWith(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'SELECTED (${_selectedTickers.length})',
+                style: HomeUi.overline(isDark),
               ),
-            ),
-            // Selected stocks list
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _selectedTickers.length,
-                itemBuilder: (context, index) {
-                  final ticker = _selectedTickers.elementAt(index);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: _buildSelectedStockItem(ticker, isDarkMode),
-                  );
-                },
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _selectedTickers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final ticker = _selectedTickers.elementAt(index);
+                    return _buildSelectedStockItem(ticker, isDark);
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       }
-      
+
       return Center(
-        child: Text(
-          'Search for stocks to add to your watchlist',
-          style: TextStyle(
-            color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-            fontSize: 14,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'Search for stocks to add to your watchlist',
+            textAlign: TextAlign.center,
+            style: HomeUi.subtitle(isDark),
           ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       itemCount: _searchResults.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 6),
       itemBuilder: (context, index) {
         final ticker = _searchResults[index];
         final tickerSymbol = ticker.symbol ?? ticker.ticker ?? '';
         final isSelected = _selectedTickers.contains(tickerSymbol);
-        
-        return _buildSearchResultItem(ticker, isSelected, isDarkMode);
+        return _SearchResultRow(
+          isDark: isDark,
+          ticker: ticker,
+          tickerSymbol: tickerSymbol,
+          isSelected: isSelected,
+          onTap: () => _toggleSelection(tickerSymbol),
+        );
       },
     );
   }
 
-  Widget _buildSelectedStockItem(String ticker, bool isDarkMode) {
+  Widget _buildSelectedStockItem(String ticker, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(4),
+        color: HomeUi.elevatedBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
       ),
       child: Row(
         children: [
-          // Remove button
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-            onTap: () => _toggleSelection(ticker),
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  width: 1,
+              onTap: () => _toggleSelection(ticker),
+              child: Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: HomeUi.negative(isDark).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: HomeUi.negative(isDark).withValues(alpha: 0.22),
+                  ),
                 ),
-                color: Colors.transparent,
-              ),
-              child: Center(
-                child: Container(
-                  width: 8,
-                  height: 1,
-                  color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                ),
+                child: Icon(
+                  Icons.remove_rounded,
+                  size: 14,
+                  color: HomeUi.negative(isDark),
                 ),
               ),
             ),
           ),
-          
           const SizedBox(width: 12),
-          
-          // Ticker symbol
           Expanded(
             child: Text(
               ticker,
-              style: DashboardTextStyles.stockName.copyWith(
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+              style: HomeUi.tableCellEmphasis(isDark),
             ),
           ),
         ],
@@ -459,207 +484,174 @@ class _AddStocksModalState extends State<AddStocksModal> {
     );
   }
 
-  Widget _buildSearchResultItem(TickerModel ticker, bool isSelected, bool isDarkMode) {
-    final tickerSymbol = ticker.symbol ?? ticker.ticker ?? '';
-    print('DEBUG: Building search result item - symbol: ${ticker.symbol}, ticker: ${ticker.ticker}, final: $tickerSymbol');
-    
+  Widget _buildBottomBar(bool isDark) {
+    final canAdd = _selectedTickers.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        children: [
+          Divider(height: 1, color: HomeUi.borderLight(isDark)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                '${_selectedTickers.length} selected',
+                style: HomeUi.subtitle(isDark),
+              ),
+              const Spacer(),
+              HomeUi.ghostAction(
+                label: 'Cancel',
+                dark: isDark,
+                onTap: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: 10),
+              Opacity(
+                opacity: canAdd ? 1 : 0.45,
+                child: IgnorePointer(
+                  ignoring: !canAdd,
+                  child: HomeUi.primaryAction(
+                    label: 'Add Selected',
+                    onTap: _addSelectedStocks,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchResultRow extends StatefulWidget {
+  final bool isDark;
+  final TickerModel ticker;
+  final String tickerSymbol;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SearchResultRow({
+    required this.isDark,
+    required this.ticker,
+    required this.tickerSymbol,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_SearchResultRow> createState() => _SearchResultRowState();
+}
+
+class _SearchResultRowState extends State<_SearchResultRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final company = widget.ticker.companyName ?? widget.ticker.name ?? '';
+    final isDark = widget.isDark;
+
     return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-      onTap: () => _toggleSelection(tickerSymbol),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? (isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF5F5F5))
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          children: [
-            // Checkbox - terminal style
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isSelected 
-                      ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
-                      : (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
-                  width: 1,
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: widget.isSelected || _hover
+                ? HomeUi.elevatedBg(isDark)
+                : HomeUi.cardBg(isDark),
+            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+            border: Border.all(
+              color: widget.isSelected
+                  ? HomeUi.iconWellBorder
+                  : _hover
+                      ? HomeUi.borderStrong(isDark)
+                      : HomeUi.borderLight(isDark),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: widget.isSelected ? HomeUi.iconFillGradient : null,
+                  color: widget.isSelected ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: widget.isSelected
+                        ? HomeUi.buttonBorder
+                        : HomeUi.borderStrong(isDark),
+                  ),
                 ),
-                color: isSelected 
-                    ? (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151))
-                    : Colors.transparent,
+                child: widget.isSelected
+                    ? const Icon(Icons.check_rounded, size: 12, color: Colors.white)
+                    : null,
               ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                      ),
-                    )
-                  : null,
-            ),
-            
-            const SizedBox(width: 12),
-            
-            // Logo
-            Container(
-              width: 24,
-              height: 24,
-              child: showLogo(
-                tickerSymbol,
-                ticker.logo ?? '',
-                sideWidth: 24,
-                name: ticker.companyName ?? ticker.name ?? '',
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: showLogo(
+                  widget.tickerSymbol,
+                  widget.ticker.logo ?? '',
+                  sideWidth: 28,
+                  circular: true,
+                  name: company,
+                ),
               ),
-            ),
-            
-            const SizedBox(width: 12),
-            
-            // Ticker and Company Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tickerSymbol,
-                    style: DashboardTextStyles.stockName.copyWith(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    ticker.companyName ?? ticker.name ?? '',
-                    style: DashboardTextStyles.tickerSymbol.copyWith(
-                      color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280),
-                      fontSize: 12,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            
-            // Price (if available)
-            if (ticker.currentPrice != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '\$${ticker.currentPrice!.toStringAsFixed(2)}',
-                    style: DashboardTextStyles.dataCell.copyWith(
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (ticker.percentChange != null)
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      '${ticker.percentChange! >= 0 ? '+' : ''}${ticker.percentChange!.toStringAsFixed(2)}%',
-                      style: DashboardTextStyles.dataCell.copyWith(
-                        color: ticker.percentChange! >= 0 
-                            ? Colors.green.shade600 
-                            : Colors.red.shade600,
-                        fontSize: 11,
-                      ),
+                      widget.tickerSymbol,
+                      style: HomeUi.tableCellEmphasis(isDark),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                ],
+                    if (company.isNotEmpty)
+                      Text(
+                        company,
+                        style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                          fontSize: 12,
+                          height: 1.25,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
-          ],
+              if (widget.ticker.currentPrice != null) ...[
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '\$${widget.ticker.currentPrice!.toStringAsFixed(2)}',
+                      style: HomeUi.tableCellEmphasis(isDark).copyWith(fontSize: 12.5),
+                    ),
+                    if (widget.ticker.percentChange != null)
+                      Text(
+                        '${widget.ticker.percentChange! >= 0 ? '+' : ''}${widget.ticker.percentChange!.toStringAsFixed(2)}%',
+                        style: HomeUi.tableNumeric(
+                          isDark,
+                          positiveValue: widget.ticker.percentChange! >= 0,
+                        ).copyWith(fontSize: 11),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '${_selectedTickers.length} selected',
-            style: TextStyle(
-              color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF6B7280),
-              fontSize: 14,
-            ),
-          ),
-          const Spacer(),
-          // Cancel button (Secondary)
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-            onTap: () => Get.back(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(90),
-                border: Border.all(
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                  'Cancel',
-                style: DashboardTextStyles.columnHeader.copyWith(
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-          ),
-          const SizedBox(width: 12),
-          // Add Selected button (Primary)
-          MouseRegion(
-            cursor: _selectedTickers.isEmpty ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
-            child: GestureDetector(
-            onTap: _selectedTickers.isEmpty ? null : _addSelectedStocks,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedTickers.isEmpty 
-                    ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
-                      : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
-                  borderRadius: BorderRadius.circular(90),
-                border: Border.all(
-                    color: _selectedTickers.isEmpty
-                        ? (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB))
-                        : (isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6)),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                  'Add Selected',
-                style: DashboardTextStyles.columnHeader.copyWith(
-                  color: _selectedTickers.isEmpty 
-                      ? (isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
-                        : Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -62,12 +62,11 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
         );
       }
 
-      return _buildTerminalPerShareTable(financialData, isDarkMode);
+      return _buildTerminalPerShareTable(financialData);
     });
   }
 
-  Widget _buildTerminalPerShareTable(
-      FinancialFundamentals financialData, bool isDarkMode) {
+  Widget _buildTerminalPerShareTable(FinancialFundamentals financialData) {
     // Get all available years from all data sources
     Set<String> allYears = {};
 
@@ -103,7 +102,7 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
             key: year,
             label: year,
             width: 80,
-            align: TextAlign.center,
+            align: TextAlign.right,
             sortable: true,
           )),
     ];
@@ -180,20 +179,11 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       ));
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: DynamicTableFromWeb(
+    return DynamicTableFromWeb(
           title: widget.title,
+          subtitle: 'Per-share fundamentals',
+          toolbarLeadingIcon: Icons.pie_chart_outline,
+          showOuterShadow: true,
           columns: columns,
           rows: tableData,
           paginated: false,
@@ -216,9 +206,7 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
               widget.onMetricSelected?.call(metricName);
             }
           },
-        ),
-      ),
-    );
+        );
   }
 
   Map<String, dynamic> _createYearDataMap(

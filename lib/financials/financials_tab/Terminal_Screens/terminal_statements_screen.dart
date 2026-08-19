@@ -10,6 +10,7 @@ import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controlle
 import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class TerminalStatementsScreen extends StatefulWidget {
   final String symbol;
@@ -309,22 +310,11 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
 
     final columns = _buildFinancialColumns(periods, 'Metric');
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: DynamicTableFromWeb(
+    return DynamicTableFromWeb(
           title: widget.title,
+          subtitle: 'Income, balance sheet, and cash flow',
+          toolbarLeadingIcon: Icons.receipt_long_outlined,
+          showOuterShadow: true,
           columns: columns,
           rows: _mapFinancialRowsToDynamicRows(transformedData),
           paginated: false,
@@ -346,9 +336,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
           autoPinStatColumns: false,
           showPinnedSectionDividers: false,
           columnSpacing: responsiveColumnSpacing,
-        ),
-      ),
-    );
+        );
   }
 
   Widget _buildStatementTable(
@@ -358,27 +346,12 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
 
     if (data.isEmpty) {
       return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12.0),
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color:
-                isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 0.5,
-          ),
-        ),
+        decoration: HomeUi.cardDecoration(isDarkMode),
         child: Center(
           child: Text(
             'No data available',
-            style: TextStyle(
-              fontSize: 12,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode
-                  ? const Color(0xFF9CA3AF)
-                  : const Color(0xFF6B7280),
-            ),
+            style: HomeUi.subtitle(isDarkMode),
           ),
         ),
       );
@@ -394,20 +367,11 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
     final responsiveColumnSpacing =
         _getResponsiveStatementsColumnSpacing(periods);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: DynamicTableFromWeb(
+    return DynamicTableFromWeb(
           title: title,
+          subtitle: 'Line items by period',
+          toolbarLeadingIcon: Icons.receipt_long_outlined,
+          showOuterShadow: true,
           columns: columns,
           rows: _mapFinancialRowsToDynamicRows(transformedData),
           paginated: false,
@@ -429,9 +393,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
           autoPinStatColumns: false,
           showPinnedSectionDividers: false,
           columnSpacing: responsiveColumnSpacing,
-        ),
-      ),
-    );
+        );
   }
 
   List<DynamicTableColumn> _buildFinancialColumns(
@@ -451,7 +413,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
         key: period,
         label: period,
         width: 80,
-        align: TextAlign.center,
+        align: TextAlign.right,
         sortable: true,
       );
     }));

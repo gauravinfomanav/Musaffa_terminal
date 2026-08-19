@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:flutter/services.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/watchlist/models/target_price_model.dart';
-import 'dart:convert';
 
 class TargetPriceDialog extends StatefulWidget {
   final String ticker;
@@ -10,11 +12,52 @@ class TargetPriceDialog extends StatefulWidget {
   final Function(double price, String alertType) onSave;
 
   const TargetPriceDialog({
-    Key? key,
+    super.key,
     required this.ticker,
     this.existingTarget,
     required this.onSave,
-  }) : super(key: key);
+  });
+
+  static Future<void> show({
+    required BuildContext context,
+    required String ticker,
+    TargetPriceModel? existingTarget,
+    required Function(double price, String alertType) onSave,
+  }) {
+    return showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Set Target Price',
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: TargetPriceDialog(
+              ticker: ticker,
+              existingTarget: existingTarget,
+              onSave: onSave,
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
 
   @override
   State<TargetPriceDialog> createState() => _TargetPriceDialogState();
@@ -26,6 +69,8 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
   double? _currentPrice;
   bool _isLoadingPrice = true;
   String? _errorMessage;
+
+  bool get _isEditing => widget.existingTarget != null;
 
   @override
   void initState() {
@@ -51,9 +96,9 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
         'documents',
         'search'
       ], {
-        "q": "*",
-        "filter_by": "id:=[`${widget.ticker}`]",
-        "per_page": "1"
+        'q': '*',
+        'filter_by': 'id:=[`${widget.ticker}`]',
+        'per_page': '1'
       });
 
       if (response.statusCode == 200) {
@@ -61,326 +106,186 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
         if (data['hits'] != null && data['hits'].isNotEmpty) {
           final stockData = data['hits'][0]['document'];
           final price = stockData['currentPrice'] ?? stockData['price'] ?? 0.0;
-          setState(() {
-            _currentPrice = (price as num).toDouble();
-            _isLoadingPrice = false;
-          });
+          if (mounted) {
+            setState(() {
+              _currentPrice = (price as num).toDouble();
+              _isLoadingPrice = false;
+            });
+          }
+        } else if (mounted) {
+          setState(() => _isLoadingPrice = false);
         }
+      } else if (mounted) {
+        setState(() => _isLoadingPrice = false);
       }
-    } catch (e) {
-      print('Error fetching current price: $e');
-      setState(() {
-        _isLoadingPrice = false;
-      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingPrice = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final alertLabel =
+        _selectedAlertType == 'above' ? 'Above Target' : 'Below Target';
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440),
       child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
+          color: HomeUi.cardBg(isDark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: Border.all(color: HomeUi.borderLight(isDark)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
+              blurRadius: 40,
+              offset: const Offset(0, 18),
+            ),
+          ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
-            Row(
-              children: [
-                Text(
-                  'SET TARGET PRICE',
-                  style: DashboardTextStyles.columnHeader.copyWith(
-                    color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    child: Text(
-                      '×',
-                      style: DashboardTextStyles.columnHeader.copyWith(
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Stock Info
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
               child: Row(
                 children: [
-                  Text(
-                    widget.ticker,
-                    style: DashboardTextStyles.stockName.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.ads_click_rounded,
+                      title: _isEditing ? 'Edit Target Price' : 'Set Target Price',
+                      subtitleText:
+                          'Alert when ${widget.ticker} hits your level',
                     ),
                   ),
-                  const Spacer(),
-                  if (_isLoadingPrice)
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: HomeUi.controlHeight,
+                        height: HomeUi.controlHeight,
+                        decoration: BoxDecoration(
+                          color: HomeUi.elevatedBg(isDark),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: HomeUi.borderLight(isDark)),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: HomeUi.muted(isDark),
                         ),
                       ),
-                    )
-                  else if (_currentPrice != null)
-                    Text(
-                      '\$${_currentPrice!.toStringAsFixed(2)}',
-                      style: DashboardTextStyles.dataCell.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      ),
-                    )
-                  else
-                    Text(
-                      '--',
-                      style: DashboardTextStyles.dataCell.copyWith(
-                        fontSize: 14,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      ),
                     ),
+                  ),
                 ],
               ),
             ),
-            
-            const SizedBox(height: 20),
-            
-            // Target Price Input
-            Text(
-              'Target Price',
-              style: DashboardTextStyles.columnHeader.copyWith(
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _priceController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              onChanged: (value) {
-                // Clear error when user types
-                if (_errorMessage != null) {
-                  setState(() {
-                    _errorMessage = null;
-                  });
-                }
-              },
-              style: DashboardTextStyles.dataCell.copyWith(
-                fontSize: 14,
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-              ),
-              decoration: InputDecoration(
-                hintText: 'Enter target price',
-                hintStyle: DashboardTextStyles.tickerSymbol.copyWith(
-                  color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  fontSize: 14,
-                ),
-                prefixText: '\$ ',
-                prefixStyle: DashboardTextStyles.dataCell.copyWith(
-                  fontSize: 14,
-                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                filled: true,
-                fillColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(
-                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                    width: 1,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(
-                    color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                    width: 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(
-                    color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF81AACE),
-                    width: 1,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(
-                    color: Colors.red.shade400,
-                    width: 1,
-                  ),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(
-                    color: Colors.red.shade400,
-                    width: 1,
-                  ),
-                ),
-              ),
-            ),
-            
-            // Error message display
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50.withOpacity(isDarkMode ? 0.1 : 1.0),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Colors.red.shade400,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 16,
-                      color: Colors.red.shade400,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 12,
-                          color: Colors.red.shade400,
+            Divider(height: 1, color: HomeUi.borderLight(isDark)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: HomeUi.detailSummaryMetric(
+                          dark: isDark,
+                          label: 'Ticker',
+                          value: widget.ticker,
                         ),
                       ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: HomeUi.detailSummaryMetric(
+                          dark: isDark,
+                          label: 'Current Price',
+                          value: _isLoadingPrice
+                              ? '…'
+                              : _currentPrice != null
+                                  ? '\$${_currentPrice!.toStringAsFixed(2)}'
+                                  : '--',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  FilterTextField(
+                    dark: isDark,
+                    label: 'Target Price',
+                    controller: _priceController,
+                    hintText: '0.00',
+                    errorText: _errorMessage,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                  ],
-                ),
-              ),
-            ],
-            
-            const SizedBox(height: 20),
-            
-            // Alert Type Selection
-            Text(
-              'Alert When Price Goes',
-              style: DashboardTextStyles.columnHeader.copyWith(
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,4}'),
+                      ),
+                    ],
+                    prefix: Text(
+                      '\$',
+                      style: HomeUi.tableCellEmphasis(isDark),
+                    ),
+                    onChanged: (_) {
+                      if (_errorMessage != null) {
+                        setState(() => _errorMessage = null);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  FilterSegmentedSelector(
+                    dark: isDark,
+                    label: 'Alert When Price Goes',
+                    options: const ['Above Target', 'Below Target'],
+                    selected: alertLabel,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedAlertType =
+                            value == 'Above Target' ? 'above' : 'below';
+                        _errorMessage = null;
+                      });
+                    },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAlertTypeButton(
-                    'above',
-                    'Above Target',
-                    isDarkMode,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildAlertTypeButton(
-                    'below',
-                    'Below Target',
-                    isDarkMode,
-                  ),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Divider(height: 1, color: HomeUi.borderLight(isDark)),
             ),
-            
-            const SizedBox(height: 24),
-            
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(
-                        color: Colors.blue,
-                        width: 1,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(90),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: DashboardTextStyles.buttonText.copyWith(
-                        color: Colors.blue,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.ghostAction(
+                      label: 'Cancel',
+                      dark: isDark,
+                      onTap: () => Navigator.of(context).pop(),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _saveTargetPrice,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(90),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      widget.existingTarget != null ? 'Update' : 'Set Target',
-                      style: DashboardTextStyles.buttonText.copyWith(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: HomeUi.primaryAction(
+                      label: _isEditing ? 'Update' : 'Set Target',
+                      icon: _isEditing
+                          ? Icons.check_rounded
+                          : Icons.add_rounded,
+                      onTap: _saveTargetPrice,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -388,86 +293,259 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
     );
   }
 
-  Widget _buildAlertTypeButton(String value, String label, bool isDarkMode) {
-    final isSelected = _selectedAlertType == value;
-    
-    return GestureDetector(
-      onTap: () => setState(() {
-        _selectedAlertType = value;
-        _errorMessage = null; // Clear error when changing alert type
-      }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? const Color(0xFF81AACE).withOpacity(0.1)
-              : (isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB)),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected 
-                ? const Color(0xFF81AACE)
-                : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)),
-            width: 1,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: DashboardTextStyles.buttonText.copyWith(
-              color: isSelected 
-                  ? const Color(0xFF81AACE)
-                  : (isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151)),
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _saveTargetPrice() {
     final priceText = _priceController.text.trim();
-    
-    // Clear previous error
-    setState(() {
-      _errorMessage = null;
-    });
-    
+
+    setState(() => _errorMessage = null);
+
     if (priceText.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter a target price';
-      });
+      setState(() => _errorMessage = 'Please enter a target price');
       return;
     }
 
     final price = double.tryParse(priceText);
     if (price == null || price <= 0) {
-      setState(() {
-        _errorMessage = 'Please enter a valid target price';
-      });
+      setState(() => _errorMessage = 'Please enter a valid target price');
       return;
     }
 
-    // Validate that target price is different from current price
     if (_currentPrice != null) {
       if (_selectedAlertType == 'above' && price <= _currentPrice!) {
         setState(() {
-          _errorMessage = 'Target price must be higher than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Above Target" alerts';
+          _errorMessage =
+              'Must be higher than current (\$${_currentPrice!.toStringAsFixed(2)})';
         });
         return;
       }
       if (_selectedAlertType == 'below' && price >= _currentPrice!) {
         setState(() {
-          _errorMessage = 'Target price must be lower than current price (\$${_currentPrice!.toStringAsFixed(2)}) for "Below Target" alerts';
+          _errorMessage =
+              'Must be lower than current (\$${_currentPrice!.toStringAsFixed(2)})';
         });
         return;
       }
     }
 
-    // Validation passed, close dialog and save
     Navigator.of(context).pop();
     widget.onSave(price, _selectedAlertType);
   }
-
 }
+
+class TargetPriceDeleteDialog extends StatelessWidget {
+  final String ticker;
+
+  const TargetPriceDeleteDialog({
+    super.key,
+    required this.ticker,
+  });
+
+  static Future<bool?> show({
+    required BuildContext context,
+    required String ticker,
+  }) {
+    return showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Delete Target Price',
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: TargetPriceDeleteDialog(ticker: ticker),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 420),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        decoration: BoxDecoration(
+          color: HomeUi.cardBg(isDark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: Border.all(color: HomeUi.borderLight(isDark)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
+              blurRadius: 40,
+              offset: const Offset(0, 18),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.delete_outline_rounded,
+                      title: 'Delete Target Price',
+                      subtitle: Text.rich(
+                        TextSpan(
+                          text: 'This alert will be removed from ',
+                          children: [
+                            TextSpan(
+                              text: ticker,
+                              style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                                fontSize: 12,
+                                height: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(false),
+                      child: Container(
+                        width: HomeUi.controlHeight,
+                        height: HomeUi.controlHeight,
+                        decoration: BoxDecoration(
+                          color: HomeUi.elevatedBg(isDark),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: HomeUi.borderLight(isDark)),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: HomeUi.muted(isDark),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: HomeUi.borderLight(isDark)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                decoration: BoxDecoration(
+                  color: HomeUi.negativeSoft(isDark),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                  border: Border.all(
+                    color: HomeUi.negative(isDark).withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: HomeUi.negative(isDark).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: HomeUi.negative(isDark).withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
+                        color: HomeUi.negative(isDark),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Remove this target?',
+                            style: HomeUi.tableCellEmphasis(isDark),
+                          ),
+                          const SizedBox(height: 4),
+                          Text.rich(
+                            TextSpan(
+                              text:
+                                  'Are you sure you want to delete the target price for ',
+                              style: HomeUi.subtitle(isDark).copyWith(height: 1.4),
+                              children: [
+                                TextSpan(
+                                  text: ticker,
+                                  style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                                    height: 1.4,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: '? This cannot be undone.',
+                                  style: HomeUi.subtitle(isDark).copyWith(height: 1.4),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Divider(height: 1, color: HomeUi.borderLight(isDark)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.ghostAction(
+                      label: 'Cancel',
+                      dark: isDark,
+                      onTap: () => Navigator.of(context).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: HomeUi.primaryAction(
+                      label: 'Delete',
+                      onTap: () => Navigator.of(context).pop(true),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

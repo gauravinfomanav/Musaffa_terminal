@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Controllers/market_news_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/models/market_news.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -53,35 +54,41 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Obx(() {
+      Widget body;
       if (controller.isLoading.value) {
-        return _buildShimmer(isDarkMode);
+        body = _buildShimmer(isDarkMode);
+      } else if (controller.errorMessage.value.isNotEmpty) {
+        body = _buildError(controller.errorMessage.value);
+      } else {
+        final latestNews = controller.getLatestNews(limit: 10);
+        body = latestNews.isEmpty
+            ? _buildEmpty()
+            : _buildNewsList(latestNews, isDarkMode);
       }
 
-      if (controller.errorMessage.value.isNotEmpty) {
-        return _buildError(controller.errorMessage.value);
-      }
-
-      final latestNews = controller.getLatestNews(limit: 10);
-      
-      if (latestNews.isEmpty) {
-        return _buildEmpty();
-      }
-
-      return _buildNewsList(latestNews, isDarkMode);
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        decoration: HomeUi.cardDecoration(isDarkMode),
+        child: body,
+      );
     });
   }
 
   Widget _buildShimmer(bool isDarkMode) {
     return Column(
-      children: List.generate(10, (index) => 
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+      children: List.generate(
+        6,
+        (int index) => Padding(
+          padding: EdgeInsets.only(bottom: index == 5 ? 0 : 10),
           child: ShimmerWidgets.box(
             width: double.infinity,
-            height: 30,
-            borderRadius: BorderRadius.circular(4),
-            baseColor: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            highlightColor: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF3F4F6),
+            height: 116,
+            borderRadius: BorderRadius.circular(16),
+            baseColor:
+                isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            highlightColor:
+                isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF3F4F6),
           ),
         ),
       ),
@@ -113,187 +120,182 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
   Widget _buildNewsList(List<MarketNews> newsList, bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 3,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Latest News',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827),
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
+      children: <Widget>[
+        HomeUi.tableToolbarHeader(
+          isDarkMode,
+          icon: Icons.newspaper_outlined,
+          title: 'Latest News',
+          subtitleText: 'Headlines for this ticker',
         ),
-        // News items
-        ...newsList.map((news) => _buildNewsItem(news, isDarkMode)).toList(),
+        const SizedBox(height: 14),
+        ...newsList.asMap().entries.map((MapEntry<int, MarketNews> entry) {
+          final bool isLast = entry.key == newsList.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+            child: _buildNewsItem(entry.value, isDarkMode),
+          );
+        }),
       ],
     );
   }
 
   Widget _buildNewsItem(MarketNews news, bool isDarkMode) {
-    final headline = (news.headline ?? '').trim().isNotEmpty
-      ? _sanitizeDisplayText(news.headline!.trim())
+    final String headline = (news.headline ?? '').trim().isNotEmpty
+        ? _sanitizeDisplayText(news.headline!.trim())
         : '--';
-    final summary = (news.summary ?? '').trim().isNotEmpty
-      ? _sanitizeDisplayText(news.summary!.trim())
+    final String summary = (news.summary ?? '').trim().isNotEmpty
+        ? _sanitizeDisplayText(news.summary!.trim())
         : '--';
-    final source = (news.source ?? '').trim().isNotEmpty
-      ? _sanitizeDisplayText(news.source!.trim()).toUpperCase()
+    final String source = (news.source ?? '').trim().isNotEmpty
+        ? _sanitizeDisplayText(news.source!.trim()).toUpperCase()
         : 'UNKNOWN';
 
-    return Column(
-      children: [
-        InkWell(
-          onTap: () async {
-            
-            await _openNewsUrl(news.uRL);
-          },
-          borderRadius: BorderRadius.circular(4),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-            child: Row(
+    return _NewsCard(
+      isDarkMode: isDarkMode,
+      onTap: () => _openNewsUrl(news.uRL),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _buildTimeColumn(news.datetime, isDarkMode),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Time column
-                SizedBox(
-                  width: 82,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _formatDisplayTime(news.datetime),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDarkMode ? const Color(0xFFD1D5DB) : const Color(0xFF4B5563),
-                          fontWeight: FontWeight.w600,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _formatDisplayDate(news.datetime),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                          fontWeight: FontWeight.w500,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    _buildSourceBadge(source, isDarkMode),
+                    const Spacer(),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      size: 14,
+                      color: isDarkMode
+                          ? const Color(0xFF6B7280)
+                          : const Color(0xFF9CA3AF),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                // Content column
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isDarkMode ? const Color(0xFF1E3A5F) : const Color(0xFFDBEAFE),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: Text(
-                              source,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: isDarkMode ? const Color(0xFFBFDBFE) : const Color(0xFF1E40AF),
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ),
-                          // if (category.isNotEmpty) ...[
-                          //   const SizedBox(width: 8),
-                          //   Text(
-                          //     category,
-                          //     style: TextStyle(
-                          //       fontSize: 11,
-                          //       fontWeight: FontWeight.w600,
-                          //       color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                          //       fontFamily: Constants.FONT_DEFAULT_NEW,
-                          //       letterSpacing: 0.4,
-                          //     ),
-                          //     maxLines: 1,
-                          //     overflow: TextOverflow.ellipsis,
-                          //   ),
-                          // ],
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        headline,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: isDarkMode ? const Color(0xFFF3F4F6) : const Color(0xFF111827),
-                          height: 1.2,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        summary,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDarkMode ? const Color(0xFFD1D5DB) : const Color(0xFF4B5563),
-                          height: 1.3,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                const SizedBox(height: 8),
+                Text(
+                  headline,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDarkMode
+                        ? const Color(0xFFF9FAFB)
+                        : const Color(0xFF111827),
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  summary,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDarkMode
+                        ? const Color(0xFF9CA3AF)
+                        : const Color(0xFF64748B),
+                    height: 1.35,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeColumn(int? timestamp, bool isDarkMode) {
+    return Container(
+      width: 78,
+      height: 92,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF111827) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0),
         ),
-        // Divider
-        Container(
-          height: 1,
-          margin: const EdgeInsets.only(left: 94),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
-            borderRadius: BorderRadius.circular(0.5),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            _formatDisplayTime(timestamp),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDarkMode
+                  ? const Color(0xFFE5E7EB)
+                  : const Color(0xFF334155),
+              fontWeight: FontWeight.w700,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 4),
+          Text(
+            _formatDisplayDate(timestamp),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10,
+              color: isDarkMode
+                  ? const Color(0xFF9CA3AF)
+                  : const Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSourceBadge(String source, bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? const Color(0xFF1E3A8A).withValues(alpha: 0.35)
+            : const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDarkMode
+              ? const Color(0xFF3B82F6).withValues(alpha: 0.35)
+              : const Color(0xFFBFDBFE),
         ),
-      ],
+      ),
+      child: Text(
+        source,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: isDarkMode ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+          letterSpacing: 0.4,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 
   String _formatDisplayTime(int? timestamp) {
     if (timestamp == null) return '--';
 
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000).toLocal();
+    final date =
+        DateTime.fromMillisecondsSinceEpoch(timestamp * 1000).toLocal();
     final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
     final minute = date.minute.toString().padLeft(2, '0');
     final period = date.hour >= 12 ? 'PM' : 'AM';
@@ -303,7 +305,8 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
   String _formatDisplayDate(int? timestamp) {
     if (timestamp == null) return '--';
 
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000).toLocal();
+    final date =
+        DateTime.fromMillisecondsSinceEpoch(timestamp * 1000).toLocal();
     final now = DateTime.now();
     final dateOnly = DateTime(date.year, date.month, date.day);
     final todayOnly = DateTime(now.year, now.month, now.day);
@@ -318,8 +321,18 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
     }
 
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -393,5 +406,65 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
         const SnackBar(content: Text('Unable to open link')),
       );
     }
+  }
+}
+
+class _NewsCard extends StatefulWidget {
+  const _NewsCard({
+    required this.isDarkMode,
+    required this.onTap,
+    required this.child,
+  });
+
+  final bool isDarkMode;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_NewsCard> createState() => _NewsCardState();
+}
+
+class _NewsCardState extends State<_NewsCard> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool dark = widget.isDarkMode;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 116,
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: _hover
+                ? (dark ? const Color(0xFF111827) : const Color(0xFFF8FAFC))
+                : (dark ? const Color(0xFF0F172A) : Colors.white),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _hover
+                  ? (dark ? const Color(0xFF374151) : const Color(0xFFCBD5E1))
+                  : (dark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0)),
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: dark
+                    ? Colors.black.withValues(alpha: _hover ? 0.22 : 0.12)
+                    : const Color(0xFF0F172A)
+                        .withValues(alpha: _hover ? 0.08 : 0.04),
+                blurRadius: _hover ? 16 : 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: widget.child,
+        ),
+      ),
+    );
   }
 }

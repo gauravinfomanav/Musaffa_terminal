@@ -1,65 +1,36 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/charts/widgets/quarterly_bar_chart.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 /// Compact [QuarterlyBarChart] styling shared across ticker earnings charts.
 class TickerEarningsCompactChart {
   const TickerEarningsCompactChart._();
 
-  static const double defaultHeight = 220;
-  static const double chartChromeHeight = 58;
-
-  static double resolveChartHeight({double? containerHeight}) {
-    if (containerHeight == null) {
-      return defaultHeight - chartChromeHeight;
-    }
-    return math.max(72, containerHeight - chartChromeHeight);
-  }
+  static const double cardHeight = 280;
 
   static QuarterlyBarChartTheme theme({
     required bool isDarkMode,
-    double? containerHeight,
   }) {
-    final Color titleColor =
-        isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final Color valueColor =
-        isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A);
-
     return QuarterlyBarChartTheme(
-      cardBackgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-      cardBorderColor:
-          isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-      gridLineColor:
-          isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFE5E7EB),
-      axisLineColor:
-          isDarkMode ? const Color(0xFF4B5563) : const Color(0xFFD1D5DB),
-      priceAxisLabelColor:
-          isDarkMode ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
-      chartHeight: resolveChartHeight(containerHeight: containerHeight),
-      cardPadding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      titleStyle: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 15,
-        fontWeight: FontWeight.w400,
-        color: titleColor,
-      ),
-      valueStyle: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 17,
-        fontWeight: FontWeight.w500,
-        color: valueColor,
+      cardBackgroundColor: HomeUi.cardBg(isDarkMode),
+      cardBorderColor: HomeUi.borderLight(isDarkMode),
+      gridLineColor: HomeUi.borderLight(isDarkMode),
+      axisLineColor: HomeUi.borderLight(isDarkMode),
+      priceAxisLabelColor: HomeUi.accent(isDarkMode),
+      cardPadding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      titleStyle: HomeUi.sectionTitle(isDarkMode).copyWith(fontSize: 15),
+      valueStyle: HomeUi.tableCellEmphasis(isDarkMode).copyWith(
+        fontSize: 18,
+        letterSpacing: -0.4,
         height: 1.1,
       ),
-      unitStyle: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 11,
-        fontWeight: FontWeight.w400,
-        color: titleColor,
-      ),
+      unitStyle: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12),
       inlineHeader: true,
+      barWidth: 0.48,
+      barCornerRadius: 6,
+      barGradient: HomeUi.chartBarGradient(isDarkMode),
+      expandChart: true,
     );
   }
 
@@ -71,23 +42,18 @@ class TickerEarningsCompactChart {
     required bool isDarkMode,
     double? containerHeight,
   }) {
-    final double resolvedHeight = containerHeight ?? defaultHeight;
-
     if (data.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return SizedBox(
-      height: resolvedHeight,
+      height: containerHeight ?? cardHeight,
       child: QuarterlyBarChart(
         title: title,
         displayValue: displayValue,
         unit: unit,
         data: data,
-        theme: theme(
-          isDarkMode: isDarkMode,
-          containerHeight: resolvedHeight,
-        ),
+        theme: theme(isDarkMode: isDarkMode),
       ),
     );
   }

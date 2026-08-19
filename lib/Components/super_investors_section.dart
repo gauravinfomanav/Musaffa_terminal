@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/models/super_investor_model.dart';
 import 'package:musaffa_terminal/services/super_investor_service.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class SuperInvestorsSection extends StatefulWidget {
   final String symbol;
@@ -127,7 +128,6 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final nameColumnWidth = screenWidth <= 1512 ? 240.0 : 320.0;
-    final actionColor = isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6);
 
     return FutureBuilder<List<MergedSuperInvestor>>(
       future: _investorDataFuture,
@@ -164,80 +164,40 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
         final visibleRows =
             hasMoreRows && !_isExpanded ? rows.take(_collapsedRowLimit).toList() : rows;
 
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DynamicTable(
+              title: 'Super Investors',
+              subtitle: 'Holdings and conviction in this ticker',
+              toolbarLeadingIcon: Icons.workspace_premium_outlined,
+              showOuterShadow: true,
+              columns: columns,
+              rows: visibleRows,
+              showFixedColumn: true,
+              tickerHeaderLabel: 'SUPER INVESTOR',
+              considerPadding: false,
+              columnSpacing: 16,
+              fixedColumnWidth: nameColumnWidth,
+              enableLivePrices: false,
+              zebraStripes: true,
+              enableColumnCustomization: true,
+              tableId: 'super_investors_table',
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AnimatedSize(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOutCubic,
-                child: DynamicTable(
-                  title: 'Super Investors Data',
-                  columns: columns,
-                  rows: visibleRows,
-                  showFixedColumn: true,
-                  tickerHeaderLabel: 'SUPER INVESTOR',
-                  considerPadding: false,
-                  columnSpacing: 16,
-                  fixedColumnWidth: nameColumnWidth,
-                  enableLivePrices: false,
-                  zebraStripes: false,
-                  enableColumnCustomization: true,
-                  tableId: 'super_investors_table',
-                ),
+            if (hasMoreRows) ...[
+              const SizedBox(height: 12),
+              HomeUi.expandToggle(
+                dark: isDarkMode,
+                expanded: _isExpanded,
+                remaining: rows.length - _collapsedRowLimit,
+                onTap: () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                },
               ),
-              if (hasMoreRows) ...[
-                const SizedBox(height: 8),
-                Center(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _isExpanded = !_isExpanded;
-                      });
-                    },
-                    icon: AnimatedRotation(
-                      turns: _isExpanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeInOut,
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: actionColor,
-                      ),
-                    ),
-                    label: Text(
-                      _isExpanded
-                          ? 'Show less'
-                          : 'Show more (${rows.length - _collapsedRowLimit})',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: actionColor,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide(color: actionColor.withOpacity(0.6), width: 1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ],
-          ),
+          ],
         );
       },
     );
@@ -246,14 +206,7 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
   Widget _buildShimmerLoading(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
+      decoration: HomeUi.cardDecoration(isDarkMode),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -287,14 +240,7 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
   Widget _buildErrorState(String error, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
+      decoration: HomeUi.cardDecoration(isDarkMode),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

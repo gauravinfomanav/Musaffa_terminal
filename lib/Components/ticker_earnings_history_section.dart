@@ -17,7 +17,7 @@ class TickerEarningsHistorySection extends StatelessWidget {
   final TickerEarningsController controller;
   final bool isDarkMode;
 
-  static const double _chartHeight = TickerEarningsCompactChart.defaultHeight;
+  static const double _chartHeight = TickerEarningsCompactChart.cardHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +77,7 @@ class TickerEarningsHistorySection extends StatelessWidget {
           rowChildren.add(
             Expanded(
               child: points.isEmpty
-                  ? const SizedBox.shrink()
+                  ? SizedBox(height: _chartHeight)
                   : TickerEarningsCompactChart.build(
                       title: config.title,
                       displayValue: config.formatDisplay(points.last.value),

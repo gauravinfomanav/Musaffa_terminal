@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:flutter/services.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
-/// Reusable single-select dropdown for screener filters
-class ScreenerDropdown extends StatelessWidget {
+/// Premium searchable filter control (overlay menu, not Material dropdown).
+class ScreenerDropdown extends StatefulWidget {
   final String label;
   final String? value;
   final List<Map<String, String>> options;
@@ -25,451 +26,418 @@ class ScreenerDropdown extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<ScreenerDropdown> createState() => _ScreenerDropdownState();
+}
+
+class _ScreenerDropdownState extends State<ScreenerDropdown> {
+  final OverlayPortalController _portal = OverlayPortalController();
+  final LayerLink _link = LayerLink();
+  final TextEditingController _search = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  bool _hover = false;
+  double _fieldWidth = 220;
+
+  List<Map<String, String>> get _allOptions => [
+        {"value": "any", "label": "Any"},
+        ...widget.options.where((option) => option["value"] != "any"),
+      ];
+
+  String get _selectedValue => widget.value ?? "any";
+
+  String get _selectedLabel {
+    for (final o in _allOptions) {
+      if (o['value'] == _selectedValue) return o['label'] ?? 'Any';
+    }
+    return 'Any';
+  }
+
+  bool get _isAny => _selectedValue == 'any' || _selectedValue.isEmpty;
+
+  bool get _useSearch => _allOptions.length >= 8;
+
+  List<Map<String, String>> get _filtered {
+    final q = _search.text.trim().toLowerCase();
+    if (q.isEmpty) return _allOptions;
+    return _allOptions
+        .where((o) => (o['label'] ?? '').toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _open() {
+    final box = context.findRenderObject() as RenderBox?;
+    _fieldWidth = box?.size.width ?? 220;
+    _search.clear();
+    _portal.show();
+    if (_useSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchFocus.requestFocus();
+      });
+    }
+    setState(() {});
+  }
+
+  void _close() {
+    if (_portal.isShowing) {
+      _portal.hide();
+      setState(() {});
+    }
+  }
+
+  void _toggle() {
+    if (_portal.isShowing) {
+      _close();
+    } else {
+      _open();
+    }
+  }
+
+  void _pick(String? value) {
+    widget.onChanged(value);
+    _close();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Add "Any" option at the beginning if not already present
-    final allOptions = [
-      {"value": "any", "label": "Any"},
-      ...options.where((option) => option["value"] != "any"),
-    ];
-    
-    // Use "any" as default if no value is selected
-    final selectedValue = value ?? "any";
-    
-    return Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Label
-          Text(
-            label,
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
-          ),
-          const SizedBox(height: 8),
-          
-          // Dropdown
-          Container(
-            height: 36,
-            decoration: BoxDecoration(
-              color: isApplied 
-                  ? (isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5)) // Very subtle tint for applied filters
-                  : (isDarkMode ? const Color(0xFF1A1A1A) : Colors.white), // Normal background
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isApplied
-                    ? (isDarkMode ? const Color(0xFF505050) : const Color(0xFFD0D0D0)) // Very faint border for applied filters
-                    : (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)), // Normal border
-                width: 1, // Same width for both
+    final dark = widget.isDarkMode;
+    final open = _portal.isShowing;
+    final showAccent = open;
+    final showHover = _hover && !open;
+
+    return OverlayPortal(
+      controller: _portal,
+      overlayChildBuilder: (context) => _menuOverlay(dark),
+      child: CompositedTransformTarget(
+        link: _link,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.label,
+              style: HomeUi.label(dark).copyWith(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+                height: 1.2,
               ),
             ),
-            child: Row(
-              children: [
-                // Reset button (only show when filter is applied) - moved to left
-                if (isApplied && onReset != null)
-                  GestureDetector(
-                    onTap: onReset,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      margin: const EdgeInsets.only(left: 6, right: 4),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.close,
-                        size: 14,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      ),
+            const SizedBox(height: 8),
+            CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.escape): _close,
+              },
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _hover = true),
+                onExit: (_) => setState(() => _hover = false),
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _toggle,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOutCubic,
+                    decoration: BoxDecoration(
+                      gradient: showAccent ? HomeUi.iconFillGradient : null,
+                      color: showAccent
+                          ? null
+                          : (showHover
+                              ? HomeUi.borderStrong(dark)
+                              : HomeUi.borderLight(dark)),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(
+                            dark
+                                ? (showAccent ? 0.28 : (showHover ? 0.20 : 0.16))
+                                : (showAccent ? 0.08 : (showHover ? 0.06 : 0.04)),
+                          ),
+                          blurRadius: showAccent ? 12 : (showHover ? 10 : 8),
+                          offset: Offset(0, showAccent ? 4 : 2),
+                        ),
+                      ],
                     ),
-                  ),
-                
-                // Dropdown
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: selectedValue,
-                        isExpanded: true,
-                        icon: Icon(
-                          Icons.arrow_drop_down,
-                          size: 20,
-                          color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                    padding: EdgeInsets.all(showAccent ? 1.5 : 1),
+                    child: Container(
+                      height: HomeUi.filterFieldHeight,
+                      decoration: BoxDecoration(
+                        color: HomeUi.cardBg(dark),
+                        borderRadius: BorderRadius.circular(
+                          showAccent ? 8.5 : 9,
                         ),
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 12,
-                          color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                        ),
-                        dropdownColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                        itemHeight: 48,
-                        onChanged: onChanged,
-                        items: allOptions.map<DropdownMenuItem<String>>((option) {
-                          return DropdownMenuItem<String>(
-                            value: option['value'],
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
-                              child: Text(
-                                option['label'] ?? '',
-                                style: DashboardTextStyles.tickerSymbol.copyWith(
-                                  fontSize: 12,
-                                  color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                      ),
+                      padding: const EdgeInsets.only(left: 12, right: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _selectedLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: HomeUi.control(dark, active: !_isAny)
+                                  .copyWith(
+                                fontSize: 13,
+                                fontWeight: _isAny
+                                    ? FontWeight.w500
+                                    : FontWeight.w600,
+                                color: _isAny
+                                    ? HomeUi.muted(dark)
+                                    : HomeUi.title(dark),
+                              ),
+                            ),
+                          ),
+                          if (widget.isApplied && widget.onReset != null)
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  widget.onReset?.call();
+                                  _close();
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    size: 15,
+                                    color: HomeUi.muted(dark),
+                                  ),
                                 ),
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Reusable multi-select dropdown for screener filters
-class ScreenerMultiSelectDropdown extends StatefulWidget {
-  final String label;
-  final List<String> selectedValues;
-  final List<Map<String, String>> options;
-  final Function(List<String>) onChanged;
-  final bool isDarkMode;
-  final String? description;
-
-  const ScreenerMultiSelectDropdown({
-    Key? key,
-    required this.label,
-    required this.selectedValues,
-    required this.options,
-    required this.onChanged,
-    required this.isDarkMode,
-    this.description,
-  }) : super(key: key);
-
-  @override
-  State<ScreenerMultiSelectDropdown> createState() => _ScreenerMultiSelectDropdownState();
-}
-
-class _ScreenerMultiSelectDropdownState extends State<ScreenerMultiSelectDropdown> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayText = widget.selectedValues.isEmpty 
-        ? 'Any' 
-        : widget.selectedValues.length == 1
-            ? _getLabelForValue(widget.selectedValues.first)
-            : '${widget.selectedValues.length} selected';
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Label
-              Text(
-                widget.label,
-                style: DashboardTextStyles.tickerSymbol.copyWith(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                ),
-              ),
-              const SizedBox(height: 8),
-              
-              // Dropdown trigger
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                },
-                child: Container(
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          displayText,
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 12,
-                            color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Icon(
-                        _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                        size: 20,
-                        color: widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        // Dropdown menu (when expanded) - positioned absolutely to overlay
-        if (_isExpanded)
-          Positioned(
-            top: 40, // Position below the trigger
-            left: 0,
-            right: 0,
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                color: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                children: widget.options.map((option) {
-                  final value = option['value'] ?? '';
-                  final label = option['label'] ?? '';
-                  final isSelected = widget.selectedValues.contains(value);
-                  
-                  return InkWell(
-                    onTap: () {
-                      final newValues = List<String>.from(widget.selectedValues);
-                      if (isSelected) {
-                        newValues.remove(value);
-                      } else {
-                        newValues.add(value);
-                      }
-                      widget.onChanged(newValues);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 16,
-                            height: 16,
+                          const SizedBox(width: 4),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 160),
+                            width: 24,
+                            height: 24,
                             decoration: BoxDecoration(
-                              color: isSelected 
-                                  ? (widget.isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6))
-                                  : Colors.transparent,
-                              border: Border.all(
-                                color: widget.isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                              ),
-                              borderRadius: BorderRadius.circular(2),
+                              color: HomeUi.elevatedBg(dark),
+                              shape: BoxShape.circle,
                             ),
-                            child: isSelected
-                                ? const Icon(Icons.check, size: 12, color: Colors.white)
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              label,
-                              style: DashboardTextStyles.tickerSymbol.copyWith(
-                                fontSize: 12,
-                                color: widget.isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
+                            child: AnimatedRotation(
+                              turns: open ? 0.5 : 0,
+                              duration: const Duration(milliseconds: 180),
+                              child: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 16,
+                                color: HomeUi.muted(dark),
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                }).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuOverlay(bool dark) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _close,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        CompositedTransformFollower(
+          link: _link,
+          showWhenUnlinked: false,
+          targetAnchor: Alignment.bottomLeft,
+          followerAnchor: Alignment.topLeft,
+          offset: const Offset(0, 8),
+          child: Material(
+            color: Colors.transparent,
+            child: SizedBox(
+              width: _fieldWidth,
+              child: Container(
+                constraints: const BoxConstraints(maxHeight: 300),
+                decoration: BoxDecoration(
+                  color: HomeUi.cardBg(dark),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: HomeUi.borderLight(dark)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(dark ? 0.36 : 0.10),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_useSearch) _searchBar(dark),
+                    Flexible(
+                      child: _filtered.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Text(
+                                'No matches',
+                                style: HomeUi.subtitle(dark).copyWith(fontSize: 12),
+                              ),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              itemCount: _filtered.length,
+                              itemBuilder: (context, i) {
+                                final option = _filtered[i];
+                                return _OptionRow(
+                                  label: option['label'] ?? '',
+                                  selected: option['value'] == _selectedValue,
+                                  isAny: option['value'] == 'any',
+                                  isDarkMode: dark,
+                                  onTap: () => _pick(option['value']),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+        ),
       ],
     );
   }
 
-  String _getLabelForValue(String value) {
-    final option = widget.options.firstWhere(
-      (opt) => opt['value'] == value,
-      orElse: () => {'label': value},
-    );
-    return option['label'] ?? value;
-  }
-}
-
-/// Reusable range dropdown for screener filters (from/to)
-class ScreenerRangeDropdown extends StatelessWidget {
-  final String label;
-  final String? fromValue;
-  final String? toValue;
-  final List<Map<String, String>> options;
-  final Function(String?) onFromChanged;
-  final Function(String?) onToChanged;
-  final bool isDarkMode;
-  final String? description;
-
-  const ScreenerRangeDropdown({
-    Key? key,
-    required this.label,
-    required this.fromValue,
-    required this.toValue,
-    required this.options,
-    required this.onFromChanged,
-    required this.onToChanged,
-    required this.isDarkMode,
-    this.description,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // Add "Any" option at the beginning if not already present
-    final allOptions = [
-      {"value": "any", "label": "Any"},
-      ...options.where((option) => option["value"] != "any"),
-    ];
-    
-    // Use "any" as default if no value is selected
-    final selectedFromValue = fromValue ?? "any";
-    final selectedToValue = toValue ?? "any";
-    
-    return Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Label
-          Text(
-            label,
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
+  Widget _searchBar(bool dark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+      child: TextField(
+        controller: _search,
+        focusNode: _searchFocus,
+        onChanged: (_) => setState(() {}),
+        cursorColor: HomeUi.title(dark),
+        style: HomeUi.control(dark, active: true).copyWith(fontSize: 13),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Search',
+          hintStyle: HomeUi.control(dark).copyWith(fontSize: 13),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: 16,
+            color: HomeUi.muted(dark),
           ),
-          const SizedBox(height: 8),
-          
-          // From/To dropdowns
-          Row(
-            children: [
-              // From dropdown
-              Expanded(
-                child: Container(
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                    ),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedFromValue,
-                      isExpanded: true,
-                      icon: Icon(
-                        Icons.arrow_drop_down,
-                        size: 18,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      ),
-                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                        fontSize: 11,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      ),
-                      dropdownColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                      onChanged: onFromChanged,
-                      items: allOptions.map<DropdownMenuItem<String>>((option) {
-                        return DropdownMenuItem<String>(
-                          value: option['value'],
-                          child: Text(
-                            option['label'] ?? '',
-                            style: DashboardTextStyles.tickerSymbol.copyWith(
-                              fontSize: 11,
-                              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(width: 8),
-              
-              // To dropdown
-              Expanded(
-                child: Container(
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                    ),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedToValue,
-                      isExpanded: true,
-                      icon: Icon(
-                        Icons.arrow_drop_down,
-                        size: 18,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      ),
-                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                        fontSize: 11,
-                        color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                      ),
-                      dropdownColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                      onChanged: onToChanged,
-                      items: allOptions.map<DropdownMenuItem<String>>((option) {
-                        return DropdownMenuItem<String>(
-                          value: option['value'],
-                          child: Text(
-                            option['label'] ?? '',
-                            style: DashboardTextStyles.tickerSymbol.copyWith(
-                              fontSize: 11,
-                              color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 36, minHeight: 36),
+          filled: true,
+          fillColor: HomeUi.elevatedBg(dark),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: HomeUi.borderLight(dark)),
           ),
-        ],
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: HomeUi.borderLight(dark)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: HomeUi.buttonBorder),
+          ),
+        ),
       ),
     );
   }
 }
 
+class _OptionRow extends StatefulWidget {
+  final String label;
+  final bool selected;
+  final bool isAny;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+
+  const _OptionRow({
+    required this.label,
+    required this.selected,
+    required this.isAny,
+    required this.isDarkMode,
+    required this.onTap,
+  });
+
+  @override
+  State<_OptionRow> createState() => _OptionRowState();
+}
+
+class _OptionRowState extends State<_OptionRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.isDarkMode;
+    final bg = widget.selected
+        ? HomeUi.elevatedBg(dark)
+        : (_hover ? HomeUi.tableRowHover(dark) : Colors.transparent);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          color: bg,
+          child: Row(
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  gradient: widget.selected ? HomeUi.iconFillGradient : null,
+                  color: widget.selected ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: widget.selected
+                        ? HomeUi.buttonBorder
+                        : HomeUi.borderStrong(dark),
+                  ),
+                ),
+                child: widget.selected
+                    ? const Icon(Icons.check_rounded, size: 11, color: Colors.white)
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.control(dark, active: !widget.isAny).copyWith(
+                    fontSize: 13,
+                    fontWeight:
+                        widget.selected ? FontWeight.w600 : FontWeight.w500,
+                    color: widget.isAny && !widget.selected
+                        ? HomeUi.muted(dark)
+                        : HomeUi.title(dark),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
