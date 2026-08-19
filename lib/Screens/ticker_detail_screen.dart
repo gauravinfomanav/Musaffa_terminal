@@ -1354,7 +1354,7 @@ class _KeyMetricsQuoteStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 96,
+      height: 108,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
