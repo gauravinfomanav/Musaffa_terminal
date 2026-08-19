@@ -33,6 +33,7 @@ import 'package:musaffa_terminal/financials/financials_tab/Terminal_Screens/term
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/live_price_service.dart';
@@ -257,9 +258,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return FeatureGuard(
       featureKey: FeatureKeys.tickerDetails,
       child: Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF0F0F0F)
-          : const Color(0xFFFAFAFA),
+      backgroundColor: HomeUi.pageBg(isDarkMode),
       body: Stack(
         children: [
           Column(
@@ -277,160 +276,35 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   );
                 },
               )),
-              
-              // Action Buttons
-              Container(
-                margin: const EdgeInsets.only(left: 12,right: 12,top: 8,bottom: 2),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        // Tab selector matching screener style
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
-                              borderRadius: BorderRadius.circular(90),
-                              border: Border.all(
-                                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                            setState(() {
-                              _selectedTabIndex = 0;
-                            });
-                          },
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 1),
-                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                                    decoration: BoxDecoration(
-                              color: _selectedTabIndex == 0 
-                                          ? Colors.blue
-                                : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(90),
-                          ),
-                          child: Text(
-                            'Overview',
-                                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                                        fontSize: 11,
-                                        fontWeight: _selectedTabIndex == 0 ? FontWeight.w700 : FontWeight.w400,
-                              color: _selectedTabIndex == 0 
-                                            ? Colors.white
-                                  : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                            ),
-                          ),
-                        ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                            setState(() {
-                              _selectedTabIndex = 1;
-                            });
-                          },
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 1),
-                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                                    decoration: BoxDecoration(
-                              color: _selectedTabIndex == 1 
-                                          ? Colors.blue
-                                : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(90),
-                          ),
-                          child: Text(
-                            'Financial',
-                                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                                        fontSize: 11,
-                                        fontWeight: _selectedTabIndex == 1 ? FontWeight.w700 : FontWeight.w400,
-                              color: _selectedTabIndex == 1 
-                                            ? Colors.white
-                                            : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedTabIndex = 2;
-                                    });
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 1),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                      horizontal: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _selectedTabIndex == 2
-                                          ? Colors.blue
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(90),
-                                    ),
-                                    child: Text(
-                                      'Charts',
-                                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                                        fontSize: 11,
-                                        fontWeight: _selectedTabIndex == 2
-                                            ? FontWeight.w700
-                                            : FontWeight.w400,
-                                        color: _selectedTabIndex == 2
-                                            ? Colors.white
-                                            : (isDarkMode
-                                                ? const Color(0xFF9CA3AF)
-                                                : const Color(0xFF6B7280)),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        _buildSectionTabs(isDarkMode),
                         const Spacer(),
                         Obx(() {
                           final hasNotes = researchNotesController.hasNotes;
-                          return GestureDetector(
+                          return HomeUi.ghostAction(
+                            label: hasNotes ? 'View Notes' : 'Add Note',
+                            dark: isDarkMode,
+                            icon: hasNotes
+                                ? Icons.sticky_note_2_outlined
+                                : Icons.note_add_outlined,
                             onTap: () {
                               if (!hasNotes) {
-                                // If no notes, open dialog directly
                                 _showAddNoteDialog(isDarkMode);
                               } else {
-                                // If notes exist, toggle panel
                                 _toggleNotesPanel();
                               }
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(90),
-                                border: Border.all(
-                                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                                  width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              hasNotes ? 'View Notes' : 'Add Note',
-                              style: TextStyle(
-                                fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                fontFamily: Constants.FONT_DEFAULT_NEW,
-                                  color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                                ),
-                              ),
-                            ),
                           );
                         }),
                       ],
                     ),
-                    // Notes Panel
                     if (_isNotesPanelOpen) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       _buildNotesPanel(isDarkMode),
                     ],
                   ],
@@ -456,7 +330,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               child: GestureDetector(
                 onTap: _toggleWatchlist, // Close when tapping outside
                 child: Container(
-                  color: Colors.black.withOpacity(0.3), // Semi-transparent overlay
+                  color: Colors.black.withValues(alpha: 0.3),
                   child: Row(
                     children: [
                       Expanded(
@@ -483,203 +357,220 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     );
   }
 
-  Widget _buildPriceMetrics(StocksData stockData, bool isDarkMode) {
-    final data = [
-      ['Market Cap', Constants.getShortenedMarketCapV2(stockData.usdMarketCap)],
-      ['52W High', '\$${stockData.d52WeekHigh?.toStringAsFixed(2) ?? '--'}'],
-      ['52W Low', '\$${stockData.d52WeekLow?.toStringAsFixed(2) ?? '--'}'],
-      ['Volume', '${((stockData.volume ?? 0) / 1000000).toStringAsFixed(1)}M'],
-      ['Beta', stockData.beta?.toStringAsFixed(2) ?? '--'],
-      ['P/E Ratio', stockData.peTTM?.toStringAsFixed(2) ?? '--'],
-    ];
-    
-    return _buildCompactTable('Price & Market', data, isDarkMode, 
-      titleFontSize: 13, 
-      titleFontWeight: FontWeight.w400,
-      childFontSize: 12,
-      childFontWeight: FontWeight.w400,
+  Widget _buildSectionTabs(bool isDarkMode) {
+    const tabs = ['Overview', 'Financial', 'Charts'];
+    return SizedBox(
+      width: 312,
+      child: HomeUi.segmentedControl(
+        dark: isDarkMode,
+        options: tabs,
+        selectedIndex: _selectedTabIndex,
+        onChanged: (index) => setState(() => _selectedTabIndex = index),
+      ),
     );
   }
 
-
-  Widget _buildValuationMetrics(StocksData stockData, bool isDarkMode) {
-    final data = [
-      ['P/B Ratio', stockData.pbAnnual?.toStringAsFixed(2) ?? '--'],
-      ['P/S Ratio', stockData.psTTM?.toStringAsFixed(2) ?? '--'],
-      ['P/CF Ratio', stockData.pcfShareTTM?.toStringAsFixed(2) ?? '--'],
-      ['EV/EBIT', stockData.evEbit?.toStringAsFixed(2) ?? '--'],
-      ['EV/FCF', stockData.evFcf?.toStringAsFixed(2) ?? '--'],
-      ['EV/Revenue', stockData.evRevenue?.toStringAsFixed(2) ?? '--'],
-    ];
-    
-    return _buildCompactTable('Valuation', data, isDarkMode,
-      titleFontSize: 13,
-      titleFontWeight: FontWeight.w400,
-      childFontSize: 12,
-      childFontWeight: FontWeight.w400,
-    );
-  }
-
-  Widget _buildFinancialRatios(StocksData stockData, bool isDarkMode) {
-    final data = [
-      ['ROE', '${stockData.rOE?.toStringAsFixed(2) ?? '--'}%'],
-      ['ROA', '${stockData.roaTTM?.toStringAsFixed(2) ?? '--'}%'],
-      ['Current Ratio', stockData.currentRatioAnnual?.toStringAsFixed(2) ?? '--'],
-      ['Quick Ratio', stockData.quickRatioAnnual?.toStringAsFixed(2) ?? '--'],
-      ['Debt/Equity', stockData.totalDebtTotalEquityAnnual?.toStringAsFixed(2) ?? '--'],
-      ['Interest Coverage', stockData.netInterestCoverageAnnual?.toStringAsFixed(2) ?? '--'],
-    ];
-    
-    return _buildCompactTable('Financial Ratios', data, isDarkMode,
-      titleFontSize: 13,
-      titleFontWeight: FontWeight.w400,
-      childFontSize: 12,
-      childFontWeight: FontWeight.w400,
-    );
-  }
-
-
-  Widget _buildGrowthMetrics(StocksData stockData, bool isDarkMode) {
-    final data = [
-      ['Revenue (1Y)', '${stockData.revenueGrowth1Y?.toStringAsFixed(2) ?? '--'}%'],
-      ['Revenue (3Y)', '${stockData.revenueGrowth3Y?.toStringAsFixed(2) ?? '--'}%'],
-      ['EPS (1Y)', '${stockData.epsGrowth1y?.toStringAsFixed(2) ?? '--'}%'],
-      ['EPS (3Y)', '${stockData.epsGrowth3Y?.toStringAsFixed(2) ?? '--'}%'],
-      ['Market Cap (3Y)', '${stockData.marketCapChange3y?.toStringAsFixed(2) ?? '--'}%'],
-      ['EBITDA', Constants.getShortenedMarketCapV2(stockData.ebitdaEstimateAnnual)],
-    ];
-    
-    return _buildCompactTable('Growth', data, isDarkMode,
-      titleFontSize: 13,
-      titleFontWeight: FontWeight.w400,
-      childFontSize: 12,
-      childFontWeight: FontWeight.w400,
-    );
-  }
-
-  Widget _buildRiskMetrics(StocksData stockData, bool isDarkMode) {
-    final data = [
-      ['Gross Margin', '${stockData.grossMarginAnnual?.toStringAsFixed(2) ?? '--'}%'],
-      ['Operating Margin', '${stockData.operatingMarginAnnual?.toStringAsFixed(2) ?? '--'}%'],
-      ['Net Margin', '${stockData.netProfitMarginAnnual?.toStringAsFixed(2) ?? '--'}%'],
-      ['Asset Turnover', stockData.assetTurnoverAnnual?.toStringAsFixed(2) ?? '--'],
-      ['Inventory Turnover', stockData.inventoryTurnoverAnnual?.toStringAsFixed(2) ?? '--'],
-      ['Receivables Turnover', stockData.receivablesTurnoverTTM?.toStringAsFixed(2) ?? '--'],
-    ];
-    
-    return _buildCompactTable('Risk & Efficiency', data, isDarkMode,
-      titleFontSize: 13,
-      titleFontWeight: FontWeight.w400,
-      childFontSize: 12,
-      childFontWeight: FontWeight.w400,
-    );
-  }
-
-  Widget _buildMarketTradingMetrics(StocksData stockData, bool isDarkMode) {
-    // Format shares outstanding - same approach as Market Overview
-    String sharesOutstandingFormatted = '--';
-    if (stockData.sharesOutStanding != null && stockData.sharesOutStanding! > 0) {
-      // sharesOutStanding is stored in millions, so multiply by 1M to get raw number
-      final rawShares = stockData.sharesOutStanding! * 1000000;
-      sharesOutstandingFormatted = Constants.getShortenedMarketCapV2(rawShares).replaceAll('\$', '');
-    }
-    
-    String floatFormatted = '--';
-    if (stockData.sharesOutStanding != null && stockData.sharesOutStanding! > 0) {
-      // Calculate float as 80% of shares outstanding
-      final rawFloat = stockData.sharesOutStanding! * 0.8 * 1000000;
-      floatFormatted = Constants.getShortenedMarketCapV2(rawFloat).replaceAll('\$', '');
-    }
-    
-    final data = [
-      ['Avg Volume (10D)', '${((stockData.avgVolume10days ?? 0) / 1000000).toStringAsFixed(1)}M'],
-      ['Avg Volume (30D)', '${((stockData.avgVolume30days ?? 0) / 1000000).toStringAsFixed(1)}M'],
-      ['Shares Outstanding', sharesOutstandingFormatted],
-      ['Float', floatFormatted],
-      ['Insider Ownership', '${(stockData.businessCompliantRatio ?? 0).toStringAsFixed(1)}%'],
-      ['Institutional Hold', '${(stockData.businessQuestionableRatio ?? 0).toStringAsFixed(1)}%'],
-    ];
-    
-    return _buildCompactTable('Market & Trading', data, isDarkMode,
-      titleFontSize: 13,
-      titleFontWeight: FontWeight.w400,
-      childFontSize: 12,
-      childFontWeight: FontWeight.w400,
-    );
-  }
-
-  Widget _buildCompactTable(
-    String title, 
-    List<List<String>> data, 
-    bool isDarkMode, {
-    double? titleFontSize,
-    FontWeight? titleFontWeight,
-    double? childFontSize,
-    FontWeight? childFontWeight,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
+  Widget _premiumLoader(bool isDarkMode) {
+    return Center(
+      child: SizedBox(
+        width: 22,
+        height: 22,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(HomeUi.accent(isDarkMode)),
         ),
       ),
+    );
+  }
+
+  String _fmtPct(num? value, {int digits = 2}) {
+    if (value == null) return '--';
+    final n = value.toDouble();
+    final sign = n > 0 ? '+' : '';
+    return '$sign${n.toStringAsFixed(digits)}%';
+  }
+
+  String _fmtNum(num? value, {int digits = 2}) {
+    if (value == null) return '--';
+    return value.toStringAsFixed(digits);
+  }
+
+  String _fmtVolume(num? value) {
+    if (value == null || value <= 0) return '--';
+    return '${(value / 1000000).toStringAsFixed(1)}M';
+  }
+
+  String _fmtShares(num? millions) {
+    if (millions == null || millions <= 0) return '--';
+    return Constants.getShortenedMarketCapV2(millions * 1000000)
+        .replaceAll('\$', '');
+  }
+
+  Widget _buildKeyMetricsCard(StocksData stockData, bool isDarkMode) {
+    final groups = [
+      [
+        _MetricGroup(
+          'Price & Market',
+          Icons.show_chart_rounded,
+          [
+            ('Market Cap', Constants.getShortenedMarketCapV2(stockData.usdMarketCap)),
+            (
+              '52W High',
+              stockData.d52WeekHigh == null
+                  ? '--'
+                  : '\$${_fmtNum(stockData.d52WeekHigh)}'
+            ),
+            (
+              '52W Low',
+              stockData.d52WeekLow == null
+                  ? '--'
+                  : '\$${_fmtNum(stockData.d52WeekLow)}'
+            ),
+            ('Volume', _fmtVolume(stockData.volume)),
+            ('Beta', _fmtNum(stockData.beta)),
+            ('P/E Ratio', _fmtNum(stockData.peTTM)),
+          ],
+        ),
+        _MetricGroup(
+          'Valuation',
+          Icons.account_balance_outlined,
+          [
+            ('P/B Ratio', _fmtNum(stockData.pbAnnual)),
+            ('P/S Ratio', _fmtNum(stockData.psTTM)),
+            ('P/CF Ratio', _fmtNum(stockData.pcfShareTTM)),
+            ('EV/EBIT', _fmtNum(stockData.evEbit)),
+            ('EV/FCF', _fmtNum(stockData.evFcf)),
+            ('EV/Revenue', _fmtNum(stockData.evRevenue)),
+          ],
+        ),
+        _MetricGroup(
+          'Financial Ratios',
+          Icons.percent_rounded,
+          [
+            ('ROE', _fmtPct(stockData.rOE)),
+            ('ROA', _fmtPct(stockData.roaTTM)),
+            ('Current Ratio', _fmtNum(stockData.currentRatioAnnual)),
+            ('Quick Ratio', _fmtNum(stockData.quickRatioAnnual)),
+            ('Debt/Equity', _fmtNum(stockData.totalDebtTotalEquityAnnual)),
+            ('Interest Coverage', _fmtNum(stockData.netInterestCoverageAnnual)),
+          ],
+        ),
+      ],
+      [
+        _MetricGroup(
+          'Growth',
+          Icons.trending_up_rounded,
+          [
+            ('Revenue (1Y)', _fmtPct(stockData.revenueGrowth1Y)),
+            ('Revenue (3Y)', _fmtPct(stockData.revenueGrowth3Y)),
+            ('EPS (1Y)', _fmtPct(stockData.epsGrowth1y)),
+            ('EPS (3Y)', _fmtPct(stockData.epsGrowth3Y)),
+            ('Market Cap (3Y)', _fmtPct(stockData.marketCapChange3y)),
+            ('EBITDA', Constants.getShortenedMarketCapV2(stockData.ebitdaEstimateAnnual)),
+          ],
+        ),
+        _MetricGroup(
+          'Risk & Efficiency',
+          Icons.shield_outlined,
+          [
+            ('Gross Margin', _fmtPct(stockData.grossMarginAnnual)),
+            ('Operating Margin', _fmtPct(stockData.operatingMarginAnnual)),
+            ('Net Margin', _fmtPct(stockData.netProfitMarginAnnual)),
+            ('Asset Turnover', _fmtNum(stockData.assetTurnoverAnnual)),
+            ('Inventory Turnover', _fmtNum(stockData.inventoryTurnoverAnnual)),
+            ('Receivables Turnover', _fmtNum(stockData.receivablesTurnoverTTM)),
+          ],
+        ),
+        _MetricGroup(
+          'Market & Trading',
+          Icons.candlestick_chart_outlined,
+          [
+            ('Avg Volume (10D)', _fmtVolume(stockData.avgVolume10days)),
+            ('Avg Volume (30D)', _fmtVolume(stockData.avgVolume30days)),
+            ('Shares Outstanding', _fmtShares(stockData.sharesOutStanding)),
+            (
+              'Float',
+              _fmtShares(
+                stockData.sharesOutStanding == null
+                    ? null
+                    : stockData.sharesOutStanding! * 0.8,
+              ),
+            ),
+            (
+              'Insider Ownership',
+              stockData.businessCompliantRatio == null
+                  ? '--'
+                  : '${stockData.businessCompliantRatio!.toStringAsFixed(1)}%'
+            ),
+            (
+              'Institutional Hold',
+              stockData.businessQuestionableRatio == null
+                  ? '--'
+                  : '${stockData.businessQuestionableRatio!.toStringAsFixed(1)}%'
+            ),
+          ],
+        ),
+      ],
+    ];
+
+    return Container(
+      width: double.infinity,
+      decoration: HomeUi.cardDecoration(isDarkMode),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
-              ),
-            ),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: titleFontSize ?? 11,
-                fontWeight: titleFontWeight ?? FontWeight.w600,
-                color: isDarkMode ? const Color(0xFFE0E0E0) : const Color(0xFF374151),
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            child: HomeUi.tableToolbarHeader(
+              isDarkMode,
+              icon: Icons.analytics_outlined,
+              title: 'Key Metrics',
+              subtitleText: 'Price, valuation, growth, and trading snapshot',
             ),
           ),
-          ...data.map((row) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: (isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB)).withOpacity(0.3),
-                  width: 0.5,
-                ),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Divider(height: 1, color: HomeUi.borderLight(isDarkMode)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
               children: [
-                Text(
-                  row[0],
-                  style: DashboardTextStyles.tickerSymbol.copyWith(
-                    fontSize: childFontSize ?? 11,
-                    fontWeight: childFontWeight ?? FontWeight.w400,
+                _KeyMetricsSnapshotStrip(
+                  isDark: isDarkMode,
+                  marketCap: Constants.getShortenedMarketCapV2(
+                    stockData.usdMarketCap,
                   ),
+                  peRatio: _fmtNum(stockData.peTTM),
+                  roe: _fmtPct(stockData.rOE),
+                  roeValue: stockData.rOE?.toDouble(),
+                  weekLow: stockData.d52WeekLow?.toDouble(),
+                  weekHigh: stockData.d52WeekHigh?.toDouble(),
+                  currentPrice:
+                      _livePrice ?? stockData.currentPrice?.toDouble(),
                 ),
-                Text(
-                  row[1],
-                  style: DashboardTextStyles.dataCell.copyWith(
-                    fontSize: childFontSize ?? 11,
-                    fontWeight: childFontWeight ?? FontWeight.w400,
+                const SizedBox(height: 14),
+                for (var rowIndex = 0; rowIndex < groups.length; rowIndex++) ...[
+                  if (rowIndex > 0) const SizedBox(height: 12),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var colIndex = 0;
+                            colIndex < groups[rowIndex].length;
+                            colIndex++) ...[
+                          if (colIndex > 0) const SizedBox(width: 12),
+                          Expanded(
+                            child: _KeyMetricGroupCard(
+                              isDarkMode: isDarkMode,
+                              group: groups[rowIndex][colIndex],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
-          )).toList(),
+          ),
         ],
       ),
     );
@@ -687,411 +578,291 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
 
   Widget _buildStockHeader(StocksData stockData, bool isDarkMode) {
-    return IntrinsicHeight(
+    final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? 'TICKER';
+    final companyName =
+        widget.ticker.companyName ?? widget.ticker.name ?? 'Company Name';
+    final price = _livePrice ?? stockData.currentPrice?.toDouble() ?? 0.0;
+    final change = stockData.change1DPercent;
+    final isUp = change != null && change >= 0;
+    final priceColor = _getPriceColor(isDarkMode, _livePrice);
+
+    return Container(
+      decoration: HomeUi.cardDecoration(isDarkMode),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 11,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: HomeUi.elevatedBg(isDarkMode),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+                          ),
+                          child: showLogo(
+                            ticker,
+                            widget.ticker.logo ?? '',
+                            sideWidth: 28,
+                            name: ticker,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                companyName,
+                                style: HomeUi.sectionTitle(isDarkMode).copyWith(fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                ticker,
+                                style: HomeUi.overline(isDarkMode).copyWith(
+                                  letterSpacing: 1.2,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        AddToWatchlistButton(
+                          ticker: ticker,
+                          currentPrice: price,
+                          isDarkMode: isDarkMode,
+                          isInWatchlist: _isInWatchlist,
+                          onSuccess: () {
+                            _showSuccessSnackBar('$ticker added to watchlist');
+                            _checkIfStockInWatchlist();
+                          },
+                          onError: () {
+                            _showErrorSnackBar('Failed to add $ticker to watchlist');
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'CURRENT PRICE',
+                                style: HomeUi.overline(isDarkMode).copyWith(
+                                  fontSize: 10,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '\$${price.toStringAsFixed(2)}',
+                                style: HomeUi.display(isDarkMode).copyWith(
+                                  fontSize: 24,
+                                  height: 1.1,
+                                  color: priceColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: change == null
+                                ? HomeUi.elevatedBg(isDarkMode)
+                                : (isUp
+                                    ? HomeUi.positiveSoft(isDarkMode)
+                                    : HomeUi.negativeSoft(isDarkMode)),
+                            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                          ),
+                          child: Text(
+                            change == null
+                                ? '--'
+                                : '${isUp ? '+' : ''}${change.toStringAsFixed(2)}%',
+                            style: HomeUi.tableNumeric(
+                              isDarkMode,
+                              positiveValue: change == null ? null : isUp,
+                            ).copyWith(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _headerKv(
+                      isDarkMode,
+                      'Market Cap',
+                      Constants.getShortenedMarketCapV2(stockData.usdMarketCap),
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Volume',
+                      '${((stockData.volume ?? 0) / 1000000).toStringAsFixed(1)}M',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: HomeUi.borderLight(isDarkMode),
+            ),
+            Expanded(
+              flex: 10,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    HomeUi.tableToolbarHeader(
+                      isDarkMode,
+                      icon: Icons.public_outlined,
+                      title: 'Market Overview',
+                    ),
+                    const SizedBox(height: 12),
+                    _headerKv(
+                      isDarkMode,
+                      'Sector',
+                      widget.ticker.sectorname ?? '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Industry',
+                      stockData.industry ?? '--',
+                      maxLines: 2,
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Shares Out',
+                      stockData.sharesOutStanding != null
+                          ? Constants.getShortenedMarketCapV2(
+                              stockData.sharesOutStanding! * 1000000,
+                            ).replaceAll('\$', '')
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'IPO Date',
+                      stockData.ipoDate ?? '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Beta',
+                      stockData.beta != null
+                          ? stockData.beta!.toStringAsFixed(2)
+                          : '--',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: HomeUi.borderLight(isDarkMode),
+            ),
+            Expanded(
+              flex: 10,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    HomeUi.tableToolbarHeader(
+                      isDarkMode,
+                      icon: Icons.auto_graph_outlined,
+                      title: 'Key Highlights',
+                    ),
+                    const SizedBox(height: 12),
+                    _headerKv(
+                      isDarkMode,
+                      'Book Value',
+                      stockData.bookValuePerShareAnnual != null
+                          ? '\$${stockData.bookValuePerShareAnnual!.toStringAsFixed(2)}'
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Cash / Share',
+                      stockData.cashPerSharePerShareAnnual != null
+                          ? '\$${stockData.cashPerSharePerShareAnnual!.toStringAsFixed(2)}'
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Dividend Yield',
+                      stockData.currentDividendYieldTTM != null
+                          ? '${stockData.currentDividendYieldTTM!.toStringAsFixed(2)}%'
+                          : '--',
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Enterprise Value',
+                      stockData.enterpriseValue != null
+                          ? Constants.getShortenedMarketCapV2(
+                              stockData.enterpriseValue,
+                            )
+                          : '--',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _headerKv(
+    bool isDarkMode,
+    String label,
+    String value, {
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment:
+            maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: [
-          // Container 1: Company Identity & Current Status
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // Company Logo using showLogo function
-                      showLogo(
-                        widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                        widget.ticker.logo ?? '',
-                        sideWidth: 32,
-                        name: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.ticker.companyName ?? widget.ticker.name ?? 'Company Name',
-                              style: DashboardTextStyles.stockName.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              widget.ticker.symbol ?? widget.ticker.ticker ?? 'TICKER',
-                              style: DashboardTextStyles.tickerSymbol.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Add to Watchlist Button
-                      AddToWatchlistButton(
-                        ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                        currentPrice: _livePrice ?? (stockData.currentPrice ?? 0.0).toDouble(),
-                        isDarkMode: isDarkMode,
-                        isInWatchlist: _isInWatchlist,
-                        onSuccess: () {
-                          _showSuccessSnackBar('${widget.ticker.symbol ?? widget.ticker.ticker} added to watchlist');
-                          _checkIfStockInWatchlist();
-                        },
-                        onError: () {
-                          _showErrorSnackBar('Failed to add ${widget.ticker.symbol ?? widget.ticker.ticker} to watchlist');
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Live Current Price
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                            'Current Price',
-                            style: DashboardTextStyles.tickerSymbol.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                            ),
-                      ),
-                          const SizedBox(height: 4),
-                      Text(
-                            '\$${(_livePrice ?? stockData.currentPrice?.toDouble() ?? 0.0).toStringAsFixed(2)}',
-                            style: DashboardTextStyles.stockName.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: _getPriceColor(_livePrice, stockData.currentPrice?.toDouble()),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Change %
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Change',
-                            style: DashboardTextStyles.tickerSymbol.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${stockData.change1DPercent != null ? (stockData.change1DPercent! >= 0 ? '+' : '') : ''}${stockData.change1DPercent?.toStringAsFixed(2) ?? '--'}%',
-                            style: DashboardTextStyles.stockName.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                          color: stockData.change1DPercent != null
-                                  ? (stockData.change1DPercent! >= 0 ? Colors.green.shade600 : Colors.red.shade600)
-                                  : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
-                        ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Market Cap: ${Constants.getShortenedMarketCapV2(stockData.usdMarketCap)}',
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        'Volume: ${((stockData.volume ?? 0) / 1000000).toStringAsFixed(1)}M',
-                        style: DashboardTextStyles.tickerSymbol.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            flex: 4,
+            child: Text(
+              label,
+              style: HomeUi.tableCellSecondary(isDarkMode).copyWith(fontSize: 12),
             ),
           ),
-          
           const SizedBox(width: 8),
-          
-          // Container 2: Market Overview
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Market Overview',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (widget.ticker.sectorname != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Sector:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          widget.ticker.sectorname!,
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (stockData.industry != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Industry:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          stockData.industry!,
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (stockData.sharesOutStanding != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Shares Outstanding:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          Constants.getShortenedMarketCapV2(stockData.sharesOutStanding! * 1000000).replaceAll('\$', ''),
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (stockData.ipoDate != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'IPO Date:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          stockData.ipoDate!,
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (stockData.beta != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Beta:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          stockData.beta!.toStringAsFixed(2),
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  // Add spacer to push content to top and maintain consistent height
-                  const Spacer(),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(width: 8),
-          
-          // Container 3: Key Financial Highlights
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Key Highlights',
-                    style: DashboardTextStyles.stockName.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (stockData.bookValuePerShareAnnual != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Book Value:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '\$${stockData.bookValuePerShareAnnual!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (stockData.cashPerSharePerShareAnnual != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Cash/Share:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '\$${stockData.cashPerSharePerShareAnnual!.toStringAsFixed(2)}',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (stockData.currentDividendYieldTTM != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Dividend Yield:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '${stockData.currentDividendYieldTTM!.toStringAsFixed(2)}%',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (stockData.enterpriseValue != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Enterprise Value:',
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          Constants.getShortenedMarketCapV2(stockData.enterpriseValue),
-                          style: DashboardTextStyles.tickerSymbol.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  // Add spacer to push content to top and maintain consistent height
-                  const Spacer(),
-                ],
-              ),
+            flex: 5,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: maxLines,
+              overflow: TextOverflow.ellipsis,
+              style: HomeUi.tableCellEmphasis(isDarkMode).copyWith(fontSize: 13),
             ),
           ),
         ],
@@ -1099,18 +870,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     );
   }
 
-  Color _getPriceColor(double? livePrice, double? typesensePrice) {
-    if (livePrice == null || typesensePrice == null || _previousPrice == null) {
-      return Colors.grey;
+  Color _getPriceColor(bool isDarkMode, double? livePrice) {
+    if (livePrice == null || _previousPrice == null) {
+      return HomeUi.title(isDarkMode);
     }
-    
     if (livePrice > _previousPrice!) {
-      return Colors.green.shade600;
-    } else if (livePrice < _previousPrice!) {
-      return Colors.red.shade600;
-    } else {
-      return Colors.grey;
+      return HomeUi.positive(isDarkMode);
     }
+    if (livePrice < _previousPrice!) {
+      return HomeUi.negative(isDarkMode);
+    }
+    return HomeUi.title(isDarkMode);
   }
 
   Widget _buildPerformanceHeatmap(StocksData stockData, bool isDarkMode) {
@@ -1128,36 +898,26 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10), // Reduced padding for terminal look
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
-        borderRadius: BorderRadius.circular(4), // Smaller radius for terminal look
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: HomeUi.cardDecoration(isDarkMode),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Performance Heatmap',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF374151),
-            ),
+          HomeUi.tableToolbarHeader(
+            isDarkMode,
+            icon: Icons.grid_view_rounded,
+            title: 'Performance',
+            subtitleText: 'Returns across timeframes',
           ),
-          const SizedBox(height: 6), // Reduced spacing for terminal look
+          const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 4, // Reduced spacing for terminal look
-              mainAxisSpacing: 4, // Reduced spacing for terminal look
-              childAspectRatio: 2, // Adjusted for larger text and better readability
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
+              childAspectRatio: 2.15,
             ),
             itemCount: performanceData.length,
             itemBuilder: (context, index) {
@@ -1174,40 +934,26 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   Widget _buildHeatmapCell(String period, double value, bool isDarkMode) {
     final isPositive = value >= 0;
     final absValue = value.abs();
-    
-    // Terminal-appropriate colors - solid colors, no opacity
-    Color cellColor;
-    Color textColor;
-    
-    if (absValue == 0) {
-      // Neutral/zero performance
-      cellColor = isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
-      textColor = isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    } else if (absValue <= 1) {
-      // Very small change
-      cellColor = isPositive ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2);
-      textColor = isPositive ? const Color(0xFF065F46) : const Color(0xFF991B1B);
-    } else if (absValue <= 5) {
-      // Small change
-      cellColor = isPositive ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA);
-      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
-    } else if (absValue <= 15) {
-      // Medium change
-      cellColor = isPositive ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5);
-      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
-    } else {
-      // Large change
-      cellColor = isPositive ? const Color(0xFF34D399) : const Color(0xFFF87171);
-      textColor = isPositive ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D);
-    }
+    final intensity = (absValue / 20).clamp(0.18, 1.0);
+    final tone = isPositive
+        ? HomeUi.positive(isDarkMode)
+        : HomeUi.negative(isDarkMode);
+    final fill = absValue == 0
+        ? HomeUi.elevatedBg(isDarkMode)
+        : Color.lerp(
+            tone.withValues(alpha: isDarkMode ? 0.12 : 0.08),
+            tone.withValues(alpha: isDarkMode ? 0.38 : 0.22),
+            intensity,
+          )!;
 
     return Container(
       decoration: BoxDecoration(
-        color: cellColor,
-        borderRadius: BorderRadius.circular(2), // Smaller radius for terminal look
+        color: fill,
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
         border: Border.all(
-          color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-          width: 0.5,
+          color: absValue == 0
+              ? HomeUi.borderLight(isDarkMode)
+              : tone.withValues(alpha: 0.22),
         ),
       ),
       child: Column(
@@ -1215,22 +961,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         children: [
           Text(
             period,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: textColor,
+            style: HomeUi.overline(isDarkMode).copyWith(
+              fontSize: 10,
+              letterSpacing: 0.8,
+              color: absValue == 0 ? HomeUi.muted(isDarkMode) : tone,
             ),
           ),
-          const SizedBox(height: 2), // Increased spacing for better readability
+          const SizedBox(height: 3),
           Text(
             '${value >= 0 ? '+' : ''}${value.toStringAsFixed(1)}%',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: textColor,
-            ),
+            style: HomeUi.tableNumeric(
+              isDarkMode,
+              positiveValue: absValue == 0 ? null : isPositive,
+            ).copyWith(fontSize: 13),
           ),
         ],
       ),
@@ -1240,53 +983,50 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   Widget _buildOverviewTab(bool isDarkMode) {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
+        return _premiumLoader(isDarkMode);
       }
       
       if (controller.errorMessage.isNotEmpty) {
         return Center(
           child: Text(
             controller.errorMessage.value,
-            style: DashboardTextStyles.errorMessage,
+            style: HomeUi.bodyText(isDarkMode).copyWith(
+              color: HomeUi.negative(isDarkMode),
+            ),
           ),
         );
       }
       
       if (controller.stockData.value == null) {
-        return const Center(child: Text('No data available'));
+        return Center(
+          child: Text(
+            'No data available',
+            style: HomeUi.subtitle(isDarkMode),
+          ),
+        );
       }
       
       final stockData = controller.stockData.value!;
       return SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
             _buildStockHeader(stockData, isDarkMode),
             const SizedBox(height: 16),
 
-            // TradingView Chart and Analytics Row
             LayoutBuilder(
               builder: (context, constraints) {
-                // Calculate heatmap height based on available width
-                // Heatmap structure:
-                // - Padding: 10px top + 10px bottom = 20px
-                // - Header: ~20px (text) + 6px spacing = 26px
-                // - Grid: 3 rows × cell height
-                //   Cell height = (available width / 3 - spacing) / aspectRatio(2)
-                //   With 4px spacing between cells
-                final availableWidth = (constraints.maxWidth - 16) / 2; // Half width minus spacing
-                final cellWidth = (availableWidth - 20 - 8) / 3; // Container width - padding - spacing
-                final cellHeight = cellWidth / 2; // aspectRatio is 2
-                final gridHeight = (cellHeight * 3) + (4 * 2); // 3 rows + 2 spacings
-                final heatmapHeight = 20 + 26 + gridHeight; // padding + header + grid
-                
+                final availableWidth = (constraints.maxWidth - 16) / 2;
+                final cellWidth = (availableWidth - 32 - 12) / 3;
+                final cellHeight = cellWidth / 2.15;
+                final gridHeight = (cellHeight * 3) + 12;
+                final heatmapHeight = 30 + 48 + gridHeight;
+
                 return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Half screen width for chart
                 Expanded(
                   child: TradingViewWidget(
                     symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
@@ -1316,41 +1056,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Row 1: Price & Market, Valuation, Financial Ratios
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildPriceMetrics(stockData, isDarkMode),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildValuationMetrics(stockData, isDarkMode),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildFinancialRatios(stockData, isDarkMode),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Row 2: Growth, Risk & Efficiency (Performance removed - shown in heatmap)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildGrowthMetrics(stockData, isDarkMode),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildRiskMetrics(stockData, isDarkMode),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMarketTradingMetrics(stockData, isDarkMode),
-                ),
-              ],
-            ),
+            _buildKeyMetricsCard(stockData, isDarkMode),
             const SizedBox(height: 16),
             TickerUpcomingEarningsCard(
               controller: tickerEarningsController,
@@ -1402,19 +1108,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 }
                 
                 return Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: RecommendationWidget(
-                symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                controller: recommendationController,
-              ),
+                  decoration: HomeUi.cardDecoration(isDarkMode),
+                  child: RecommendationWidget(
+                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                    controller: recommendationController,
+                  ),
                 );
               },
             ),
@@ -1456,19 +1154,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ),
             const SizedBox(height: 16),
             // News Section
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              child: SimpleNewsWidget(
-                symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-              ),
+            SimpleNewsWidget(
+              symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
             ),
           ],
         ),
@@ -1491,36 +1178,15 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
   Widget _buildNotesPanel(bool isDarkMode) {
     return Obx(() {
-      if (researchNotesController.isLoading.value) {
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-      }
-
       return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-        child: researchNotesController.hasNotes
-            ? _buildNotesList(isDarkMode)
-            : _buildAddNoteForm(isDarkMode),
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        decoration: HomeUi.cardDecoration(isDarkMode),
+        child: researchNotesController.isLoading.value
+            ? SizedBox(height: 72, child: _premiumLoader(isDarkMode))
+            : researchNotesController.hasNotes
+                ? _buildNotesList(isDarkMode)
+                : _buildAddNoteForm(isDarkMode),
       );
     });
   }
@@ -1530,79 +1196,60 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Research Notes',
-              style: DashboardTextStyles.headerTitle.copyWith(fontSize: 14),
+            Expanded(
+              child: HomeUi.tableToolbarHeader(
+                isDarkMode,
+                icon: Icons.sticky_note_2_outlined,
+                title: 'Research Notes',
+                subtitleText: 'Private notes for this ticker',
+              ),
             ),
-            TextButton(
-              onPressed: () => _showAddNoteDialog(isDarkMode),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              ),
-              child: Text(
-                'Add Note',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  color: const Color(0xFF81AACE),
-                ),
-              ),
+            HomeUi.ghostAction(
+              label: 'Add Note',
+              dark: isDarkMode,
+              icon: Icons.add_rounded,
+              onTap: () => _showAddNoteDialog(isDarkMode),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Obx(() {
           if (researchNotesController.notes.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'No notes found',
-                style: DashboardTextStyles.tickerSymbol.copyWith(
-                  fontSize: 11,
-                  color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                ),
-              ),
-            );
+            return Text('No notes found', style: HomeUi.subtitle(isDarkMode));
           }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: researchNotesController.notes.map((note) => Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: isDarkMode ? const Color(0xFF505050) : const Color(0xFFD1D5DB),
-                  width: 0.5,
+            children: researchNotesController.notes.map((note) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                decoration: BoxDecoration(
+                  color: HomeUi.elevatedBg(isDarkMode),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                  border: Border.all(color: HomeUi.borderLight(isDarkMode)),
                 ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      note.text,
-                      style: DashboardTextStyles.tickerSymbol.copyWith(
-                        fontSize: 11,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        note.text,
+                        style: HomeUi.bodyText(isDarkMode).copyWith(height: 1.45),
                       ),
-                      maxLines: null,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _formatDate(note.createdAt),
-                    style: DashboardTextStyles.columnHeader.copyWith(
-                      fontSize: 10,
-                      color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                    const SizedBox(width: 12),
+                    Text(
+                      _formatDate(note.createdAt),
+                      style: HomeUi.overline(isDarkMode).copyWith(
+                        fontSize: 10,
+                        letterSpacing: 0.4,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            )).toList(),
+                  ],
+                ),
+              );
+            }).toList(),
           );
         }),
       ],
@@ -1613,216 +1260,38 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'No Research Notes',
-          style: DashboardTextStyles.headerTitle.copyWith(fontSize: 14),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Click "Add Note" to create your first research note for this ticker.',
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            fontSize: 11,
-            color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-          ),
+        HomeUi.tableToolbarHeader(
+          isDarkMode,
+          icon: Icons.sticky_note_2_outlined,
+          title: 'Research Notes',
+          subtitleText: 'Capture thesis, catalysts, and follow-ups',
         ),
         const SizedBox(height: 12),
-        OutlinedButton(
-          onPressed: () => _showAddNoteDialog(isDarkMode),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-            side: const BorderSide(
-              color: Color(0xFF81AACE),
-            ),
-            backgroundColor: const Color(0xFF81AACE).withOpacity(0.1),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-          child: Text(
-            'Add Note',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: const Color(0xFF81AACE),
-            ),
-          ),
+        Text(
+          'No notes yet for this ticker. Add one to keep your research next to the chart.',
+          style: HomeUi.bodyText(isDarkMode),
+        ),
+        const SizedBox(height: 14),
+        HomeUi.primaryAction(
+          label: 'Add Note',
+          icon: Icons.note_add_outlined,
+          onTap: () => _showAddNoteDialog(isDarkMode),
         ),
       ],
     );
   }
 
   void _showAddNoteDialog(bool isDarkMode) {
-    final TextEditingController noteController = TextEditingController();
-
-    showDialog(
+    _AddResearchNoteDialog.show(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: isDarkMode ? const Color(0xFF2D2D2D) : const Color(0xFFF9FAFB),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
-        child: Container(
-          width: 500,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Add Research Note',
-                      style: DashboardTextStyles.headerTitle.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        size: 18,
-                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 24,
-                        minHeight: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: noteController,
-                maxLines: 6,
-                minLines: 4,
-                style: DashboardTextStyles.tickerSymbol.copyWith(fontSize: 12),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
-                  hintText: 'Enter your research note...',
-                  hintStyle: TextStyle(
-                    fontSize: 12,
-                    color: isDarkMode ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDarkMode ? const Color(0xFF505050) : const Color(0xFFD1D5DB),
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDarkMode ? const Color(0xFF505050) : const Color(0xFFD1D5DB),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF81AACE),
-                      width: 1.5,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.all(12),
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Secondary CTA - Cancel button (transparent with border)
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      backgroundColor: Colors.transparent,
-                      side: BorderSide(
-                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(90),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Primary CTA - Save button (filled blue)
-                  ElevatedButton(
-                    onPressed: () async {
-                      final noteText = noteController.text.trim();
-                      if (noteText.isEmpty) {
-                        _showErrorSnackBar('Please enter a note');
-                        return;
-                      }
-                      final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
-                      final success = await researchNotesController.addNote(ticker, noteText);
-                      if (success) {
-                        Navigator.pop(context);
-                        _showSuccessSnackBar('Note added successfully');
-                        // Open panel if it was closed
-                        if (!_isNotesPanelOpen) {
-                          setState(() {
-                            _isNotesPanelOpen = true;
-                          });
-                        }
-                      } else {
-                        _showErrorSnackBar(researchNotesController.errorMessage.value);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      backgroundColor: isDarkMode ? const Color(0xFF81AACE) : const Color(0xFF3B82F6),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(90),
-                      ),
-                    ),
-                    child: Text(
-                      'Save',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+      ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+      notesController: researchNotesController,
+      onSaved: () {
+        _showSuccessSnackBar('Note added successfully');
+        if (!_isNotesPanelOpen) {
+          setState(() => _isNotesPanelOpen = true);
+        }
+      },
     );
   }
 
@@ -1841,5 +1310,778 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       return '${date.day}/${date.month}/${date.year}';
     }
   }
-  
+}
+
+class _MetricGroup {
+  const _MetricGroup(this.title, this.icon, this.rows);
+
+  final String title;
+  final IconData icon;
+  final List<(String, String)> rows;
+}
+
+const _signedMetricLabels = {
+  'Revenue (1Y)',
+  'Revenue (3Y)',
+  'EPS (1Y)',
+  'EPS (3Y)',
+  'Market Cap (3Y)',
+  'ROE',
+  'ROA',
+  'Gross Margin',
+  'Operating Margin',
+  'Net Margin',
+};
+
+bool? _metricSignedTone(String label, String value) {
+  if (!_signedMetricLabels.contains(label)) return null;
+  final parsed = double.tryParse(
+    value.replaceAll(RegExp(r'[^0-9.\-]'), ''),
+  );
+  if (parsed == null || parsed == 0) return null;
+  return parsed > 0;
+}
+
+class _KeyMetricsSnapshotStrip extends StatelessWidget {
+  const _KeyMetricsSnapshotStrip({
+    required this.isDark,
+    required this.marketCap,
+    required this.peRatio,
+    required this.roe,
+    required this.roeValue,
+    required this.weekLow,
+    required this.weekHigh,
+    required this.currentPrice,
+  });
+
+  final bool isDark;
+  final String marketCap;
+  final String peRatio;
+  final String roe;
+  final double? roeValue;
+  final double? weekLow;
+  final double? weekHigh;
+  final double? currentPrice;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        Expanded(
+          child: _SnapshotTile(
+            isDark: isDark,
+            label: 'Market Cap',
+            value: marketCap,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _SnapshotTile(
+            isDark: isDark,
+            label: 'P/E Ratio',
+            value: peRatio,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _SnapshotTile(
+            isDark: isDark,
+            label: 'ROE',
+            value: roe,
+            signedValue: roeValue,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 2,
+          child: _RangeSnapshotTile(
+            isDark: isDark,
+            weekLow: weekLow,
+            weekHigh: weekHigh,
+            currentPrice: currentPrice,
+          ),
+        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnapshotTile extends StatefulWidget {
+  const _SnapshotTile({
+    required this.isDark,
+    required this.label,
+    required this.value,
+    this.signedValue,
+  });
+
+  final bool isDark;
+  final String label;
+  final String value;
+  final double? signedValue;
+
+  @override
+  State<_SnapshotTile> createState() => _SnapshotTileState();
+}
+
+class _SnapshotTileState extends State<_SnapshotTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final signed = widget.signedValue == null || widget.signedValue == 0
+        ? null
+        : widget.signedValue! > 0;
+    final valueColor = signed == null
+        ? HomeUi.title(widget.isDark)
+        : (signed ? HomeUi.positive(widget.isDark) : HomeUi.negative(widget.isDark));
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: _hover
+              ? HomeUi.elevatedBg(widget.isDark)
+              : (widget.isDark
+                  ? HomeUi.elevatedBg(true)
+                  : const Color(0xFFFAFBFC)),
+          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+          border: Border.all(
+            color: _hover
+                ? HomeUi.borderStrong(widget.isDark)
+                : HomeUi.borderLight(widget.isDark),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.label.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: HomeUi.overline(widget.isDark).copyWith(
+                fontSize: 10,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              widget.value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: HomeUi.heading(widget.isDark).copyWith(
+                fontSize: 20,
+                letterSpacing: -0.6,
+                height: 1.1,
+                color: valueColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RangeSnapshotTile extends StatefulWidget {
+  const _RangeSnapshotTile({
+    required this.isDark,
+    required this.weekLow,
+    required this.weekHigh,
+    required this.currentPrice,
+  });
+
+  final bool isDark;
+  final double? weekLow;
+  final double? weekHigh;
+  final double? currentPrice;
+
+  @override
+  State<_RangeSnapshotTile> createState() => _RangeSnapshotTileState();
+}
+
+class _RangeSnapshotTileState extends State<_RangeSnapshotTile> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final low = widget.weekLow;
+    final high = widget.weekHigh;
+    final price = widget.currentPrice;
+    final hasRange = low != null && high != null && high > low;
+    final t = hasRange && price != null
+        ? ((price - low) / (high - low)).clamp(0.0, 1.0)
+        : 0.5;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: _hover
+              ? HomeUi.elevatedBg(widget.isDark)
+              : (widget.isDark
+                  ? HomeUi.elevatedBg(true)
+                  : const Color(0xFFFAFBFC)),
+          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+          border: Border.all(
+            color: _hover
+                ? HomeUi.borderStrong(widget.isDark)
+                : HomeUi.borderLight(widget.isDark),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '52-WEEK RANGE',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: HomeUi.overline(widget.isDark).copyWith(
+                fontSize: 10,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasRange ? '\$${low.toStringAsFixed(2)}' : '--',
+                    style: HomeUi.tableCellSecondary(widget.isDark).copyWith(
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                if (price != null)
+                  Text(
+                    '\$${price.toStringAsFixed(2)}',
+                    style: HomeUi.tableCellEmphasis(widget.isDark).copyWith(
+                      fontSize: 12,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    hasRange ? '\$${high.toStringAsFixed(2)}' : '--',
+                    textAlign: TextAlign.right,
+                    style: HomeUi.tableCellSecondary(widget.isDark).copyWith(
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final thumb = (t * constraints.maxWidth).clamp(5.0, constraints.maxWidth - 5);
+                return SizedBox(
+                  height: 8,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        height: 6,
+                        margin: const EdgeInsets.only(top: 1),
+                        decoration: BoxDecoration(
+                          color: widget.isDark
+                              ? const Color(0xFF2A2E34)
+                              : const Color(0xFFE6E8EC),
+                          borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                        ),
+                      ),
+                      if (hasRange)
+                        FractionallySizedBox(
+                          widthFactor: t,
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            height: 6,
+                            margin: const EdgeInsets.only(top: 1),
+                            decoration: BoxDecoration(
+                              gradient: HomeUi.iconFillGradient,
+                              borderRadius:
+                                  BorderRadius.circular(HomeUi.radiusPill),
+                            ),
+                          ),
+                        ),
+                      if (hasRange)
+                        Positioned(
+                          left: thumb - 5,
+                          top: -1,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: HomeUi.cardBg(widget.isDark),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFD2364C),
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: widget.isDark ? 0.28 : 0.08,
+                                  ),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KeyMetricGroupCard extends StatefulWidget {
+  const _KeyMetricGroupCard({
+    required this.isDarkMode,
+    required this.group,
+  });
+
+  final bool isDarkMode;
+  final _MetricGroup group;
+
+  @override
+  State<_KeyMetricGroupCard> createState() => _KeyMetricGroupCardState();
+}
+
+class _KeyMetricGroupCardState extends State<_KeyMetricGroupCard> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final group = widget.group;
+    final isDark = widget.isDarkMode;
+    final hero = group.rows.isEmpty ? null : group.rows.first;
+    final rest = group.rows.length <= 1 ? const <(String, String)>[] : group.rows.sublist(1);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: isDark ? HomeUi.elevatedBg(true) : const Color(0xFFFAFBFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _hover ? HomeUi.borderStrong(isDark) : HomeUi.borderLight(isDark),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: HomeUi.iconWellGradient,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: HomeUi.iconWellBorder),
+                    ),
+                    child: HomeUi.brandIcon(
+                      icon: group.icon,
+                      size: HomeUi.iconSm,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      group.title.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeUi.overline(isDark).copyWith(
+                        fontSize: 10.5,
+                        letterSpacing: 1.15,
+                        color: HomeUi.body(isDark),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (hero != null) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                child: _HeroMetric(
+                  isDark: isDark,
+                  label: hero.$1,
+                  value: hero.$2,
+                ),
+              ),
+              Divider(height: 1, color: HomeUi.borderLight(isDark)),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+              child: Column(
+                children: [
+                  for (var i = 0; i < rest.length; i++) ...[
+                    _MetricDataRow(
+                      isDark: isDark,
+                      label: rest[i].$1,
+                      value: rest[i].$2,
+                    ),
+                    if (i < rest.length - 1)
+                      Divider(
+                        height: 1,
+                        indent: 8,
+                        endIndent: 8,
+                        color: HomeUi.borderLight(isDark).withValues(alpha: 0.7),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroMetric extends StatelessWidget {
+  const _HeroMetric({
+    required this.isDark,
+    required this.label,
+    required this.value,
+  });
+
+  final bool isDark;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final signed = _metricSignedTone(label, value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: HomeUi.heading(isDark).copyWith(
+            fontSize: 22,
+            letterSpacing: -0.7,
+            height: 1.05,
+            color: signed == null
+                ? null
+                : (signed
+                    ? HomeUi.positive(isDark)
+                    : HomeUi.negative(isDark)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricDataRow extends StatefulWidget {
+  const _MetricDataRow({
+    required this.isDark,
+    required this.label,
+    required this.value,
+  });
+
+  final bool isDark;
+  final String label;
+  final String value;
+
+  @override
+  State<_MetricDataRow> createState() => _MetricDataRowState();
+}
+
+class _MetricDataRowState extends State<_MetricDataRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final signed = _metricSignedTone(widget.label, widget.value);
+    final parsed = double.tryParse(
+      widget.value.replaceAll(RegExp(r'[^0-9.\-]'), ''),
+    );
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: _hover ? HomeUi.tableRowHover(widget.isDark) : Colors.transparent,
+          borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.label,
+                style: HomeUi.tableCellSecondary(widget.isDark).copyWith(
+                  fontSize: 12,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 10),
+            if (signed != null && parsed != null)
+              HomeUi.signedPercentPill(widget.isDark, widget.value, parsed)
+            else
+              Text(
+                widget.value,
+                style: HomeUi.tableCellEmphasis(widget.isDark).copyWith(
+                  fontSize: 13,
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddResearchNoteDialog extends StatefulWidget {
+  const _AddResearchNoteDialog({
+    required this.ticker,
+    required this.notesController,
+    required this.onSaved,
+  });
+
+  final String ticker;
+  final ResearchNotesController notesController;
+  final VoidCallback onSaved;
+
+  static Future<void> show({
+    required BuildContext context,
+    required String ticker,
+    required ResearchNotesController notesController,
+    required VoidCallback onSaved,
+  }) {
+    return showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Add Research Note',
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: _AddResearchNoteDialog(
+              ticker: ticker,
+              notesController: notesController,
+              onSaved: onSaved,
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  State<_AddResearchNoteDialog> createState() => _AddResearchNoteDialogState();
+}
+
+class _AddResearchNoteDialogState extends State<_AddResearchNoteDialog> {
+  final TextEditingController _noteController = TextEditingController();
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final text = _noteController.text.trim();
+    if (text.isEmpty) {
+      setState(() => _error = 'Please enter a note');
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    final success = await widget.notesController.addNote(widget.ticker, text);
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pop();
+      widget.onSaved();
+    } else {
+      setState(() {
+        _saving = false;
+        _error = widget.notesController.errorMessage.value.isNotEmpty
+            ? widget.notesController.errorMessage.value
+            : 'Failed to add note';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 480),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        decoration: BoxDecoration(
+          color: HomeUi.cardBg(isDark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: Border.all(color: HomeUi.borderLight(isDark)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
+              blurRadius: 40,
+              offset: const Offset(0, 18),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.note_add_outlined,
+                      title: 'Add Research Note',
+                      subtitleText: widget.ticker,
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: _saving ? null : () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: HomeUi.controlHeight,
+                        height: HomeUi.controlHeight,
+                        decoration: BoxDecoration(
+                          color: HomeUi.elevatedBg(isDark),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: HomeUi.borderLight(isDark)),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: HomeUi.muted(isDark),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Note',
+                controller: _noteController,
+                hintText: 'Thesis, catalysts, risks, follow-ups…',
+                errorText: _error,
+                minLines: 4,
+                maxLines: 6,
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Divider(height: 1, color: HomeUi.borderLight(isDark)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Opacity(
+                      opacity: _saving ? 0.5 : 1,
+                      child: HomeUi.ghostAction(
+                        label: 'Cancel',
+                        dark: isDark,
+                        onTap: _saving ? () {} : () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Opacity(
+                      opacity: _saving ? 0.7 : 1,
+                      child: HomeUi.primaryAction(
+                        label: _saving ? 'Saving…' : 'Save',
+                        onTap: _saving ? () {} : _save,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
