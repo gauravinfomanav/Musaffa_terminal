@@ -163,9 +163,7 @@ class _SlidingPillTabsState extends State<SlidingPillTabs>
       }
     }
 
-    final Color trackBase = HomeUi.elevatedBg(widget.isDarkMode);
-    final Color trackHighlight =
-        widget.isDarkMode ? const Color(0xFF20242B) : const Color(0xFFFFFFFF);
+    final bool dark = widget.isDarkMode;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -174,16 +172,22 @@ class _SlidingPillTabsState extends State<SlidingPillTabs>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[trackHighlight, trackBase],
+          colors: dark
+              ? <Color>[const Color(0xFF181C24), const Color(0xFF12151C)]
+              : <Color>[Colors.white, const Color(0xFFF6F7F9)],
         ),
         borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        border: Border.all(color: HomeUi.borderLight(widget.isDarkMode)),
+        border: Border.all(
+          color: dark
+              ? const Color(0xFF1E2230)
+              : const Color(0xFFE5E7EB),
+        ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: widget.isDarkMode
-                ? Colors.black.withValues(alpha: 0.18)
+            color: dark
+                ? Colors.black.withValues(alpha: 0.22)
                 : const Color(0xFF0F172A).withValues(alpha: 0.06),
-            blurRadius: 14,
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
@@ -198,12 +202,18 @@ class _SlidingPillTabsState extends State<SlidingPillTabs>
               width: width,
               child: IgnorePointer(
                 child: DecoratedBox(
-                  decoration: HomeUi.primaryButton().copyWith(
+                  decoration: HomeUi.primaryButton(radius: HomeUi.radiusPill).copyWith(
                     boxShadow: <BoxShadow>[
                       BoxShadow(
-                        color: const Color(0xFF88123E).withValues(alpha: 0.18),
-                        blurRadius: 14,
-                        offset: const Offset(0, 5),
+                        color: const Color(0xFFE4621E).withValues(alpha: 0.22),
+                        blurRadius: 16,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF88123E).withValues(alpha: 0.12),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),

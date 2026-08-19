@@ -61,6 +61,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
 
   // Store all filter values in a map: filterId -> selectedValue
   final Map<String, String?> _filterValues = {};
+  bool _isFilterExpanded = false;
 
   // Method to count applied filters for a specific category
   int _getAppliedFiltersCount(String category) {
@@ -110,6 +111,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
       if (_tabController.indexIsChanging) {
         setState(() {
           _selectedCategory = _filterCategories[_tabController.index];
+          _isFilterExpanded = false;
         });
       }
     });
@@ -544,21 +546,24 @@ class _ScreenerScreenState extends State<ScreenerScreen>
               ),
             ),
             if (_getAppliedFiltersCount(category) > 0) ...[
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : const Color(0xFFC42329),
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.95)
+                      : null,
                   gradient: isSelected ? null : HomeUi.iconFillGradient,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                 child: Text(
                   '${_getAppliedFiltersCount(category)}',
                   style: TextStyle(
-                    color: isSelected ? const Color(0xFFC42329) : Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
+                    color: isSelected ? const Color(0xFFE4621E) : Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -575,69 +580,354 @@ class _ScreenerScreenState extends State<ScreenerScreen>
       return const SizedBox();
     }
 
+    final totalApplied = _getTotalAppliedFiltersCount();
+    final filters = _filtersConfig!.getFiltersForCategory(_selectedCategory);
+    final visibleCount = _isFilterExpanded ? filters.length : filters.length.clamp(0, 6);
+    final hasMore = filters.length > 6;
+
     return Container(
-      padding: HomeUi.cardPadding,
-      decoration: HomeUi.cardDecoration(isDarkMode),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDarkMode
+              ? [const Color(0xFF13161C), const Color(0xFF0F1218)]
+              : [Colors.white, const Color(0xFFFAFBFC)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? const Color(0xFF1E2230).withValues(alpha: 0.9)
+              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode
+                ? Colors.black.withValues(alpha: 0.18)
+                : const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Top bar: Tabs + Actions
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildFilterTabs(isDarkMode),
               const Spacer(),
-              if (_getTotalAppliedFiltersCount() > 0) ...[
-                HomeUi.primaryAction(
-                  label: 'Save',
+              if (totalApplied > 0) ...[
+                _buildCompactActionChip(
+                  isDarkMode,
                   icon: Icons.save_outlined,
+                  label: 'Save',
                   onTap: _saveCurrentFiltersAsStrategy,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
               ],
-              HomeUi.primaryAction(
-                label: 'Strategies',
+              _buildCompactActionChip(
+                isDarkMode,
                 icon: Icons.bookmark_outline,
+                label: 'Strategies',
                 onTap: _showStrategiesList,
+                isPrimary: true,
               ),
-              if (_getTotalAppliedFiltersCount() > 0) ...[
-                const SizedBox(width: 8),
-                _ResetAllButton(
-                    isDarkMode: isDarkMode, onTap: _resetAllFilters),
+              if (totalApplied > 0) ...[
+                const SizedBox(width: 6),
+                _buildCompactActionChip(
+                  isDarkMode,
+                  icon: Icons.refresh_rounded,
+                  label: 'Reset',
+                  onTap: _resetAllFilters,
+                  isDestructive: true,
+                ),
               ],
             ],
           ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? HomeUi.elevatedBg(true)
-                  : const Color(0xFFF7F8FA),
-              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-              border: Border.all(color: HomeUi.borderLight(isDarkMode)),
-            ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeIn,
-              layoutBuilder: (currentChild, previousChildren) {
-                return Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    ...previousChildren,
-                    if (currentChild != null) currentChild,
-                  ],
-                );
-              },
-              child: KeyedSubtree(
-                key: ValueKey(_selectedCategory),
-                child: _buildFilterGrid(isDarkMode),
-              ),
+          const SizedBox(height: 12),
+
+          // Compact filter row — inline chips style
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            layoutBuilder: (currentChild, previousChildren) {
+              return Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey('${_selectedCategory}_$_isFilterExpanded'),
+              child: _buildCompactFilterGrid(filters, visibleCount, isDarkMode),
             ),
           ),
+
+          // Applied chips + expand toggle
+          if (hasMore || totalApplied > 0) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (totalApplied > 0)
+                  Expanded(child: _buildAppliedFilterChips(isDarkMode))
+                else
+                  const Spacer(),
+                if (hasMore) ...[
+                  const SizedBox(width: 8),
+                  _buildExpandToggle(isDarkMode, filters.length - 6),
+                ],
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildCompactFilterGrid(List<FilterConfig> filters, int visibleCount, bool isDarkMode) {
+    const cols = 6;
+    const gap = 12.0;
+    final visibleFilters = filters.take(visibleCount).toList();
+    final rows = (visibleFilters.length / cols).ceil();
+
+    return Column(
+      children: List.generate(rows, (rowIdx) {
+        final start = rowIdx * cols;
+        final end = (start + cols).clamp(0, visibleFilters.length);
+        final rowCount = end - start;
+
+        return Padding(
+          padding: EdgeInsets.only(bottom: rowIdx < rows - 1 ? gap : 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(cols, (colIdx) {
+              final idx = start + colIdx;
+              if (idx < end) {
+                final f = visibleFilters[idx];
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: colIdx < rowCount - 1 ? gap : 0,
+                    ),
+                    child: FilterWidgetBuilder.buildFilter(
+                      config: f,
+                      selectedValue: _filterValues[f.id],
+                      onChanged: (value) {
+                        if (_filterValues[f.id] != value) {
+                          setState(() => _filterValues[f.id] = value);
+                          _applyFilters();
+                        }
+                      },
+                      isDarkMode: isDarkMode,
+                      isApplied: _isFilterApplied(f.id),
+                      onReset: () => _resetFilter(f.id),
+                    ),
+                  ),
+                );
+              }
+              return const Expanded(child: SizedBox());
+            }),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildCompactActionChip(
+    bool isDarkMode, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isPrimary = false,
+    bool isDestructive = false,
+  }) {
+    if (isPrimary) {
+      return HomeUi.primaryAction(
+        label: label,
+        icon: icon,
+        onTap: onTap,
+      );
+    }
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: HomeUi.controlHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? const Color(0xFF1A1E2A)
+                : const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(
+              color: isDestructive
+                  ? (isDarkMode ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA))
+                  : (isDarkMode ? const Color(0xFF2A2E3A) : const Color(0xFFE5E7EB)),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isDestructive
+                    ? (isDarkMode ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                    : (isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDestructive
+                      ? (isDarkMode ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                      : (isDarkMode ? const Color(0xFFD1D5DB) : const Color(0xFF374151)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandToggle(bool isDarkMode, int moreCount) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => setState(() => _isFilterExpanded = !_isFilterExpanded),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            gradient: HomeUi.iconWellGradient,
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(color: HomeUi.iconWellBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              HomeUi.brandIcon(
+                icon: _isFilterExpanded
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.tune_rounded,
+                size: 14,
+                gradient: HomeUi.iconFillGradient,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _isFilterExpanded ? 'Less' : '+$moreCount more filters',
+                style: HomeUi.control(isDarkMode, active: true).copyWith(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppliedFilterChips(bool isDarkMode) {
+    final applied = <({String id, String label, String value})>[];
+    if (_filtersConfig != null) {
+      for (final category in ['Descriptive', 'Fundamental', 'Technical', 'Growth']) {
+        for (final f in _filtersConfig!.getFiltersForCategory(category)) {
+          final val = _filterValues[f.id];
+          if (val != null && val.isNotEmpty && val != 'any') {
+            String displayLabel = val;
+            for (final o in f.options) {
+              if (o.value == val) {
+                displayLabel = o.label;
+                break;
+              }
+            }
+            applied.add((id: f.id, label: f.label, value: displayLabel));
+          }
+        }
+      }
+    }
+    if (applied.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: applied.map((entry) {
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            padding: const EdgeInsets.only(left: 10, top: 5, bottom: 5, right: 4),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDarkMode
+                    ? [const Color(0xFF1A1E2A), const Color(0xFF151822)]
+                    : [const Color(0xFFF0F1F4), const Color(0xFFEBECF0)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDarkMode
+                    ? const Color(0xFF2A2E3A)
+                    : const Color(0xFFD1D5DB),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${entry.label}: ',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                    color: isDarkMode ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
+                  ),
+                ),
+                Text(
+                  entry.value,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () => _resetFilter(entry.id),
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? const Color(0xFF2A2E3A)
+                          : const Color(0xFFE5E7EB),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 11,
+                      color: isDarkMode
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -672,7 +962,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
         final rowFilters = filters.sublist(startIndex, endIndex);
 
         return Padding(
-          padding: EdgeInsets.only(bottom: rowIndex < rows - 1 ? 18 : 0),
+          padding: EdgeInsets.only(bottom: rowIndex < rows - 1 ? 22 : 0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: List.generate(crossAxisCount, (colIndex) {
@@ -682,12 +972,11 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                 return Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(
-                        right: colIndex < crossAxisCount - 1 ? 18 : 0),
+                        right: colIndex < crossAxisCount - 1 ? 20 : 0),
                     child: FilterWidgetBuilder.buildFilter(
                       config: filterConfig,
                       selectedValue: _filterValues[filterConfig.id],
                       onChanged: (value) {
-                        // Only apply filters if the value actually changed
                         final currentValue = _filterValues[filterConfig.id];
                         if (currentValue != value) {
                           setState(() {

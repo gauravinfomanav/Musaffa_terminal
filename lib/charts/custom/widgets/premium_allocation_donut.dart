@@ -6,16 +6,15 @@ import 'package:musaffa_terminal/charts/custom/static_premium_chart_data.dart';
 import 'package:musaffa_terminal/charts/custom/us_premium_palette.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
-/// Premium donut color ramp — sophisticated multi-hue palette.
 const List<Color> _premiumDonutColors = <Color>[
-  Color(0xFF1B3A5C), // deep navy
-  Color(0xFF2D6A8F), // ocean blue
-  Color(0xFF3D8B7A), // teal jade
-  Color(0xFF5B7FA6), // slate periwinkle
-  Color(0xFF8BACC4), // frost steel
-  Color(0xFFB0C4D8), // cloud silver
-  Color(0xFF4A6E5D), // sage
-  Color(0xFF7A94AB), // dusty blue
+  Color(0xFF1B3A5C),
+  Color(0xFF2D6A8F),
+  Color(0xFF3D8B7A),
+  Color(0xFF5B7FA6),
+  Color(0xFF8BACC4),
+  Color(0xFFB0C4D8),
+  Color(0xFF4A6E5D),
+  Color(0xFF7A94AB),
 ];
 
 class PremiumAllocationDonut extends StatefulWidget {
@@ -37,79 +36,100 @@ class PremiumAllocationDonut extends StatefulWidget {
 }
 
 class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   int? _hoveredIndex;
   Offset? _mousePosition;
-  late AnimationController _animController;
+
+  late AnimationController _entryController;
   late Animation<double> _sweepAnim;
   late Animation<double> _fadeAnim;
+
+  late AnimationController _hoverController;
+  late Animation<double> _hoverAnim;
+  int? _animatingHoverIndex;
+
+  static const double _outerFactor = 0.88;
+  static const double _innerFactor = 0.74;
+  static const double _hoverExpand = 5.0;
+  static const double _gapWidth = 2.0;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
+    _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),
     );
     _sweepAnim = CurvedAnimation(
-      parent: _animController,
+      parent: _entryController,
       curve: const Interval(0.0, 0.75, curve: Curves.easeOutCubic),
     );
     _fadeAnim = CurvedAnimation(
-      parent: _animController,
+      parent: _entryController,
       curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
     );
-    _animController.forward();
+    _entryController.forward();
+
+    _hoverController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _hoverAnim = CurvedAnimation(
+      parent: _hoverController,
+      curve: Curves.easeOutCubic,
+    );
+    _hoverController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _entryController.dispose();
+    _hoverController.dispose();
     super.dispose();
   }
 
-  static const double _outerFactor = 0.88;
-  static const double _innerFactor = 0.74;
-  static const double _hoverThicken = 4.0; // extra px each side on hover
+  void _onHover(int? index) {
+    if (index == _hoveredIndex) return;
+    _animatingHoverIndex = index ?? _hoveredIndex;
+    _hoveredIndex = index;
+
+    if (index != null) {
+      _hoverController.forward(from: 0);
+    } else {
+      _hoverController.reverse();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
         return MouseRegion(
-          onHover: (PointerHoverEvent event) {
-            final int? index = _hitTest(
-              event.localPosition,
-              Size(constraints.maxWidth, constraints.maxHeight),
-            );
-            if (index != _hoveredIndex ||
-                _mousePosition != event.localPosition) {
-              setState(() {
-                _hoveredIndex = index;
-                _mousePosition = event.localPosition;
-              });
+          onHover: (event) {
+            final idx = _hitTest(event.localPosition, size);
+            if (idx != _hoveredIndex || _mousePosition != event.localPosition) {
+              setState(() => _mousePosition = event.localPosition);
+              _onHover(idx);
             }
           },
           onExit: (_) {
-            if (_hoveredIndex != null || _mousePosition != null) {
-              setState(() {
-                _hoveredIndex = null;
-                _mousePosition = null;
-              });
-            }
+            setState(() => _mousePosition = null);
+            _onHover(null);
           },
           child: Stack(
             clipBehavior: Clip.none,
-            children: <Widget>[
+            children: [
               AnimatedBuilder(
-                animation: _animController,
-                builder: (BuildContext context, Widget? child) {
+                animation: _entryController,
+                builder: (context, _) {
                   return CustomPaint(
-                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                    size: size,
                     painter: _DonutPainter(
                       slices: widget.slices,
                       palette: _premiumDonutColors,
                       hoveredIndex: _hoveredIndex,
+                      hoverT: _hoverAnim.value,
                       dark: widget.dark,
                       sweepProgress: _sweepAnim.value,
                     ),
@@ -121,8 +141,7 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
                   opacity: _fadeAnim,
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
-                    transitionBuilder:
-                        (Widget child, Animation<double> anim) {
+                    transitionBuilder: (child, anim) {
                       return FadeTransition(
                         opacity: anim,
                         child: SlideTransition(
@@ -151,9 +170,9 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
 
   Widget _buildCenterDefault() {
     return Column(
-      key: const ValueKey<String>('default'),
+      key: const ValueKey('default'),
       mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
+      children: [
         Text(
           widget.centerValue,
           style: TextStyle(
@@ -180,13 +199,12 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
   }
 
   Widget _buildCenterHovered(int index) {
-    final StaticAllocationSlice slice = widget.slices[index];
-    final Color sliceColor =
-        _premiumDonutColors[index % _premiumDonutColors.length];
+    final slice = widget.slices[index];
+    final color = _premiumDonutColors[index % _premiumDonutColors.length];
     return Column(
-      key: ValueKey<String>('hover_$index'),
+      key: ValueKey('hover_$index'),
       mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
+      children: [
         Text(
           '${slice.percent.toStringAsFixed(1)}%',
           style: TextStyle(
@@ -194,14 +212,14 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
             fontSize: 24,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
-            color: sliceColor,
+            color: color,
           ),
         ),
         const SizedBox(height: 3),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: sliceColor.withValues(alpha: 0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -220,18 +238,17 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
   }
 
   Widget _buildFloatingTooltip(int index) {
-    final StaticAllocationSlice slice = widget.slices[index];
-    final Offset pos = _mousePosition!;
-    final Color sliceColor =
-        _premiumDonutColors[index % _premiumDonutColors.length];
+    final slice = widget.slices[index];
+    final pos = _mousePosition!;
+    final color = _premiumDonutColors[index % _premiumDonutColors.length];
     return Positioned(
-      left: (pos.dx + 16).clamp(0, 220),
-      top: (pos.dy - 58).clamp(0, 200),
+      left: (pos.dx + 16).clamp(0.0, 220.0),
+      top: (pos.dy - 58).clamp(0.0, 200.0),
       child: IgnorePointer(
         child: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
+          tween: Tween(begin: 0.0, end: 1.0),
           duration: const Duration(milliseconds: 150),
-          builder: (BuildContext context, double val, Widget? child) {
+          builder: (context, val, child) {
             return Opacity(
               opacity: val,
               child: Transform.translate(
@@ -243,23 +260,19 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: widget.dark
-                  ? const Color(0xFF1A2332)
-                  : Colors.white,
+              color: widget.dark ? const Color(0xFF1A2332) : Colors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: sliceColor.withValues(alpha: 0.25),
-                width: 1,
+                color: color.withValues(alpha: 0.25),
               ),
-              boxShadow: <BoxShadow>[
+              boxShadow: [
                 BoxShadow(
-                  color: Colors.black
-                      .withValues(alpha: widget.dark ? 0.50 : 0.12),
+                  color: Colors.black.withValues(alpha: widget.dark ? 0.50 : 0.12),
                   blurRadius: 20,
                   offset: const Offset(0, 6),
                 ),
                 BoxShadow(
-                  color: sliceColor.withValues(alpha: 0.08),
+                  color: color.withValues(alpha: 0.08),
                   blurRadius: 12,
                   spreadRadius: 1,
                 ),
@@ -267,18 +280,14 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
+              children: [
                 Container(
-                  width: 8,
-                  height: 8,
+                  width: 8, height: 8,
                   decoration: BoxDecoration(
-                    color: sliceColor,
+                    color: color,
                     shape: BoxShape.circle,
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: sliceColor.withValues(alpha: 0.4),
-                        blurRadius: 4,
-                      ),
+                    boxShadow: [
+                      BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 4),
                     ],
                   ),
                 ),
@@ -286,7 +295,7 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
+                  children: [
                     Text(
                       slice.label,
                       style: TextStyle(
@@ -317,28 +326,27 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
   }
 
   int? _hitTest(Offset position, Size size) {
-    final Offset center = Offset(size.width / 2, size.height / 2);
-    final double outer = math.min(size.width, size.height) / 2 * _outerFactor;
-    final double inner = outer * _innerFactor;
+    final center = Offset(size.width / 2, size.height / 2);
+    final outer = math.min(size.width, size.height) / 2 * _outerFactor;
+    final inner = outer * _innerFactor;
 
-    final double dx = position.dx - center.dx;
-    final double dy = position.dy - center.dy;
-    final double distance = math.sqrt(dx * dx + dy * dy);
+    final dx = position.dx - center.dx;
+    final dy = position.dy - center.dy;
+    final distance = math.sqrt(dx * dx + dy * dy);
 
-    if (distance < (inner - _hoverThicken) || distance > (outer + _hoverThicken)) {
+    if (distance < (inner - _hoverExpand) || distance > (outer + _hoverExpand)) {
       return null;
     }
 
     double angle = math.atan2(dy, dx);
     angle = (angle + math.pi / 2 + 2 * math.pi) % (2 * math.pi);
 
-    final double total = widget.slices
-        .fold(0, (double a, StaticAllocationSlice s) => a + s.percent);
+    final total = widget.slices.fold(0.0, (a, s) => a + s.percent);
     if (total <= 0) return null;
 
     double cursor = 0;
     for (int i = 0; i < widget.slices.length; i++) {
-      final double sweep = (widget.slices[i].percent / total) * 2 * math.pi;
+      final sweep = (widget.slices[i].percent / total) * 2 * math.pi;
       if (angle >= cursor && angle < cursor + sweep) return i;
       cursor += sweep;
     }
@@ -346,11 +354,14 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
   }
 }
 
+// ── Painter ─────────────────────────────────────────────────────────────────
+
 class _DonutPainter extends CustomPainter {
   _DonutPainter({
     required this.slices,
     required this.palette,
     required this.hoveredIndex,
+    required this.hoverT,
     required this.dark,
     required this.sweepProgress,
   });
@@ -358,20 +369,20 @@ class _DonutPainter extends CustomPainter {
   final List<StaticAllocationSlice> slices;
   final List<Color> palette;
   final int? hoveredIndex;
+  final double hoverT;
   final bool dark;
   final double sweepProgress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Offset center = Offset(size.width / 2, size.height / 2);
-    final double outerBase =
-        math.min(size.width, size.height) / 2 * _PremiumAllocationDonutState._outerFactor;
-    final double innerBase = outerBase * _PremiumAllocationDonutState._innerFactor;
-    final double total =
-        slices.fold(0, (double a, StaticAllocationSlice s) => a + s.percent);
+    final center = Offset(size.width / 2, size.height / 2);
+    final outerBase = math.min(size.width, size.height) / 2 *
+        _PremiumAllocationDonutState._outerFactor;
+    final innerBase = outerBase * _PremiumAllocationDonutState._innerFactor;
+    final total = slices.fold(0.0, (a, s) => a + s.percent);
     if (total <= 0) return;
 
-    // Outer shadow ring
+    // Soft shadow beneath donut
     if (sweepProgress > 0.1) {
       canvas.drawCircle(
         center.translate(0, 2),
@@ -382,85 +393,66 @@ class _DonutPainter extends CustomPainter {
       );
     }
 
-    final double totalSweep = 2 * math.pi * sweepProgress;
+    final totalSweep = 2 * math.pi * sweepProgress;
+    final halfGap = _PremiumAllocationDonutState._gapWidth / 2;
+    final gapAngle = halfGap / outerBase;
     double startAngle = -math.pi / 2;
     double usedSweep = 0;
 
+    // Draw all slices
     for (int i = 0; i < slices.length; i++) {
-      final StaticAllocationSlice slice = slices[i];
-      final double fullSweep = (slice.percent / total) * 2 * math.pi;
+      final fullSweep = (slices[i].percent / total) * 2 * math.pi;
 
-      double sweep = fullSweep;
+      var sweep = fullSweep;
       if (usedSweep + sweep > totalSweep) {
         sweep = totalSweep - usedSweep;
         if (sweep <= 0) break;
       }
       usedSweep += sweep;
 
-      final bool hovered = hoveredIndex == i;
-      final Color baseColor = palette[i % palette.length];
-      final double ht = _PremiumAllocationDonutState._hoverThicken;
+      final hovered = hoveredIndex == i;
+      final expand = _PremiumAllocationDonutState._hoverExpand;
+      final t = hovered ? hoverT : 0.0;
 
-      // Hover: thicken symmetrically from ring center (no gap, no translate)
-      final double innerR = hovered ? innerBase - ht : innerBase;
-      final double outerR = hovered ? outerBase + ht : outerBase;
+      final innerR = innerBase - expand * t;
+      final outerR = outerBase + expand * t;
 
-      final Color startColor = Color.lerp(baseColor, Colors.white, 0.06)!;
-      final Color endColor = Color.lerp(baseColor, Colors.black, 0.04)!;
+      final baseColor = palette[i % palette.length];
 
-      final Paint fillPaint = Paint()
-        ..shader = SweepGradient(
-          startAngle: startAngle,
-          endAngle: startAngle + sweep,
-          colors: <Color>[startColor, endColor],
-          tileMode: TileMode.clamp,
-        ).createShader(Rect.fromCircle(center: center, radius: outerR))
-        ..style = PaintingStyle.fill;
+      // Inset sweep by gap angle on both sides for clean separation
+      final drawStart = startAngle + (slices.length > 1 ? gapAngle : 0);
+      final drawSweep = sweep - (slices.length > 1 ? gapAngle * 2 : 0);
+      if (drawSweep <= 0) {
+        startAngle += sweep;
+        continue;
+      }
 
-      final Path path = Path()
-        ..arcTo(
-          Rect.fromCircle(center: center, radius: outerR),
-          startAngle,
-          sweep,
-          false,
-        )
-        ..arcTo(
-          Rect.fromCircle(center: center, radius: innerR),
-          startAngle + sweep,
-          -sweep,
-          false,
-        )
-        ..close();
+      // Build arc path with rounded ends
+      final path = _buildSlicePath(center, innerR, outerR, drawStart, drawSweep);
 
-      canvas.drawPath(path, fillPaint);
+      // Gradient fill
+      final startColor = Color.lerp(baseColor, Colors.white, 0.06)!;
+      final endColor = Color.lerp(baseColor, Colors.black, 0.04)!;
 
-      if (hovered) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..shader = SweepGradient(
+            startAngle: drawStart,
+            endAngle: drawStart + drawSweep,
+            colors: [startColor, endColor],
+            tileMode: TileMode.clamp,
+          ).createShader(Rect.fromCircle(center: center, radius: outerR))
+          ..style = PaintingStyle.fill,
+      );
+
+      // Hover glow
+      if (t > 0.01) {
         canvas.drawPath(
           path,
           Paint()
-            ..color = baseColor.withValues(alpha: 0.10)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6),
-        );
-      }
-
-      // Gap lines
-      if (slices.length > 1) {
-        final Color gapColor =
-            dark ? const Color(0xFF0B0E11) : const Color(0xFFF8FAFC);
-        final Paint gap = Paint()
-          ..color = gapColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.8;
-        canvas.drawLine(
-          Offset(
-            center.dx + math.cos(startAngle) * innerBase,
-            center.dy + math.sin(startAngle) * innerBase,
-          ),
-          Offset(
-            center.dx + math.cos(startAngle) * outerBase,
-            center.dy + math.sin(startAngle) * outerBase,
-          ),
-          gap,
+            ..color = baseColor.withValues(alpha: 0.12 * t)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 8),
         );
       }
 
@@ -473,19 +465,48 @@ class _DonutPainter extends CustomPainter {
         center,
         innerBase,
         Paint()
-          ..color =
-              (dark ? Colors.white : Colors.black).withValues(alpha: 0.03)
+          ..color = (dark ? Colors.white : Colors.black).withValues(alpha: 0.03)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.5,
       );
     }
   }
 
+  Path _buildSlicePath(
+      Offset center, double innerR, double outerR, double start, double sweep) {
+    final path = Path();
+
+    // Outer arc (clockwise)
+    path.arcTo(
+      Rect.fromCircle(center: center, radius: outerR),
+      start,
+      sweep,
+      true,
+    );
+
+    // Line to inner arc end
+    path.lineTo(
+      center.dx + math.cos(start + sweep) * innerR,
+      center.dy + math.sin(start + sweep) * innerR,
+    );
+
+    // Inner arc (counter-clockwise)
+    path.arcTo(
+      Rect.fromCircle(center: center, radius: innerR),
+      start + sweep,
+      -sweep,
+      false,
+    );
+
+    path.close();
+    return path;
+  }
+
   @override
-  bool shouldRepaint(covariant _DonutPainter oldDelegate) {
-    return oldDelegate.hoveredIndex != hoveredIndex ||
-        oldDelegate.dark != dark ||
-        oldDelegate.slices != slices ||
-        oldDelegate.sweepProgress != sweepProgress;
+  bool shouldRepaint(covariant _DonutPainter old) {
+    return old.hoveredIndex != hoveredIndex ||
+        old.hoverT != hoverT ||
+        old.dark != dark ||
+        old.sweepProgress != sweepProgress;
   }
 }
