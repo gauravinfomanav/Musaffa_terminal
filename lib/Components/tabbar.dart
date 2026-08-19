@@ -128,8 +128,9 @@ class HomeTabBar extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(
-                      width: searchWidth,
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: searchWidth),
                       child: Obx(() {
                         final canSearch = FeatureNavigation.isEnabled(
                           FeatureKeys.stockSearch,
@@ -144,11 +145,12 @@ class HomeTabBar extends StatelessWidget {
                         );
                       }),
                     ),
-                    Expanded(
+                    ),
+                    Flexible(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          _NavToolsCluster(isDarkMode: isDarkMode),
+                          Flexible(child: _NavToolsCluster(isDarkMode: isDarkMode)),
                           Obx(() {
                             final canWatchlists = FeatureNavigation.isEnabled(
                               FeatureKeys.watchlists,
@@ -612,8 +614,8 @@ class _SearchFieldState extends State<_SearchField>
               ),
             ),
             if (!hasQuery)
-              IgnorePointer(
-                child: Positioned.fill(
+              Positioned.fill(
+                child: IgnorePointer(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(36, 8, 12, 8),
                     child: Align(
@@ -628,7 +630,7 @@ class _SearchFieldState extends State<_SearchField>
                           ),
                           ClipRect(
                             child: SizedBox(
-                              height: 16,
+                              height: 20,
                               width: 54,
                               child: AnimatedBuilder(
                                 animation: _keywordAnimationController,
@@ -637,27 +639,31 @@ class _SearchFieldState extends State<_SearchField>
                                     _keywordAnimationController.value,
                                   );
                                   final currentDy =
-                                      _isKeywordAnimating ? -16.0 * t : 0.0;
+                                      _isKeywordAnimating ? -20.0 * t : 0.0;
                                   final nextDy = _isKeywordAnimating
-                                      ? 16.0 * (1 - t)
-                                      : 16.0;
+                                      ? 20.0 * (1 - t)
+                                      : 20.0;
                                   final currentOpacity =
                                       _isKeywordAnimating ? (1 - t) : 1.0;
                                   final nextOpacity =
                                       _isKeywordAnimating ? t : 0.0;
 
                                   return Stack(
-                                    clipBehavior: Clip.none,
+                                    clipBehavior: Clip.hardEdge,
+                                    alignment: Alignment.centerLeft,
                                     children: [
                                       Transform.translate(
                                         offset: Offset(0, currentDy),
                                         child: Opacity(
                                           opacity: currentOpacity,
-                                          child: Text(
-                                            _searchKeywords[_keywordIndex],
-                                            style: placeholderStyle,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.visible,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              _searchKeywords[_keywordIndex],
+                                              style: placeholderStyle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.visible,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -665,11 +671,14 @@ class _SearchFieldState extends State<_SearchField>
                                         offset: Offset(0, nextDy),
                                         child: Opacity(
                                           opacity: nextOpacity,
-                                          child: Text(
-                                            _searchKeywords[_nextKeywordIndex],
-                                            style: placeholderStyle,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.visible,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              _searchKeywords[_nextKeywordIndex],
+                                              style: placeholderStyle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.visible,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -1151,6 +1160,10 @@ class _NavToolsCluster extends StatelessWidget {
       if (Get.isRegistered<FeatureAccessService>()) {
         Get.find<FeatureAccessService>().features.length;
       }
+      // Track active nav item so chips rebuild on page change.
+      if (Get.isRegistered<GlobalSidebarService>()) {
+        Get.find<GlobalSidebarService>().activeItem.value;
+      }
       final canScreener = FeatureNavigation.isEnabled(FeatureKeys.screener);
       final canIdeas = FeatureNavigation.isEnabled(FeatureKeys.tradingIdeas);
       final canPortfolios = FeatureNavigation.isEnabled(FeatureKeys.portfolios);
@@ -1163,6 +1176,7 @@ class _NavToolsCluster extends StatelessWidget {
             fabType: FABType.screener,
             tooltip: 'Open Screener  ·  Drag to pin',
             onTap: () => _goScreener(context),
+            navItem: SidebarNavItem.screener,
           ),
         if (canIdeas && !fab.shouldHideInTabbar(FABType.ideas))
           _ToolSpec(
@@ -1171,6 +1185,7 @@ class _NavToolsCluster extends StatelessWidget {
             fabType: FABType.ideas,
             tooltip: 'Open Ideas  ·  Drag to pin',
             onTap: () => _goIdeas(context),
+            navItem: SidebarNavItem.ideas,
           ),
         if (canPortfolios && !fab.shouldHideInTabbar(FABType.portfolio))
           _ToolSpec(
@@ -1179,6 +1194,7 @@ class _NavToolsCluster extends StatelessWidget {
             fabType: FABType.portfolio,
             tooltip: 'Open Portfolios  ·  Drag to pin',
             onTap: () => _goPortfolio(context),
+            navItem: SidebarNavItem.portfolio,
           ),
       ];
 
@@ -1234,6 +1250,7 @@ class _ToolSpec {
   final FABType fabType;
   final String tooltip;
   final VoidCallback onTap;
+  final SidebarNavItem navItem;
 
   const _ToolSpec({
     required this.label,
@@ -1241,6 +1258,7 @@ class _ToolSpec {
     required this.fabType,
     required this.tooltip,
     required this.onTap,
+    required this.navItem,
   });
 }
 
@@ -1314,13 +1332,19 @@ class _ToolSegmentState extends State<_ToolSegment> {
   Widget build(BuildContext context) {
     final idle =
         widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final active =
+    final activeColor =
         widget.isDarkMode ? const Color(0xFFF3F4F6) : const Color(0xFF111827);
     final hoverBg = widget.isDarkMode
         ? Colors.white.withOpacity(0.1)
         : const Color(0xFFF8FAFC);
     final fabController = Get.find<FloatingActionButtonsController>();
-    final color = _hovering ? active : idle;
+
+    final sidebarActive = Get.isRegistered<GlobalSidebarService>()
+        ? Get.find<GlobalSidebarService>().activeItem.value
+        : null;
+    final bool isActive = sidebarActive == widget.spec.navItem;
+    final bool highlighted = _hovering || isActive;
+    final color = highlighted ? activeColor : idle;
 
     final chip = AnimatedContainer(
       duration: const Duration(milliseconds: 140),
@@ -1328,13 +1352,17 @@ class _ToolSegmentState extends State<_ToolSegment> {
       height: HomeUi.controlHeight - 2,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: _hovering ? hoverBg : Colors.transparent,
+        color: highlighted ? hoverBg : Colors.transparent,
         borderRadius: BorderRadius.circular(HomeUi.radiusMd - 2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          HomeUi.brandIcon(icon: widget.spec.icon, size: HomeUi.iconSm),
+          HomeUi.brandIcon(
+            icon: widget.spec.icon,
+            size: HomeUi.iconSm,
+            gradient: highlighted ? HomeUi.brandGradient : null,
+          ),
           const SizedBox(width: 6),
           Text(
             widget.spec.label,
@@ -1376,7 +1404,7 @@ class _ToolSegmentState extends State<_ToolSegment> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     HomeUi.brandIcon(
-                        icon: widget.spec.icon, size: HomeUi.iconSm),
+                        icon: widget.spec.icon, size: HomeUi.iconSm, gradient: HomeUi.brandGradient),
                     const SizedBox(width: 6),
                     Text(
                       widget.spec.label,
@@ -1385,7 +1413,7 @@ class _ToolSegmentState extends State<_ToolSegment> {
                         fontFamilyFallback: Constants.FONT_FALLBACK,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: active,
+                        color: activeColor,
                       ),
                     ),
                   ],
@@ -1616,6 +1644,9 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
                       ? CupertinoIcons.plus_circle_fill
                       : CupertinoIcons.bookmark_fill,
                   size: HomeUi.iconSm,
+                  gradient: (widget.isOpen || _isHovered || _isDragOver)
+                      ? HomeUi.brandGradient
+                      : null,
                 ),
                 const SizedBox(width: 6),
                 Text(

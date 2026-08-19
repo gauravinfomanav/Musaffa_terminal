@@ -627,8 +627,52 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
   double _resolveColumnWidth(DynamicTableColumn col) {
     final minWidth = _getNaturalMinWidth(col);
+    final stretched = _stretchedColumnWidths[col.key];
+    if (stretched != null) return stretched;
     final resolved = _columnWidths[col.key] ?? col.width ?? minWidth;
     return resolved < minWidth ? minWidth : resolved;
+  }
+
+  /// Stretched widths computed per-frame so visible columns fill available space.
+  Map<String, double> _stretchedColumnWidths = <String, double>{};
+
+  void _computeStretchedWidths(
+    List<DynamicTableColumn> columns,
+    double availableWidth, {
+    bool includeTicker = false,
+  }) {
+    _stretchedColumnWidths = <String, double>{};
+    if (columns.isEmpty) return;
+
+    // Account for ticker column, horizontal margins, and DataTable internal spacing.
+    double reserved = widget.horizontalMargin * 2;
+    if (includeTicker) {
+      reserved += (widget.tickerColumnWidth ?? 200) + _toolbarInset + 8;
+    }
+    if (widget.columnSpacing != null) {
+      reserved += widget.columnSpacing! * (columns.length - 1).clamp(0, 999);
+    }
+    final usable = availableWidth - reserved;
+    if (usable <= 0) return;
+
+    final baseWidths = <String, double>{};
+    double totalBase = 0;
+    for (final col in columns) {
+      final minWidth = _getNaturalMinWidth(col);
+      final w = _columnWidths[col.key] ?? col.width ?? minWidth;
+      final base = w < minWidth ? minWidth : w;
+      baseWidths[col.key] = base;
+      totalBase += base;
+    }
+
+    if (totalBase >= usable) return; // no extra space to distribute
+
+    final extra = usable - totalBase;
+    for (final col in columns) {
+      final base = baseWidths[col.key]!;
+      final share = base / totalBase;
+      _stretchedColumnWidths[col.key] = base + extra * share;
+    }
   }
 
   void _handleColumnDrop(String targetColumnKey) {
@@ -1553,6 +1597,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
   @override
   Widget build(BuildContext context) {
+    _stretchedColumnWidths = <String, double>{};
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = HomeUi.cardBg(isDark);
     final borderColor = HomeUi.borderLight(isDark);
@@ -1775,29 +1821,40 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                         curve: Curves.easeInOutCubicEmphasized,
                         alignment: Alignment.topLeft,
                         child: centerColumns.isNotEmpty
-                            ? Scrollbar(
-                                controller: _horizontalScrollController,
-                                thumbVisibility: true,
-                                trackVisibility: false,
-                                scrollbarOrientation:
-                                    ScrollbarOrientation.bottom,
-                                child: SingleChildScrollView(
-                                  controller: _horizontalScrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  child: _buildAnimatedTableSection(
-                                    key: ValueKey<String>(
-                                      'center:${centerColumns.map((c) => c.key).join('|')}',
+                            ? LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final double availableW = constraints.maxWidth;
+                                  _computeStretchedWidths(centerColumns, availableW);
+                                  return Scrollbar(
+                                    controller: _horizontalScrollController,
+                                    thumbVisibility: true,
+                                    trackVisibility: false,
+                                    scrollbarOrientation:
+                                        ScrollbarOrientation.bottom,
+                                    child: SingleChildScrollView(
+                                      controller: _horizontalScrollController,
+                                      scrollDirection: Axis.horizontal,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minWidth: availableW,
+                                        ),
+                                        child: _buildAnimatedTableSection(
+                                          key: ValueKey<String>(
+                                            'center:${centerColumns.map((c) => c.key).join('|')}',
+                                          ),
+                                          child: _buildTableSection(
+                                            context: context,
+                                            columns: centerColumns,
+                                            rows: paginatedRows,
+                                            textColor: textColor,
+                                            mutedColor: mutedColor,
+                                            expanderColumnKey: expanderColumnKey,
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    child: _buildTableSection(
-                                      context: context,
-                                      columns: centerColumns,
-                                      rows: paginatedRows,
-                                      textColor: textColor,
-                                      mutedColor: mutedColor,
-                                      expanderColumnKey: expanderColumnKey,
-                                    ),
-                                  ),
-                                ),
+                                  );
+                                },
                               )
                             : const SizedBox.shrink(),
                       ),
@@ -1809,29 +1866,40 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                         curve: Curves.easeInOutCubicEmphasized,
                         alignment: Alignment.topLeft,
                         child: centerColumns.isNotEmpty
-                            ? Scrollbar(
-                                controller: _horizontalScrollController,
-                                thumbVisibility: true,
-                                trackVisibility: false,
-                                scrollbarOrientation:
-                                    ScrollbarOrientation.bottom,
-                                child: SingleChildScrollView(
-                                  controller: _horizontalScrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  child: _buildAnimatedTableSection(
-                                    key: ValueKey<String>(
-                                      'center:${centerColumns.map((c) => c.key).join('|')}',
+                            ? LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final double availableW = constraints.maxWidth;
+                                  _computeStretchedWidths(centerColumns, availableW);
+                                  return Scrollbar(
+                                    controller: _horizontalScrollController,
+                                    thumbVisibility: true,
+                                    trackVisibility: false,
+                                    scrollbarOrientation:
+                                        ScrollbarOrientation.bottom,
+                                    child: SingleChildScrollView(
+                                      controller: _horizontalScrollController,
+                                      scrollDirection: Axis.horizontal,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minWidth: availableW,
+                                        ),
+                                        child: _buildAnimatedTableSection(
+                                          key: ValueKey<String>(
+                                            'center:${centerColumns.map((c) => c.key).join('|')}',
+                                          ),
+                                          child: _buildTableSection(
+                                            context: context,
+                                            columns: centerColumns,
+                                            rows: paginatedRows,
+                                            textColor: textColor,
+                                            mutedColor: mutedColor,
+                                            expanderColumnKey: expanderColumnKey,
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    child: _buildTableSection(
-                                      context: context,
-                                      columns: centerColumns,
-                                      rows: paginatedRows,
-                                      textColor: textColor,
-                                      mutedColor: mutedColor,
-                                      expanderColumnKey: expanderColumnKey,
-                                    ),
-                                  ),
-                                ),
+                                  );
+                                },
                               )
                             : const SizedBox.shrink(),
                       ),
