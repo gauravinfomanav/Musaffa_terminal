@@ -158,14 +158,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
             plotAreaBorderWidth: 0,
             margin: const EdgeInsets.fromLTRB(0, 8, 8, 0),
             legend: Legend(
-              isVisible: true,
-              position: LegendPosition.bottom,
-              overflowMode: LegendItemOverflowMode.wrap,
-              padding: 0,
-              itemPadding: 12,
-              iconHeight: 10,
-              iconWidth: 16,
-              textStyle: HomeUi.tableCellSecondary(_isDark).copyWith(fontSize: 12),
+              isVisible: false,
             ),
             tooltipBehavior: TooltipBehavior(
               enable: true,

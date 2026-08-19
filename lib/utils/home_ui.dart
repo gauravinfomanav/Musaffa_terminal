@@ -832,7 +832,7 @@ class HomeUi {
     );
   }
 
-  /// Read-only summary tile for detail modals — not an input field.
+  /// Read-only summary tile for detail modals — premium glass card style.
   static Widget detailSummaryMetric({
     required bool dark,
     required String label,
@@ -840,20 +840,43 @@ class HomeUi {
     Color? valueColor,
   }) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
-        color: elevatedBg(dark),
-        borderRadius: BorderRadius.circular(radiusMd),
-        border: Border.all(color: borderLight(dark)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? [const Color(0xFF1A1D2E), const Color(0xFF151822)]
+              : [const Color(0xFFF9FAFB), const Color(0xFFFFFFFF)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: dark
+              ? const Color(0xFF2A2D3E).withValues(alpha: 0.8)
+              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: dark
+                ? Colors.black.withValues(alpha: 0.2)
+                : const Color(0xFF6366F1).withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label.toUpperCase(),
-            style: overline(dark).copyWith(
+            style: TextStyle(
               fontSize: 10,
-              letterSpacing: 1.1,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+              color: dark
+                  ? const Color(0xFF8B8FA3)
+                  : const Color(0xFF9CA3AF),
             ),
           ),
           const SizedBox(height: 8),
@@ -861,6 +884,7 @@ class HomeUi {
             value,
             style: tableCellEmphasis(dark).copyWith(
               fontSize: 16,
+              fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
               color: valueColor,
             ),

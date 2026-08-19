@@ -111,7 +111,7 @@ class HomeTabBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -486,16 +486,15 @@ class _SearchFieldState extends State<_SearchField>
     final active = focused || _hovered;
     final hasQuery = _searchController.text.isNotEmpty;
     final radius = BorderRadius.circular(HomeUi.radiusMd);
-    final fill =
-        (focused || active) ? HomeUi.cardBg(dark) : HomeUi.elevatedBg(dark);
+    final fill = HomeUi.cardBg(dark);
     final placeholderStyle = HomeUi.subtitle(dark).copyWith(
-      fontSize: 12.5,
-      height: 1.15,
+      fontSize: 13.5,
+      height: 1.2,
       fontWeight: FontWeight.w400,
     );
     final borderColor = focused
         ? const Color(0xFFC42329).withOpacity(dark ? 0.55 : 0.42)
-        : (active ? HomeUi.borderStrong(dark) : HomeUi.borderLight(dark));
+        : HomeUi.borderStrong(dark);
 
     OutlineInputBorder outline(Color color, double width) => OutlineInputBorder(
           borderRadius: radius,
@@ -522,7 +521,7 @@ class _SearchFieldState extends State<_SearchField>
                     offset: const Offset(0, 1),
                   ),
                 ]
-              : HomeUi.cardShadow(dark, hover: active),
+              : HomeUi.cardShadow(dark, hover: true),
         ),
         child: Stack(
           children: [
@@ -551,28 +550,28 @@ class _SearchFieldState extends State<_SearchField>
               onSubmitted: (value) => widget.onSubmitted?.call(value),
               textInputAction: TextInputAction.search,
               style: HomeUi.control(dark, active: true).copyWith(
-                fontSize: 12.5,
-                height: 1.15,
+                fontSize: 14,
+                height: 1.2,
                 color: HomeUi.title(dark),
               ),
               decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 10, right: 4),
+                  padding: const EdgeInsets.only(left: 12, right: 4),
                   child: active
                       ? HomeUi.brandIcon(
                           icon: CupertinoIcons.search,
-                          size: HomeUi.iconSm,
+                          size: HomeUi.iconMd,
                           gradient: HomeUi.iconFillGradient,
                         )
                       : HomeUi.vectorIcon(
                           icon: CupertinoIcons.search,
-                          size: HomeUi.iconSm,
+                          size: HomeUi.iconMd,
                           color: HomeUi.muted(dark),
                         ),
                 ),
                 prefixIconConstraints: const BoxConstraints(
-                  minWidth: 32,
+                  minWidth: 36,
                   minHeight: fieldHeight,
                 ),
                 suffixIcon: hasQuery
@@ -617,7 +616,7 @@ class _SearchFieldState extends State<_SearchField>
               Positioned.fill(
                 child: IgnorePointer(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(36, 8, 12, 8),
+                    padding: const EdgeInsets.fromLTRB(40, 8, 12, 8),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Row(

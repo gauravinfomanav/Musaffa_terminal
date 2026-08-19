@@ -43,19 +43,7 @@ class TickerPriceTargetChart extends StatelessWidget {
       child: SfCartesianChart(
         plotAreaBorderWidth: 0,
         margin: const EdgeInsets.fromLTRB(4, 8, 12, 0),
-        legend: Legend(
-          isVisible: true,
-          position: LegendPosition.top,
-          overflowMode: LegendItemOverflowMode.wrap,
-          toggleSeriesVisibility: true,
-          padding: 0,
-          itemPadding: 12,
-          iconHeight: 10,
-          iconWidth: 18,
-          textStyle: HomeUi.tableCellSecondary(isDarkMode).copyWith(
-            fontSize: 12,
-          ),
-        ),
+        legend: Legend(isVisible: false),
         tooltipBehavior: TooltipBehavior(
           enable: true,
           color: Colors.transparent,

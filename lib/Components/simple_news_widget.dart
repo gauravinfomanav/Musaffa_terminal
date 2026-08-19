@@ -121,20 +121,46 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        HomeUi.tableToolbarHeader(
-          isDarkMode,
-          icon: Icons.newspaper_outlined,
-          title: 'Latest News',
-          subtitleText: 'Headlines for this ticker',
-        ),
-        const SizedBox(height: 14),
+        _buildPremiumHeader(newsList.length, isDarkMode),
+        const SizedBox(height: 18),
         ...newsList.asMap().entries.map((MapEntry<int, MarketNews> entry) {
           final bool isLast = entry.key == newsList.length - 1;
           return Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
             child: _buildNewsItem(entry.value, isDarkMode),
           );
         }),
+      ],
+    );
+  }
+
+  Widget _buildPremiumHeader(int itemCount, bool isDarkMode) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: HomeUi.tableToolbarHeader(
+            isDarkMode,
+            icon: Icons.newspaper_outlined,
+            title: 'Latest News',
+            subtitleText: 'Headlines for this ticker',
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: HomeUi.iconWellGradient,
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(color: HomeUi.iconWellBorder),
+          ),
+          child: Text(
+            '$itemCount Stories',
+            style: HomeUi.control(isDarkMode, active: true).copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -149,6 +175,7 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
     final String source = (news.source ?? '').trim().isNotEmpty
         ? _sanitizeDisplayText(news.source!.trim()).toUpperCase()
         : 'UNKNOWN';
+    final bool hasSummary = summary != '--';
 
     return _NewsCard(
       isDarkMode: isDarkMode,
@@ -165,46 +192,59 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
                 Row(
                   children: <Widget>[
                     _buildSourceBadge(source, isDarkMode),
+                    const SizedBox(width: 8),
+                    _buildMetaChip('Live Coverage', isDarkMode),
                     const Spacer(),
-                    Icon(
-                      Icons.open_in_new_rounded,
-                      size: 14,
-                      color: isDarkMode
-                          ? const Color(0xFF6B7280)
-                          : const Color(0xFF9CA3AF),
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        gradient: HomeUi.iconWellGradient,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: HomeUi.iconWellBorder),
+                      ),
+                      child: Center(
+                        child: HomeUi.brandIcon(
+                          icon: Icons.open_in_new_rounded,
+                          size: 14,
+                          gradient: HomeUi.iconFillGradient,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   headline,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     color: isDarkMode
                         ? const Color(0xFFF9FAFB)
                         : const Color(0xFF111827),
-                    height: 1.25,
-                    fontWeight: FontWeight.w700,
+                    height: 1.28,
+                    fontWeight: FontWeight.w800,
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                   ),
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  summary,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDarkMode
-                        ? const Color(0xFF9CA3AF)
-                        : const Color(0xFF64748B),
-                    height: 1.35,
-                    fontWeight: FontWeight.w400,
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                if (hasSummary) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Text(
+                    summary,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: isDarkMode
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF64748B),
+                      height: 1.42,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
               ],
             ),
           ),
@@ -215,15 +255,30 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
 
   Widget _buildTimeColumn(int? timestamp, bool isDarkMode) {
     return Container(
-      width: 78,
-      height: 92,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      width: 86,
+      height: 100,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF111827) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDarkMode
+              ? <Color>[const Color(0xFF151A24), const Color(0xFF10151F)]
+              : <Color>[const Color(0xFFF8FAFC), Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0),
         ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: isDarkMode
+                ? Colors.black.withValues(alpha: 0.12)
+                : const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -232,11 +287,11 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
             _formatDisplayTime(timestamp),
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: isDarkMode
                   ? const Color(0xFFE5E7EB)
                   : const Color(0xFF334155),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               fontFamily: Constants.FONT_DEFAULT_NEW,
             ),
             maxLines: 1,
@@ -251,8 +306,9 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
               color: isDarkMode
                   ? const Color(0xFF9CA3AF)
                   : const Color(0xFF64748B),
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               fontFamily: Constants.FONT_DEFAULT_NEW,
+              letterSpacing: 0.3,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -264,11 +320,18 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
 
   Widget _buildSourceBadge(String source, bool isDarkMode) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isDarkMode
-            ? const Color(0xFF1E3A8A).withValues(alpha: 0.35)
-            : const Color(0xFFEFF6FF),
+        gradient: isDarkMode
+            ? LinearGradient(
+                colors: <Color>[
+                  const Color(0xFF1D4ED8).withValues(alpha: 0.28),
+                  const Color(0xFF7C3AED).withValues(alpha: 0.24),
+                ],
+              )
+            : const LinearGradient(
+                colors: <Color>[Color(0xFFEFF6FF), Color(0xFFF5F3FF)],
+              ),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: isDarkMode
@@ -280,13 +343,38 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
         source,
         style: TextStyle(
           fontSize: 10,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: isDarkMode ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
           fontFamily: Constants.FONT_DEFAULT_NEW,
-          letterSpacing: 0.4,
+          letterSpacing: 0.55,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _buildMetaChip(String label, bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? const Color(0xFF111827).withValues(alpha: 0.9)
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: isDarkMode ? const Color(0xFFD1D5DB) : const Color(0xFF475569),
+          letterSpacing: 0.3,
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+        ),
       ),
     );
   }
@@ -438,27 +526,35 @@ class _NewsCardState extends State<_NewsCard> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          height: 116,
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+          constraints: const BoxConstraints(minHeight: 132),
+          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
           decoration: BoxDecoration(
-            color: _hover
-                ? (dark ? const Color(0xFF111827) : const Color(0xFFF8FAFC))
-                : (dark ? const Color(0xFF0F172A) : Colors.white),
-            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: _hover
+                  ? (dark
+                      ? <Color>[const Color(0xFF131A27), const Color(0xFF0F172A)]
+                      : <Color>[const Color(0xFFFFFFFF), const Color(0xFFF8FAFC)])
+                  : (dark
+                      ? <Color>[const Color(0xFF101722), const Color(0xFF0B1220)]
+                      : <Color>[const Color(0xFFFFFFFF), const Color(0xFFFCFCFD)]),
+            ),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: _hover
-                  ? (dark ? const Color(0xFF374151) : const Color(0xFFCBD5E1))
-                  : (dark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0)),
+                  ? (dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))
+                  : (dark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB)),
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 color: dark
-                    ? Colors.black.withValues(alpha: _hover ? 0.22 : 0.12)
+                    ? Colors.black.withValues(alpha: _hover ? 0.26 : 0.15)
                     : const Color(0xFF0F172A)
-                        .withValues(alpha: _hover ? 0.08 : 0.04),
-                blurRadius: _hover ? 16 : 10,
-                offset: const Offset(0, 4),
+                        .withValues(alpha: _hover ? 0.1 : 0.05),
+                blurRadius: _hover ? 20 : 12,
+                offset: const Offset(0, 6),
               ),
             ],
           ),

@@ -1353,76 +1353,34 @@ class _KeyMetricsQuoteStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: HomeUi.tableHeaderBg(isDark),
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-      ),
-      clipBehavior: Clip.antiAlias,
+    return SizedBox(
+      height: 96,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 3,
-            constraints: const BoxConstraints(minHeight: 72),
-            decoration: const BoxDecoration(
-              gradient: HomeUi.brandGradient,
-            ),
+        Expanded(child: _PremiumStatCard(isDark: isDark, label: 'Market Cap', value: marketCap)),
+        const SizedBox(width: 12),
+        Expanded(child: _PremiumStatCard(isDark: isDark, label: 'P/E Ratio', value: peRatio)),
+        const SizedBox(width: 12),
+        Expanded(child: _PremiumStatCard(isDark: isDark, label: 'ROE', value: roe, signedValue: roeValue)),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: _PremiumWeekRangeCard(
+            isDark: isDark,
+            weekLow: weekLow,
+            weekHigh: weekHigh,
+            currentPrice: currentPrice,
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-              child: _QuoteStat(
-                isDark: isDark,
-                label: 'Market Cap',
-                value: marketCap,
-              ),
-            ),
-          ),
-          Container(width: 1, color: HomeUi.borderLight(isDark)),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-              child: _QuoteStat(
-                isDark: isDark,
-                label: 'P/E Ratio',
-                value: peRatio,
-              ),
-            ),
-          ),
-          Container(width: 1, color: HomeUi.borderLight(isDark)),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-              child: _QuoteStat(
-                isDark: isDark,
-                label: 'ROE',
-                value: roe,
-                signedValue: roeValue,
-              ),
-            ),
-          ),
-          Container(width: 1, color: HomeUi.borderLight(isDark)),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: _WeekRangeStat(
-                isDark: isDark,
-                weekLow: weekLow,
-                weekHigh: weekHigh,
-                currentPrice: currentPrice,
-              ),
-            ),
-          ),
+        ),
         ],
       ),
     );
   }
 }
 
-class _QuoteStat extends StatelessWidget {
-  const _QuoteStat({
+class _PremiumStatCard extends StatelessWidget {
+  const _PremiumStatCard({
     required this.isDark,
     required this.label,
     required this.value,
@@ -1439,43 +1397,74 @@ class _QuoteStat extends StatelessWidget {
     final signed = signedValue == null || signedValue == 0
         ? null
         : signedValue! > 0;
+    final valueColor = signed == null
+        ? HomeUi.title(isDark)
+        : (signed ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: HomeUi.label(isDark).copyWith(
-            fontSize: 11,
-            letterSpacing: 0.2,
-          ),
+    return Container(
+      height: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1A1D2E), const Color(0xFF151822)]
+              : [const Color(0xFFF9FAFB), const Color(0xFFFFFFFF)],
         ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: HomeUi.heading(isDark).copyWith(
-            fontSize: 22,
-            letterSpacing: -0.7,
-            height: 1.05,
-            color: signed == null
-                ? HomeUi.title(isDark)
-                : (signed
-                    ? HomeUi.positive(isDark)
-                    : HomeUi.negative(isDark)),
-          ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF2A2D3E).withValues(alpha: 0.8)
+              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
         ),
-      ],
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.2)
+                : const Color(0xFF6366F1).withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+              color: isDark
+                  ? const Color(0xFF8B8FA3)
+                  : const Color(0xFF9CA3AF),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.7,
+              height: 1.05,
+              color: valueColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _WeekRangeStat extends StatelessWidget {
-  const _WeekRangeStat({
+class _PremiumWeekRangeCard extends StatelessWidget {
+  const _PremiumWeekRangeCard({
     required this.isDark,
     required this.weekLow,
     required this.weekHigh,
@@ -1497,99 +1486,153 @@ class _WeekRangeStat extends StatelessWidget {
         ? ((price - low) / (high - low)).clamp(0.0, 1.0)
         : 0.5;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          '52-Week Range',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: HomeUi.label(isDark).copyWith(
-            fontSize: 11,
-            letterSpacing: 0.2,
-          ),
+    return Container(
+      height: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1A1D2E), const Color(0xFF151822)]
+              : [const Color(0xFFF9FAFB), const Color(0xFFFFFFFF)],
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                hasRange ? '\$${low.toStringAsFixed(2)}' : '--',
-                style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 11),
-              ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF2A2D3E).withValues(alpha: 0.8)
+              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.2)
+                : const Color(0xFF6366F1).withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '52-WEEK RANGE',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+              color: isDark
+                  ? const Color(0xFF8B8FA3)
+                  : const Color(0xFF9CA3AF),
             ),
-            if (price != null)
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
               Text(
-                '\$${price.toStringAsFixed(2)}',
-                style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                hasRange ? '\$${low.toStringAsFixed(2)}' : '--',
+                style: TextStyle(
                   fontSize: 12,
-                  letterSpacing: -0.2,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
                 ),
               ),
-            Expanded(
-              child: Text(
-                hasRange ? '\$${high.toStringAsFixed(2)}' : '--',
-                textAlign: TextAlign.right,
-                style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 11),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final thumb =
-                (t * constraints.maxWidth).clamp(5.0, constraints.maxWidth - 5);
-            return SizedBox(
-              height: 8,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 2),
-                    decoration: BoxDecoration(
-                      color: HomeUi.border(isDark),
-                      borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              const Spacer(),
+              if (price != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    gradient: HomeUi.iconFillGradient,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '\$${price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
                     ),
                   ),
-                  if (hasRange)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        width: (t * constraints.maxWidth).clamp(4.0, constraints.maxWidth),
-                        height: 4,
-                        margin: const EdgeInsets.only(top: 2),
-                        decoration: BoxDecoration(
-                          gradient: HomeUi.iconFillGradient,
-                          borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-                        ),
+                ),
+              const Spacer(),
+              Text(
+                hasRange ? '\$${high.toStringAsFixed(2)}' : '--',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final thumb =
+                  (t * constraints.maxWidth).clamp(6.0, constraints.maxWidth - 6);
+              return SizedBox(
+                height: 10,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      height: 5,
+                      margin: const EdgeInsets.only(top: 2.5),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF2A2D3E)
+                            : const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
                       ),
                     ),
-                  if (hasRange)
-                    Positioned(
-                      left: thumb - 5,
-                      top: 0,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: HomeUi.cardBg(isDark),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFC42329),
-                            width: 1.5,
+                    if (hasRange)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: (t * constraints.maxWidth).clamp(4.0, constraints.maxWidth),
+                          height: 5,
+                          margin: const EdgeInsets.only(top: 2.5),
+                          decoration: BoxDecoration(
+                            gradient: HomeUi.iconFillGradient,
+                            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
+                    if (hasRange)
+                      Positioned(
+                        left: thumb - 6,
+                        top: 0,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFE4621E),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE4621E).withValues(alpha: 0.28),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

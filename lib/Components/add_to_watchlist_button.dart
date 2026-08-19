@@ -353,6 +353,7 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
           HomeUi.brandIcon(
             icon: Icons.check_circle_rounded,
             size: 14,
+            gradient: HomeUi.iconFillGradient,
           ),
           const SizedBox(width: 6),
           Text(

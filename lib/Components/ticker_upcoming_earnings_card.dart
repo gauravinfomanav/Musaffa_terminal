@@ -55,6 +55,7 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
         if (isLoadingCalendar) {
           rowChildren.addAll(<Widget>[
             Expanded(
+              flex: 8,
               child: _card(
                 child: TickerFinnhubLoadingState(
                   isDarkMode: isDarkMode,
@@ -64,6 +65,7 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             Expanded(
+              flex: 8,
               child: _card(
                 child: TickerFinnhubLoadingState(
                   isDarkMode: isDarkMode,
@@ -76,6 +78,7 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
           if (upcoming != null) {
             rowChildren.add(
               Expanded(
+                flex: 8,
                 child: _card(
                   child: _buildCompactTable(
                     'Next Earnings',
@@ -93,6 +96,7 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
             }
             rowChildren.add(
               Expanded(
+                flex: 8,
                 child: _card(
                   child: _buildCompactTable(
                     'Previous Earnings',
@@ -111,6 +115,7 @@ class TickerUpcomingEarningsCard extends StatelessWidget {
           }
           rowChildren.add(
             Expanded(
+              flex: 12,
               child: TickerEpsSurpriseChart(
                 surprises: controller.chartSurprises,
                 isDarkMode: isDarkMode,
