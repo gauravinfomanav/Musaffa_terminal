@@ -468,7 +468,7 @@ class _CompactMetricCell extends StatelessWidget {
   }
 }
 
-/// One dense details card — HQ / Identifiers / Industry without wasted panel space.
+/// Matches page section chrome — same card + toolbar as profile.
 class _CompanyDetailsCard extends StatelessWidget {
   const _CompanyDetailsCard({
     required this.profile,
@@ -557,7 +557,7 @@ class _CompanyDetailsCard extends StatelessWidget {
 
     return TickerFinnhubSectionCard(
       isDarkMode: isDark,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -567,16 +567,16 @@ class _CompanyDetailsCard extends StatelessWidget {
             title: 'Company Details',
             subtitleText: 'Location, identifiers, and classification',
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 860;
+              final wide = constraints.maxWidth >= 900;
               if (!wide) {
                 return Column(
                   children: [
                     for (int i = 0; i < sections.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 10),
-                      _DetailSection(
+                      if (i > 0) const SizedBox(height: 12),
+                      _DetailTilePanel(
                         icon: sections[i].$1,
                         title: sections[i].$2,
                         rows: sections[i].$3,
@@ -592,22 +592,13 @@ class _CompanyDetailsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (int i = 0; i < sections.length; i++) ...[
-                      if (i > 0) ...[
-                        const SizedBox(width: 10),
-                        VerticalDivider(
-                          width: 1,
-                          thickness: 1,
-                          color: HomeUi.borderLight(isDark),
-                        ),
-                        const SizedBox(width: 10),
-                      ],
+                      if (i > 0) const SizedBox(width: 12),
                       Expanded(
-                        child: _DetailSection(
+                        child: _DetailTilePanel(
                           icon: sections[i].$1,
                           title: sections[i].$2,
                           rows: sections[i].$3,
                           isDark: isDark,
-                          flush: true,
                         ),
                       ),
                     ],
@@ -622,66 +613,76 @@ class _CompanyDetailsCard extends StatelessWidget {
   }
 }
 
-class _DetailSection extends StatelessWidget {
-  const _DetailSection({
+class _DetailTilePanel extends StatelessWidget {
+  const _DetailTilePanel({
     required this.icon,
     required this.title,
     required this.rows,
     required this.isDark,
-    this.flush = false,
   });
 
   final IconData icon;
   final String title;
   final List<(String, String, VoidCallback?)> rows;
   final bool isDark;
-  final bool flush;
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 14, color: HomeUi.accent(isDark)),
-            const SizedBox(width: 6),
-            Text(
-              title,
-              style: HomeUi.cardTitle(isDark).copyWith(fontSize: 12.5),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        for (int i = 0; i < rows.length; i++) ...[
-          if (i > 0) const SizedBox(height: 2),
-          _DetailKvRow(
-            label: rows[i].$1,
-            value: rows[i].$2,
-            isDark: isDark,
-            onTap: rows[i].$3,
-          ),
-        ],
-      ],
-    );
-
-    if (flush) return content;
-
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: HomeUi.elevatedBg(isDark),
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
         border: Border.all(color: HomeUi.borderLight(isDark)),
       ),
-      child: content,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? HomeUi.cardBg(true)
+                      : Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: Icon(
+                  icon,
+                  size: 15,
+                  color: HomeUi.muted(isDark),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: HomeUi.cardTitle(isDark).copyWith(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (int i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            _StackedField(
+              label: rows[i].$1,
+              value: rows[i].$2,
+              isDark: isDark,
+              onTap: rows[i].$3,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _DetailKvRow extends StatelessWidget {
-  const _DetailKvRow({
+class _StackedField extends StatelessWidget {
+  const _StackedField({
     required this.label,
     required this.value,
     required this.isDark,
@@ -695,41 +696,40 @@ class _DetailKvRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              label,
-              style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 11.5),
-            ),
+    final field = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: HomeUi.overline(isDark).copyWith(
+            fontSize: 10,
+            letterSpacing: 0.7,
+            fontWeight: FontWeight.w600,
+            color: isDark
+                ? HomeUi.muted(true)
+                : const Color(0xFF94A3B8),
           ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: HomeUi.tableCellEmphasis(isDark).copyWith(
-                fontSize: 12.5,
-                color: onTap != null
-                    ? HomeUi.accent(isDark)
-                    : HomeUi.title(isDark),
-                fontWeight: onTap != null ? FontWeight.w600 : FontWeight.w600,
-              ),
-            ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: HomeUi.tableCellEmphasis(isDark).copyWith(
+            fontSize: 13.5,
+            height: 1.4,
+            fontWeight: FontWeight.w600,
+            color: onTap != null
+                ? HomeUi.accent(isDark)
+                : HomeUi.title(isDark),
           ),
-        ],
-      ),
+        ),
+      ],
     );
 
-    if (onTap == null) return row;
+    if (onTap == null) return field;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(onTap: onTap, child: row),
+      child: GestureDetector(onTap: onTap, child: field),
     );
   }
 }

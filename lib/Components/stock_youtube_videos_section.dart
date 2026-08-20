@@ -30,6 +30,7 @@ class StockYouTubeVideosSection extends StatelessWidget {
 
         return TickerFinnhubSectionCard(
           isDarkMode: isDarkMode,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           child: _buildBody(context),
         );
       },
@@ -94,10 +95,11 @@ class StockYouTubeVideosSection extends StatelessWidget {
         ...controller.videos.asMap().entries.map((entry) {
           final isLast = entry.key == controller.videos.length - 1;
           return Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
             child: _YouTubeVideoCard(
               video: entry.value,
               isDarkMode: isDarkMode,
+              featured: entry.key == 0,
             ),
           );
         }),
@@ -169,10 +171,10 @@ class StockYouTubeVideosSection extends StatelessWidget {
       children: List.generate(
         4,
         (index) => Padding(
-          padding: EdgeInsets.only(bottom: index == 3 ? 0 : 12),
+          padding: EdgeInsets.only(bottom: index == 3 ? 0 : 10),
           child: ShimmerWidgets.box(
             width: double.infinity,
-            height: 104,
+            height: index == 0 ? 118 : 104,
             borderRadius: BorderRadius.circular(HomeUi.radiusMd),
             baseColor:
                 isDarkMode ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
@@ -185,48 +187,77 @@ class StockYouTubeVideosSection extends StatelessWidget {
   }
 }
 
-class _YouTubeVideoCard extends StatelessWidget {
+class _YouTubeVideoCard extends StatefulWidget {
   const _YouTubeVideoCard({
     required this.video,
     required this.isDarkMode,
+    this.featured = false,
   });
 
   final StockYouTubeVideo video;
   final bool isDarkMode;
+  final bool featured;
+
+  @override
+  State<_YouTubeVideoCard> createState() => _YouTubeVideoCardState();
+}
+
+class _YouTubeVideoCardState extends State<_YouTubeVideoCard> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    final isDark = widget.isDarkMode;
+    final video = widget.video;
+    final featured = widget.featured;
+
+    final thumbW = featured ? 160.0 : 140.0;
+    final thumbH = featured ? 90.0 : 80.0;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
         onTap: () => _openVideo(video.videoUrl),
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        child: Ink(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: HomeUi.elevatedBg(isDarkMode),
+            color: HomeUi.elevatedBg(isDark),
             borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-            border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+            border: Border.all(
+              color: _hovered
+                  ? HomeUi.accent(isDark).withValues(alpha: 0.35)
+                  : HomeUi.borderLight(isDark),
+            ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Thumbnail(
-                  url: video.thumbnail,
-                  duration: video.duration,
-                  isDarkMode: isDarkMode,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Thumbnail(
+                url: video.thumbnail,
+                duration: video.duration,
+                isDarkMode: isDark,
+                width: thumbW,
+                height: thumbH,
+                hovered: _hovered,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: SizedBox(
+                  height: thumbH,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         video.title,
-                        style: HomeUi.bodyText(isDarkMode).copyWith(
+                        style: HomeUi.bodyText(isDark).copyWith(
+                          fontSize: featured ? 14 : 13.5,
                           fontWeight: FontWeight.w600,
                           height: 1.35,
+                          color: HomeUi.title(isDark),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -235,45 +266,70 @@ class _YouTubeVideoCard extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           video.channel!.trim(),
-                          style: HomeUi.subtitle(isDarkMode).copyWith(
-                            fontSize: 12,
+                          style: HomeUi.subtitle(isDark).copyWith(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          if (video.publishedAt?.trim().isNotEmpty == true)
-                            _MetaChip(
-                              text: video.publishedAt!.trim(),
-                              isDarkMode: isDarkMode,
-                            ),
-                          if (video.viewCount != null)
-                            _MetaChip(
-                              text: _formatViewCount(video.viewCount!),
-                              isDarkMode: isDarkMode,
-                            ),
-                        ],
+                      const Spacer(),
+                      Text(
+                        _metaLine(video),
+                        style: HomeUi.overline(isDark).copyWith(
+                          fontSize: 11,
+                          letterSpacing: 0.15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.open_in_new_rounded,
-                  size: 16,
-                  color: HomeUi.muted(isDarkMode),
+              ),
+              const SizedBox(width: 10),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: _hovered
+                        ? HomeUi.accent(isDark).withValues(alpha: 0.12)
+                        : (isDark
+                            ? HomeUi.cardBg(true)
+                            : Colors.white.withValues(alpha: 0.85)),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: HomeUi.borderLight(isDark)),
+                  ),
+                  child: Icon(
+                    Icons.open_in_new_rounded,
+                    size: 15,
+                    color: _hovered
+                        ? HomeUi.accent(isDark)
+                        : HomeUi.muted(isDark),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  String _metaLine(StockYouTubeVideo video) {
+    final parts = <String>[];
+    if (video.publishedAt?.trim().isNotEmpty == true) {
+      parts.add(video.publishedAt!.trim());
+    }
+    if (video.viewCount != null) {
+      parts.add(_formatViewCount(video.viewCount!));
+    }
+    return parts.isEmpty ? 'Watch on YouTube' : parts.join(' · ');
   }
 
   Future<void> _openVideo(String url) async {
@@ -306,17 +362,20 @@ class _Thumbnail extends StatelessWidget {
     required this.url,
     required this.duration,
     required this.isDarkMode,
+    required this.width,
+    required this.height,
+    required this.hovered,
   });
 
   final String? url;
   final String? duration;
   final bool isDarkMode;
+  final double width;
+  final double height;
+  final bool hovered;
 
   @override
   Widget build(BuildContext context) {
-    const width = 128.0;
-    const height = 72.0;
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
@@ -333,6 +392,36 @@ class _Thumbnail extends StatelessWidget {
               )
             else
               _placeholder(),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              color: Colors.black.withValues(alpha: hovered ? 0.28 : 0.12),
+            ),
+            Center(
+              child: AnimatedScale(
+                scale: hovered ? 1.06 : 1,
+                duration: const Duration(milliseconds: 160),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: hovered ? 0.96 : 0.88),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.18),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 20,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+            ),
             if (duration?.trim().isNotEmpty == true)
               Positioned(
                 right: 6,
@@ -362,33 +451,12 @@ class _Thumbnail extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      color: HomeUi.elevatedBg(isDarkMode),
+      color: HomeUi.cardBg(isDarkMode),
       alignment: Alignment.center,
       child: Icon(
         Icons.play_circle_outline_rounded,
         color: HomeUi.muted(isDarkMode),
         size: 28,
-      ),
-    );
-  }
-}
-
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({
-    required this.text,
-    required this.isDarkMode,
-  });
-
-  final String text;
-  final bool isDarkMode;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: HomeUi.overline(isDarkMode).copyWith(
-        fontSize: 10,
-        letterSpacing: 0.3,
       ),
     );
   }
