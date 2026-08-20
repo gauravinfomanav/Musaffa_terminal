@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
 import 'package:musaffa_terminal/Components/floating_action_button_widget.dart';
-import 'package:musaffa_terminal/Components/notes_fab.dart';
-import 'package:musaffa_terminal/Components/notes_panel.dart';
+import 'package:musaffa_terminal/Components/notes_side_overlay.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
@@ -40,10 +39,7 @@ class GlobalFABOverlay extends StatelessWidget {
                   ))
               .toList(),
         )),
-        // Notes FAB (always visible, left bottom)
-        const NotesFAB(),
-        // Notes Panel
-        const NotesPanel(),
+        const NotesSideOverlay(),
       ],
     );
   }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:musaffa_terminal/config/api_config.dart';
 
@@ -128,7 +129,10 @@ class WebService {
 
       final uri = Uri.parse(baseUrl ?? _musaffaBaseUrl)
           .replace(pathSegments: path, queryParameters: params);
-      print("url will be this: $uri");
+      debugPrint('API ${method.name} $uri');
+      if (body != null) {
+        debugPrint('API request body: ${jsonEncode(body)}');
+      }
       late http.Response response;
       
       switch (method) {
@@ -160,6 +164,10 @@ class WebService {
           );
           break;
       }
+
+      debugPrint(
+        'API response ${response.statusCode}: ${response.body.isEmpty ? "<empty>" : response.body}',
+      );
 
       // Handle response based on status code
       if (response.statusCode >= 200 && response.statusCode < 300) {
