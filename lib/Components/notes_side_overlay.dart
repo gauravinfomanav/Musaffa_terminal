@@ -62,11 +62,10 @@ class _NotesPeekHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<NotesController>();
-    final top = MediaQuery.of(context).size.height * 0.42;
 
     return Positioned(
       left: 0,
-      top: top,
+      bottom: 24,
       child: Obx(() {
         final showBadge = controller.showPeekBadge.value;
 
@@ -85,7 +84,8 @@ class _NotesPeekHandle extends StatelessWidget {
                 border: Border.all(color: HomeUi.iconWellBorder),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDarkMode ? 0.35 : 0.12),
+                    color: Colors.black
+                        .withValues(alpha: isDarkMode ? 0.35 : 0.12),
                     blurRadius: 16,
                     offset: const Offset(4, 0),
                   ),
@@ -202,7 +202,8 @@ class _NotesDrawer extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: HomeUi.elevatedBg(isDarkMode),
                           shape: BoxShape.circle,
-                          border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+                          border:
+                              Border.all(color: HomeUi.borderLight(isDarkMode)),
                         ),
                         child: Icon(
                           Icons.close_rounded,

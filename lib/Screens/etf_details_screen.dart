@@ -8,8 +8,10 @@ import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
+import 'package:musaffa_terminal/Components/research_notes_panel_content.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Controllers/etf_details_controller.dart';
+import 'package:musaffa_terminal/Controllers/research_notes_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/models/etfs_data.dart';
@@ -38,9 +40,11 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   late WatchlistController watchlistController;
   late EtfDetailsController controller;
   late TradingViewController tradingViewController;
+  late ResearchNotesController researchNotesController;
   final GlobalWatchlistService _watchlistService =
       Get.find<GlobalWatchlistService>();
   bool _isInWatchlist = false;
+  bool _isResearchNotesOpen = false;
   StreamSubscription<dynamic>? _watchlistStocksSubscription;
 
   @override
@@ -49,6 +53,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     watchlistController = Get.put(WatchlistController());
     controller = Get.put(EtfDetailsController());
     tradingViewController = TradingViewController();
+    researchNotesController = Get.put(ResearchNotesController());
 
     _watchlistStocksSubscription =
         watchlistController.watchlistStocks.listen((_) {
@@ -59,6 +64,9 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.fetchEtfDetails(widget.ticker.symbol ?? '');
       controller.fetchEtfHoldings(widget.ticker.symbol ?? '');
+      if ((widget.ticker.symbol ?? '').isNotEmpty) {
+        researchNotesController.fetchNotes(widget.ticker.symbol!);
+      }
     });
   }
 
@@ -86,6 +94,20 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
 
   void _showErrorSnackBar(String message) {
     SnackBarUtils.showError(context, message);
+  }
+
+  Future<void> _openResearchNotesPanel() async {
+    final ticker = widget.ticker.symbol ?? '';
+    if (ticker.isNotEmpty) {
+      await researchNotesController.fetchNotes(ticker);
+    }
+    if (!mounted) return;
+    setState(() => _isResearchNotesOpen = true);
+  }
+
+  void _closeResearchNotesPanel() {
+    if (!_isResearchNotesOpen || !mounted) return;
+    setState(() => _isResearchNotesOpen = false);
   }
 
   void _toggleWatchlist() {
@@ -134,6 +156,15 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                         );
                       },
                     )),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Row(
+                    children: [
+                      const Spacer(),
+                      _buildResearchNotesButton(isDarkMode),
+                    ],
+                  ),
+                ),
                 Expanded(
                   child: Obx(() {
                     if (controller.isLoading.value) {
@@ -200,6 +231,31 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 ),
               );
             }),
+            if (_isResearchNotesOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _closeResearchNotesPanel,
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.24),
+                  ),
+                ),
+              ),
+            if (_isResearchNotesOpen)
+              Positioned(
+                top: 112,
+                right: 20,
+                child: _EtfResearchNotesOverlayCard(
+                  isDarkMode: isDarkMode,
+                  title: 'Research Notes',
+                  subtitle: widget.ticker.symbol ?? '',
+                  onClose: _closeResearchNotesPanel,
+                  child: ResearchNotesPanelContent(
+                    ticker: widget.ticker.symbol ?? '',
+                    controller: researchNotesController,
+                    onAddNote: () => _showAddResearchNoteDialog(isDarkMode),
+                  ),
+                ),
+              ),
             // Global FAB Overlay
             const GlobalFABOverlay(),
           ],
@@ -288,6 +344,52 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildResearchNotesButton(bool isDarkMode) {
+    return Obx(() {
+      final hasNotes = researchNotesController.hasNotes;
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          HomeUi.ghostAction(
+            label: 'Research Notes',
+            dark: isDarkMode,
+            icon: Icons.sticky_note_2_outlined,
+            onTap: _openResearchNotesPanel,
+          ),
+          if (hasNotes)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: HomeUi.accent(isDarkMode),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: HomeUi.pageBg(isDarkMode),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    });
+  }
+
+  void _showAddResearchNoteDialog(bool isDarkMode) {
+    _EtfAddResearchNoteDialog.show(
+      context: context,
+      ticker: widget.ticker.symbol ?? '',
+      notesController: researchNotesController,
+      onSaved: () {
+        _showSuccessSnackBar('Note added successfully');
+        setState(() => _isResearchNotesOpen = true);
+      },
     );
   }
 
@@ -1606,9 +1708,7 @@ class _EtfPaginationPageButtonState extends State<_EtfPaginationPageButton> {
             border: Border.all(
               color: selected
                   ? HomeUi.buttonBorder
-                  : (_hover
-                        ? HomeUi.borderStrong(dark)
-                        : Colors.transparent),
+                  : (_hover ? HomeUi.borderStrong(dark) : Colors.transparent),
               width: 0.856,
             ),
           ),
@@ -1620,6 +1720,299 @@ class _EtfPaginationPageButtonState extends State<_EtfPaginationPageButton> {
               color: selected ? Colors.white : HomeUi.title(dark),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EtfResearchNotesOverlayCard extends StatelessWidget {
+  const _EtfResearchNotesOverlayCard({
+    required this.isDarkMode,
+    required this.title,
+    required this.subtitle,
+    required this.onClose,
+    required this.child,
+  });
+
+  final bool isDarkMode;
+  final String title;
+  final String subtitle;
+  final VoidCallback onClose;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 420,
+        height: 560,
+        decoration: BoxDecoration(
+          color: HomeUi.cardBg(isDarkMode),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.38 : 0.12),
+              blurRadius: 28,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDarkMode,
+                      icon: Icons.sticky_note_2_outlined,
+                      title: title,
+                      subtitleText: subtitle.isNotEmpty ? subtitle : null,
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: onClose,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: HomeUi.elevatedBg(isDarkMode),
+                          shape: BoxShape.circle,
+                          border:
+                              Border.all(color: HomeUi.borderLight(isDarkMode)),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: HomeUi.muted(isDarkMode),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: HomeUi.borderLight(isDarkMode)),
+            Expanded(child: child),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EtfAddResearchNoteDialog extends StatefulWidget {
+  const _EtfAddResearchNoteDialog({
+    required this.ticker,
+    required this.notesController,
+    required this.onSaved,
+  });
+
+  final String ticker;
+  final ResearchNotesController notesController;
+  final VoidCallback onSaved;
+
+  static Future<void> show({
+    required BuildContext context,
+    required String ticker,
+    required ResearchNotesController notesController,
+    required VoidCallback onSaved,
+  }) {
+    return showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Add Research Note',
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: _EtfAddResearchNoteDialog(
+              ticker: ticker,
+              notesController: notesController,
+              onSaved: onSaved,
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  State<_EtfAddResearchNoteDialog> createState() =>
+      _EtfAddResearchNoteDialogState();
+}
+
+class _EtfAddResearchNoteDialogState extends State<_EtfAddResearchNoteDialog> {
+  final TextEditingController _noteController = TextEditingController();
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final text = _noteController.text.trim();
+    if (text.isEmpty) {
+      setState(() => _error = 'Please enter a note');
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    final success = await widget.notesController.addNote(widget.ticker, text);
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pop();
+      widget.onSaved();
+    } else {
+      setState(() {
+        _saving = false;
+        _error = widget.notesController.errorMessage.value.isNotEmpty
+            ? widget.notesController.errorMessage.value
+            : 'Failed to add note';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 480),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        decoration: BoxDecoration(
+          color: HomeUi.cardBg(isDark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: Border.all(color: HomeUi.borderLight(isDark)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
+              blurRadius: 40,
+              offset: const Offset(0, 18),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.note_add_outlined,
+                      title: 'Add Research Note',
+                      subtitleText: widget.ticker,
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: _saving ? null : () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: HomeUi.controlHeight,
+                        height: HomeUi.controlHeight,
+                        decoration: BoxDecoration(
+                          color: HomeUi.elevatedBg(isDark),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: HomeUi.borderLight(isDark)),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: HomeUi.muted(isDark),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: FilterTextField(
+                dark: isDark,
+                label: 'Note',
+                controller: _noteController,
+                hintText: 'Thesis, catalysts, risks, follow-ups…',
+                errorText: _error,
+                minLines: 4,
+                maxLines: 6,
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Divider(height: 1, color: HomeUi.borderLight(isDark)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Opacity(
+                      opacity: _saving ? 0.5 : 1,
+                      child: HomeUi.ghostAction(
+                        label: 'Cancel',
+                        dark: isDark,
+                        onTap:
+                            _saving ? () {} : () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Opacity(
+                      opacity: _saving ? 0.7 : 1,
+                      child: HomeUi.primaryAction(
+                        label: _saving ? 'Saving…' : 'Save',
+                        onTap: _saving ? () {} : _save,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

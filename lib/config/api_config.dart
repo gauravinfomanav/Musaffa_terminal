@@ -46,8 +46,6 @@ class ApiConfig {
 
   // ── Infomanav Finnhub proxy ──
 
-  /// Base proxy URL. Query with `api` + params, e.g.
-  /// `?api=stock/profile&symbol=AAPL` or `?api=stock/profile2&symbol=AAPL`.
   static const String infomanavFinnhubProxyUrl =
       'https://beta.infomanav.in/keep/finnhub_api_dev/Typesense/px_master.php';
 

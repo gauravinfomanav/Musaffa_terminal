@@ -36,7 +36,7 @@ class ResearchNotesPanelContent extends StatelessWidget {
 
       if (!controller.hasNotes) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -58,7 +58,7 @@ class ResearchNotesPanelContent extends StatelessWidget {
       return Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Align(
               alignment: Alignment.centerRight,
               child: HomeUi.ghostAction(
