@@ -79,14 +79,15 @@ class _TickerAboutCompanyTabState extends State<TickerAboutCompanyTab> {
             physics: const AlwaysScrollableScrollPhysics(
               parent: ClampingScrollPhysics(),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
             children: [
               if (isLoading)
                 TickerFinnhubSectionCard(
                   isDarkMode: widget.isDarkMode,
+                  padding: const EdgeInsets.all(18),
                   child: const TickerFinnhubLoadingState(
                     isDarkMode: true,
-                    height: 220,
+                    height: 180,
                   ),
                 )
               else if (error != null && profile == null)
@@ -99,7 +100,7 @@ class _TickerAboutCompanyTabState extends State<TickerAboutCompanyTab> {
                         widget.isDarkMode,
                         icon: Icons.apartment_outlined,
                         title: 'About Company',
-                        subtitleText: 'Finnhub company profile',
+                        subtitleText: 'Profile unavailable',
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -122,67 +123,21 @@ class _TickerAboutCompanyTabState extends State<TickerAboutCompanyTab> {
                   ),
                 )
               else ...[
-                _CompanyHeroCard(
+                _CompanyProfileCard(
                   ticker: widget.ticker,
                   profile: profile,
                   companyName: _companyName,
                   isDarkMode: widget.isDarkMode,
                 ),
-                const SizedBox(height: 16),
-                _SnapshotMetricsRow(
+                const SizedBox(height: 12),
+                _CompanyDetailsCard(
                   profile: profile,
+                  fallbackTicker: _symbol,
+                  sectorFallback: widget.ticker.sectorname,
                   isDarkMode: widget.isDarkMode,
-                ),
-                const SizedBox(height: 16),
-                _BusinessDescriptionCard(
-                  description: profile?.description,
-                  isDarkMode: widget.isDarkMode,
-                ),
-                const SizedBox(height: 16),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final wide = constraints.maxWidth >= 920;
-                    final headquarters = _HeadquartersCard(
-                      profile: profile,
-                      isDarkMode: widget.isDarkMode,
-                    );
-                    final identifiers = _IdentifiersCard(
-                      profile: profile,
-                      fallbackTicker: _symbol,
-                      isDarkMode: widget.isDarkMode,
-                    );
-                    final industry = _IndustryCard(
-                      profile: profile,
-                      sectorFallback: widget.ticker.sectorname,
-                      isDarkMode: widget.isDarkMode,
-                    );
-
-                    if (!wide) {
-                      return Column(
-                        children: [
-                          headquarters,
-                          const SizedBox(height: 16),
-                          identifiers,
-                          const SizedBox(height: 16),
-                          industry,
-                        ],
-                      );
-                    }
-
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: headquarters),
-                        const SizedBox(width: 16),
-                        Expanded(child: identifiers),
-                        const SizedBox(width: 16),
-                        Expanded(child: industry),
-                      ],
-                    );
-                  },
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               StockYouTubeVideosSection(
                 controller: widget.youtubeController,
                 isDarkMode: widget.isDarkMode,
@@ -200,8 +155,9 @@ class _TickerAboutCompanyTabState extends State<TickerAboutCompanyTab> {
   }
 }
 
-class _CompanyHeroCard extends StatelessWidget {
-  const _CompanyHeroCard({
+/// One composition: identity + metrics strip + description.
+class _CompanyProfileCard extends StatefulWidget {
+  const _CompanyProfileCard({
     required this.ticker,
     required this.profile,
     required this.companyName,
@@ -214,9 +170,19 @@ class _CompanyHeroCard extends StatelessWidget {
   final bool isDarkMode;
 
   @override
+  State<_CompanyProfileCard> createState() => _CompanyProfileCardState();
+}
+
+class _CompanyProfileCardState extends State<_CompanyProfileCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final symbol = ticker.symbol ?? ticker.ticker ?? profile?.ticker ?? '';
-    final logoUrl = profile?.logo ?? ticker.logo ?? '';
+    final isDark = widget.isDarkMode;
+    final profile = widget.profile;
+    final symbol =
+        widget.ticker.symbol ?? widget.ticker.ticker ?? profile?.ticker ?? '';
+    final logoUrl = profile?.logo ?? widget.ticker.logo ?? '';
     final website = profile?.weburl?.trim();
     final chips = <String>[
       if (profile?.finnhubIndustry?.trim().isNotEmpty == true)
@@ -227,219 +193,227 @@ class _CompanyHeroCard extends StatelessWidget {
         profile!.country!.trim(),
     ];
 
-    return TickerFinnhubSectionCard(
-      isDarkMode: isDarkMode,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: HomeUi.elevatedBg(isDarkMode),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: HomeUi.borderLight(isDarkMode)),
-            ),
-            child: showLogo(
-              symbol,
-              logoUrl,
-              sideWidth: 36,
-              name: symbol,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  companyName,
-                  style: HomeUi.sectionTitle(isDarkMode).copyWith(fontSize: 20),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  [
-                    symbol,
-                    if (profile?.exchange?.trim().isNotEmpty == true)
-                      profile!.exchange!.trim(),
-                  ].join('  ·  '),
-                  style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12),
-                ),
-                if (chips.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: chips
-                        .map(
-                          (chip) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: HomeUi.elevatedBg(isDarkMode),
-                              borderRadius:
-                                  BorderRadius.circular(HomeUi.radiusPill),
-                              border: Border.all(
-                                color: HomeUi.borderLight(isDarkMode),
-                              ),
-                            ),
-                            child: Text(
-                              chip,
-                              style: HomeUi.control(isDarkMode)
-                                  .copyWith(fontSize: 11),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (website?.isNotEmpty == true) ...[
-            const SizedBox(width: 12),
-            HomeUi.ghostAction(
-              label: _displayWebsite(website!),
-              dark: isDarkMode,
-              icon: Icons.open_in_new_rounded,
-              onTap: () => _openUrl(website),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SnapshotMetricsRow extends StatelessWidget {
-  const _SnapshotMetricsRow({
-    required this.profile,
-    required this.isDarkMode,
-  });
-
-  final StockProfileModel? profile;
-  final bool isDarkMode;
-
-  @override
-  Widget build(BuildContext context) {
-    final marketCap = profile?.marketCapitalization;
-    final employees = profile?.employeeTotal;
-    final shares = profile?.shareOutstanding;
-    final ipo = _formatIpo(profile?.ipo);
-    final currency = profile?.currency?.trim();
+    final description = profile?.description?.trim();
+    final hasDescription = description != null && description.isNotEmpty;
+    final longDescription = hasDescription && description.length > 320;
 
     final metrics = <(String, String)>[
       (
         'Market Cap',
-        marketCap != null && marketCap > 0
-            ? Constants.getShortenedMarketCapV2(marketCap * 1000000)
+        profile?.marketCapitalization != null &&
+                profile!.marketCapitalization! > 0
+            ? Constants.getShortenedMarketCapV2(
+                profile.marketCapitalization! * 1000000,
+              )
             : '--',
       ),
       (
         'Employees',
-        employees != null && employees > 0
-            ? _formatEmployees(employees)
+        profile?.employeeTotal != null && profile!.employeeTotal! > 0
+            ? _formatEmployees(profile.employeeTotal!)
             : '--',
       ),
       (
-        'Shares Outstanding',
-        shares != null && shares > 0
-            ? Constants.getShortenedMarketCapV2(shares * 1000000)
+        'Shares Out',
+        profile?.shareOutstanding != null && profile!.shareOutstanding! > 0
+            ? Constants.getShortenedMarketCapV2(
+                    profile.shareOutstanding! * 1000000)
                 .replaceAll('\$', '')
             : '--',
       ),
-      ('IPO Date', ipo ?? '--'),
-      ('Currency', currency?.isNotEmpty == true ? currency! : '--'),
+      ('IPO', _formatIpo(profile?.ipo) ?? '--'),
+      (
+        'Currency',
+        profile?.currency?.trim().isNotEmpty == true
+            ? profile!.currency!.trim()
+            : '--',
+      ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1100
-            ? 5
-            : constraints.maxWidth >= 720
-                ? 3
-                : 2;
-        final gap = 12.0;
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: metrics
-              .map(
-                (metric) => SizedBox(
-                  width: width,
-                  child: HomeUi.detailSummaryMetric(
-                    dark: isDarkMode,
-                    label: metric.$1,
-                    value: metric.$2,
-                  ),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-}
-
-class _BusinessDescriptionCard extends StatefulWidget {
-  const _BusinessDescriptionCard({
-    required this.description,
-    required this.isDarkMode,
-  });
-
-  final String? description;
-  final bool isDarkMode;
-
-  @override
-  State<_BusinessDescriptionCard> createState() =>
-      _BusinessDescriptionCardState();
-}
-
-class _BusinessDescriptionCardState extends State<_BusinessDescriptionCard> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = widget.description?.trim();
-    final hasText = text != null && text.isNotEmpty;
-    final long = hasText && text.length > 420;
-
     return TickerFinnhubSectionCard(
-      isDarkMode: widget.isDarkMode,
+      isDarkMode: isDark,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          HomeUi.tableToolbarHeader(
-            widget.isDarkMode,
-            icon: Icons.menu_book_outlined,
-            title: 'Business Overview',
-            subtitleText: 'Company description from Finnhub',
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: HomeUi.elevatedBg(isDark),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: showLogo(
+                  symbol,
+                  logoUrl,
+                  sideWidth: 30,
+                  name: symbol,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.companyName,
+                      style:
+                          HomeUi.sectionTitle(isDark).copyWith(fontSize: 17),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      [
+                        symbol.toUpperCase(),
+                        if (profile?.exchange?.trim().isNotEmpty == true)
+                          profile!.exchange!.trim(),
+                      ].join('  ·  '),
+                      style: HomeUi.overline(isDark).copyWith(
+                        fontSize: 11,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    if (chips.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: chips
+                            .map(
+                              (chip) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: HomeUi.elevatedBg(isDark),
+                                  borderRadius: BorderRadius.circular(
+                                    HomeUi.radiusPill,
+                                  ),
+                                  border: Border.all(
+                                    color: HomeUi.borderLight(isDark),
+                                  ),
+                                ),
+                                child: Text(
+                                  chip,
+                                  style: HomeUi.control(isDark)
+                                      .copyWith(fontSize: 10.5),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (website?.isNotEmpty == true) ...[
+                const SizedBox(width: 10),
+                HomeUi.ghostAction(
+                  label: _displayWebsite(website!),
+                  dark: isDark,
+                  icon: Icons.open_in_new_rounded,
+                  onTap: () => _openUrl(website),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 14),
-          if (!hasText)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Color.alphaBlend(
+                      HomeUi.accent(true).withValues(alpha: 0.05),
+                      HomeUi.elevatedBg(true),
+                    )
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 640;
+                if (wide) {
+                  return IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        for (int i = 0; i < metrics.length; i++) ...[
+                          if (i > 0)
+                            VerticalDivider(
+                              width: 1,
+                              thickness: 1,
+                              color: HomeUi.borderLight(isDark),
+                            ),
+                          Expanded(
+                            child: _CompactMetricCell(
+                              label: metrics[i].$1,
+                              value: metrics[i].$2,
+                              isDark: isDark,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }
+
+                return Wrap(
+                  children: [
+                    for (int i = 0; i < metrics.length; i++)
+                      SizedBox(
+                        width: (constraints.maxWidth / 2).clamp(120.0, 400.0),
+                        child: _CompactMetricCell(
+                          label: metrics[i].$1,
+                          value: metrics[i].$2,
+                          isDark: isDark,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          if (hasDescription) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  Icons.menu_book_outlined,
+                  size: 15,
+                  color: HomeUi.accent(isDark),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  'Business Overview',
+                  style: HomeUi.cardTitle(isDark).copyWith(fontSize: 13),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(
-              'No company description available for this ticker.',
-              style: HomeUi.subtitle(widget.isDarkMode),
-            )
-          else ...[
-            Text(
-              text,
-              maxLines: !_expanded && long ? 5 : null,
-              overflow: !_expanded && long
+              description,
+              maxLines: !_expanded && longDescription ? 4 : null,
+              overflow: !_expanded && longDescription
                   ? TextOverflow.ellipsis
                   : TextOverflow.visible,
-              style: HomeUi.bodyText(widget.isDarkMode).copyWith(height: 1.6),
+              style: HomeUi.bodyText(isDark).copyWith(
+                fontSize: 13,
+                height: 1.55,
+              ),
             ),
-            if (long) ...[
-              const SizedBox(height: 10),
+            if (longDescription) ...[
+              const SizedBox(height: 8),
               HomeUi.ghostAction(
                 label: _expanded ? 'Show less' : 'Read more',
-                dark: widget.isDarkMode,
+                dark: isDark,
                 icon: _expanded
                     ? Icons.expand_less_rounded
                     : Icons.expand_more_rounded,
@@ -453,17 +427,65 @@ class _BusinessDescriptionCardState extends State<_BusinessDescriptionCard> {
   }
 }
 
-class _HeadquartersCard extends StatelessWidget {
-  const _HeadquartersCard({
+class _CompactMetricCell extends StatelessWidget {
+  const _CompactMetricCell({
+    required this.label,
+    required this.value,
+    required this.isDark,
+  });
+
+  final String label;
+  final String value;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: HomeUi.overline(isDark).copyWith(
+              fontSize: 9.5,
+              letterSpacing: 0.9,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: HomeUi.tableCellEmphasis(isDark).copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One dense details card — HQ / Identifiers / Industry without wasted panel space.
+class _CompanyDetailsCard extends StatelessWidget {
+  const _CompanyDetailsCard({
     required this.profile,
+    required this.fallbackTicker,
+    required this.sectorFallback,
     required this.isDarkMode,
   });
 
   final StockProfileModel? profile;
+  final String fallbackTicker;
+  final String? sectorFallback;
   final bool isDarkMode;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = isDarkMode;
+
     final address = profile?.address?.trim();
     final cityLine = [
       if (profile?.city?.trim().isNotEmpty == true)
@@ -474,86 +496,240 @@ class _HeadquartersCard extends StatelessWidget {
     final phone = _formatPhone(profile?.phone);
     final website = profile?.weburl?.trim();
 
-    final rows = <(String, String)>[
-      if (address?.isNotEmpty == true) ('Address', address!),
-      if (cityLine.isNotEmpty) ('City', cityLine),
+    final hqRows = <(String, String, VoidCallback?)>[
+      if (address?.isNotEmpty == true) ('Address', address!, null),
+      if (cityLine.isNotEmpty) ('City', cityLine, null),
       if (profile?.country?.trim().isNotEmpty == true)
-        ('Country', profile!.country!.trim()),
-      if (phone != null) ('Phone', phone),
-      if (website?.isNotEmpty == true) ('Website', _displayWebsite(website!)),
+        ('Country', profile!.country!.trim(), null),
+      if (phone != null) ('Phone', phone, null),
+      if (website?.isNotEmpty == true)
+        (
+          'Website',
+          _displayWebsite(website!),
+          () => _openUrl(website),
+        ),
     ];
+    if (hqRows.isEmpty) {
+      hqRows.add(('Location', '--', null));
+    }
 
-    return HomeUi.detailPanel(
-      dark: isDarkMode,
-      title: 'Headquarters',
-      rows: rows.isEmpty ? const [('Location', '--')] : rows,
-    );
-  }
-}
-
-class _IdentifiersCard extends StatelessWidget {
-  const _IdentifiersCard({
-    required this.profile,
-    required this.fallbackTicker,
-    required this.isDarkMode,
-  });
-
-  final StockProfileModel? profile;
-  final String fallbackTicker;
-  final bool isDarkMode;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <(String, String)>[
-      ('Ticker', profile?.ticker?.trim().isNotEmpty == true
-          ? profile!.ticker!.trim()
-          : fallbackTicker),
-      if (profile?.isin?.trim().isNotEmpty == true) ('ISIN', profile!.isin!),
-      if (profile?.cusip?.trim().isNotEmpty == true) ('CUSIP', profile!.cusip!),
-      if (profile?.sedol?.trim().isNotEmpty == true) ('SEDOL', profile!.sedol!),
+    final idRows = <(String, String, VoidCallback?)>[
+      (
+        'Ticker',
+        profile?.ticker?.trim().isNotEmpty == true
+            ? profile!.ticker!.trim()
+            : fallbackTicker,
+        null,
+      ),
+      if (profile?.isin?.trim().isNotEmpty == true)
+        ('ISIN', profile!.isin!.trim(), null),
+      if (profile?.cusip?.trim().isNotEmpty == true)
+        ('CUSIP', profile!.cusip!.trim(), null),
+      if (profile?.sedol?.trim().isNotEmpty == true)
+        ('SEDOL', profile!.sedol!.trim(), null),
       if (profile?.exchange?.trim().isNotEmpty == true)
-        ('Exchange', profile!.exchange!),
+        ('Exchange', profile!.exchange!.trim(), null),
     ];
 
-    return HomeUi.detailPanel(
-      dark: isDarkMode,
-      title: 'Identifiers',
-      rows: rows,
+    final industryRows = <(String, String, VoidCallback?)>[
+      if (profile?.finnhubIndustry?.trim().isNotEmpty == true)
+        ('Industry', profile!.finnhubIndustry!.trim(), null)
+      else if (sectorFallback?.trim().isNotEmpty == true)
+        ('Industry', sectorFallback!.trim(), null),
+      if (profile?.naicsSector?.trim().isNotEmpty == true)
+        ('NAICS Sector', profile!.naicsSector!.trim(), null),
+      if (profile?.naicsSubsector?.trim().isNotEmpty == true)
+        ('NAICS Subsector', profile!.naicsSubsector!.trim(), null),
+      if (profile?.naicsNationalIndustry?.trim().isNotEmpty == true)
+        ('National Industry', profile!.naicsNationalIndustry!.trim(), null),
+      if (profile?.naics?.trim().isNotEmpty == true)
+        ('NAICS', profile!.naics!.trim(), null),
+    ];
+    if (industryRows.isEmpty) {
+      industryRows.add(('Industry', '--', null));
+    }
+
+    final sections = <(IconData, String, List<(String, String, VoidCallback?)>)>[
+      (Icons.location_on_outlined, 'Headquarters', hqRows),
+      (Icons.fingerprint_rounded, 'Identifiers', idRows),
+      (Icons.category_outlined, 'Industry', industryRows),
+    ];
+
+    return TickerFinnhubSectionCard(
+      isDarkMode: isDark,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          HomeUi.tableToolbarHeader(
+            isDark,
+            icon: Icons.info_outline_rounded,
+            title: 'Company Details',
+            subtitleText: 'Location, identifiers, and classification',
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 860;
+              if (!wide) {
+                return Column(
+                  children: [
+                    for (int i = 0; i < sections.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      _DetailSection(
+                        icon: sections[i].$1,
+                        title: sections[i].$2,
+                        rows: sections[i].$3,
+                        isDark: isDark,
+                      ),
+                    ],
+                  ],
+                );
+              }
+
+              return IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (int i = 0; i < sections.length; i++) ...[
+                      if (i > 0) ...[
+                        const SizedBox(width: 10),
+                        VerticalDivider(
+                          width: 1,
+                          thickness: 1,
+                          color: HomeUi.borderLight(isDark),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(
+                        child: _DetailSection(
+                          icon: sections[i].$1,
+                          title: sections[i].$2,
+                          rows: sections[i].$3,
+                          isDark: isDark,
+                          flush: true,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _IndustryCard extends StatelessWidget {
-  const _IndustryCard({
-    required this.profile,
-    required this.sectorFallback,
-    required this.isDarkMode,
+class _DetailSection extends StatelessWidget {
+  const _DetailSection({
+    required this.icon,
+    required this.title,
+    required this.rows,
+    required this.isDark,
+    this.flush = false,
   });
 
-  final StockProfileModel? profile;
-  final String? sectorFallback;
-  final bool isDarkMode;
+  final IconData icon;
+  final String title;
+  final List<(String, String, VoidCallback?)> rows;
+  final bool isDark;
+  final bool flush;
 
   @override
   Widget build(BuildContext context) {
-    final rows = <(String, String)>[
-      if (profile?.finnhubIndustry?.trim().isNotEmpty == true)
-        ('Industry', profile!.finnhubIndustry!.trim())
-      else if (sectorFallback?.trim().isNotEmpty == true)
-        ('Industry', sectorFallback!.trim()),
-      if (profile?.naicsSector?.trim().isNotEmpty == true)
-        ('NAICS Sector', profile!.naicsSector!),
-      if (profile?.naicsSubsector?.trim().isNotEmpty == true)
-        ('NAICS Subsector', profile!.naicsSubsector!),
-      if (profile?.naicsNationalIndustry?.trim().isNotEmpty == true)
-        ('National Industry', profile!.naicsNationalIndustry!),
-      if (profile?.naics?.trim().isNotEmpty == true) ('NAICS', profile!.naics!),
-    ];
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: HomeUi.accent(isDark)),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: HomeUi.cardTitle(isDark).copyWith(fontSize: 12.5),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        for (int i = 0; i < rows.length; i++) ...[
+          if (i > 0) const SizedBox(height: 2),
+          _DetailKvRow(
+            label: rows[i].$1,
+            value: rows[i].$2,
+            isDark: isDark,
+            onTap: rows[i].$3,
+          ),
+        ],
+      ],
+    );
 
-    return HomeUi.detailPanel(
-      dark: isDarkMode,
-      title: 'Industry Classification',
-      rows: rows.isEmpty ? const [('Industry', '--')] : rows,
+    if (flush) return content;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: HomeUi.elevatedBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
+      ),
+      child: content,
+    );
+  }
+}
+
+class _DetailKvRow extends StatelessWidget {
+  const _DetailKvRow({
+    required this.label,
+    required this.value,
+    required this.isDark,
+    this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final bool isDark;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 11.5),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                fontSize: 12.5,
+                color: onTap != null
+                    ? HomeUi.accent(isDark)
+                    : HomeUi.title(isDark),
+                fontWeight: onTap != null ? FontWeight.w600 : FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) return row;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(onTap: onTap, child: row),
     );
   }
 }

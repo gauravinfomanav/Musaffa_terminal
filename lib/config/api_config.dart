@@ -8,7 +8,7 @@ class ApiConfig {
   /// Production: `https://terminal.musaffa.us`
   static const String terminalBaseUrl = String.fromEnvironment(
     'TERMINAL_API_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://terminal.musaffa.us',
   );
 
   // ── RisePython data APIs ──

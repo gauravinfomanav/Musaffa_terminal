@@ -1093,6 +1093,95 @@ class HomeUi {
     );
   }
 
+  /// Subtle pill segmented control — selected state uses surface tint, not brand gradient.
+  static Widget segmentedControlLight({
+    required bool dark,
+    required List<String> options,
+    required int selectedIndex,
+    required ValueChanged<int> onChanged,
+    double height = 32,
+  }) {
+    final index = options.isEmpty
+        ? 0
+        : selectedIndex.clamp(0, options.length - 1);
+
+    return Container(
+      height: height,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: elevatedBg(dark),
+        borderRadius: BorderRadius.circular(radiusPill),
+        border: Border.all(color: borderLight(dark)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final count = options.length;
+          final segmentWidth =
+              count > 0 ? constraints.maxWidth / count : constraints.maxWidth;
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                left: index * segmentWidth,
+                top: 0,
+                bottom: 0,
+                width: segmentWidth,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: cardBg(dark),
+                    borderRadius: BorderRadius.circular(radiusPill),
+                    border: Border.all(
+                      color: accent(dark).withValues(alpha: dark ? 0.28 : 0.22),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: dark ? 0.12 : 0.05,
+                        ),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                children: List.generate(count, (i) {
+                  final isSelected = i == index;
+                  return Expanded(
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onChanged(i),
+                        child: Center(
+                          child: Text(
+                            options[i],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: control(dark, active: true).copyWith(
+                              fontSize: 11,
+                              fontWeight:
+                                  isSelected ? FontWeight.w600 : FontWeight.w500,
+                              color: isSelected ? accent(dark) : muted(dark),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   /// Brand-themed allocation progress card for portfolio builder.
   static Widget allocationProgressCard({
     required bool dark,

@@ -16,6 +16,7 @@ class ComplianceReportPeriodSelector extends StatelessWidget {
     required this.onSelectPeriod,
     required this.isDark,
     required this.secondary,
+    this.compact = false,
   });
 
   final List<ComplianceReportPeriod> periods;
@@ -27,6 +28,7 @@ class ComplianceReportPeriodSelector extends StatelessWidget {
   final ValueChanged<ComplianceReportPeriod> onSelectPeriod;
   final bool isDark;
   final Color secondary;
+  final bool compact;
 
   Map<String, List<ComplianceReportPeriod>> get _periodsByYear {
     final Map<String, List<ComplianceReportPeriod>> grouped =
@@ -69,118 +71,243 @@ class ComplianceReportPeriodSelector extends StatelessWidget {
         : grouped[activeYear] ?? const <ComplianceReportPeriod>[];
     final ComplianceReportPeriod? selectedPeriod = _selectedPeriod;
 
-    return ComplianceSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final List<Widget> selectorContent = <Widget>[
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: HomeUi.tableToolbarHeader(
-                      isDark,
-                      icon: Icons.calendar_month_outlined,
-                      title: 'Report Period',
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: HomeUi.positiveSoft(isDark),
-                      borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-                      border: Border.all(
-                        color: HomeUi.positive(isDark).withValues(alpha: 0.28),
-                      ),
-                    ),
-                    child: Text(
-                      '${periods.length} historical reports',
-                      style: HomeUi.control(isDark, active: true).copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: HomeUi.positive(isDark),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Browse current and previous Shariah compliance filings',
-                style: HomeUi.subtitle(isDark).copyWith(fontSize: 12.5),
-              ),
-            ],
+          _PeriodTabChip(
+            label: 'Current Report',
+            selected: !viewingHistorical,
+            isDark: isDark,
+            onTap: onSelectCurrent,
+            compact: compact,
           ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _PeriodChip(
-                label: 'Current Report',
-                selected: !viewingHistorical,
-                isDark: isDark,
-                emphasized: true,
-                onTap: onSelectCurrent,
-              ),
-              ...years.map(
-                (String year) => _PeriodChip(
-                  label: '$year (${grouped[year]?.length ?? 0})',
-                  selected: viewingHistorical && activeYear == year,
-                  isDark: isDark,
-                  onTap: () => onSelectYear(year),
-                ),
-              ),
-            ],
-          ),
-          if (viewingHistorical && quarterOptions.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: quarterOptions
-                  .map(
-                    (ComplianceReportPeriod period) => _PeriodChip(
-                      label: period.shortLabel,
-                      selected: selectedPeriodId == period.id,
-                      isDark: isDark,
-                      compact: true,
-                      onTap: () => onSelectPeriod(period),
-                    ),
-                  )
-                  .toList(),
+          ...years.map(
+            (String year) => _PeriodTabChip(
+              label: '$year (${grouped[year]?.length ?? 0})',
+              selected: viewingHistorical && activeYear == year,
+              isDark: isDark,
+              onTap: () => onSelectYear(year),
+              compact: compact,
             ),
-          ],
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: HomeUi.elevatedBg(isDark),
-              borderRadius: BorderRadius.circular(HomeUi.radiusLg),
-              border: Border.all(color: HomeUi.borderLight(isDark)),
-            ),
-            child: viewingHistorical && selectedPeriod != null
-                ? _SummaryLine(
-                    isDark: isDark,
-                    secondary: secondary,
-                    title: 'Viewing: ${selectedPeriod.label}',
-                    subtitle: _coverageLine(selectedPeriod),
-                    note:
-                        'Historical report — some fields may not be available for this period.',
-                  )
-                : _SummaryLine(
-                    isDark: isDark,
-                    secondary: secondary,
-                    title: 'Viewing: Current Report (latest filing)',
-                    subtitle:
-                        'Switch to a year above to explore previous filings.',
-                  ),
           ),
         ],
       ),
+      if (viewingHistorical && quarterOptions.isNotEmpty) ...[
+        SizedBox(height: compact ? 12 : 14),
+        Text(
+          'Available filings',
+          style: HomeUi.overline(isDark).copyWith(
+            fontSize: 10.5,
+            letterSpacing: 0.9,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: quarterOptions
+              .map(
+                (ComplianceReportPeriod period) => _PeriodTabChip(
+                  label: period.shortLabel,
+                  selected: selectedPeriodId == period.id,
+                  isDark: isDark,
+                  compact: true,
+                  onTap: () => onSelectPeriod(period),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    ];
+
+    return ComplianceSectionCard(
+      fillHeight: compact,
+      padding: EdgeInsets.all(compact ? 14 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    HomeUi.tableToolbarHeader(
+                      isDark,
+                      icon: Icons.calendar_month_outlined,
+                      title: 'Report Period',
+                      subtitleText: compact
+                          ? 'Current and archived filings'
+                          : 'Browse current and previous Shariah compliance filings',
+                    ),
+                    SizedBox(height: compact ? 12 : 14),
+                    LayoutBuilder(
+                      builder:
+                          (BuildContext context, BoxConstraints constraints) {
+                        final bool stackTiles = constraints.maxWidth < 340;
+                        final List<Widget> tiles = <Widget>[
+                          _PeriodInfoTile(
+                            isDark: isDark,
+                            eyebrow: 'Active View',
+                            value: viewingHistorical ? 'Historical' : 'Current',
+                            accent: HomeUi.accent(isDark),
+                            compact: compact,
+                          ),
+                          _PeriodInfoTile(
+                            isDark: isDark,
+                            eyebrow: 'Archive',
+                            value: '${periods.length} reports',
+                            accent: HomeUi.positive(isDark),
+                            compact: compact,
+                          ),
+                        ];
+                        if (stackTiles) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              tiles[0],
+                              const SizedBox(height: 8),
+                              tiles[1],
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: <Widget>[
+                            Expanded(child: tiles[0]),
+                            const SizedBox(width: 8),
+                            Expanded(child: tiles[1]),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              if (!compact) ...[
+                const SizedBox(width: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: HomeUi.positiveSoft(isDark),
+                    borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                    border: Border.all(
+                      color: HomeUi.positive(isDark).withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Text(
+                    '${periods.length} historical reports',
+                    style: HomeUi.control(isDark, active: true).copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: HomeUi.positive(isDark),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: compact ? 12 : 16),
+          if (compact) ...<Widget>[
+            Flexible(
+              fit: FlexFit.loose,
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: selectorContent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _CompactPeriodInsight(
+              isDark: isDark,
+              secondary: secondary,
+              viewingHistorical: viewingHistorical,
+              reportsCount: periods.length,
+            ),
+            const SizedBox(height: 12),
+            _buildPeriodSummaryCard(
+              isDark: isDark,
+              secondary: secondary,
+              viewingHistorical: viewingHistorical,
+              selectedPeriod: selectedPeriod,
+              compact: compact,
+            ),
+            const SizedBox(height: 12),
+            const Spacer(),
+          ] else ...<Widget>[
+            ...selectorContent,
+            SizedBox(height: compact ? 12 : 16),
+            _buildPeriodSummaryCard(
+              isDark: isDark,
+              secondary: secondary,
+              viewingHistorical: viewingHistorical,
+              selectedPeriod: selectedPeriod,
+              compact: compact,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodSummaryCard({
+    required bool isDark,
+    required Color secondary,
+    required bool viewingHistorical,
+    required ComplianceReportPeriod? selectedPeriod,
+    required bool compact,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 12 : 16,
+        vertical: compact ? 12 : 16,
+      ),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Color.alphaBlend(
+                HomeUi.accent(true).withValues(alpha: 0.08),
+                HomeUi.cardBg(true),
+              )
+            : const Color(0xFFFFFBF8),
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+        border: Border.all(
+          color: HomeUi.accent(isDark).withValues(alpha: 0.14),
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.05),
+            blurRadius: compact ? 14 : 22,
+            offset: Offset(0, compact ? 6 : 10),
+          ),
+        ],
+      ),
+      child: viewingHistorical && selectedPeriod != null
+          ? _SummaryLine(
+              isDark: isDark,
+              secondary: secondary,
+              title: 'Viewing: ${selectedPeriod.label}',
+              subtitle: _coverageLine(selectedPeriod),
+              note: compact
+                  ? null
+                  : 'Historical report — some fields may not be available for this period.',
+              compact: compact,
+            )
+          : _SummaryLine(
+              isDark: isDark,
+              secondary: secondary,
+              title: 'Viewing: Current Report (latest filing)',
+              subtitle: compact
+                  ? 'Pick a year above for archives.'
+                  : 'Switch to a year above to explore previous filings.',
+              compact: compact,
+            ),
     );
   }
 
@@ -195,6 +322,84 @@ class ComplianceReportPeriodSelector extends StatelessWidget {
   }
 }
 
+class _CompactPeriodInsight extends StatelessWidget {
+  const _CompactPeriodInsight({
+    required this.isDark,
+    required this.secondary,
+    required this.viewingHistorical,
+    required this.reportsCount,
+  });
+
+  final bool isDark;
+  final Color secondary;
+  final bool viewingHistorical;
+  final int reportsCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Color.alphaBlend(
+                HomeUi.accent(true).withValues(alpha: 0.06),
+                HomeUi.elevatedBg(true),
+              )
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: HomeUi.accent(isDark).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              viewingHistorical
+                  ? Icons.history_toggle_off_rounded
+                  : Icons.auto_awesome_rounded,
+              size: 15,
+              color: HomeUi.accent(isDark),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  viewingHistorical ? 'Archive mode' : 'Quick archive access',
+                  style: HomeUi.control(isDark, active: true).copyWith(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: HomeUi.title(isDark),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  viewingHistorical
+                      ? 'You are exploring past filings from $reportsCount saved reports.'
+                      : 'Switch years anytime to compare this filing with previous reports.',
+                  style: HomeUi.subtitle(isDark).copyWith(
+                    fontSize: 11.5,
+                    color: secondary,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SummaryLine extends StatelessWidget {
   const _SummaryLine({
     required this.isDark,
@@ -202,54 +407,197 @@ class _SummaryLine extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.note,
+    this.compact = false,
   });
+
 
   final bool isDark;
   final Color secondary;
   final String title;
   final String subtitle;
   final String? note;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: HomeUi.control(isDark, active: true).copyWith(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: HomeUi.title(isDark),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
-        ),
-        if (note != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            note!,
-            style: HomeUi.subtitle(isDark).copyWith(
-              fontSize: 11,
-              color: HomeUi.negative(isDark),
+        Container(
+          width: compact ? 32 : 36,
+          height: compact ? 32 : 36,
+          decoration: BoxDecoration(
+            gradient: HomeUi.iconFillGradient,
+            borderRadius: BorderRadius.circular(compact ? 10 : 12),
+            border: Border.all(
+              color: HomeUi.buttonBorder.withValues(alpha: 0.65),
             ),
           ),
-        ],
+          child: Icon(
+            Icons.visibility_rounded,
+            size: compact ? 14 : 16,
+            color: Colors.white,
+          ),
+        ),
+        SizedBox(width: compact ? 10 : 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: HomeUi.control(isDark, active: true).copyWith(
+                  fontSize: compact ? 12.5 : 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: HomeUi.title(isDark),
+                ),
+              ),
+              SizedBox(height: compact ? 4 : 5),
+              Text(
+                subtitle,
+                style: HomeUi.subtitle(isDark).copyWith(
+                  fontSize: compact ? 11.5 : 12.5,
+                  height: 1.4,
+                ),
+              ),
+              if (note != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: HomeUi.negativeSoft(isDark),
+                    borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                    border: Border.all(
+                      color: HomeUi.negative(isDark).withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Text(
+                    note!,
+                    style: HomeUi.subtitle(isDark).copyWith(
+                      fontSize: 11.5,
+                      color: HomeUi.negative(isDark),
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
-class _PeriodChip extends StatelessWidget {
-  const _PeriodChip({
+class _PeriodInfoTile extends StatelessWidget {
+  const _PeriodInfoTile({
+    required this.isDark,
+    required this.eyebrow,
+    required this.value,
+    required this.accent,
+    this.compact = false,
+  });
+
+  final bool isDark;
+  final String eyebrow;
+  final String value;
+  final Color accent;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color surface = isDark
+        ? Color.alphaBlend(accent.withValues(alpha: 0.10), HomeUi.cardBg(true))
+        : Color.alphaBlend(accent.withValues(alpha: 0.08), Colors.white);
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 12 : 14,
+        vertical: compact ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+        border: Border.all(color: accent.withValues(alpha: isDark ? 0.20 : 0.12)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.10 : 0.03),
+            blurRadius: compact ? 10 : 16,
+            offset: Offset(0, compact ? 4 : 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: compact ? 22 : 24,
+                height: compact ? 22 : 24,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  size: compact ? 11 : 12,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  eyebrow,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.overline(isDark).copyWith(
+                    fontSize: 10,
+                    letterSpacing: 0.85,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: compact ? 8 : 10),
+          Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.control(isDark, active: true).copyWith(
+                    fontSize: compact ? 12.5 : 13,
+                    fontWeight: FontWeight.w700,
+                    color: HomeUi.title(isDark),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodTabChip extends StatefulWidget {
+  const _PeriodTabChip({
     required this.label,
     required this.selected,
     required this.isDark,
     required this.onTap,
-    this.emphasized = false,
     this.compact = false,
   });
 
@@ -257,39 +605,79 @@ class _PeriodChip extends StatelessWidget {
   final bool selected;
   final bool isDark;
   final VoidCallback onTap;
-  final bool emphasized;
   final bool compact;
 
   @override
+  State<_PeriodTabChip> createState() => _PeriodTabChipState();
+}
+
+class _PeriodTabChipState extends State<_PeriodTabChip> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-        splashFactory: NoSplash.splashFactory,
-        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+    final bool selected = widget.selected;
+    final bool isDark = widget.isDark;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _hovered ? 1.02 : 1,
+          duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 12 : (emphasized ? 14 : 12),
-            vertical: compact ? 7 : 9,
-          ),
-          decoration: selected
-              ? HomeUi.primaryButton()
-              : BoxDecoration(
-                  color: HomeUi.elevatedBg(isDark),
-                  borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-                  border: Border.all(color: HomeUi.borderLight(isDark)),
-                ),
-          child: Text(
-            label,
-            style: HomeUi.control(isDark, active: true).copyWith(
-              fontSize: compact ? 12 : 13,
-              fontWeight:
-                  selected || emphasized ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? Colors.white : HomeUi.title(isDark),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.compact ? 10 : 12,
+              vertical: widget.compact ? 7 : 8,
+            ),
+            decoration: selected
+                ? BoxDecoration(
+                    color: HomeUi.cardBg(isDark),
+                    borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                    border: Border.all(
+                      color: HomeUi.accent(isDark).withValues(alpha: 0.28),
+                    ),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.10 : 0.04,
+                        ),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  )
+                : BoxDecoration(
+                    color: _hovered
+                        ? Color.alphaBlend(
+                            HomeUi.accent(isDark).withValues(alpha: 0.04),
+                            HomeUi.elevatedBg(isDark),
+                          )
+                        : HomeUi.elevatedBg(isDark),
+                    borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                    border: Border.all(color: HomeUi.borderLight(isDark)),
+                  ),
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              style: HomeUi.control(isDark, active: true).copyWith(
+                fontSize: widget.compact ? 11 : 11.5,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: selected
+                    ? HomeUi.accent(isDark)
+                    : HomeUi.body(isDark),
+              ),
+              child: Text(
+                widget.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ),

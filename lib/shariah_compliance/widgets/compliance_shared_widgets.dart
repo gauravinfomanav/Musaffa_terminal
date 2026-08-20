@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.dart';
@@ -20,41 +20,133 @@ class ComplianceStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final String normalized = label.toUpperCase();
-    final Color bg;
-    final Color fg;
-    if (normalized.contains('COMPLIANT') && !normalized.contains('NON')) {
-      bg = HomeUi.positiveSoft(isDark);
-      fg = HomeUi.positive(isDark);
-    } else if (normalized.contains('FAIL') ||
-        normalized.contains('NON') ||
-        normalized.contains('NOT')) {
-      bg = HomeUi.negativeSoft(isDark);
-      fg = HomeUi.negative(isDark);
-    } else if (normalized.contains('QUESTION')) {
-      bg = isDark ? const Color(0xFF3A2A10) : const Color(0xFFFEF3C7);
-      fg = isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E);
-    } else {
-      bg = HomeUi.elevatedBg(isDark);
-      fg = HomeUi.muted(isDark);
-    }
+    final Color fg = ComplianceFormatters.statusColor(label);
 
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 10,
-        vertical: compact ? 4 : 6,
+        vertical: compact ? 3 : 5,
       ),
       decoration: BoxDecoration(
-        color: bg,
+        color: HomeUi.cardBg(isDark),
         borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        border: Border.all(color: fg.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: fg.withValues(alpha: isDark ? 0.24 : 0.20),
+        ),
       ),
       child: Text(
         ComplianceFormatters.statusLabel(label),
         style: HomeUi.control(isDark, active: true).copyWith(
           fontSize: fontSize ?? (compact ? 11 : 12),
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.15,
           color: fg,
+          height: 1.1,
+        ),
+      ),
+    );
+  }
+}
+
+class ComplianceViewCalculationButton extends StatefulWidget {
+  const ComplianceViewCalculationButton({
+    super.key,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  State<ComplianceViewCalculationButton> createState() =>
+      _ComplianceViewCalculationButtonState();
+}
+
+class _ComplianceViewCalculationButtonState
+    extends State<ComplianceViewCalculationButton> {
+  bool _hover = false;
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accent = HomeUi.accent(widget.isDark);
+    final Color bg = _pressed
+        ? Color.alphaBlend(
+            accent.withValues(alpha: widget.isDark ? 0.14 : 0.10),
+            HomeUi.cardBg(widget.isDark),
+          )
+        : _hover
+            ? Color.alphaBlend(
+                accent.withValues(alpha: widget.isDark ? 0.10 : 0.06),
+                HomeUi.cardBg(widget.isDark),
+              )
+            : HomeUi.cardBg(widget.isDark);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() {
+        _hover = false;
+        _pressed = false;
+      }),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          width: double.infinity,
+          height: 38,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(
+              color: accent.withValues(
+                alpha: _hover || _pressed
+                    ? (widget.isDark ? 0.55 : 0.42)
+                    : (widget.isDark ? 0.34 : 0.26),
+              ),
+              width: 1.15,
+            ),
+            boxShadow: _hover
+                ? <BoxShadow>[
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.14),
+                      blurRadius: 16,
+                      offset: const Offset(0, 5),
+                    ),
+                  ]
+                : HomeUi.cardShadow(widget.isDark),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(Icons.functions_rounded, size: 15, color: accent),
+              const SizedBox(width: 8),
+              Text(
+                'View calculation',
+                style: HomeUi.control(widget.isDark, active: true).copyWith(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: accent,
+                  letterSpacing: 0.15,
+                ),
+              ),
+              const SizedBox(width: 6),
+              AnimatedSlide(
+                duration: const Duration(milliseconds: 160),
+                offset: _hover ? const Offset(0.08, 0) : Offset.zero,
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 14,
+                  color: accent.withValues(alpha: _hover ? 1 : 0.8),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -66,16 +158,19 @@ class ComplianceSectionCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
+    this.fillHeight = false,
   });
 
   final Widget child;
   final EdgeInsets padding;
+  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
+      height: fillHeight ? double.infinity : null,
       padding: padding,
       decoration: HomeUi.cardDecoration(isDark),
       child: child,
@@ -137,12 +232,7 @@ class ComplianceMetricRow extends StatelessWidget {
 }
 
 Color complianceSelectorColor(String selector) {
-  final String s = selector.toUpperCase();
-  if (s.contains('COMPLIANT') && !s.contains('NON')) {
-    return const Color(0xFF16A34A);
-  }
-  if (s.contains('QUESTION')) return const Color(0xFFF59E0B);
-  return const Color(0xFFDC2626);
+  return ComplianceFormatters.statusColor(selector);
 }
 
 String formatLineAmount(
