@@ -129,31 +129,41 @@ class _PremiumMarketLoaderState extends State<PremiumMarketLoader>
           color: dark ? const Color(0xFF0B0E13) : const Color(0xFFFAFAFB),
           child: AnimatedBuilder(
             animation: Listenable.merge([_master, _orbit, _shimmer, _flow]),
-            builder: (context, _) => CustomPaint(
-              painter: _AmbientFinancePainter(
-                dark: dark,
-                ambientFade: _ambientFade.value,
-                flow: _flow.value,
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildLogoRing(dark),
-                    const SizedBox(height: 36),
-                    FadeTransition(
-                      opacity: _textFade,
-                      child: _buildProgressBar(dark),
+            builder: (context, _) {
+              return Column(
+                children: [
+                  const Spacer(flex: 18),
+                  // Loader block — upper area
+                  _buildLogoRing(dark),
+                  const SizedBox(height: 36),
+                  FadeTransition(
+                    opacity: _textFade,
+                    child: _buildProgressBar(dark),
+                  ),
+                  const SizedBox(height: 16),
+                  FadeTransition(
+                    opacity: _textFade,
+                    child: _buildStatusRow(dark),
+                  ),
+                  const SizedBox(height: 15),
+                  // Chart — dedicated lower zone with clear gap
+                  Expanded(
+                    flex: 42,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+                      child: CustomPaint(
+                        painter: _AmbientFinancePainter(
+                          dark: dark,
+                          ambientFade: _ambientFade.value,
+                          flow: _flow.value,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    FadeTransition(
-                      opacity: _textFade,
-                      child: _buildStatusRow(dark),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -311,16 +321,18 @@ class _AmbientFinancePainter extends CustomPainter {
     final range = maxP - minP;
     if (range <= 0) return;
 
-    // Chart area
-    final chartLeft = size.width * 0.12;
-    final chartRight = size.width * 0.88;
-    final chartTop = size.height * 0.52;
-    final chartBottom = size.height * 0.82;
+    // Chart fills its dedicated lower panel (no overlap with loader)
+    final chartLeft = size.width * 0.02;
+    final chartRight = size.width * 0.92;
+    final chartTop = size.height * 0.06;
+    final chartBottom = size.height * 0.78;
     final chartW = chartRight - chartLeft;
     final chartH = chartBottom - chartTop;
+    final priceAreaH = chartH * 0.72;
+    final volAreaH = chartH * 0.22;
 
     double xOf(int i) => chartLeft + (i / (_totalPoints - 1)) * chartW;
-    double yOf(double p) => chartTop + (1 - (p - minP) / range) * chartH;
+    double yOf(double p) => chartTop + (1 - (p - minP) / range) * priceAreaH;
 
     // Points drawn — ambientFade drives full 0→120 sweep
     final drawCount = (ambientFade * _totalPoints).round().clamp(2, _totalPoints);
@@ -334,7 +346,7 @@ class _AmbientFinancePainter extends CustomPainter {
       ..strokeWidth = 0.4;
 
     for (int g = 0; g <= 4; g++) {
-      final gy = chartTop + chartH * g / 4;
+      final gy = chartTop + priceAreaH * g / 4;
       canvas.drawLine(Offset(chartLeft, gy), Offset(chartRight, gy), gridPaint);
 
       // Price label on right
@@ -373,8 +385,8 @@ class _AmbientFinancePainter extends CustomPainter {
 
     // ── Area fill beneath the line
     final areaPath = Path()..addPath(linePath, Offset.zero);
-    areaPath.lineTo(points.last.dx, chartBottom);
-    areaPath.lineTo(points.first.dx, chartBottom);
+    areaPath.lineTo(points.last.dx, chartTop + priceAreaH);
+    areaPath.lineTo(points.first.dx, chartTop + priceAreaH);
     areaPath.close();
 
     canvas.drawPath(
@@ -382,7 +394,7 @@ class _AmbientFinancePainter extends CustomPainter {
       Paint()
         ..shader = ui.Gradient.linear(
           Offset(0, chartTop),
-          Offset(0, chartBottom),
+          Offset(0, chartTop + priceAreaH),
           [
             const Color(0xFFE4681F).withValues(alpha: baseAlpha * 0.15 * ambientFade),
             const Color(0xFFC42329).withValues(alpha: baseAlpha * 0.05 * ambientFade),
@@ -443,7 +455,7 @@ class _AmbientFinancePainter extends CustomPainter {
       // Vertical crosshair line
       canvas.drawLine(
         Offset(cursorX, chartTop),
-        Offset(cursorX, chartBottom),
+        Offset(cursorX, chartTop + priceAreaH),
         Paint()
           ..color = cursorColor.withValues(alpha: 0.08 * ambientFade)
           ..strokeWidth = 0.6,
@@ -502,8 +514,7 @@ class _AmbientFinancePainter extends CustomPainter {
 
     // ── Mini candlesticks at the bottom (volume-style)
     final candleAlpha = ambientFade * (dark ? 0.14 : 0.10);
-    final candleH = chartH * 0.18;
-    final candleTop = chartBottom + 6;
+    final volTop = chartTop + priceAreaH + 8;
     final candleGap = chartW / _totalPoints;
     final candleW = candleGap * 0.5;
 
@@ -513,11 +524,11 @@ class _AmbientFinancePainter extends CustomPainter {
       final bull = i > 0 ? prices[i] >= prices[i - 1] : true;
       final vol = 0.15 + rng.nextDouble() * 0.85;
       final entry = ((drawCount.toDouble() - i) * 0.15).clamp(0.0, 1.0);
-      final h = candleH * vol * entry;
+      final h = volAreaH * vol * entry;
 
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(x - candleW / 2, candleTop + candleH - h, candleW, h),
+          Rect.fromLTWH(x - candleW / 2, volTop + volAreaH - h, candleW, h),
           const Radius.circular(0.5),
         ),
         Paint()
