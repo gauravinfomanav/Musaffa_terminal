@@ -185,10 +185,73 @@ class _WindowsHtmlWebViewState extends State<WindowsHtmlWebView> {
   }
 }
 
+/// Shrinks [logicalSize] to cover a whole number of device pixels.
+///
+/// A WebView whose height lands on a fractional device pixel leaves the last
+/// physical pixel row uncovered by the page, which macOS renders as a dark
+/// hairline. Snapping the layout size removes that sliver at the source.
+///
+/// This always rounds down. Callers sit in height-constrained layouts with no
+/// spare room, so growing the size — even by a fraction of a pixel — would
+/// overflow the parent.
+double snapToDevicePixels(BuildContext context, double logicalSize) {
+  final double ratio = MediaQuery.of(context).devicePixelRatio;
+  if (ratio <= 0 || !logicalSize.isFinite) return logicalSize;
+  return (logicalSize * ratio).floorToDouble() / ratio;
+}
+
+/// Hides the platform-view edge seam that macOS draws under a WKWebView.
+///
+/// macOS composites the WKWebView as a native view rather than into the Flutter
+/// layer. Wherever the page does not paint every device pixel of that view —
+/// typically the bottom or right edge on a fractional-pixel boundary — the
+/// window backing shows through as a ~1px dark line. Growing the WebView past
+/// its layout box and clipping the overflow pushes that edge out of sight.
+///
+/// Note: this cannot be fixed with [WebViewController.setBackgroundColor].
+/// On macOS that call throws, because `webview_flutter_wkwebview` routes it
+/// through `WKWebView.scrollView`, which only exists on iOS.
+class _EdgeSeamGuard extends StatelessWidget {
+  const _EdgeSeamGuard({required this.child, this.backgroundColor});
+
+  final Widget child;
+  final Color? backgroundColor;
+
+  /// One logical pixel covers the seam at every device pixel ratio >= 1.
+  static const double _overscan = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget clipped = LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (!constraints.hasBoundedWidth || !constraints.hasBoundedHeight) {
+          return child;
+        }
+        final double width = constraints.maxWidth + _overscan;
+        final double height = constraints.maxHeight + _overscan;
+        return ClipRect(
+          child: OverflowBox(
+            alignment: Alignment.topLeft,
+            maxWidth: width,
+            maxHeight: height,
+            child: SizedBox(width: width, height: height, child: child),
+          ),
+        );
+      },
+    );
+
+    final Color? background = backgroundColor;
+    if (background == null) return clipped;
+    return ColoredBox(color: background, child: clipped);
+  }
+}
+
 /// Picks the Mac/iOS/Android [WebViewWidget] or Windows WebView2.
 ///
-/// On macOS this is a passthrough to [WebViewWidget] — same controller,
-/// same behavior. Windows never constructs `webview_flutter` controllers.
+/// On macOS the WebView is wrapped in an [_EdgeSeamGuard] to suppress the
+/// native platform-view edge seam. Windows never constructs `webview_flutter`
+/// controllers, and WebView2 has no seam because it honours
+/// [WebviewController.setBackgroundColor].
 class AdaptiveHtmlWebView extends StatelessWidget {
   const AdaptiveHtmlWebView({
     super.key,
@@ -213,13 +276,15 @@ class AdaptiveHtmlWebView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (PlatformCapabilities.isWebViewFlutterSupported &&
         flutterController != null) {
-      if (gestureRecognizers != null) {
-        return WebViewWidget(
-          controller: flutterController!,
-          gestureRecognizers: gestureRecognizers!,
-        );
-      }
-      return WebViewWidget(controller: flutterController!);
+      return _EdgeSeamGuard(
+        backgroundColor: backgroundColor,
+        child: gestureRecognizers != null
+            ? WebViewWidget(
+                controller: flutterController!,
+                gestureRecognizers: gestureRecognizers!,
+              )
+            : WebViewWidget(controller: flutterController!),
+      );
     }
 
     if (PlatformCapabilities.isWindows) {

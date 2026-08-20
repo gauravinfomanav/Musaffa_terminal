@@ -164,6 +164,10 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
             iframe { 
                 background: $widgetBgColor !important; 
+                /* Inline iframes sit on the text baseline, leaving a few dead
+                   pixels under the chart. */
+                display: block !important;
+                vertical-align: bottom !important;
                 border: none !important;
                 border-width: 0 !important;
                 border-style: none !important;
@@ -317,14 +321,21 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
           },
           onNavigationRequest: (NavigationRequest request) {
-            // Allow initial data URL load and TradingView URLs
-            if (request.url.startsWith('data:text/html;base64') ||
-                request.url.startsWith('https://s3.tradingview.com') ||
-                request.url.startsWith('https://www.tradingview.com') ||
-                request.url.startsWith('https://www.tradingview-widget.com')) {
+            // The widget's script and its iframes are sub-frame loads and must
+            // go through. Any other main-frame navigation is a click on the
+            // TradingView logo or a symbol trying to replace this row with
+            // tradingview.com, so it stays blocked. A `target="_blank"` click
+            // is reported as a sub-frame first, then re-issued against the main
+            // frame, where it is caught here.
+            if (!request.isMainFrame) {
               return NavigationDecision.navigate;
             }
-           
+
+            final String url = request.url.toLowerCase();
+            if (url.startsWith('data:') || url == 'about:blank') {
+              return NavigationDecision.navigate;
+            }
+
             return NavigationDecision.prevent;
           },
         ),
@@ -389,9 +400,12 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
   /// Calculates responsive height based on screen size if height is not provided
   double _calculateHeight(BuildContext context) {
     if (widget.height != null) {
-      return widget.height!.clamp(
-        MiniWidgetsRowConstants.minHeight,
-        MiniWidgetsRowConstants.maxHeight,
+      return snapToDevicePixels(
+        context,
+        widget.height!.clamp(
+          MiniWidgetsRowConstants.minHeight,
+          MiniWidgetsRowConstants.maxHeight,
+        ),
       );
     }
     
@@ -422,9 +436,12 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     double calculatedHeight = screenHeight * heightPercentage;
     
     // Clamp to min/max constraints
-    return calculatedHeight.clamp(
-      MiniWidgetsRowConstants.minHeight,
-      MiniWidgetsRowConstants.maxHeight,
+    return snapToDevicePixels(
+      context,
+      calculatedHeight.clamp(
+        MiniWidgetsRowConstants.minHeight,
+        MiniWidgetsRowConstants.maxHeight,
+      ),
     );
   }
 

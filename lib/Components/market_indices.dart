@@ -141,7 +141,9 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
           
             body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-user-select: none; user-select: none; }
             .tradingview-widget-container { height: 100%; width: 100%; overflow: hidden; }
-            iframe { width: 100%; height: 100%; border: 0; }
+            /* display:block keeps the iframe off the text baseline, which
+               otherwise leaves dead pixels under the widget. */
+            iframe { width: 100%; height: 100%; border: 0; display: block; vertical-align: bottom; }
             
         </style>
     </head>
@@ -414,39 +416,21 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                 isForMainFrame: ${error.isForMainFrame}''');
           },
           onNavigationRequest: (NavigationRequest request) {
-            final url = request.url.toLowerCase();
-            
-            // Always allow initial data URL load
-            if (request.url.startsWith('data:text/html;base64')) {
-              return NavigationDecision.navigate;
-            }
-            
-            // Allow ALL subresources (scripts, images, iframes) - needed for widget functionality
-            // Widget interactions happen within iframes, which are subresources
+            // Allow ALL subresources (scripts, images, iframes) - needed for
+            // widget functionality. Widget interactions happen within iframes.
             if (!request.isMainFrame) {
-              return NavigationDecision.navigate; // Allow all subresources
-            }
-            
-            // For main frame navigation, be more selective
-            // Block only symbol detail pages and external TradingView website pages
-            if (url.contains('tradingview.com') || url.contains('tradingview-widget.com')) {
-              // Block symbol detail pages and external website navigation
-              if (url.contains('/symbols/') ||
-                  url.contains('/chart/') ||
-                  url.contains('/screener/') ||
-                  url.contains('/markets/') ||
-                  url.contains('/ideas/') ||
-                  url.contains('/publish/') ||
-                  (url.contains('www.tradingview.com') && !url.contains('s3.tradingview.com'))) {
-                print('Blocking navigation to TradingView website: ${request.url}');
-                return NavigationDecision.prevent;
-              }
-              // Allow widget resource URLs (may be needed for some widget functionality)
               return NavigationDecision.navigate;
             }
-            
-            // Block all other external navigation
-            print('Blocking navigation to ${request.url}');
+
+            final url = request.url.toLowerCase();
+            if (url.startsWith('data:') || url == 'about:blank') {
+              return NavigationDecision.navigate;
+            }
+
+            // Every remaining main-frame load would replace the widget with a
+            // web page — a click on the TradingView logo, a symbol row, or any
+            // external link. Blocking them all makes such clicks a no-op.
+            debugPrint('Blocking main-frame navigation to ${request.url}');
             return NavigationDecision.prevent;
           },
         ),
@@ -535,21 +519,9 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
             border: Border.all(color: HomeUi.borderLight(isDark), width: 1),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                child: Text(
-                  widget.title ?? "Market Indices",
-                  textAlign: TextAlign.start,
-                  style: HomeUi.cardTitle(isDark),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Divider(height: 1, thickness: 1, color: HomeUi.borderLight(isDark)),
-              AnimatedSize(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final Widget chartBody = AnimatedSize(
                 duration: DynamicHeightTradingViewConstants.animationDuration,
                 curve: Curves.easeInOut,
                 child: Builder(
@@ -557,9 +529,14 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                     final bgColor = HomeUi.cardBg(isDark);
 
                     return SizedBox(
-                      height: effectiveHeight.clamp(
-                        widget.minHeight ?? DynamicHeightTradingViewConstants.minHeight,
-                        widget.maxHeight ?? DynamicHeightTradingViewConstants.maxHeight,
+                      height: snapToDevicePixels(
+                        context,
+                        effectiveHeight.clamp(
+                          widget.minHeight ??
+                              DynamicHeightTradingViewConstants.minHeight,
+                          widget.maxHeight ??
+                              DynamicHeightTradingViewConstants.maxHeight,
+                        ),
                       ),
                       width: double.infinity,
                       child: Stack(
@@ -578,8 +555,38 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                     );
                   },
                 ),
-              ),
-            ],
+              );
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                    child: Text(
+                      widget.title ?? "Market Indices",
+                      textAlign: TextAlign.start,
+                      style: HomeUi.cardTitle(isDark),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: HomeUi.borderLight(isDark),
+                  ),
+                  // Callers derive the body height by subtracting an estimated
+                  // `chromeHeight` from the card height, so the request can be a
+                  // fraction of a pixel taller than the space the title and
+                  // divider actually leave. Letting the body shrink into the
+                  // real remainder keeps it from overflowing the card.
+                  if (constraints.hasBoundedHeight)
+                    Flexible(child: chartBody)
+                  else
+                    chartBody,
+                ],
+              );
+            },
           ),
         ),
       ),
