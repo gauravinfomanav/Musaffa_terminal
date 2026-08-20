@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
@@ -64,6 +66,7 @@ class _ShariahComplianceDetailsScreenState
   };
   final Set<String> _expandedRows = <String>{};
   int? _hoveredHistoryRow;
+  final ScrollController _historyScrollController = ScrollController();
 
   @override
   void initState() {
@@ -71,34 +74,64 @@ class _ShariahComplianceDetailsScreenState
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _historyScrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
-    final Future<void> stockFuture =
-        _stockController.fetchStockDetails(widget.tickerSymbol);
-    final results = await Future.wait<dynamic>([
-      _apiService.fetchCompliance(widget.tickerSymbol),
-      _historyService.fetchHistory(widget.tickerSymbol),
-      _historyDetailsService.fetchPeriods(widget.tickerSymbol),
-      stockFuture,
-    ]);
+    _loadStockData();
+
+    try {
+      final results = await Future.wait<dynamic>([
+        _apiService.fetchCompliance(widget.tickerSymbol),
+        _historyService.fetchHistory(widget.tickerSymbol),
+        _historyDetailsService.fetchPeriods(widget.tickerSymbol),
+      ]);
+
+      if (!mounted) return;
+
+      final ShariahComplianceResult apiResult =
+          results[0] as ShariahComplianceResult;
+      final ComplianceReport? currentReport = apiResult.isSuccess
+          ? ComplianceReport.fromJson(apiResult.data!)
+          : null;
+      setState(() {
+        _currentReport = currentReport;
+        _history = results[1] as List<ComplianceHistoryItem>;
+        _historicalPeriods = _dedupeHistoricalPeriods(
+          results[2] as List<ComplianceReportPeriod>,
+          currentReport,
+        );
+        _viewingHistorical = false;
+        _selectedHistoricalYear = null;
+        _selectedHistoricalPeriodId = null;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _currentReport = null;
+        _history = const <ComplianceHistoryItem>[];
+        _historicalPeriods = const <ComplianceReportPeriod>[];
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadStockData() async {
+    try {
+      await _stockController
+          .fetchStockDetails(widget.tickerSymbol)
+          .timeout(const Duration(seconds: 8));
+    } catch (_) {
+      // Leave stock metrics as placeholders when the secondary request stalls.
+    }
 
     if (!mounted) return;
-
-    final ShariahComplianceResult apiResult =
-        results[0] as ShariahComplianceResult;
-    final ComplianceReport? currentReport =
-        apiResult.isSuccess ? ComplianceReport.fromJson(apiResult.data!) : null;
     setState(() {
-      _currentReport = currentReport;
-      _history = results[1] as List<ComplianceHistoryItem>;
-      _historicalPeriods = _dedupeHistoricalPeriods(
-        results[2] as List<ComplianceReportPeriod>,
-        currentReport,
-      );
-      _viewingHistorical = false;
-      _selectedHistoricalYear = null;
-      _selectedHistoricalPeriodId = null;
       _stockData = _stockController.stockData.value;
-      _isLoading = false;
     });
   }
 
@@ -295,68 +328,65 @@ class _ShariahComplianceDetailsScreenState
                 )
               : _currentReport == null
                   ? _buildError(primary, secondary)
-                  : Column(
-                      children: [
-                        _buildTopBar(primary, secondary, isDark),
-                        Expanded(
-                          child: Scrollbar(
-                            thumbVisibility: true,
-                            child: SingleChildScrollView(
-                              physics: const ClampingScrollPhysics(),
-                              padding: HomeUi.pagePadding(
-                                MediaQuery.sizeOf(context).width,
-                              ).copyWith(top: 4),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildStockHeaderRow(isDark),
-                                  if (_historicalPeriods
-                                      .isNotEmpty) ...<Widget>[
-                                    const SizedBox(height: 16),
-                                    ComplianceReportPeriodSelector(
-                                      periods: _historicalPeriods,
-                                      viewingHistorical: _viewingHistorical,
-                                      selectedYear: _selectedHistoricalYear,
-                                      selectedPeriodId:
-                                          _selectedHistoricalPeriodId,
-                                      onSelectCurrent: _selectCurrentReport,
-                                      onSelectYear: _selectHistoricalYear,
-                                      onSelectPeriod: _selectHistoricalPeriod,
-                                      isDark: isDark,
-                                      secondary: secondary,
-                                    ),
-                                  ],
-                                  const SizedBox(height: 16),
-                                  _buildMethodologySection(
-                                    _activeReport!,
-                                    isDark,
-                                    showMsciPanel: _showMsciPanel,
+                  : LayoutBuilder(
+                      builder:
+                          (BuildContext context, BoxConstraints constraints) {
+                        final EdgeInsets pagePadding =
+                            HomeUi.pagePadding(constraints.maxWidth);
+                        return Column(
+                          children: [
+                            _buildTopBar(
+                              primary,
+                              secondary,
+                              isDark,
+                              pagePadding,
+                            ),
+                            Expanded(
+                              child: Scrollbar(
+                                thumbVisibility: true,
+                                child: SingleChildScrollView(
+                                  physics: const ClampingScrollPhysics(),
+                                  padding: pagePadding.copyWith(top: 4),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildStockHeaderRow(isDark),
+                                      const SizedBox(height: 16),
+                                      _buildPeriodAndRevenueRow(
+                                        primary: primary,
+                                        secondary: secondary,
+                                        isDark: isDark,
+                                        maxWidth: constraints.maxWidth -
+                                            pagePadding.horizontal,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      _buildMethodologySection(
+                                        _activeReport!,
+                                        isDark,
+                                        showMsciPanel: _showMsciPanel,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      _buildScreeningSection(
+                                        _activeReport!,
+                                        isDark,
+                                      ),
+                                      if (_history.isNotEmpty) ...<Widget>[
+                                        const SizedBox(height: 16),
+                                        _buildHistorySection(
+                                          _activeReport!,
+                                          secondary,
+                                          isDark,
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  const SizedBox(height: 16),
-                                  _buildScreeningSection(
-                                      _activeReport!, isDark),
-                                  const SizedBox(height: 16),
-                                  _buildRevenueSection(
-                                    _activeReport!,
-                                    primary,
-                                    secondary,
-                                    isDark,
-                                  ),
-                                  // _buildMsciSection(_activeReport!, isDark),
-                                  if (_history.isNotEmpty) ...<Widget>[
-                                    const SizedBox(height: 16),
-                                    _buildHistorySection(
-                                      _activeReport!,
-                                      secondary,
-                                      isDark,
-                                    ),
-                                  ],
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
         ),
       ),
@@ -397,74 +427,25 @@ class _ShariahComplianceDetailsScreenState
   }
 
   Widget _topBarCompliancePill(String status, {double fontSize = 13}) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool compliant = _isCompliantStatus(status);
-    final Color bg =
-        compliant ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-      ),
-      child: Text(
-        ComplianceFormatters.statusLabel(status),
-        style: HomeUi.control(isDark, active: true).copyWith(
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      ),
+    return ComplianceStatusBadge(
+      label: status,
+      fontSize: fontSize,
     );
   }
 
   Widget _historyStatusChip(String status) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool compliant = _isCompliantStatus(status);
-    final Color color =
-        compliant ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        border: Border.all(color: color, width: 1),
-      ),
-      child: Text(
-        ComplianceFormatters.statusLabel(status),
-        style: HomeUi.control(isDark, active: true).copyWith(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          height: 1.1,
-          letterSpacing: 0.2,
-          color: color,
-        ),
-      ),
+    return ComplianceStatusBadge(
+      label: status,
+      compact: true,
+      fontSize: 11,
     );
   }
 
   Widget _inlineComplianceBadge(String status) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool compliant = _isCompliantStatus(status);
-    final Color color =
-        compliant ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: compliant
-            ? HomeUi.positiveSoft(isDark)
-            : HomeUi.negativeSoft(isDark),
-        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Text(
-        ComplianceFormatters.statusLabel(status),
-        style: HomeUi.control(isDark, active: true).copyWith(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
+    return ComplianceStatusBadge(
+      label: status,
+      compact: true,
+      fontSize: 10,
     );
   }
 
@@ -477,16 +458,32 @@ class _ShariahComplianceDetailsScreenState
   String _fmtNum(num? value, {int digits = 2}) =>
       value != null ? value.toStringAsFixed(digits) : '--';
 
-  Widget _buildTopBar(Color primary, Color secondary, bool isDark) {
+  Widget _buildTopBar(
+    Color primary,
+    Color secondary,
+    bool isDark,
+    EdgeInsets pagePadding,
+  ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      padding: EdgeInsets.fromLTRB(
+        pagePadding.left,
+        12,
+        pagePadding.right,
+        8,
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          HomeUi.ghostAction(
-            label: 'Back',
-            dark: isDark,
-            icon: Icons.arrow_back_rounded,
-            onTap: _goBack,
+          SizedBox(
+            height: HomeUi.filterFieldHeight,
+            child: Center(
+              child: HomeUi.ghostAction(
+                label: 'Back',
+                dark: isDark,
+                icon: Icons.arrow_back_rounded,
+                onTap: _goBack,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -499,11 +496,16 @@ class _ShariahComplianceDetailsScreenState
             ),
           ),
           const SizedBox(width: 16),
-          HomeUi.ghostAction(
-            label: 'Exit',
-            dark: isDark,
-            icon: Icons.close_rounded,
-            onTap: _exitScreening,
+          SizedBox(
+            height: HomeUi.filterFieldHeight,
+            child: Center(
+              child: HomeUi.ghostAction(
+                label: 'Exit',
+                dark: isDark,
+                icon: Icons.close_rounded,
+                onTap: _exitScreening,
+              ),
+            ),
           ),
         ],
       ),
@@ -570,17 +572,17 @@ class _ShariahComplianceDetailsScreenState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              flex: 11,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: 36,
+                          height: 36,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: HomeUi.elevatedBg(isDark),
@@ -591,7 +593,7 @@ class _ShariahComplianceDetailsScreenState
                           child: showLogo(
                             ticker,
                             logo,
-                            sideWidth: 28,
+                            sideWidth: 24,
                             name: ticker,
                           ),
                         ),
@@ -723,9 +725,8 @@ class _ShariahComplianceDetailsScreenState
               color: HomeUi.borderLight(isDark),
             ),
             Expanded(
-              flex: 10,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -764,9 +765,8 @@ class _ShariahComplianceDetailsScreenState
               color: HomeUi.borderLight(isDark),
             ),
             Expanded(
-              flex: 10,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -819,10 +819,11 @@ class _ShariahComplianceDetailsScreenState
       {double fontSize = 13}) {
     final bool showPercent = _sectionShowPercent(sectionKey);
     return SizedBox(
-      width: 92,
-      height: HomeUi.filterFieldHeight,
-      child: HomeUi.segmentedControl(
+      width: 76,
+      height: 30,
+      child: HomeUi.segmentedControlLight(
         dark: isDark,
+        height: 30,
         options: const <String>['%', '\$'],
         selectedIndex: showPercent ? 0 : 1,
         onChanged: (int index) =>
@@ -1026,108 +1027,183 @@ class _ShariahComplianceDetailsScreenState
             title: 'Screening Overview',
             subtitleText: 'Our analysis versus MSCI screening',
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _methodologyPanel(
-                  title: 'Our Analysis',
-                  status: report.status,
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final List<Widget> cards = <Widget>[
+                _comparisonStatCard(
                   isDark: isDark,
-                  accent: const Color(0xFF16A34A),
-                  lines: isDark
-                      ? <String>[
-                          'Denominator: Trailing 36M Avg Market Cap',
-                          ComplianceFormatters.compactMoney(
-                            report.trailing36MonAvgCap,
-                            fromOnes: true,
-                          ),
-                          'Halal ${ComplianceFormatters.percent(report.halalPercent)}',
-                          'Not Halal ${ComplianceFormatters.percent(report.notHalalPercent)}',
-                        ]
-                      : null,
-                  structuredLines: isDark
-                      ? null
-                      : <_PanelLine>[
-                          const _PanelLine(
-                            label: 'Denominator',
-                            value: 'Trailing 36M Avg Market Cap',
-                          ),
-                          _PanelLine(
-                            label: 'Market Cap',
-                            value: ComplianceFormatters.compactMoney(
-                              report.trailing36MonAvgCap,
-                              fromOnes: true,
-                            ),
-                          ),
-                          _PanelLine(
-                            label: 'Halal',
-                            value: ComplianceFormatters.percent(
-                                report.halalPercent),
-                            valueColor: const Color(0xFF16A34A),
-                          ),
-                          _PanelLine(
-                            label: 'Not Halal',
-                            value: ComplianceFormatters.percent(
-                                report.notHalalPercent),
-                            valueColor: const Color(0xFFDC2626),
-                          ),
-                        ],
+                  label: 'Frameworks',
+                  value: showMsciPanel ? '2 models' : '1 model',
+                  accent: HomeUi.accent(isDark),
                 ),
-              ),
-              if (showMsciPanel) ...<Widget>[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _methodologyPanel(
-                    title: 'MSCI',
-                    status: report.msciStatus,
+                _comparisonStatCard(
+                  isDark: isDark,
+                  label: 'Our Status',
+                  value: ComplianceFormatters.statusLabel(report.status),
+                  accent: ComplianceFormatters.statusColor(report.status),
+                ),
+                if (showMsciPanel)
+                  _comparisonStatCard(
                     isDark: isDark,
-                    accent: const Color(0xFFDC2626),
-                    lines: isDark
-                        ? <String>[
-                            'Denominator: Total Assets',
-                            ComplianceFormatters.compactMoney(
-                              report.msciTotalAssets,
-                            ),
-                            'IB Securities ${ComplianceFormatters.percent(report.msciSecuritiesRatio)}',
-                            'IB Debt ${ComplianceFormatters.percent(report.msciDebtRatio)}',
-                          ]
-                        : null,
-                    structuredLines: isDark
-                        ? null
-                        : <_PanelLine>[
-                            const _PanelLine(
-                              label: 'Denominator',
-                              value: 'Total Assets',
-                            ),
-                            _PanelLine(
-                              label: 'Total Assets',
-                              value: ComplianceFormatters.compactMoney(
-                                report.msciTotalAssets,
-                              ),
-                            ),
-                            _PanelLine(
-                              label: 'IB Securities',
-                              value: ComplianceFormatters.percent(
-                                  report.msciSecuritiesRatio),
-                              valueColor:
-                                  _isFailStatus(report.msciSecuritiesStatus)
-                                      ? const Color(0xFFDC2626)
-                                      : null,
-                            ),
-                            _PanelLine(
-                              label: 'IB Debt',
-                              value: ComplianceFormatters.percent(
-                                  report.msciDebtRatio),
-                              valueColor: _isFailStatus(report.msciDebtStatus)
-                                  ? const Color(0xFFDC2626)
-                                  : null,
-                            ),
-                          ],
+                    label: 'MSCI Status',
+                    value: ComplianceFormatters.statusLabel(report.msciStatus),
+                    accent: ComplianceFormatters.statusColor(report.msciStatus),
                   ),
+              ];
+              final double available =
+                  constraints.maxWidth.isFinite ? constraints.maxWidth : 900;
+              final double desiredWidth = showMsciPanel
+                  ? ((available - 24) / 3).clamp(170.0, 220.0)
+                  : ((available - 12) / 2).clamp(170.0, 220.0);
+
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: cards
+                      .map(
+                        (Widget card) =>
+                            SizedBox(width: desiredWidth, child: card),
+                      )
+                      .toList(),
                 ),
-              ],
-            ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final double available =
+                  constraints.maxWidth.isFinite ? constraints.maxWidth : 900;
+              final double panelWidth = showMsciPanel
+                  ? ((available - 12) / 2).clamp(260.0, available)
+                  : (available < 560 ? available : 560);
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    SizedBox(
+                      width: panelWidth,
+                      child: _methodologyPanel(
+                        title: 'Our Analysis',
+                        status: report.status,
+                        isDark: isDark,
+                        accent: ComplianceFormatters.halalColor,
+                        tone: HomeUi.positiveSoft(isDark),
+                        denominatorLabel: 'Denominator',
+                        denominatorValue: 'Trailing 36M Avg Market Cap',
+                        metricValue: ComplianceFormatters.compactMoney(
+                          report.trailing36MonAvgCap,
+                          fromOnes: true,
+                        ),
+                        metricLabel: 'Market Cap',
+                        lines: isDark
+                            ? <String>[
+                                'Denominator: Trailing 36M Avg Market Cap',
+                                ComplianceFormatters.compactMoney(
+                                  report.trailing36MonAvgCap,
+                                  fromOnes: true,
+                                ),
+                                'Halal ${ComplianceFormatters.percent(report.halalPercent)}',
+                                'Not Halal ${ComplianceFormatters.percent(report.notHalalPercent)}',
+                              ]
+                            : null,
+                        structuredLines: isDark
+                            ? null
+                            : <_PanelLine>[
+                                const _PanelLine(
+                                  label: 'Denominator',
+                                  value: 'Trailing 36M Avg Market Cap',
+                                ),
+                                _PanelLine(
+                                  label: 'Market Cap',
+                                  value: ComplianceFormatters.compactMoney(
+                                    report.trailing36MonAvgCap,
+                                    fromOnes: true,
+                                  ),
+                                ),
+                                _PanelLine(
+                                  label: 'Halal',
+                                  value: ComplianceFormatters.percent(
+                                      report.halalPercent),
+                                  valueColor: ComplianceFormatters.halalColor,
+                                ),
+                                _PanelLine(
+                                  label: 'Not Halal',
+                                  value: ComplianceFormatters.percent(
+                                      report.notHalalPercent),
+                                  valueColor: ComplianceFormatters.notHalalColor,
+                                ),
+                              ],
+                      ),
+                    ),
+                    if (showMsciPanel)
+                      SizedBox(
+                        width: panelWidth,
+                        child: _methodologyPanel(
+                          title: 'MSCI',
+                          status: report.msciStatus,
+                          isDark: isDark,
+                          accent: ComplianceFormatters.notHalalColor,
+                          tone: HomeUi.negativeSoft(isDark),
+                          denominatorLabel: 'Denominator',
+                          denominatorValue: 'Total Assets',
+                          metricValue: ComplianceFormatters.compactMoney(
+                            report.msciTotalAssets,
+                          ),
+                          metricLabel: 'Total Assets',
+                          lines: isDark
+                              ? <String>[
+                                  'Denominator: Total Assets',
+                                  ComplianceFormatters.compactMoney(
+                                    report.msciTotalAssets,
+                                  ),
+                                  'IB Securities ${ComplianceFormatters.percent(report.msciSecuritiesRatio)}',
+                                  'IB Debt ${ComplianceFormatters.percent(report.msciDebtRatio)}',
+                                ]
+                              : null,
+                          structuredLines: isDark
+                              ? null
+                              : <_PanelLine>[
+                                  const _PanelLine(
+                                    label: 'Denominator',
+                                    value: 'Total Assets',
+                                  ),
+                                  _PanelLine(
+                                    label: 'Total Assets',
+                                    value: ComplianceFormatters.compactMoney(
+                                      report.msciTotalAssets,
+                                    ),
+                                  ),
+                                  _PanelLine(
+                                    label: 'IB Securities',
+                                    value: ComplianceFormatters.percent(
+                                        report.msciSecuritiesRatio),
+                                    valueColor:
+                                        _isFailStatus(report.msciSecuritiesStatus)
+                                            ? ComplianceFormatters.notHalalColor
+                                            : null,
+                                  ),
+                                  _PanelLine(
+                                    label: 'IB Debt',
+                                    value: ComplianceFormatters.percent(
+                                        report.msciDebtRatio),
+                                    valueColor:
+                                        _isFailStatus(report.msciDebtStatus)
+                                            ? ComplianceFormatters.notHalalColor
+                                            : null,
+                                  ),
+                                ],
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1139,6 +1215,11 @@ class _ShariahComplianceDetailsScreenState
     required String status,
     required Color accent,
     required bool isDark,
+    required Color tone,
+    required String denominatorLabel,
+    required String denominatorValue,
+    required String metricLabel,
+    required String metricValue,
     List<String>? lines,
     List<_PanelLine>? structuredLines,
   }) {
@@ -1146,18 +1227,39 @@ class _ShariahComplianceDetailsScreenState
         (lines ?? const <String>[])
             .map((String line) => _PanelLine(label: '', value: line))
             .toList();
+    final Color bgColor = isDark
+        ? Color.alphaBlend(tone.withValues(alpha: 0.12), HomeUi.elevatedBg(true))
+        : Color.alphaBlend(tone.withValues(alpha: 0.55), Colors.white);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      constraints: const BoxConstraints(minWidth: 280),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
+        color: bgColor,
         borderRadius: BorderRadius.circular(HomeUi.radiusLg),
-        border: Border.all(color: HomeUi.borderLight(isDark)),
+        border: Border.all(color: accent.withValues(alpha: isDark ? 0.22 : 0.18)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(
+                color: accent.withValues(alpha: isDark ? 0.14 : 0.10),
+              ),
+            ),
+            child: Row(
             children: [
               Container(
                 width: 3,
@@ -1180,9 +1282,151 @@ class _ShariahComplianceDetailsScreenState
                 fontSize: 12,
               ),
             ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  denominatorLabel,
+                  style: HomeUi.overline(isDark).copyWith(
+                    fontSize: 10,
+                    letterSpacing: 0.85,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  denominatorValue,
+                  style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  metricLabel,
+                  style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  metricValue,
+                  style: HomeUi.cardTitle(isDark).copyWith(
+                    fontSize: 18,
+                    color: HomeUi.title(isDark),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark).withValues(alpha: isDark ? 0.55 : 0.7),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(
+                color: HomeUi.borderLight(isDark).withValues(alpha: 0.7),
+              ),
+            ),
+            child: Column(
+              children: rows.map(_panelDataLine).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _comparisonStatCard({
+    required bool isDark,
+    required String label,
+    required String value,
+    required Color accent,
+  }) {
+    final Color surface = isDark
+        ? Color.alphaBlend(accent.withValues(alpha: 0.10), HomeUi.cardBg(true))
+        : Color.alphaBlend(accent.withValues(alpha: 0.08), Colors.white);
+    return Container(
+      constraints: const BoxConstraints(minWidth: 156),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+        border: Border.all(
+          color: accent.withValues(alpha: isDark ? 0.20 : 0.12),
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.10 : 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.insights_rounded,
+                  size: 12,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: HomeUi.overline(isDark).copyWith(
+                  fontSize: 10,
+                  letterSpacing: 0.85,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
-          ...rows.map(_panelDataLine),
+          Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.control(isDark, active: true).copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: HomeUi.title(isDark),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1236,16 +1480,20 @@ class _ShariahComplianceDetailsScreenState
             title: 'Screening',
             subtitleText: 'Business activity, securities, and debt',
           ),
-          const SizedBox(height: 12),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final double available =
+                  constraints.maxWidth.isFinite ? constraints.maxWidth : 900;
+              final bool useEqualHeightRow = available >= 720;
+
+              final List<Widget> columns = <Widget>[
                 _screeningColumn(
                   title: 'Business Activity',
                   status: report.revenueBreakdownStatus,
                   isDark: isDark,
                   secondary: secondary,
+                  stretchContent: useEqualHeightRow,
                   onViewCalculation: () => _showCalculationDialog(
                     report,
                     _CalculationDialogType.business,
@@ -1253,12 +1501,12 @@ class _ShariahComplianceDetailsScreenState
                   ),
                   child: _buildBusinessScreeningContent(report, isDark),
                 ),
-                const SizedBox(width: 10),
                 _screeningColumn(
                   title: 'IB Securities',
                   status: report.securitiesStatus,
                   isDark: isDark,
                   secondary: secondary,
+                  stretchContent: useEqualHeightRow,
                   toggleSectionKey: 'securities',
                   onViewCalculation: () => _showCalculationDialog(
                     report,
@@ -1267,12 +1515,12 @@ class _ShariahComplianceDetailsScreenState
                   ),
                   child: _buildSecuritiesScreeningContent(report, isDark),
                 ),
-                const SizedBox(width: 10),
                 _screeningColumn(
                   title: 'IB Debt',
                   status: report.debtStatus,
                   isDark: isDark,
                   secondary: secondary,
+                  stretchContent: useEqualHeightRow,
                   toggleSectionKey: 'debt',
                   onViewCalculation: () => _showCalculationDialog(
                     report,
@@ -1281,8 +1529,37 @@ class _ShariahComplianceDetailsScreenState
                   ),
                   child: _buildDebtScreeningContent(report, isDark),
                 ),
-              ],
-            ),
+              ];
+
+              if (useEqualHeightRow) {
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      for (int i = 0; i < columns.length; i++) ...<Widget>[
+                        if (i > 0) const SizedBox(width: 12),
+                        Expanded(child: columns[i]),
+                      ],
+                    ],
+                  ),
+                );
+              }
+
+              final double columnWidth =
+                  ((available - 24) / 3).clamp(220.0, available);
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: columns
+                    .map(
+                      (Widget column) => SizedBox(
+                        width: columnWidth,
+                        child: column,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
         ],
       ),
@@ -1297,19 +1574,53 @@ class _ShariahComplianceDetailsScreenState
     required Widget child,
     String? toggleSectionKey,
     VoidCallback? onViewCalculation,
+    bool stretchContent = false,
   }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: HomeUi.elevatedBg(isDark),
-          borderRadius: BorderRadius.circular(HomeUi.radiusLg),
-          border: Border.all(color: HomeUi.borderLight(isDark)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final Color accent = ComplianceFormatters.statusColor(status);
+    final Color surface = isDark
+        ? Color.alphaBlend(accent.withValues(alpha: 0.08), HomeUi.cardBg(true))
+        : Color.alphaBlend(accent.withValues(alpha: 0.05), Colors.white);
+
+    final Widget contentBox = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: HomeUi.cardBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
+      ),
+      child: child,
+    );
+
+    return Container(
+      height: stretchContent ? double.infinity : null,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+        border: Border.all(color: accent.withValues(alpha: 0.16)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.10 : 0.03),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(
+                color: accent.withValues(alpha: isDark ? 0.14 : 0.10),
+              ),
+            ),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
@@ -1318,44 +1629,40 @@ class _ShariahComplianceDetailsScreenState
                     children: [
                       Text(
                         title,
-                        style: HomeUi.cardTitle(isDark).copyWith(fontSize: 15),
+                        style: HomeUi.cardTitle(isDark).copyWith(fontSize: 14),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       ComplianceStatusBadge(
                         label: status,
                         compact: true,
-                        fontSize: 12,
+                        fontSize: 11.5,
                       ),
                     ],
                   ),
                 ),
                 if (toggleSectionKey != null)
                   _buildPercentCurrencyToggle(
-                      secondary, isDark, toggleSectionKey,
-                      fontSize: 14),
+                    secondary,
+                    isDark,
+                    toggleSectionKey,
+                    fontSize: 14,
+                  ),
               ],
             ),
-            const SizedBox(height: 12),
-            Expanded(child: child),
-            if (onViewCalculation != null) ...[
-              const SizedBox(height: 10),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: onViewCalculation,
-                  child: Text(
-                    'View calculation',
-                    style: HomeUi.control(isDark, active: true).copyWith(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: HomeUi.accent(isDark),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          ),
+          const SizedBox(height: 10),
+          if (stretchContent)
+            Expanded(child: contentBox)
+          else
+            contentBox,
+          if (onViewCalculation != null) ...[
+            const SizedBox(height: 10),
+            ComplianceViewCalculationButton(
+              isDark: isDark,
+              onTap: onViewCalculation,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -1369,27 +1676,68 @@ class _ShariahComplianceDetailsScreenState
             halal: report.halalPercent.toDouble(),
             doubtful: report.questionablePercent.toDouble(),
             notHalal: report.notHalalPercent.toDouble(),
-            halalColor: const Color(0xFF16A34A),
-            doubtfulColor: const Color(0xFFF59E0B),
-            notHalalColor: const Color(0xFFDC2626),
-            size: isDark ? 180 : 190,
-            bottomSpacing: 20,
+            halalColor: ComplianceFormatters.halalColor,
+            doubtfulColor: ComplianceFormatters.doubtfulColor,
+            notHalalColor: ComplianceFormatters.notHalalColor,
+            size: isDark ? 144 : 152,
+            bottomSpacing: 8,
           ),
         ),
         const SizedBox(height: 4),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: HomeUi.positiveSoft(isDark),
+            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+            border: Border.all(
+              color: ComplianceFormatters.halalColor.withValues(alpha: 0.14),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Current ratio',
+                  style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
+                ),
+              ),
+              Text(
+                ComplianceFormatters.percent(report.businessActivityFailPercent),
+                style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                  fontSize: 13,
+                  color: ComplianceFormatters.halalColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
         _legendRow('Halal Sales & Income', report.halalPercent,
-            const Color(0xFF16A34A), isDark),
+            ComplianceFormatters.halalColor, isDark),
         _legendRow('Doubtful Sales & Income', report.questionablePercent,
-            const Color(0xFFF59E0B), isDark),
+            ComplianceFormatters.doubtfulColor, isDark),
         _legendRow('Non Halal Sales & Income', report.notHalalPercent,
-            const Color(0xFFDC2626), isDark),
-        const Spacer(),
-        Text(
-          'Not Halal Business Activity Percentage must not exceed 5% of Total Revenue.',
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 14,
-            color: const Color(0xFF6B7280),
+            ComplianceFormatters.notHalalColor, isDark),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: HomeUi.negativeSoft(isDark),
+            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+            border: Border.all(
+              color: ComplianceFormatters.notHalalColor.withValues(alpha: 0.14),
+            ),
+          ),
+          child: Text(
+            'Not Halal Business Activity Percentage must not exceed 5% of Total Revenue.',
+            style: TextStyle(
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontSize: 12,
+              color:
+                  isDark ? const Color(0xFFFCA5A5) : const Color(0xFF7F1D1D),
+            ),
           ),
         ),
       ],
@@ -1405,8 +1753,8 @@ class _ShariahComplianceDetailsScreenState
           ComplianceGaugeChart(
             value: report.securitiesRatio.toDouble(),
             threshold: 30,
-            passColor: const Color(0xFF16A34A),
-            failColor: const Color(0xFFDC2626),
+            passColor: ComplianceFormatters.halalColor,
+            failColor: ComplianceFormatters.notHalalColor,
             size: 160,
           )
         else
@@ -1423,9 +1771,9 @@ class _ShariahComplianceDetailsScreenState
               fromOnes: true,
             ),
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         if (report.securitiesLongTerm != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           _debtTermBlock(
             'Long-term',
             report.securitiesLongTerm!,
@@ -1454,8 +1802,8 @@ class _ShariahComplianceDetailsScreenState
           ComplianceGaugeChart(
             value: report.debtRatio.toDouble(),
             threshold: 30,
-            passColor: const Color(0xFF16A34A),
-            failColor: const Color(0xFFDC2626),
+            passColor: ComplianceFormatters.halalColor,
+            failColor: ComplianceFormatters.notHalalColor,
             size: 160,
           )
         else
@@ -1471,9 +1819,9 @@ class _ShariahComplianceDetailsScreenState
               fromOnes: true,
             ),
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         if (report.debtLongTerm != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           _debtTermBlock(
             'Long-term',
             report.debtLongTerm!,
@@ -1502,8 +1850,9 @@ class _ShariahComplianceDetailsScreenState
     required String numeratorValue,
     required String denominatorValue,
   }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color statusColor =
-        pass ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+        pass ? ComplianceFormatters.halalColor : ComplianceFormatters.notHalalColor;
     final double clampedValue = value.clamp(0.0, 100.0);
     final double thresholdFactor = (threshold / 100).clamp(0.0, 1.0);
     final double fillFactor = (clampedValue / 100).clamp(0.0, 1.0);
@@ -1513,29 +1862,37 @@ class _ShariahComplianceDetailsScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Text(
-              'Current ratio',
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 14,
-                color: const Color(0xFF6B7280),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: isDark ? 0.12 : 0.08),
+            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+            border: Border.all(color: statusColor.withValues(alpha: 0.18)),
+          ),
+          child: Row(
+            children: [
+              Text(
+                'Current ratio',
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontSize: 13,
+                  color: HomeUi.subtitle(isDark).color,
+                ),
               ),
-            ),
-            const Spacer(),
-            Text(
-              valueText,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: statusColor,
+              const Spacer(),
+              Text(
+                valueText,
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: statusColor,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SizedBox(
           height: 8,
           child: Stack(
@@ -1545,7 +1902,7 @@ class _ShariahComplianceDetailsScreenState
               Container(
                 height: 8,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
+                  color: isDark ? const Color(0xFF24292F) : const Color(0xFFE5E7EB),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -1566,13 +1923,13 @@ class _ShariahComplianceDetailsScreenState
                 child: Container(
                   width: 2,
                   height: 14,
-                  color: const Color(0xFF374151),
+                  color: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF374151),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         SizedBox(
           height: 16,
           child: Stack(
@@ -1585,7 +1942,7 @@ class _ShariahComplianceDetailsScreenState
                   style: TextStyle(
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontSize: 12,
-                    color: const Color(0xFF9CA3AF),
+                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                   ),
                 ),
               ),
@@ -1597,7 +1954,7 @@ class _ShariahComplianceDetailsScreenState
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF374151),
+                    color: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF374151),
                   ),
                 ),
               ),
@@ -1608,21 +1965,21 @@ class _ShariahComplianceDetailsScreenState
                   style: TextStyle(
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontSize: 12,
-                    color: const Color(0xFF9CA3AF),
+                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFF9FAFB),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            color: HomeUi.cardBg(isDark),
+            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+            border: Border.all(color: HomeUi.borderLight(isDark)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1632,10 +1989,10 @@ class _ShariahComplianceDetailsScreenState
                 style: TextStyle(
                   fontFamily: Constants.FONT_DEFAULT_NEW,
                   fontSize: 13,
-                  color: const Color(0xFF6B7280),
+                  color: HomeUi.subtitle(isDark).color,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
                 '$numeratorValue ÷ $denominatorValue = $valueText',
                 style: TextStyle(
@@ -1647,15 +2004,16 @@ class _ShariahComplianceDetailsScreenState
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           pass
               ? 'Pass — ratio is below the ${threshold.toInt()}% Shariah screening limit.'
               : 'Fail — ratio exceeds the ${threshold.toInt()}% Shariah screening limit.',
           style: TextStyle(
             fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 14,
-            color: pass ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: pass ? ComplianceFormatters.halalColor : ComplianceFormatters.notHalalColor,
           ),
         ),
       ],
@@ -1663,47 +2021,32 @@ class _ShariahComplianceDetailsScreenState
   }
 
   Widget _legendRow(String label, num value, Color color, bool isDark) {
-    if (!isDark) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Row(
-          children: [
-            Container(width: 8, height: 8, color: color),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            Text(
-              ComplianceFormatters.percent(value),
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          color: HomeUi.cardBg(isDark),
+          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+          border: Border.all(color: HomeUi.borderLight(isDark)),
+        ),
+        child: Row(
         children: [
-          Container(width: 12, height: 12, color: color),
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               label,
               style: TextStyle(
                 fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1711,11 +2054,12 @@ class _ShariahComplianceDetailsScreenState
             ComplianceFormatters.percent(value),
             style: TextStyle(
               fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -1766,8 +2110,14 @@ class _ShariahComplianceDetailsScreenState
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -1785,38 +2135,48 @@ class _ShariahComplianceDetailsScreenState
                   style: TextStyle(
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 8),
           ...term.items.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 14,
-                        color: const Color(0xFF6B7280),
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: HomeUi.cardBg(isDark),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.name,
+                        style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          fontSize: 14,
+                          color: const Color(0xFF6B7280),
+                        ),
                       ),
                     ),
-                  ),
-                  Text(
-                    showPercent
-                        ? ComplianceFormatters.percent(item.percentage)
-                        : formatLineAmount(item, showPercent: false),
-                    style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                    Text(
+                      showPercent
+                          ? ComplianceFormatters.percent(item.percentage)
+                          : formatLineAmount(item, showPercent: false),
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1828,8 +2188,14 @@ class _ShariahComplianceDetailsScreenState
       children: [
         InkWell(
           onTap: () => _toggleExpanded(key),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -1859,33 +2225,43 @@ class _ShariahComplianceDetailsScreenState
             ),
           ),
         ),
+        const SizedBox(height: 8),
         if (expanded)
           ...term.items.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 14,
-                        color: const Color(0xFF6B7280),
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: HomeUi.cardBg(isDark),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.name,
+                        style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          fontSize: 14,
+                          color: const Color(0xFF6B7280),
+                        ),
                       ),
                     ),
-                  ),
-                  Text(
-                    showPercent
-                        ? ComplianceFormatters.percent(item.percentage)
-                        : formatLineAmount(item, showPercent: false),
-                    style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                    Text(
+                      showPercent
+                          ? ComplianceFormatters.percent(item.percentage)
+                          : formatLineAmount(item, showPercent: false),
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1893,143 +2269,416 @@ class _ShariahComplianceDetailsScreenState
     );
   }
 
-  Widget _buildRevenueSection(
-      ComplianceReport report, Color primary, Color secondary, bool isDark) {
-    final bool showPercent = _sectionShowPercent('revenue');
-    return ComplianceSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeaderWithToggle(
-            'Revenue Breakdown',
-            isDark,
-            secondary,
-            sectionKey: 'revenue',
-            labelFontSize: isDark ? 18 : 16,
-            toggleFontSize: 15,
-          ),
-          SizedBox(height: isDark ? 12 : 8),
-          _revenueGroupHeader(
-              'Halal Revenue',
-              report.halalPercent,
-              const Color(0xFFDCFCE7),
-              const Color(0xFF166534),
-              const Color(0xFF16A34A),
-              isDark),
-          ...report.revenueItems
-              .where((e) => e.selector.toUpperCase().contains('COMPLIANT'))
-              .map((item) =>
-                  _revenueRow(item, primary, secondary, isDark, showPercent)),
-          SizedBox(height: isDark ? 8 : 4),
-          _revenueGroupHeader(
-              'Not Halal Revenue',
-              report.notHalalPercent,
-              const Color(0xFFFEE2E2),
-              const Color(0xFF991B1B),
-              const Color(0xFFDC2626),
-              isDark),
-          ...report.revenueItems
-              .where((e) => !e.selector.toUpperCase().contains('COMPLIANT'))
-              .map((item) =>
-                  _revenueRow(item, primary, secondary, isDark, showPercent)),
-          if (report.interestIncomeItems.isNotEmpty) ...[
-            SizedBox(height: isDark ? 8 : 4),
-            _revenueGroupHeader(
-                'Other Income',
-                report.notHalalPercent,
-                const Color(0xFFFEE2E2),
-                const Color(0xFF991B1B),
-                const Color(0xFFDC2626),
-                isDark),
-            ...report.interestIncomeItems.map((item) =>
-                _revenueRow(item, primary, secondary, isDark, showPercent)),
-          ],
-        ],
-      ),
+  Widget _buildPeriodAndRevenueRow({
+    required Color primary,
+    required Color secondary,
+    required bool isDark,
+    required double maxWidth,
+  }) {
+    final ComplianceReport report = _activeReport!;
+    final bool hasPeriods = _historicalPeriods.isNotEmpty;
+    final Widget revenue = _buildRevenueSection(
+      report,
+      primary,
+      secondary,
+      isDark,
+      compact: hasPeriods && maxWidth >= 980,
     );
-  }
 
-  Widget _revenueGroupHeader(String title, num percent, Color bg, Color fg,
-      Color borderAccent, bool isDark) {
-    if (isDark) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        margin: const EdgeInsets.only(bottom: 6),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Text(title,
-                style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: fg)),
-            const Spacer(),
-            Text(ComplianceFormatters.percent(percent),
-                style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: fg)),
-          ],
-        ),
+    if (!hasPeriods) {
+      return revenue;
+    }
+
+    final Widget period = ComplianceReportPeriodSelector(
+      periods: _historicalPeriods,
+      viewingHistorical: _viewingHistorical,
+      selectedYear: _selectedHistoricalYear,
+      selectedPeriodId: _selectedHistoricalPeriodId,
+      onSelectCurrent: _selectCurrentReport,
+      onSelectYear: _selectHistoricalYear,
+      onSelectPeriod: _selectHistoricalPeriod,
+      isDark: isDark,
+      secondary: secondary,
+      compact: maxWidth >= 980,
+    );
+
+    if (maxWidth < 980) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          period,
+          const SizedBox(height: 16),
+          revenue,
+        ],
       );
     }
 
-    return Container(
-      height: isDark ? null : 30,
-      width: double.infinity,
-      margin: EdgeInsets.only(bottom: isDark ? 6 : 2),
-      padding: EdgeInsets.fromLTRB(12, 0, 12, isDark ? 0 : 0),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: borderAccent, width: 3),
+    final double sharedHeight = maxWidth >= 1240 ? 520 : 480;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          child: SizedBox(
+            height: sharedHeight,
+            child: period,
+          ),
         ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: SizedBox(
+            height: sharedHeight,
+            child: revenue,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRevenueSection(
+    ComplianceReport report,
+    Color primary,
+    Color secondary,
+    bool isDark, {
+    bool compact = false,
+  }) {
+    final bool showPercent = _sectionShowPercent('revenue');
+    final List<ComplianceLineItem> halalItems = report.revenueItems
+        .where((ComplianceLineItem e) =>
+            e.selector.toUpperCase().contains('COMPLIANT') &&
+            !e.selector.toUpperCase().contains('NON'))
+        .toList();
+    final List<ComplianceLineItem> notHalalItems = report.revenueItems
+        .where((ComplianceLineItem e) =>
+            !(e.selector.toUpperCase().contains('COMPLIANT') &&
+                !e.selector.toUpperCase().contains('NON')))
+        .toList();
+
+    final double halalShare = report.halalPercent.toDouble().clamp(0, 100);
+    final double notHalalShare =
+        report.notHalalPercent.toDouble().clamp(0, 100);
+    final double totalShare =
+        (halalShare + notHalalShare) <= 0 ? 1 : (halalShare + notHalalShare);
+
+    final Widget breakdownContent = LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool sideBySide = !compact && constraints.maxWidth >= 560;
+        final Widget halalColumn = _revenueCategoryPanel(
+          title: 'Halal Revenue',
+          percent: report.halalPercent,
+          accent: ComplianceFormatters.halalColor,
+          soft: HomeUi.positiveSoft(isDark),
+          items: halalItems,
+          primary: primary,
+          secondary: secondary,
+          isDark: isDark,
+          showPercent: showPercent,
+          compact: compact,
+        );
+        final Widget notHalalColumn = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _revenueCategoryPanel(
+              title: 'Not Halal Revenue',
+              percent: report.notHalalPercent,
+              accent: ComplianceFormatters.notHalalColor,
+              soft: HomeUi.negativeSoft(isDark),
+              items: notHalalItems,
+              primary: primary,
+              secondary: secondary,
+              isDark: isDark,
+              showPercent: showPercent,
+              compact: compact,
+            ),
+            if (report.interestIncomeItems.isNotEmpty) ...<Widget>[
+              SizedBox(height: compact ? 10 : 12),
+              _revenueCategoryPanel(
+                title: 'Other Income',
+                percent: report.interestIncomeItems.fold<num>(
+                  0,
+                  (num sum, ComplianceLineItem item) => sum + item.percentage,
+                ),
+                accent: ComplianceFormatters.doubtfulColor,
+                soft: isDark
+                    ? const Color(0xFF3A2A10)
+                    : const Color(0xFFFFF7ED),
+                items: report.interestIncomeItems,
+                primary: primary,
+                secondary: secondary,
+                isDark: isDark,
+                showPercent: showPercent,
+                compact: compact,
+              ),
+            ],
+          ],
+        );
+
+        if (!sideBySide) {
+          return Column(
+            children: <Widget>[
+              halalColumn,
+              SizedBox(height: compact ? 10 : 12),
+              notHalalColumn,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: halalColumn),
+            const SizedBox(width: 14),
+            Expanded(child: notHalalColumn),
+          ],
+        );
+      },
+    );
+
+    return ComplianceSectionCard(
+      fillHeight: compact,
+      padding: EdgeInsets.fromLTRB(
+        compact ? 14 : 16,
+        compact ? 14 : 16,
+        compact ? 14 : 16,
+        compact ? 12 : 16,
       ),
-      alignment: Alignment.centerLeft,
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: HomeUi.tableToolbarHeader(
+                  isDark,
+                  icon: Icons.pie_chart_outline_rounded,
+                  title: 'Revenue Breakdown',
+                  subtitleText: compact
+                      ? 'Halal vs non-compliant mix'
+                      : 'Product-level Shariah revenue mix',
+                ),
+              ),
+              const SizedBox(width: 10),
+              _buildPercentCurrencyToggle(
+                secondary,
+                isDark,
+                'revenue',
+                fontSize: 13,
+              ),
+            ],
+          ),
+          SizedBox(height: compact ? 12 : 14),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              compact ? 12 : 14,
+              compact ? 10 : 12,
+              compact ? 12 : 14,
+              compact ? 10 : 12,
+            ),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Color.alphaBlend(
+                      HomeUi.accent(true).withValues(alpha: 0.06),
+                      HomeUi.elevatedBg(true),
+                    )
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
+            child: Column(
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _revenueMixStat(
+                        isDark: isDark,
+                        label: 'Halal',
+                        value: ComplianceFormatters.percent(report.halalPercent),
+                        color: ComplianceFormatters.halalColor,
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 28,
+                      margin: const EdgeInsets.symmetric(horizontal: 10),
+                      color: HomeUi.borderLight(isDark),
+                    ),
+                    Expanded(
+                      child: _revenueMixStat(
+                        isDark: isDark,
+                        label: 'Not Halal',
+                        value: ComplianceFormatters.percent(
+                            report.notHalalPercent),
+                        color: ComplianceFormatters.notHalalColor,
+                        alignEnd: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: SizedBox(
+                    height: 8,
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          flex: (halalShare / totalShare * 1000).round().clamp(
+                                1,
+                                1000,
+                              ),
+                          child: ColoredBox(color: ComplianceFormatters.halalColor),
+                        ),
+                        Expanded(
+                          flex: (notHalalShare / totalShare * 1000)
+                              .round()
+                              .clamp(1, 1000),
+                          child: ColoredBox(color: ComplianceFormatters.notHalalColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const Spacer(),
-          Text(
-            ComplianceFormatters.percent(percent),
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          SizedBox(height: compact ? 12 : 14),
+          if (compact)
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: breakdownContent,
+              ),
+            )
+          else
+            breakdownContent,
         ],
       ),
     );
   }
 
-  Widget _statusTextBadge(String selector) {
-    final String normalized = selector.toUpperCase();
-    Color color;
-    if (normalized.contains('COMPLIANT') && !normalized.contains('NON')) {
-      color = const Color(0xFF16A34A);
-    } else {
-      color = const Color(0xFFDC2626);
-    }
-    return Text(
-      ComplianceFormatters.statusLabel(selector),
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: color,
+  Widget _revenueMixStat({
+    required bool isDark,
+    required String label,
+    required String value,
+    required Color color,
+    bool alignEnd = false,
+  }) {
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          label,
+          style: HomeUi.overline(isDark).copyWith(
+            fontSize: 10,
+            letterSpacing: 0.8,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: HomeUi.control(isDark, active: true).copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: HomeUi.title(isDark),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _revenueCategoryPanel({
+    required String title,
+    required num percent,
+    required Color accent,
+    required Color soft,
+    required List<ComplianceLineItem> items,
+    required Color primary,
+    required Color secondary,
+    required bool isDark,
+    required bool showPercent,
+    required bool compact,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: soft,
+        borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Container(
+            padding: EdgeInsets.fromLTRB(
+              compact ? 12 : 14,
+              compact ? 10 : 12,
+              compact ? 12 : 14,
+              compact ? 10 : 12,
+            ),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    title,
+                    style: HomeUi.control(isDark, active: true).copyWith(
+                      fontSize: compact ? 13 : 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: HomeUi.title(isDark),
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: HomeUi.cardBg(isDark),
+                    borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                    border: Border.all(color: accent.withValues(alpha: 0.22)),
+                  ),
+                  child: Text(
+                    ComplianceFormatters.percent(percent),
+                    style: HomeUi.control(isDark, active: true).copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (items.isEmpty)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 12 : 14,
+                0,
+                compact ? 12 : 14,
+                compact ? 12 : 14,
+              ),
+              child: Text(
+                'No line items',
+                style: HomeUi.subtitle(isDark).copyWith(fontSize: 12.5),
+              ),
+            )
+          else
+            ...items.asMap().entries.map(
+              (MapEntry<int, ComplianceLineItem> entry) {
+                final bool isLast = entry.key == items.length - 1;
+                return _revenueRow(
+                  entry.value,
+                  primary,
+                  secondary,
+                  isDark,
+                  showPercent,
+                  compact: compact,
+                  showDivider: !isLast,
+                );
+              },
+            ),
+        ],
       ),
     );
   }
@@ -2038,115 +2687,135 @@ class _ShariahComplianceDetailsScreenState
     return (item.comment?.isNotEmpty ?? false) || item.items.isNotEmpty;
   }
 
-  Widget _revenueRow(ComplianceLineItem item, Color primary, Color secondary,
-      bool isDark, bool showPercent) {
+  Widget _revenueRow(
+    ComplianceLineItem item,
+    Color primary,
+    Color secondary,
+    bool isDark,
+    bool showPercent, {
+    bool compact = false,
+    bool showDivider = true,
+  }) {
     final String key = '${item.id}-${item.name}';
     final bool expanded = _expandedRows.contains(key);
     final bool canExpand = _revenueRowCanExpand(item);
+
     return Column(
-      children: [
-        InkWell(
-          onTap: canExpand ? () => _toggleExpanded(key) : null,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: isDark ? 10 : 0,
-              horizontal: isDark ? 4 : 0,
-            ),
-            child: SizedBox(
-              height: isDark ? null : 34,
+      children: <Widget>[
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: canExpand ? () => _toggleExpanded(key) : null,
+            hoverColor: HomeUi.accent(isDark).withValues(alpha: 0.04),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 12 : 14,
+                compact ? 9 : 10,
+                compact ? 10 : 12,
+                compact ? 9 : 10,
+              ),
               child: Row(
-                children: [
+                children: <Widget>[
                   Expanded(
-                    flex: 3,
                     child: Text(
                       item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 15,
+                        fontSize: compact ? 13 : 14,
+                        fontWeight: FontWeight.w500,
                         color: primary,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: isDark ? 2 : 1,
-                    child: Text(
-                      showPercent
-                          ? ComplianceFormatters.percent(item.percentage)
-                          : formatLineAmount(item, showPercent: false),
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 15,
-                        fontWeight: isDark ? FontWeight.w400 : FontWeight.w600,
+                        height: 1.25,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  isDark
-                      ? ComplianceStatusBadge(
-                          label: item.selector,
-                          compact: true,
-                          fontSize: 13,
-                        )
-                      : _statusTextBadge(item.selector),
-                  if (canExpand)
+                  Text(
+                    showPercent
+                        ? ComplianceFormatters.percent(item.percentage)
+                        : formatLineAmount(item, showPercent: false),
+                    style: TextStyle(
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      fontSize: compact ? 13 : 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: HomeUi.title(isDark),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ComplianceStatusBadge(
+                    label: item.selector,
+                    compact: true,
+                    fontSize: compact ? 11 : 11.5,
+                  ),
+                  if (canExpand) ...<Widget>[
+                    const SizedBox(width: 2),
                     Icon(
-                      isDark
-                          ? (expanded ? Icons.expand_less : Icons.expand_more)
-                          : Icons.chevron_right,
-                      size: isDark ? 18 : 16,
+                      expanded
+                          ? Icons.expand_less_rounded
+                          : Icons.chevron_right_rounded,
+                      size: 18,
                       color: secondary,
                     ),
+                  ],
                 ],
               ),
             ),
           ),
         ),
-        if (expanded && canExpand) ...[
+        if (expanded && canExpand) ...<Widget>[
           if (item.comment?.isNotEmpty ?? false)
-            isDark
-                ? Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 12 : 14,
+                0,
+                compact ? 12 : 14,
+                8,
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: HomeUi.cardBg(isDark),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: Text(
+                  item.comment!,
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 12.5,
+                    height: 1.4,
+                    color: secondary,
+                  ),
+                ),
+              ),
+            ),
+          ...item.items.map(
+            (ComplianceLineItem nested) => Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 20 : 24,
+                0,
+                compact ? 12 : 14,
+                8,
+              ),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    width: 5,
+                    height: 5,
+                    margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF9FAFB),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      item.comment!,
-                      style: TextStyle(
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          fontSize: 14,
-                          color: secondary),
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 0, 6),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        item.comment!,
-                        style: TextStyle(
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                          color: const Color(0xFF6B7280),
-                        ),
-                      ),
+                      color: secondary.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
                     ),
                   ),
-          ...item.items.map(
-            (nested) => Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 0, 6),
-              child: Row(
-                children: [
                   Expanded(
                     child: Text(
                       nested.name,
                       style: TextStyle(
                         fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontSize: 14,
+                        fontSize: 12.5,
                         color: secondary,
                       ),
                     ),
@@ -2157,7 +2826,7 @@ class _ShariahComplianceDetailsScreenState
                         : formatLineAmount(nested, showPercent: false),
                     style: TextStyle(
                       fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: 14,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -2166,23 +2835,26 @@ class _ShariahComplianceDetailsScreenState
             ),
           ),
         ],
-        Divider(
-          height: 1,
-          color: isDark ? null : const Color(0xFFF3F4F6),
-        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            indent: compact ? 12 : 14,
+            endIndent: compact ? 12 : 14,
+            color: HomeUi.borderLight(isDark).withValues(alpha: 0.85),
+          ),
       ],
     );
   }
 
   Widget _statusTextOnly(String status) {
-    final bool pass = !_isFailStatus(status);
     return Text(
       ComplianceFormatters.statusLabel(status),
       style: TextStyle(
         fontFamily: Constants.FONT_DEFAULT_NEW,
         fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: pass ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+        fontWeight: ComplianceFormatters.statusFontWeight,
+        color: ComplianceFormatters.statusColor(status),
       ),
     );
   }
@@ -2327,9 +2999,16 @@ class _ShariahComplianceDetailsScreenState
               isDark,
               icon: Icons.history_rounded,
               title: 'Historical Reports',
+              subtitleText: 'Past compliance filings for this ticker',
             ),
           ),
-          _buildHistoryTable(isDark: isDark),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: _buildHistoryTable(isDark: isDark),
+            ),
+          ),
         ],
       ),
     );
@@ -2339,37 +3018,37 @@ class _ShariahComplianceDetailsScreenState
     return <_HistoryTableColumn>[
       _HistoryTableColumn(
         label: 'Report Date',
-        flex: 12,
+        width: 128,
         value: ComplianceHistoryFormatters.reportDate,
       ),
       _HistoryTableColumn(
         label: 'Fiscal Quarter',
-        flex: 14,
+        width: 158,
         value: ComplianceHistoryFormatters.fiscalQuarter,
       ),
       _HistoryTableColumn(
         label: 'Report Period',
-        flex: 11,
+        width: 118,
         value: ComplianceHistoryFormatters.reportPeriod,
       ),
       _HistoryTableColumn(
         label: 'Coverage From',
-        flex: 12,
+        width: 128,
         value: ComplianceHistoryFormatters.coverageFrom,
       ),
       _HistoryTableColumn(
         label: 'Coverage To',
-        flex: 12,
+        width: 128,
         value: ComplianceHistoryFormatters.coverageTo,
       ),
       _HistoryTableColumn(
         label: 'Ticker',
-        flex: 8,
+        width: 88,
         value: ComplianceHistoryFormatters.ticker,
       ),
       _HistoryTableColumn(
         label: 'Not Halal',
-        flex: 11,
+        width: 118,
         value: ComplianceHistoryFormatters.notHalalAmount,
         tone: _HistoryValueTone.negative,
         highlightWhen: (ComplianceHistoryItem item) => item.notHalalAmount > 0,
@@ -2377,7 +3056,7 @@ class _ShariahComplianceDetailsScreenState
       ),
       _HistoryTableColumn(
         label: 'Doubtful',
-        flex: 11,
+        width: 118,
         value: ComplianceHistoryFormatters.doubtfulAmount,
         tone: _HistoryValueTone.warning,
         highlightWhen: (ComplianceHistoryItem item) => item.doubtfulAmount > 0,
@@ -2385,26 +3064,47 @@ class _ShariahComplianceDetailsScreenState
       ),
       _HistoryTableColumn(
         label: 'Shares O/S',
-        flex: 11,
+        width: 126,
         value: ComplianceHistoryFormatters.sharesOutstanding,
         align: TextAlign.right,
       ),
       _HistoryTableColumn(
         label: 'Currency',
-        flex: 8,
+        width: 96,
         value: ComplianceHistoryFormatters.currency,
       ),
       _HistoryTableColumn(
         label: 'Created',
-        flex: 12,
+        width: 128,
         value: ComplianceHistoryFormatters.createdAt,
       ),
       _HistoryTableColumn(
         label: 'Status',
-        flex: 12,
+        width: 118,
         isStatus: true,
       ),
     ];
+  }
+
+  List<double> _historyColumnWidths(
+    List<_HistoryTableColumn> columns,
+    double targetWidth,
+  ) {
+    final double minTableWidth = columns.fold<double>(
+      0,
+      (double sum, _HistoryTableColumn column) => sum + column.width,
+    );
+    if (!targetWidth.isFinite || targetWidth <= minTableWidth) {
+      return columns.map((_HistoryTableColumn c) => c.width).toList();
+    }
+
+    final double extra = targetWidth - minTableWidth;
+    return columns
+        .map(
+          (_HistoryTableColumn column) =>
+              column.width + extra * (column.width / minTableWidth),
+        )
+        .toList();
   }
 
   Widget _buildHistoryTable({
@@ -2413,102 +3113,145 @@ class _ShariahComplianceDetailsScreenState
     final List<_HistoryTableColumn> columns = _historyTableColumns();
     final int lastIndex = columns.length - 1;
     final Color warning =
-        isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+        isDark ? const Color(0xFFFBBF24) : ComplianceFormatters.doubtfulColor;
 
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: HomeUi.tableHeaderBg(isDark),
-            border: Border(
-              top: BorderSide(color: HomeUi.borderLight(isDark)),
-              bottom: BorderSide(color: HomeUi.borderLight(isDark)),
-            ),
-          ),
-          child: Row(
-            children: [
-              for (int i = 0; i < columns.length; i++)
-                Expanded(
-                  flex: columns[i].flex,
-                  child: _historyHeaderCell(
-                    columns[i].label,
-                    isDark: isDark,
-                    padding: _historyCellPadding(i, lastIndex),
-                    align: columns[i].align,
-                  ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double minTableWidth = columns.fold<double>(
+          0,
+          (double sum, _HistoryTableColumn column) => sum + column.width,
+        );
+        final double availableWidth = constraints.maxWidth;
+        final double tableWidth = availableWidth.isFinite
+            ? max(availableWidth, minTableWidth)
+            : minTableWidth;
+        final List<double> columnWidths =
+            _historyColumnWidths(columns, tableWidth);
+
+        Widget tableContent = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Container(
+              decoration: BoxDecoration(
+                color: HomeUi.tableHeaderBg(isDark),
+                border: Border(
+                  top: BorderSide(color: HomeUi.borderLight(isDark)),
+                  bottom: BorderSide(color: HomeUi.borderLight(isDark)),
                 ),
-            ],
-          ),
-        ),
-        ..._history
-            .asMap()
-            .entries
-            .map((MapEntry<int, ComplianceHistoryItem> e) {
-          final int index = e.key;
-          final ComplianceHistoryItem item = e.value;
-          final bool lastRow = index == _history.length - 1;
-
-          return MouseRegion(
-            onEnter: (_) => setState(() => _hoveredHistoryRow = index),
-            onExit: (_) {
-              if (_hoveredHistoryRow == index) {
-                setState(() => _hoveredHistoryRow = null);
-              }
-            },
-            child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: _hoveredHistoryRow == index
-                  ? HomeUi.tableRowHover(isDark)
-                  : index.isEven
-                      ? HomeUi.tableRowEven(isDark)
-                      : HomeUi.tableRowOdd(isDark),
-              border: lastRow
-                  ? null
-                  : Border(
-                      bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+              ),
+              child: Row(
+                children: <Widget>[
+                  for (int i = 0; i < columns.length; i++)
+                    SizedBox(
+                      width: columnWidths[i],
+                      child: _historyHeaderCell(
+                        columns[i].label,
+                        isDark: isDark,
+                        padding: _historyCellPadding(i, lastIndex),
+                        align: columns[i].align,
+                      ),
                     ),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                for (int i = 0; i < columns.length; i++)
-                  Expanded(
-                    flex: columns[i].flex,
-                    child: columns[i].isStatus
-                        ? Padding(
-                            padding: _historyCellPadding(i, lastIndex),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: _historyStatusChip(item.complianceStatus),
+            ..._history
+                .asMap()
+                .entries
+                .map((MapEntry<int, ComplianceHistoryItem> e) {
+              final int index = e.key;
+              final ComplianceHistoryItem item = e.value;
+              final bool lastRow = index == _history.length - 1;
+
+              return MouseRegion(
+                onEnter: (_) => setState(() => _hoveredHistoryRow = index),
+                onExit: (_) {
+                  if (_hoveredHistoryRow == index) {
+                    setState(() => _hoveredHistoryRow = null);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: _hoveredHistoryRow == index
+                        ? HomeUi.tableRowHover(isDark)
+                        : index.isEven
+                            ? HomeUi.tableRowEven(isDark)
+                            : HomeUi.tableRowOdd(isDark),
+                    border: lastRow
+                        ? null
+                        : Border(
+                            bottom: BorderSide(
+                              color: HomeUi.borderLight(isDark),
                             ),
-                          )
-                        : _historyDataCell(
-                            columns[i].value!(item),
-                            isDark: isDark,
-                            padding: _historyCellPadding(i, lastIndex),
-                            color: _historyValueColor(
-                              columns[i],
-                              item,
-                              isDark,
-                              warning,
-                            ),
-                            align: columns[i].align,
                           ),
                   ),
-              ],
+                  child: Row(
+                    children: <Widget>[
+                      for (int i = 0; i < columns.length; i++)
+                        SizedBox(
+                          width: columnWidths[i],
+                          child: columns[i].isStatus
+                              ? Padding(
+                                  padding: _historyCellPadding(i, lastIndex),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: _historyStatusChip(
+                                      item.complianceStatus,
+                                    ),
+                                  ),
+                                )
+                              : _historyDataCell(
+                                  columns[i].value!(item),
+                                  isDark: isDark,
+                                  padding: _historyCellPadding(i, lastIndex),
+                                  color: _historyValueColor(
+                                    columns[i],
+                                    item,
+                                    isDark,
+                                    warning,
+                                  ),
+                                  align: columns[i].align,
+                                ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        );
+
+        final Widget table = SizedBox(
+          width: tableWidth,
+          child: tableContent,
+        );
+
+        if (tableWidth > availableWidth) {
+          return Scrollbar(
+            controller: _historyScrollController,
+            thumbVisibility: true,
+            trackVisibility: true,
+            thickness: 6,
+            radius: const Radius.circular(999),
+            child: SingleChildScrollView(
+              controller: _historyScrollController,
+              scrollDirection: Axis.horizontal,
+              child: table,
             ),
-          ),
           );
-        }),
-      ],
+        }
+
+        return table;
+      },
     );
   }
 
   EdgeInsets _historyCellPadding(int index, int lastIndex) {
     return EdgeInsets.fromLTRB(
-      index == 0 ? 16 : 10,
+      index == 0 ? 16 : 12,
       0,
-      index == lastIndex ? 16 : 10,
+      index == lastIndex ? 16 : 12,
       0,
     );
   }
@@ -2523,9 +3266,9 @@ class _ShariahComplianceDetailsScreenState
     if (column.highlightWhen?.call(item) != true) return null;
     switch (column.tone!) {
       case _HistoryValueTone.negative:
-        return HomeUi.negative(isDark);
+        return ComplianceFormatters.notHalalColor;
       case _HistoryValueTone.warning:
-        return warning;
+        return ComplianceFormatters.doubtfulColor;
     }
   }
 
@@ -2536,7 +3279,7 @@ class _ShariahComplianceDetailsScreenState
     TextAlign align = TextAlign.left,
   }) {
     return SizedBox(
-      height: 44,
+      height: 46,
       child: Padding(
         padding: padding,
         child: Align(
@@ -2547,8 +3290,7 @@ class _ShariahComplianceDetailsScreenState
             label.toUpperCase(),
             style: HomeUi.tableHeader(isDark),
             textAlign: align,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
         ),
       ),
@@ -2576,8 +3318,7 @@ class _ShariahComplianceDetailsScreenState
               : align == TextAlign.right
                   ? HomeUi.tableNumeric(isDark)
                   : HomeUi.tableCell(isDark),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          softWrap: false,
         ),
       ),
     );
@@ -2587,7 +3328,7 @@ class _ShariahComplianceDetailsScreenState
 class _HistoryTableColumn {
   const _HistoryTableColumn({
     required this.label,
-    required this.flex,
+    required this.width,
     this.value,
     this.tone,
     this.highlightWhen,
@@ -2596,7 +3337,7 @@ class _HistoryTableColumn {
   });
 
   final String label;
-  final int flex;
+  final double width;
   final String Function(ComplianceHistoryItem item)? value;
   final _HistoryValueTone? tone;
   final bool Function(ComplianceHistoryItem item)? highlightWhen;
@@ -2633,207 +3374,300 @@ class _CalculationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = isDark ? const Color(0xFF1A1A1A) : Colors.white;
-    final Color border =
-        isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB);
     final String title;
     final String status;
     final List<Widget> body;
+    final IconData icon;
 
     switch (type) {
       case _CalculationDialogType.business:
         title = 'Not Halal Business Activity Percentage';
         status = report.revenueBreakdownStatus;
         body = _businessBody();
+        icon = Icons.pie_chart_outline_rounded;
         break;
       case _CalculationDialogType.securities:
         title = 'Interest-bearing Securities and Assets Percentage';
         status = report.securitiesStatus;
         body = _securitiesBody();
+        icon = Icons.account_balance_wallet_outlined;
         break;
       case _CalculationDialogType.debt:
         title = 'Interest-bearing Debt Percentage';
         status = report.debtStatus;
         body = _debtBody();
+        icon = Icons.credit_score_outlined;
         break;
     }
 
+    final Color accent = ComplianceFormatters.statusColor(status);
+
     return Dialog(
-      backgroundColor: bg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: border),
-      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 12, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ComplianceStatusBadge(
-                          label: status,
-                          compact: true,
-                          fontSize: 13,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                    icon: Icon(
-                      Icons.close,
-                      size: 20,
-                      color: isDark
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF6B7280),
-                    ),
-                  ),
-                ],
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: HomeUi.cardBg(isDark),
+            borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+            border: Border.all(
+              color: accent.withValues(alpha: isDark ? 0.12 : 0.08),
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                blurRadius: 40,
+                offset: const Offset(0, 18),
               ),
-              const SizedBox(height: 16),
-              SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: body,
-                ),
+              BoxShadow(
+                color: accent.withValues(alpha: isDark ? 0.08 : 0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 6),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 12, 16),
+                  decoration: BoxDecoration(
+                    color: Color.alphaBlend(
+                      accent.withValues(alpha: isDark ? 0.08 : 0.05),
+                      HomeUi.cardBg(isDark),
+                    ),
+                    border: Border(
+                      bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: isDark ? 0.16 : 0.10),
+                          borderRadius:
+                              BorderRadius.circular(HomeUi.radiusMd),
+                        ),
+                        child: Icon(icon, size: 20, color: accent),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: HomeUi.sectionTitle(isDark).copyWith(
+                                fontSize: 15,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ComplianceStatusBadge(
+                              label: status,
+                              compact: true,
+                              fontSize: 12,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => Navigator.of(context).pop(),
+                          borderRadius:
+                              BorderRadius.circular(HomeUi.radiusPill),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: HomeUi.elevatedBg(isDark),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: HomeUi.borderLight(isDark),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: HomeUi.muted(isDark),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: body,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  List<Widget> _businessBody() {
-    final num numerator = report.notHalalRevenue + report.questionableRevenue;
-    return <Widget>[
-      _breakdownRow('Halal Sales & Income',
-          ComplianceFormatters.percent(report.halalPercent)),
-      _breakdownRow('Doubtful Sales & Income',
-          ComplianceFormatters.percent(report.questionablePercent)),
-      _breakdownRow('Non Halal Sales & Income',
-          ComplianceFormatters.percent(report.notHalalPercent)),
-      _breakdownRow('Total Revenue', '100%'),
-      const SizedBox(height: 16),
-      _formulaTitle('Not Halal Business Activity Percentage ='),
-      const SizedBox(height: 8),
-      _formulaFraction(
-        numerator: '( Not Halal Sales & Income + Doubtful Sales & Income )',
-        denominator: '( Total Revenue )',
-      ),
-      const SizedBox(height: 12),
-      _resultLine(
-        '${ComplianceFormatters.compactMoney(numerator, fromOnes: true)} / ${ComplianceFormatters.compactMoney(report.totalRevenue, fromOnes: true)} = ${ComplianceFormatters.percent(report.businessActivityFailPercent)}',
-      ),
-      const SizedBox(height: 8),
-      _thresholdLine('Threshold: 5.00%'),
-    ];
+  bool _isPassStatus(String status) {
+    final String normalized = status.toUpperCase();
+    if (normalized.contains('NON') ||
+        normalized.contains('FAIL') ||
+        normalized.contains('NOT')) {
+      return false;
+    }
+    return normalized.contains('COMPLIANT') || normalized.contains('PASS');
   }
 
-  List<Widget> _securitiesBody() {
-    return <Widget>[
-      if (report.securitiesShortTerm != null)
-        _breakdownRow('Short-term',
-            ComplianceFormatters.percent(report.securitiesShortTerm!.ratio)),
-      if (report.securitiesLongTerm != null)
-        _breakdownRow('Long-term',
-            ComplianceFormatters.percent(report.securitiesLongTerm!.ratio)),
-      _breakdownRow(
-        'Interest-bearing securities and assets',
-        ComplianceFormatters.percent(report.securitiesRatio),
+  BoxDecoration _modalPanelDecoration() {
+    return BoxDecoration(
+      color: isDark
+          ? Color.alphaBlend(
+              Colors.white.withValues(alpha: 0.03),
+              HomeUi.elevatedBg(isDark),
+            )
+          : const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+      border: Border.all(
+        color: isDark
+            ? HomeUi.borderLight(isDark)
+            : const Color(0xFFE8ECF0),
       ),
-      const SizedBox(height: 16),
-      _formulaTitle('Interest-bearing securities and assets percentage ='),
-      const SizedBox(height: 8),
-      _formulaFraction(
-        numerator: '( Interest-bearing securities and assets )',
-        denominator: '( Trailing 36-month average market capitalization )',
-      ),
-      const SizedBox(height: 12),
-      _resultLine(
-        '${ComplianceFormatters.millions(report.securitiesTotalAmount)} / ${ComplianceFormatters.compactMoney(report.trailing36MonAvgCap, fromOnes: true)} = ${ComplianceFormatters.percent(report.securitiesRatio)}',
-      ),
-      const SizedBox(height: 8),
-      _thresholdLine('Threshold: 30.00%'),
-    ];
+    );
   }
 
-  List<Widget> _debtBody() {
-    return <Widget>[
-      if (report.debtShortTerm != null)
-        _breakdownRow('Short-term',
-            ComplianceFormatters.percent(report.debtShortTerm!.ratio)),
-      if (report.debtLongTerm != null)
-        _breakdownRow('Long-term',
-            ComplianceFormatters.percent(report.debtLongTerm!.ratio)),
-      _breakdownRow(
-        'Total Interest-bearing debt',
-        ComplianceFormatters.percent(report.debtRatio),
-      ),
-      const SizedBox(height: 16),
-      _formulaTitle('Interest-bearing debt percentage ='),
-      const SizedBox(height: 8),
-      _formulaFraction(
-        numerator: '( Total interest-bearing debt )',
-        denominator: '( Trailing 36-month average market capitalization )',
-      ),
-      const SizedBox(height: 12),
-      _resultLine(
-        '${ComplianceFormatters.millions(report.debtTotalAmount)} / ${ComplianceFormatters.compactMoney(report.trailing36MonAvgCap, fromOnes: true)} = ${ComplianceFormatters.percent(report.debtRatio)}',
-      ),
-      const SizedBox(height: 8),
-      _thresholdLine('Threshold: 30.00%'),
-    ];
-  }
-
-  Widget _breakdownRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
+  Widget _sectionCard({required String title, required List<Widget> children}) {
+    return Container(
+      decoration: _modalPanelDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                fontSize: 13,
-                color:
-                    isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              title.toUpperCase(),
+              style: HomeUi.overline(isDark).copyWith(
+                fontSize: 10,
+                letterSpacing: 1.05,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          for (int index = 0; index < children.length; index++) ...<Widget>[
+            if (index > 0)
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: HomeUi.borderLight(isDark).withValues(alpha: 0.75),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              child: children[index],
+            ),
+          ],
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _formulaPanel({
+    required String formulaLabel,
+    required String numerator,
+    required String denominator,
+    required String result,
+    required String threshold,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _modalPanelDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
           Text(
-            value,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black,
+            formulaLabel,
+            style: HomeUi.control(isDark, active: true).copyWith(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
+            child: _formulaFraction(
+              numerator: numerator,
+              denominator: denominator,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(
+                color: HomeUi.accent(isDark).withValues(alpha: 0.16),
+              ),
+            ),
+            child: Text(
+              result,
+              style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                fontSize: 14,
+                height: 1.35,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: HomeUi.cardBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              border: Border.all(
+                color: HomeUi.borderLight(isDark),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.tune_rounded,
+                  size: 13,
+                  color: HomeUi.muted(isDark),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  threshold,
+                  style: HomeUi.subtitle(isDark).copyWith(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -2841,15 +3675,120 @@ class _CalculationDialog extends StatelessWidget {
     );
   }
 
-  Widget _formulaTitle(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: isDark ? Colors.white : Colors.black,
+  List<Widget> _businessBody() {
+    final num numerator = report.notHalalRevenue + report.questionableRevenue;
+    return <Widget>[
+      _sectionCard(
+        title: 'Breakdown',
+        children: <Widget>[
+          _breakdownRow('Halal Sales & Income',
+              ComplianceFormatters.percent(report.halalPercent)),
+          _breakdownRow('Doubtful Sales & Income',
+              ComplianceFormatters.percent(report.questionablePercent)),
+          _breakdownRow('Non Halal Sales & Income',
+              ComplianceFormatters.percent(report.notHalalPercent)),
+          _breakdownRow(
+            'Total Revenue',
+            '100%',
+            emphasized: true,
+          ),
+        ],
       ),
+      const SizedBox(height: 14),
+      _formulaPanel(
+        formulaLabel: 'Not Halal Business Activity Percentage =',
+        numerator: '( Not Halal Sales & Income + Doubtful Sales & Income )',
+        denominator: '( Total Revenue )',
+        result:
+            '${ComplianceFormatters.compactMoney(numerator, fromOnes: true)} / ${ComplianceFormatters.compactMoney(report.totalRevenue, fromOnes: true)} = ${ComplianceFormatters.percent(report.businessActivityFailPercent)}',
+        threshold: 'Threshold: 5.00%',
+      ),
+    ];
+  }
+
+  List<Widget> _securitiesBody() {
+    return <Widget>[
+      _sectionCard(
+        title: 'Breakdown',
+        children: <Widget>[
+          if (report.securitiesShortTerm != null)
+            _breakdownRow('Short-term',
+                ComplianceFormatters.percent(report.securitiesShortTerm!.ratio)),
+          if (report.securitiesLongTerm != null)
+            _breakdownRow('Long-term',
+                ComplianceFormatters.percent(report.securitiesLongTerm!.ratio)),
+          _breakdownRow(
+            'Interest-bearing securities and assets',
+            ComplianceFormatters.percent(report.securitiesRatio),
+            emphasized: true,
+          ),
+        ],
+      ),
+      const SizedBox(height: 14),
+      _formulaPanel(
+        formulaLabel: 'Interest-bearing securities and assets percentage =',
+        numerator: '( Interest-bearing securities and assets )',
+        denominator: '( Trailing 36-month average market capitalization )',
+        result:
+            '${ComplianceFormatters.millions(report.securitiesTotalAmount)} / ${ComplianceFormatters.compactMoney(report.trailing36MonAvgCap, fromOnes: true)} = ${ComplianceFormatters.percent(report.securitiesRatio)}',
+        threshold: 'Threshold: 30.00%',
+      ),
+    ];
+  }
+
+  List<Widget> _debtBody() {
+    return <Widget>[
+      _sectionCard(
+        title: 'Breakdown',
+        children: <Widget>[
+          if (report.debtShortTerm != null)
+            _breakdownRow('Short-term',
+                ComplianceFormatters.percent(report.debtShortTerm!.ratio)),
+          if (report.debtLongTerm != null)
+            _breakdownRow('Long-term',
+                ComplianceFormatters.percent(report.debtLongTerm!.ratio)),
+          _breakdownRow(
+            'Total Interest-bearing debt',
+            ComplianceFormatters.percent(report.debtRatio),
+            emphasized: true,
+          ),
+        ],
+      ),
+      const SizedBox(height: 14),
+      _formulaPanel(
+        formulaLabel: 'Interest-bearing debt percentage =',
+        numerator: '( Total interest-bearing debt )',
+        denominator: '( Trailing 36-month average market capitalization )',
+        result:
+            '${ComplianceFormatters.millions(report.debtTotalAmount)} / ${ComplianceFormatters.compactMoney(report.trailing36MonAvgCap, fromOnes: true)} = ${ComplianceFormatters.percent(report.debtRatio)}',
+        threshold: 'Threshold: 30.00%',
+      ),
+    ];
+  }
+
+  Widget _breakdownRow(String label, String value, {bool emphasized = false}) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            label,
+            style: (emphasized
+                    ? HomeUi.control(isDark, active: true)
+                    : HomeUi.tableCellSecondary(isDark))
+                .copyWith(
+              fontSize: emphasized ? 13.5 : 13,
+              fontWeight: emphasized ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: HomeUi.tableCellEmphasis(isDark).copyWith(
+            fontSize: emphasized ? 14.5 : 14,
+            fontWeight: emphasized ? FontWeight.w700 : FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -2862,51 +3801,26 @@ class _CalculationDialog extends StatelessWidget {
       children: [
         Text(
           numerator,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
+          style: HomeUi.tableCellSecondary(isDark).copyWith(
             fontSize: 13,
-            color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            height: 1.4,
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Container(
             height: 1,
-            color: isDark ? const Color(0xFF404040) : const Color(0xFFE5E7EB),
+            color: HomeUi.borderLight(isDark).withValues(alpha: 0.85),
           ),
         ),
         Text(
           denominator,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
+          style: HomeUi.tableCellSecondary(isDark).copyWith(
             fontSize: 13,
-            color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+            height: 1.4,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _resultLine(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: isDark ? Colors.white : Colors.black,
-      ),
-    );
-  }
-
-  Widget _thresholdLine(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 13,
-        color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-      ),
     );
   }
 }

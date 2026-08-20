@@ -192,7 +192,8 @@ class _ComplianceDetailSearchState extends State<ComplianceDetailSearch> {
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bool hasQuery = _searchController.text.isNotEmpty;
-    final double fieldHeight = widget.compact ? 44.0 : 52.0;
+    final double fieldHeight =
+        widget.compact ? HomeUi.filterFieldHeight : 52.0;
 
     return SizedBox(
       key: _searchFieldKey,

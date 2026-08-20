@@ -9,9 +9,9 @@ import 'package:musaffa_terminal/shariah_compliance/models/etf_compliance_report
 import 'package:musaffa_terminal/shariah_compliance/services/shariah_compliance_api_service.dart';
 import 'package:musaffa_terminal/shariah_compliance/shariah_compliance_details_screen.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_detail_search.dart';
-import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/etf_compliance_details_content.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/web_service.dart';
 
 class ShariahComplianceEtfDetailsScreen extends StatefulWidget {
@@ -152,48 +152,58 @@ class _ShariahComplianceEtfDetailsScreenState
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color bg = isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFAFAFA);
-    final Color primary =
-        isDark ? const Color(0xFFE0E0E0) : const Color(0xFF0A0A0A);
-    final Color secondary =
-        isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final Color primary = HomeUi.title(isDark);
+    final Color secondary = HomeUi.muted(isDark);
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape): _exitScreening,
       },
       child: Scaffold(
-        backgroundColor: bg,
+        backgroundColor: HomeUi.pageBg(isDark),
         body: SafeArea(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: HomeUi.accent(isDark),
+                  ),
+                )
               : _report == null
                   ? _buildError(primary, secondary)
-                  : Column(
-                      children: [
-                        _buildTopBar(secondary),
-                        Expanded(
-                          child: Scrollbar(
-                            thumbVisibility: true,
-                            child: SingleChildScrollView(
-                              physics: const ClampingScrollPhysics(),
-                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  EtfComplianceDetailsContent(
-                                    report: _report!,
-                                    tickerSymbol: widget.tickerSymbol,
-                                    etfData: _etfData,
-                                    ticker: widget.ticker,
-                                    onOpenEtfDetail: _openEtfDetail,
+                  : LayoutBuilder(
+                      builder:
+                          (BuildContext context, BoxConstraints constraints) {
+                        final EdgeInsets pagePadding =
+                            HomeUi.pagePadding(constraints.maxWidth);
+                        return Column(
+                          children: [
+                            _buildTopBar(isDark, secondary, pagePadding),
+                            Expanded(
+                              child: Scrollbar(
+                                thumbVisibility: true,
+                                child: SingleChildScrollView(
+                                  physics: const ClampingScrollPhysics(),
+                                  padding: pagePadding.copyWith(top: 4),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      EtfComplianceDetailsContent(
+                                        report: _report!,
+                                        tickerSymbol: widget.tickerSymbol,
+                                        etfData: _etfData,
+                                        ticker: widget.ticker,
+                                        onOpenEtfDetail: _openEtfDetail,
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
         ),
       ),
@@ -230,20 +240,31 @@ class _ShariahComplianceEtfDetailsScreenState
     );
   }
 
-  Widget _buildTopBar(Color secondary) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color backColor =
-        isDark ? const Color(0xFF93C5FD) : const Color(0xFF3B82F6);
-
+  Widget _buildTopBar(
+    bool isDark,
+    Color secondary,
+    EdgeInsets pagePadding,
+  ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 20, 10),
+      padding: EdgeInsets.fromLTRB(
+        pagePadding.left,
+        12,
+        pagePadding.right,
+        8,
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          ComplianceOutlinedActionButton(
-            onPressed: _goBack,
-            label: 'Back',
-            leadingIcon: Icons.arrow_back_rounded,
-            color: backColor,
+          SizedBox(
+            height: HomeUi.filterFieldHeight,
+            child: Center(
+              child: HomeUi.ghostAction(
+                label: 'Back',
+                dark: isDark,
+                icon: Icons.arrow_back_rounded,
+                onTap: _goBack,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -256,11 +277,16 @@ class _ShariahComplianceEtfDetailsScreenState
             ),
           ),
           const SizedBox(width: 16),
-          ComplianceOutlinedActionButton(
-            onPressed: _exitScreening,
-            label: 'Exit',
-            trailingIcon: Icons.close_rounded,
-            color: secondary,
+          SizedBox(
+            height: HomeUi.filterFieldHeight,
+            child: Center(
+              child: HomeUi.ghostAction(
+                label: 'Exit',
+                dark: isDark,
+                icon: Icons.close_rounded,
+                onTap: _exitScreening,
+              ),
+            ),
           ),
         ],
       ),
