@@ -12,6 +12,8 @@ import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
+import 'package:musaffa_terminal/Components/research_notes_panel_content.dart';
+import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/Controllers/research_notes_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_earnings_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_dividend_controller.dart';
@@ -20,6 +22,9 @@ import 'package:musaffa_terminal/Controllers/ticker_insider_trading_controller.d
 import 'package:musaffa_terminal/Controllers/ticker_news_sentiment_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_price_target_controller.dart';
+import 'package:musaffa_terminal/Controllers/stock_youtube_videos_controller.dart';
+import 'package:musaffa_terminal/Controllers/stock_profile_controller.dart';
+import 'package:musaffa_terminal/Components/ticker_about_company_tab.dart';
 import 'package:musaffa_terminal/Components/ticker_upcoming_earnings_card.dart';
 import 'package:musaffa_terminal/Components/ticker_earnings_history_section.dart';
 import 'package:musaffa_terminal/Components/ticker_dividend_history_section.dart';
@@ -69,13 +74,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TickerNewsSentimentController tickerNewsSentimentController;
   late TickerFundOwnershipController tickerFundOwnershipController;
   late TickerPriceTargetController tickerPriceTargetController;
+  late StockYouTubeVideosController stockYouTubeVideosController;
+  late StockProfileController stockProfileController;
   
   late LivePriceService _livePriceService;
   late WebSocketService _webSocketService;
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
-  int _selectedTabIndex = 0; // 0 Overview, 1 Financial, 2 Charts, 3 Custom Charts
+  int _selectedTabIndex = 0; // 0 Overview, 1 Financial, 2 Charts, 3 Custom Charts, 4 About Company
   bool _isInWatchlist = false;
-  bool _isNotesPanelOpen = false;
+  
+  Worker? _notesPanelWorker;
+  Worker? _notesBadgeWorker;
   
   // Live price state
   double? _livePrice;
@@ -101,6 +110,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerNewsSentimentController = TickerNewsSentimentController();
     tickerFundOwnershipController = TickerFundOwnershipController();
     tickerPriceTargetController = TickerPriceTargetController();
+    stockYouTubeVideosController = StockYouTubeVideosController();
+    stockProfileController = StockProfileController();
   
     _livePriceService = Get.find<LivePriceService>();
     _webSocketService = Get.find<WebSocketService>();
@@ -128,9 +139,40 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       tickerFundOwnershipController.load(ticker);
       tickerPriceTargetController.load(ticker);
       
+      _setupNotesPanel(ticker);
       _setupLivePrices(ticker);
     });
 
+  }
+
+  void _setupNotesPanel(String ticker) {
+    if (!Get.isRegistered<NotesController>()) return;
+    final notesController = Get.find<NotesController>();
+
+    notesController.setCustomPanel(
+      title: 'Research Notes',
+      subtitle: 'Private notes for $ticker',
+      showBadge: researchNotesController.hasNotes,
+      builder: (context, _) => ResearchNotesPanelContent(
+        ticker: ticker,
+        controller: researchNotesController,
+        onAddNote: () => _showAddNoteDialog(
+          Theme.of(context).brightness == Brightness.dark,
+        ),
+      ),
+    );
+
+    _notesBadgeWorker?.dispose();
+    _notesBadgeWorker = ever(researchNotesController.notes, (_) {
+      notesController.updatePeekBadge(researchNotesController.hasNotes);
+    });
+
+    _notesPanelWorker?.dispose();
+    _notesPanelWorker = ever(notesController.isNotesPanelOpen, (open) {
+      if (open == true) {
+        researchNotesController.fetchNotes(ticker);
+      }
+    });
   }
   
   void _setupLivePrices(String ticker) {
@@ -176,6 +218,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   @override
   void dispose() {
     _isDisposing = true;
+    _notesPanelWorker?.dispose();
+    _notesBadgeWorker?.dispose();
+    if (Get.isRegistered<NotesController>()) {
+      Get.find<NotesController>().clearCustomPanel();
+    }
     _priceStreamSubscription?.cancel();
     _stockDataSubscription?.cancel();
     _watchlistStocksSubscription?.cancel();
@@ -191,20 +238,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerNewsSentimentController.dispose();
     tickerFundOwnershipController.dispose();
     tickerPriceTargetController.dispose();
+    stockYouTubeVideosController.dispose();
+    stockProfileController.dispose();
     financialFundamentalsController.dispose();
     tradingViewController.dispose();
     super.dispose();
-  }
-
-  void _toggleNotesPanel() {
-    setState(() {
-      _isNotesPanelOpen = !_isNotesPanelOpen;
-      // Refresh notes when opening panel
-      if (_isNotesPanelOpen) {
-        final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
-        researchNotesController.fetchNotes(ticker);
-      }
-    });
   }
 
   void _toggleWatchlist() {
@@ -284,30 +322,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     Row(
                       children: [
                         _buildSectionTabs(isDarkMode),
-                        const Spacer(),
-                        Obx(() {
-                          final hasNotes = researchNotesController.hasNotes;
-                          return HomeUi.ghostAction(
-                            label: hasNotes ? 'View Notes' : 'Add Note',
-                            dark: isDarkMode,
-                            icon: hasNotes
-                                ? Icons.sticky_note_2_outlined
-                                : Icons.note_add_outlined,
-                            onTap: () {
-                              if (!hasNotes) {
-                                _showAddNoteDialog(isDarkMode);
-                              } else {
-                                _toggleNotesPanel();
-                              }
-                            },
-                          );
-                        }),
                       ],
                     ),
-                    if (_isNotesPanelOpen) ...[
-                      const SizedBox(height: 12),
-                      _buildNotesPanel(isDarkMode),
-                    ],
                   ],
                 ),
               ),
@@ -317,7 +333,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   0 => _buildOverviewTab(isDarkMode),
                   1 => _buildFinancialTab(isDarkMode),
                   2 => _buildChartsTab(isDarkMode),
-                  _ => _buildCustomChartsTab(isDarkMode),
+                  3 => _buildCustomChartsTab(isDarkMode),
+                  _ => _buildAboutCompanyTab(isDarkMode),
                 },
               ),
             ],
@@ -360,9 +377,15 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   }
 
   Widget _buildSectionTabs(bool isDarkMode) {
-    const tabs = ['Overview', 'Financial', 'Charts', 'Custom Charts'];
+    const tabs = [
+      'Overview',
+      'Financial',
+      'Charts',
+      'Custom Charts',
+      'About Company',
+    ];
     return SizedBox(
-      width: 460,
+      width: 620,
       child: HomeUi.segmentedControl(
         dark: isDarkMode,
         options: tabs,
@@ -1165,108 +1188,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return const TickerCustomChartsTabContent();
   }
 
-  Widget _buildNotesPanel(bool isDarkMode) {
-    return Obx(() {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        decoration: HomeUi.cardDecoration(isDarkMode),
-        child: researchNotesController.isLoading.value
-            ? SizedBox(height: 72, child: _premiumLoader(isDarkMode))
-            : researchNotesController.hasNotes
-                ? _buildNotesList(isDarkMode)
-                : _buildAddNoteForm(isDarkMode),
-      );
-    });
-  }
-
-  Widget _buildNotesList(bool isDarkMode) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: HomeUi.tableToolbarHeader(
-                isDarkMode,
-                icon: Icons.sticky_note_2_outlined,
-                title: 'Research Notes',
-                subtitleText: 'Private notes for this ticker',
-              ),
-            ),
-            HomeUi.ghostAction(
-              label: 'Add Note',
-              dark: isDarkMode,
-              icon: Icons.add_rounded,
-              onTap: () => _showAddNoteDialog(isDarkMode),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Obx(() {
-          if (researchNotesController.notes.isEmpty) {
-            return Text('No notes found', style: HomeUi.subtitle(isDarkMode));
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: researchNotesController.notes.map((note) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                decoration: BoxDecoration(
-                  color: HomeUi.elevatedBg(isDarkMode),
-                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-                  border: Border.all(color: HomeUi.borderLight(isDarkMode)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        note.text,
-                        style: HomeUi.bodyText(isDarkMode).copyWith(height: 1.45),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _formatDate(note.createdAt),
-                      style: HomeUi.overline(isDarkMode).copyWith(
-                        fontSize: 10,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _buildAddNoteForm(bool isDarkMode) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        HomeUi.tableToolbarHeader(
-          isDarkMode,
-          icon: Icons.sticky_note_2_outlined,
-          title: 'Research Notes',
-          subtitleText: 'Capture thesis, catalysts, and follow-ups',
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'No notes yet for this ticker. Add one to keep your research next to the chart.',
-          style: HomeUi.bodyText(isDarkMode),
-        ),
-        const SizedBox(height: 14),
-        HomeUi.primaryAction(
-          label: 'Add Note',
-          icon: Icons.note_add_outlined,
-          onTap: () => _showAddNoteDialog(isDarkMode),
-        ),
-      ],
+  Widget _buildAboutCompanyTab(bool isDarkMode) {
+    return TickerAboutCompanyTab(
+      ticker: widget.ticker,
+      profileController: stockProfileController,
+      youtubeController: stockYouTubeVideosController,
+      isDarkMode: isDarkMode,
     );
   }
 
@@ -1277,27 +1204,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       notesController: researchNotesController,
       onSaved: () {
         _showSuccessSnackBar('Note added successfully');
-        if (!_isNotesPanelOpen) {
-          setState(() => _isNotesPanelOpen = true);
+        if (Get.isRegistered<NotesController>()) {
+          Get.find<NotesController>().openNotesPanel();
         }
       },
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      if (difference.inHours == 0) {
-        return '${difference.inMinutes}m ago';
-      }
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }
 
@@ -1354,7 +1265,7 @@ class _KeyMetricsQuoteStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 108,
+      height: 104,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1488,7 +1399,7 @@ class _PremiumWeekRangeCard extends StatelessWidget {
 
     return Container(
       height: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1524,12 +1435,13 @@ class _PremiumWeekRangeCard extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.2,
+              height: 1.1,
               color: isDark
                   ? const Color(0xFF8B8FA3)
                   : const Color(0xFF9CA3AF),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Row(
             children: [
               Text(
@@ -1537,13 +1449,14 @@ class _PremiumWeekRangeCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  height: 1.1,
                   color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
                 ),
               ),
               const Spacer(),
               if (price != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   decoration: BoxDecoration(
                     gradient: HomeUi.iconFillGradient,
                     borderRadius: BorderRadius.circular(20),
@@ -1553,6 +1466,7 @@ class _PremiumWeekRangeCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
+                      height: 1.1,
                       color: Colors.white,
                       letterSpacing: -0.2,
                     ),
@@ -1564,72 +1478,82 @@ class _PremiumWeekRangeCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  height: 1.1,
                   color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final thumb =
-                  (t * constraints.maxWidth).clamp(6.0, constraints.maxWidth - 6);
-              return SizedBox(
-                height: 10,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      height: 5,
-                      margin: const EdgeInsets.only(top: 2.5),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF2A2D3E)
-                            : const Color(0xFFE5E7EB),
-                        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-                      ),
-                    ),
-                    if (hasRange)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          width: (t * constraints.maxWidth).clamp(4.0, constraints.maxWidth),
+          const SizedBox(height: 8),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final thumb =
+                    (t * constraints.maxWidth).clamp(6.0, constraints.maxWidth - 6);
+                return Align(
+                  alignment: Alignment.center,
+                  child: SizedBox(
+                    height: 10,
+                    width: constraints.maxWidth,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
                           height: 5,
                           margin: const EdgeInsets.only(top: 2.5),
                           decoration: BoxDecoration(
-                            gradient: HomeUi.iconFillGradient,
+                            color: isDark
+                                ? const Color(0xFF2A2D3E)
+                                : const Color(0xFFE5E7EB),
                             borderRadius: BorderRadius.circular(HomeUi.radiusPill),
                           ),
                         ),
-                      ),
-                    if (hasRange)
-                      Positioned(
-                        left: thumb - 6,
-                        top: 0,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFE4621E),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFE4621E).withValues(alpha: 0.28),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                        if (hasRange)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              width: (t * constraints.maxWidth)
+                                  .clamp(4.0, constraints.maxWidth),
+                              height: 5,
+                              margin: const EdgeInsets.only(top: 2.5),
+                              decoration: BoxDecoration(
+                                gradient: HomeUi.iconFillGradient,
+                                borderRadius:
+                                    BorderRadius.circular(HomeUi.radiusPill),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
+                        if (hasRange)
+                          Positioned(
+                            left: thumb - 6,
+                            top: 0,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFE4621E),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFE4621E)
+                                        .withValues(alpha: 0.28),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),

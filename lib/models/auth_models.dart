@@ -19,6 +19,18 @@ class AuthUser {
     this.features,
   });
 
+  static String _readName(Map<String, dynamic> json) {
+    final raw = json['name'];
+    if (raw != null && raw.toString().trim().isNotEmpty) {
+      return raw.toString().trim();
+    }
+    final email = json['email']?.toString().trim();
+    if (email != null && email.contains('@')) {
+      return email.split('@').first;
+    }
+    return '';
+  }
+
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic>? features;
     final rawFeatures = json['features'];
@@ -31,7 +43,7 @@ class AuthUser {
     return AuthUser(
       id: json['id']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
+      name: _readName(json),
       status: json['status']?.toString() ?? '',
       registered: json['registered'] is bool
           ? json['registered'] as bool

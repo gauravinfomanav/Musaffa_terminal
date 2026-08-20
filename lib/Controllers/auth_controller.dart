@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
 import 'package:musaffa_terminal/Screens/login_screen.dart';
 import 'package:musaffa_terminal/Screens/main_screen.dart';
 import 'package:musaffa_terminal/models/auth_models.dart';
@@ -212,8 +213,12 @@ class AuthController extends GetxController {
     } on AuthException catch (e) {
       errorMessage.value = e.message;
       return false;
-    } catch (e) {
-      errorMessage.value = 'Something went wrong. Please try again.';
+    } catch (e, stack) {
+      debugPrint('AuthController.login failed after API success: $e');
+      debugPrint('$stack');
+      errorMessage.value = kDebugMode
+          ? 'Login failed: $e'
+          : 'Something went wrong. Please try again.';
       return false;
     } finally {
       isLoading.value = false;
