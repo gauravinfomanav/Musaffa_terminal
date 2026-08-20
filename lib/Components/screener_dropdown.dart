@@ -121,11 +121,14 @@ class _ScreenerDropdownState extends State<ScreenerDropdown> {
           children: [
             Text(
               widget.label,
-              style: HomeUi.label(dark).copyWith(
-                fontSize: 11.5,
+              style: TextStyle(
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
+                letterSpacing: 0.5,
                 height: 1.2,
+                color: dark
+                    ? const Color(0xFF8B8FA3)
+                    : const Color(0xFF6B7280),
               ),
             ),
             const SizedBox(height: 8),
@@ -140,98 +143,110 @@ class _ScreenerDropdownState extends State<ScreenerDropdown> {
                 child: GestureDetector(
                   onTap: _toggle,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
+                    duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOutCubic,
+                    height: 44,
                     decoration: BoxDecoration(
-                      gradient: showAccent ? HomeUi.iconFillGradient : null,
-                      color: showAccent
+                      gradient: showAccent
                           ? null
-                          : (showHover
-                              ? HomeUi.borderStrong(dark)
-                              : HomeUi.borderLight(dark)),
-                      borderRadius: BorderRadius.circular(10),
+                          : LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: dark
+                                  ? [const Color(0xFF151822), const Color(0xFF111520)]
+                                  : [Colors.white, const Color(0xFFFCFCFD)],
+                            ),
+                      color: showAccent ? HomeUi.cardBg(dark) : null,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: showAccent
+                            ? const Color(0xFFE4621E).withValues(alpha: 0.5)
+                            : (showHover
+                                ? (dark ? const Color(0xFF2A2E3A) : const Color(0xFFD1D5DB))
+                                : (dark ? const Color(0xFF1E2230) : const Color(0xFFE5E7EB))),
+                        width: showAccent ? 1.5 : 1,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(
-                            dark
-                                ? (showAccent ? 0.28 : (showHover ? 0.20 : 0.16))
-                                : (showAccent ? 0.08 : (showHover ? 0.06 : 0.04)),
-                          ),
-                          blurRadius: showAccent ? 12 : (showHover ? 10 : 8),
+                          color: showAccent
+                              ? const Color(0xFFE4621E).withValues(alpha: dark ? 0.15 : 0.08)
+                              : Colors.black.withValues(alpha: dark ? 0.12 : 0.04),
+                          blurRadius: showAccent ? 12 : (showHover ? 8 : 4),
                           offset: Offset(0, showAccent ? 4 : 2),
                         ),
                       ],
                     ),
-                    padding: EdgeInsets.all(showAccent ? 1.5 : 1),
-                    child: Container(
-                      height: HomeUi.filterFieldHeight,
-                      decoration: BoxDecoration(
-                        color: HomeUi.cardBg(dark),
-                        borderRadius: BorderRadius.circular(
-                          showAccent ? 8.5 : 9,
-                        ),
-                      ),
-                      padding: const EdgeInsets.only(left: 12, right: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _selectedLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: HomeUi.control(dark, active: !_isAny)
-                                  .copyWith(
-                                fontSize: 13,
-                                fontWeight: _isAny
-                                    ? FontWeight.w500
-                                    : FontWeight.w600,
-                                color: _isAny
-                                    ? HomeUi.muted(dark)
-                                    : HomeUi.title(dark),
-                              ),
+                    padding: const EdgeInsets.only(left: 14, right: 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _selectedLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: _isAny
+                                  ? FontWeight.w400
+                                  : FontWeight.w600,
+                              fontStyle: _isAny ? FontStyle.italic : FontStyle.normal,
+                              color: _isAny
+                                  ? (dark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF))
+                                  : HomeUi.title(dark),
                             ),
                           ),
-                          if (widget.isApplied && widget.onReset != null)
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  widget.onReset?.call();
-                                  _close();
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  child: Icon(
-                                    Icons.close_rounded,
-                                    size: 15,
-                                    color: HomeUi.muted(dark),
-                                  ),
+                        ),
+                        if (widget.isApplied && widget.onReset != null)
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                widget.onReset?.call();
+                                _close();
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  size: 14,
+                                  color: HomeUi.muted(dark),
                                 ),
                               ),
                             ),
-                          const SizedBox(width: 4),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 160),
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: HomeUi.elevatedBg(dark),
-                              shape: BoxShape.circle,
-                            ),
-                            child: AnimatedRotation(
-                              turns: open ? 0.5 : 0,
-                              duration: const Duration(milliseconds: 180),
-                              child: Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 16,
-                                color: HomeUi.muted(dark),
-                              ),
-                            ),
                           ),
-                        ],
-                      ),
+                        const SizedBox(width: 4),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            gradient: showAccent
+                                ? HomeUi.iconWellGradient
+                                : null,
+                            color: showAccent
+                                ? null
+                                : (dark ? const Color(0xFF1A1E2A) : const Color(0xFFF3F4F6)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: AnimatedRotation(
+                            turns: open ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: showAccent
+                                ? HomeUi.brandIcon(
+                                    icon: Icons.keyboard_arrow_down_rounded,
+                                    size: 16,
+                                    gradient: HomeUi.iconFillGradient,
+                                  )
+                                : Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    size: 16,
+                                    color: dark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -267,13 +282,22 @@ class _ScreenerDropdownState extends State<ScreenerDropdown> {
                 constraints: const BoxConstraints(maxHeight: 300),
                 decoration: BoxDecoration(
                   color: HomeUi.cardBg(dark),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: HomeUi.borderLight(dark)),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: dark
+                        ? const Color(0xFF1E2230)
+                        : const Color(0xFFE5E7EB),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(dark ? 0.36 : 0.10),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+                      color: Colors.black.withValues(alpha: dark ? 0.40 : 0.12),
+                      blurRadius: 28,
+                      offset: const Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: dark ? 0.12 : 0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
