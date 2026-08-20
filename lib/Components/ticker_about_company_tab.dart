@@ -402,12 +402,13 @@ class _BusinessDescriptionCard extends StatefulWidget {
 
 class _BusinessDescriptionCardState extends State<_BusinessDescriptionCard> {
   bool _expanded = false;
+  static const int _collapsedLines = 5;
 
   @override
   Widget build(BuildContext context) {
     final text = widget.description?.trim();
     final hasText = text != null && text.isNotEmpty;
-    final long = hasText && text.length > 420;
+    final textStyle = HomeUi.bodyText(widget.isDarkMode).copyWith(height: 1.6);
 
     return TickerFinnhubSectionCard(
       isDarkMode: widget.isDarkMode,
@@ -427,25 +428,41 @@ class _BusinessDescriptionCardState extends State<_BusinessDescriptionCard> {
               style: HomeUi.subtitle(widget.isDarkMode),
             )
           else ...[
-            Text(
-              text,
-              maxLines: !_expanded && long ? 5 : null,
-              overflow: !_expanded && long
-                  ? TextOverflow.ellipsis
-                  : TextOverflow.visible,
-              style: HomeUi.bodyText(widget.isDarkMode).copyWith(height: 1.6),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final textPainter = TextPainter(
+                  text: TextSpan(text: text, style: textStyle),
+                  maxLines: _collapsedLines,
+                  textDirection: Directionality.of(context),
+                )..layout(maxWidth: constraints.maxWidth);
+                final hasOverflow = textPainter.didExceedMaxLines;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      maxLines: !_expanded && hasOverflow ? _collapsedLines : null,
+                      overflow: !_expanded && hasOverflow
+                          ? TextOverflow.ellipsis
+                          : TextOverflow.visible,
+                      style: textStyle,
+                    ),
+                    if (hasOverflow) ...[
+                      const SizedBox(height: 10),
+                      HomeUi.ghostAction(
+                        label: _expanded ? 'Show less' : 'Read more',
+                        dark: widget.isDarkMode,
+                        icon: _expanded
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                        onTap: () => setState(() => _expanded = !_expanded),
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
-            if (long) ...[
-              const SizedBox(height: 10),
-              HomeUi.ghostAction(
-                label: _expanded ? 'Show less' : 'Read more',
-                dark: widget.isDarkMode,
-                icon: _expanded
-                    ? Icons.expand_less_rounded
-                    : Icons.expand_more_rounded,
-                onTap: () => setState(() => _expanded = !_expanded),
-              ),
-            ],
           ],
         ],
       ),

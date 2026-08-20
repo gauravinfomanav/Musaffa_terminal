@@ -106,9 +106,6 @@ class StockYouTubeVideosSection extends StatelessWidget {
   }
 
   Widget _buildHeader(int? count) {
-    final searchText = controller.searchSummary?.trim();
-    final qualityText = controller.qualitySubtitle?.trim();
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,30 +114,7 @@ class StockYouTubeVideosSection extends StatelessWidget {
             isDarkMode,
             icon: Icons.play_circle_outline_rounded,
             title: 'Analysis Videos',
-            subtitle: (searchText?.isNotEmpty == true ||
-                    qualityText?.isNotEmpty == true)
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (searchText?.isNotEmpty == true)
-                        Text(
-                          'Searched: $searchText',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      if (qualityText?.isNotEmpty == true)
-                        Text(
-                          qualityText!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  )
-                : null,
-            subtitleText: (searchText?.isNotEmpty == true ||
-                    qualityText?.isNotEmpty == true)
-                ? null
-                : 'YouTube stock analysis ranked by popularity',
+            subtitleText: 'YouTube stock analysis',
           ),
         ),
         if (count != null)

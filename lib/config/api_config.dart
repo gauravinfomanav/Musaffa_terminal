@@ -8,7 +8,7 @@ class ApiConfig {
   /// Production: `https://terminal.musaffa.us`
   static const String terminalBaseUrl = String.fromEnvironment(
     'TERMINAL_API_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://terminal.musaffa.us',
   );
 
   // ── RisePython data APIs ──
@@ -46,8 +46,6 @@ class ApiConfig {
 
   // ── Infomanav Finnhub proxy ──
 
-  /// Base proxy URL. Query with `api` + params, e.g.
-  /// `?api=stock/profile&symbol=AAPL` or `?api=stock/profile2&symbol=AAPL`.
   static const String infomanavFinnhubProxyUrl =
       'https://beta.infomanav.in/keep/finnhub_api_dev/Typesense/px_master.php';
 

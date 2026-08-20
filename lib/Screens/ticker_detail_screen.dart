@@ -13,7 +13,6 @@ import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
 import 'package:musaffa_terminal/Components/research_notes_panel_content.dart';
-import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/Controllers/research_notes_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_earnings_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_dividend_controller.dart';
@@ -76,16 +75,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TickerPriceTargetController tickerPriceTargetController;
   late StockYouTubeVideosController stockYouTubeVideosController;
   late StockProfileController stockProfileController;
-  
+
   late LivePriceService _livePriceService;
   late WebSocketService _webSocketService;
-  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
-  int _selectedTabIndex = 0; // 0 Overview, 1 Financial, 2 Charts, 3 Custom Charts, 4 About Company
+  final GlobalWatchlistService _watchlistService =
+      Get.find<GlobalWatchlistService>();
+  int _selectedTabIndex =
+      0; // 0 Overview, 1 Financial, 2 Charts, 3 Custom Charts, 4 About Company
   bool _isInWatchlist = false;
-  
-  Worker? _notesPanelWorker;
-  Worker? _notesBadgeWorker;
-  
+
+  bool _isResearchNotesOpen = false;
+
   // Live price state
   double? _livePrice;
   double? _previousPrice;
@@ -112,19 +112,19 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerPriceTargetController = TickerPriceTargetController();
     stockYouTubeVideosController = StockYouTubeVideosController();
     stockProfileController = StockProfileController();
-  
+
     _livePriceService = Get.find<LivePriceService>();
     _webSocketService = Get.find<WebSocketService>();
-    
+
     // Listen to watchlist changes to update button state
     _watchlistStocksSubscription =
         watchlistController.watchlistStocks.listen((_) {
       _checkIfStockInWatchlist();
     });
-    
+
     // Check if stock is already in watchlist
     _checkIfStockInWatchlist();
-    
+
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
@@ -138,43 +138,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       tickerNewsSentimentController.load(ticker);
       tickerFundOwnershipController.load(ticker);
       tickerPriceTargetController.load(ticker);
-      
-      _setupNotesPanel(ticker);
+
       _setupLivePrices(ticker);
     });
-
   }
 
-  void _setupNotesPanel(String ticker) {
-    if (!Get.isRegistered<NotesController>()) return;
-    final notesController = Get.find<NotesController>();
-
-    notesController.setCustomPanel(
-      title: 'Research Notes',
-      subtitle: 'Private notes for $ticker',
-      showBadge: researchNotesController.hasNotes,
-      builder: (context, _) => ResearchNotesPanelContent(
-        ticker: ticker,
-        controller: researchNotesController,
-        onAddNote: () => _showAddNoteDialog(
-          Theme.of(context).brightness == Brightness.dark,
-        ),
-      ),
-    );
-
-    _notesBadgeWorker?.dispose();
-    _notesBadgeWorker = ever(researchNotesController.notes, (_) {
-      notesController.updatePeekBadge(researchNotesController.hasNotes);
-    });
-
-    _notesPanelWorker?.dispose();
-    _notesPanelWorker = ever(notesController.isNotesPanelOpen, (open) {
-      if (open == true) {
-        researchNotesController.fetchNotes(ticker);
-      }
-    });
-  }
-  
   void _setupLivePrices(String ticker) {
     // Store initial price from Typesense
     _stockDataSubscription?.cancel();
@@ -190,10 +158,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         }
       }
     });
-    
+
     // Add ticker to visible list for live updates
     _livePriceService.addVisibleTickers([ticker]);
-    
+
     // Listen to live price updates
     _priceStreamSubscription?.cancel();
     _priceStreamSubscription = _webSocketService.priceStream.listen(
@@ -218,11 +186,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   @override
   void dispose() {
     _isDisposing = true;
-    _notesPanelWorker?.dispose();
-    _notesBadgeWorker?.dispose();
-    if (Get.isRegistered<NotesController>()) {
-      Get.find<NotesController>().clearCustomPanel();
-    }
     _priceStreamSubscription?.cancel();
     _stockDataSubscription?.cancel();
     _watchlistStocksSubscription?.cancel();
@@ -255,11 +218,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
   void _checkIfStockInWatchlist() {
     final currentTicker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
-    
+
     // Check if stock is in the current watchlist's stocks
     final isInCurrentWatchlist = watchlistController.watchlistStocks
         .any((stock) => stock.ticker == currentTicker);
-    
+
     // Also check if it's in any of the user's watchlists
     bool isInAnyWatchlist = false;
     for (final watchlist in watchlistController.watchlists) {
@@ -272,7 +235,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         break;
       }
     }
-    
+
     if (!mounted || _isDisposing) return;
     if (mounted) {
       setState(() {
@@ -280,7 +243,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       });
     }
   }
-
 
   void _showSuccessSnackBar(String message) {
     SnackBarUtils.showSuccess(context, message);
@@ -290,6 +252,20 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     SnackBarUtils.showError(context, message);
   }
 
+  Future<void> _openResearchNotesPanel() async {
+    final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+    if (ticker.isNotEmpty) {
+      await researchNotesController.fetchNotes(ticker);
+    }
+    if (!mounted) return;
+    setState(() => _isResearchNotesOpen = true);
+  }
+
+  void _closeResearchNotesPanel() {
+    if (!_isResearchNotesOpen || !mounted) return;
+    setState(() => _isResearchNotesOpen = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -297,82 +273,110 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     return FeatureGuard(
       featureKey: FeatureKeys.tickerDetails,
       child: Scaffold(
-      backgroundColor: HomeUi.pageBg(isDarkMode),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Obx(() => HomeTabBar(
-                showBackButton: true,
-                isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
-                onWatchlistToggle: _toggleWatchlist,
-                onThemeToggle: () {
-                  final currentTheme = Theme.of(context).brightness;
-                  Get.changeThemeMode(
-                    currentTheme == Brightness.dark 
-                        ? ThemeMode.light 
-                        : ThemeMode.dark,
-                  );
-                },
-              )),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _buildSectionTabs(isDarkMode),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              Expanded(
-                child: switch (_selectedTabIndex) {
-                  0 => _buildOverviewTab(isDarkMode),
-                  1 => _buildFinancialTab(isDarkMode),
-                  2 => _buildChartsTab(isDarkMode),
-                  3 => _buildCustomChartsTab(isDarkMode),
-                  _ => _buildAboutCompanyTab(isDarkMode),
-                },
-              ),
-            ],
-          ),
-          
-          // Watchlist sidebar overlay - positioned relative to entire screen
-          Obx(() {
-            if (!_watchlistService.isWatchlistOpen.value) {
-              return const SizedBox.shrink();
-            }
-            return Positioned.fill(
-              child: GestureDetector(
-                onTap: _toggleWatchlist, // Close when tapping outside
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  child: Row(
+        backgroundColor: HomeUi.pageBg(isDarkMode),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Obx(() => HomeTabBar(
+                      showBackButton: true,
+                      isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
+                      onWatchlistToggle: _toggleWatchlist,
+                      onThemeToggle: () {
+                        final currentTheme = Theme.of(context).brightness;
+                        Get.changeThemeMode(
+                          currentTheme == Brightness.dark
+                              ? ThemeMode.light
+                              : ThemeMode.dark,
+                        );
+                      },
+                    )),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: Container(), // Empty space that closes sidebar when tapped
-                      ),
-                      GestureDetector(
-                        onTap: () {}, // Prevent closing when tapping on sidebar itself
-                        child: WatchlistSidebar(
-                          isDarkMode: isDarkMode,
-                          onClose: _toggleWatchlist,
-                        ),
+                      Row(
+                        children: [
+                          _buildSectionTabs(isDarkMode),
+                          const Spacer(),
+                          _buildResearchNotesButton(isDarkMode),
+                        ],
                       ),
                     ],
                   ),
                 ),
+                Expanded(
+                  child: switch (_selectedTabIndex) {
+                    0 => _buildOverviewTab(isDarkMode),
+                    1 => _buildFinancialTab(isDarkMode),
+                    2 => _buildChartsTab(isDarkMode),
+                    3 => _buildCustomChartsTab(isDarkMode),
+                    _ => _buildAboutCompanyTab(isDarkMode),
+                  },
+                ),
+              ],
+            ),
+
+            // Watchlist sidebar overlay - positioned relative to entire screen
+            Obx(() {
+              if (!_watchlistService.isWatchlistOpen.value) {
+                return const SizedBox.shrink();
+              }
+              return Positioned.fill(
+                child: GestureDetector(
+                  onTap: _toggleWatchlist, // Close when tapping outside
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child:
+                              Container(), // Empty space that closes sidebar when tapped
+                        ),
+                        GestureDetector(
+                          onTap:
+                              () {}, // Prevent closing when tapping on sidebar itself
+                          child: WatchlistSidebar(
+                            isDarkMode: isDarkMode,
+                            onClose: _toggleWatchlist,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+            if (_isResearchNotesOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _closeResearchNotesPanel,
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.24),
+                  ),
+                ),
               ),
-            );
-          }),
-          // Global FAB Overlay
-          const GlobalFABOverlay(),
-        ],
+            if (_isResearchNotesOpen)
+              Positioned(
+                top: 112,
+                right: 20,
+                child: _ResearchNotesOverlayCard(
+                  isDarkMode: isDarkMode,
+                  title: 'Research Notes',
+                  subtitle: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                  onClose: _closeResearchNotesPanel,
+                  child: ResearchNotesPanelContent(
+                    ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                    controller: researchNotesController,
+                    onAddNote: () => _showAddNoteDialog(isDarkMode),
+                  ),
+                ),
+              ),
+            // Global FAB Overlay
+            const GlobalFABOverlay(),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -393,6 +397,40 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         onChanged: (index) => setState(() => _selectedTabIndex = index),
       ),
     );
+  }
+
+  Widget _buildResearchNotesButton(bool isDarkMode) {
+    return Obx(() {
+      final hasNotes = researchNotesController.hasNotes;
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          HomeUi.ghostAction(
+            label: 'Research Notes',
+            dark: isDarkMode,
+            icon: Icons.sticky_note_2_outlined,
+            onTap: _openResearchNotesPanel,
+          ),
+          if (hasNotes)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: HomeUi.accent(isDarkMode),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: HomeUi.pageBg(isDarkMode),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    });
   }
 
   Widget _premiumLoader(bool isDarkMode) {
@@ -437,7 +475,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
         _MetricGroup(
           'Price & Market',
           [
-            ('Market Cap', Constants.getShortenedMarketCapV2(stockData.usdMarketCap)),
+            (
+              'Market Cap',
+              Constants.getShortenedMarketCapV2(stockData.usdMarketCap)
+            ),
             (
               '52W High',
               stockData.d52WeekHigh == null
@@ -487,7 +528,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             ('EPS (1Y)', _fmtPct(stockData.epsGrowth1y)),
             ('EPS (3Y)', _fmtPct(stockData.epsGrowth3Y)),
             ('Market Cap (3Y)', _fmtPct(stockData.marketCapChange3y)),
-            ('EBITDA', Constants.getShortenedMarketCapV2(stockData.ebitdaEstimateAnnual)),
+            (
+              'EBITDA',
+              Constants.getShortenedMarketCapV2(stockData.ebitdaEstimateAnnual)
+            ),
           ],
         ),
         _MetricGroup(
@@ -592,7 +636,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     );
   }
 
-
   Widget _buildStockHeader(StocksData stockData, bool isDarkMode) {
     final ticker = widget.ticker.symbol ?? widget.ticker.ticker ?? 'TICKER';
     final companyName =
@@ -625,7 +668,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                           decoration: BoxDecoration(
                             color: HomeUi.elevatedBg(isDarkMode),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+                            border: Border.all(
+                                color: HomeUi.borderLight(isDarkMode)),
                           ),
                           child: showLogo(
                             ticker,
@@ -641,7 +685,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                             children: [
                               Text(
                                 companyName,
-                                style: HomeUi.sectionTitle(isDarkMode).copyWith(fontSize: 15),
+                                style: HomeUi.sectionTitle(isDarkMode)
+                                    .copyWith(fontSize: 15),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -667,7 +712,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                             _checkIfStockInWatchlist();
                           },
                           onError: () {
-                            _showErrorSnackBar('Failed to add $ticker to watchlist');
+                            _showErrorSnackBar(
+                                'Failed to add $ticker to watchlist');
                           },
                         ),
                       ],
@@ -859,7 +905,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             flex: 4,
             child: Text(
               label,
-              style: HomeUi.tableCellSecondary(isDarkMode).copyWith(fontSize: 12),
+              style:
+                  HomeUi.tableCellSecondary(isDarkMode).copyWith(fontSize: 12),
             ),
           ),
           const SizedBox(width: 8),
@@ -870,7 +917,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               textAlign: TextAlign.right,
               maxLines: maxLines,
               overflow: TextOverflow.ellipsis,
-              style: HomeUi.tableCellEmphasis(isDarkMode).copyWith(fontSize: 13),
+              style:
+                  HomeUi.tableCellEmphasis(isDarkMode).copyWith(fontSize: 13),
             ),
           ),
         ],
@@ -943,9 +991,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     final isPositive = value >= 0;
     final absValue = value.abs();
     final intensity = (absValue / 20).clamp(0.18, 1.0);
-    final tone = isPositive
-        ? HomeUi.positive(isDarkMode)
-        : HomeUi.negative(isDarkMode);
+    final tone =
+        isPositive ? HomeUi.positive(isDarkMode) : HomeUi.negative(isDarkMode);
     final fill = absValue == 0
         ? HomeUi.elevatedBg(isDarkMode)
         : Color.lerp(
@@ -993,7 +1040,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       if (controller.isLoading.value) {
         return _premiumLoader(isDarkMode);
       }
-      
+
       if (controller.errorMessage.isNotEmpty) {
         return Center(
           child: Text(
@@ -1004,7 +1051,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           ),
         );
       }
-      
+
       if (controller.stockData.value == null) {
         return Center(
           child: Text(
@@ -1013,7 +1060,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           ),
         );
       }
-      
+
       final stockData = controller.stockData.value!;
       return SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
@@ -1033,32 +1080,33 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 final heatmapHeight = 30 + 48 + gridHeight;
 
                 return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TradingViewWidget(
-                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: tradingViewController,
-                    height: heatmapHeight,
-                    country: stockData.country,
-                    exchange: stockData.exchange,
-                  ),
-                ),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TradingViewWidget(
+                        symbol:
+                            widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                        controller: tradingViewController,
+                        height: heatmapHeight,
+                        country: stockData.country,
+                        exchange: stockData.exchange,
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                // Half screen width for analytics in column
-                Expanded(
-                  child: Column(
-                    children: [
-                      // RecommendationWidget(
-                      //   symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                      //   controller: recommendationController,
-                      // ),
-                      // const SizedBox(height: 8),
-                      _buildPerformanceHeatmap(stockData, isDarkMode),
-                    ],
-                  ),
-                ),
-              ],
+                    // Half screen width for analytics in column
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // RecommendationWidget(
+                          //   symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                          //   controller: recommendationController,
+                          // ),
+                          // const SizedBox(height: 8),
+                          _buildPerformanceHeatmap(stockData, isDarkMode),
+                        ],
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -1109,12 +1157,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               listenable: recommendationController,
               builder: (context, child) {
                 // Hide container only if not loading AND (error OR no recommendation)
-                if (!recommendationController.isLoading && 
-                    (recommendationController.error != null || 
-                     recommendationController.recommendation == null)) {
+                if (!recommendationController.isLoading &&
+                    (recommendationController.error != null ||
+                        recommendationController.recommendation == null)) {
                   return const SizedBox.shrink();
                 }
-                
+
                 return Container(
                   decoration: HomeUi.cardDecoration(isDarkMode),
                   child: RecommendationWidget(
@@ -1204,9 +1252,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       notesController: researchNotesController,
       onSaved: () {
         _showSuccessSnackBar('Note added successfully');
-        if (Get.isRegistered<NotesController>()) {
-          Get.find<NotesController>().openNotesPanel();
-        }
+        setState(() => _isResearchNotesOpen = true);
       },
     );
   }
@@ -1269,21 +1315,30 @@ class _KeyMetricsQuoteStrip extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-        Expanded(child: _PremiumStatCard(isDark: isDark, label: 'Market Cap', value: marketCap)),
-        const SizedBox(width: 12),
-        Expanded(child: _PremiumStatCard(isDark: isDark, label: 'P/E Ratio', value: peRatio)),
-        const SizedBox(width: 12),
-        Expanded(child: _PremiumStatCard(isDark: isDark, label: 'ROE', value: roe, signedValue: roeValue)),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: _PremiumWeekRangeCard(
-            isDark: isDark,
-            weekLow: weekLow,
-            weekHigh: weekHigh,
-            currentPrice: currentPrice,
+          Expanded(
+              child: _PremiumStatCard(
+                  isDark: isDark, label: 'Market Cap', value: marketCap)),
+          const SizedBox(width: 12),
+          Expanded(
+              child: _PremiumStatCard(
+                  isDark: isDark, label: 'P/E Ratio', value: peRatio)),
+          const SizedBox(width: 12),
+          Expanded(
+              child: _PremiumStatCard(
+                  isDark: isDark,
+                  label: 'ROE',
+                  value: roe,
+                  signedValue: roeValue)),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: _PremiumWeekRangeCard(
+              isDark: isDark,
+              weekLow: weekLow,
+              weekHigh: weekHigh,
+              currentPrice: currentPrice,
+            ),
           ),
-        ),
         ],
       ),
     );
@@ -1305,9 +1360,8 @@ class _PremiumStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final signed = signedValue == null || signedValue == 0
-        ? null
-        : signedValue! > 0;
+    final signed =
+        signedValue == null || signedValue == 0 ? null : signedValue! > 0;
     final valueColor = signed == null
         ? HomeUi.title(isDark)
         : (signed ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
@@ -1350,9 +1404,7 @@ class _PremiumStatCard extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.2,
-              color: isDark
-                  ? const Color(0xFF8B8FA3)
-                  : const Color(0xFF9CA3AF),
+              color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF9CA3AF),
             ),
           ),
           const SizedBox(height: 8),
@@ -1436,9 +1488,7 @@ class _PremiumWeekRangeCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
               letterSpacing: 1.2,
               height: 1.1,
-              color: isDark
-                  ? const Color(0xFF8B8FA3)
-                  : const Color(0xFF9CA3AF),
+              color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF9CA3AF),
             ),
           ),
           const SizedBox(height: 8),
@@ -1450,13 +1500,16 @@ class _PremiumWeekRangeCard extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   height: 1.1,
-                  color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
+                  color: isDark
+                      ? const Color(0xFF8B8FA3)
+                      : const Color(0xFF6B7280),
                 ),
               ),
               const Spacer(),
               if (price != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   decoration: BoxDecoration(
                     gradient: HomeUi.iconFillGradient,
                     borderRadius: BorderRadius.circular(20),
@@ -1479,7 +1532,9 @@ class _PremiumWeekRangeCard extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   height: 1.1,
-                  color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
+                  color: isDark
+                      ? const Color(0xFF8B8FA3)
+                      : const Color(0xFF6B7280),
                 ),
               ),
             ],
@@ -1488,8 +1543,8 @@ class _PremiumWeekRangeCard extends StatelessWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final thumb =
-                    (t * constraints.maxWidth).clamp(6.0, constraints.maxWidth - 6);
+                final thumb = (t * constraints.maxWidth)
+                    .clamp(6.0, constraints.maxWidth - 6);
                 return Align(
                   alignment: Alignment.center,
                   child: SizedBox(
@@ -1505,7 +1560,8 @@ class _PremiumWeekRangeCard extends StatelessWidget {
                             color: isDark
                                 ? const Color(0xFF2A2D3E)
                                 : const Color(0xFFE5E7EB),
-                            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                            borderRadius:
+                                BorderRadius.circular(HomeUi.radiusPill),
                           ),
                         ),
                         if (hasRange)
@@ -1658,6 +1714,89 @@ class _MetricKvRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ResearchNotesOverlayCard extends StatelessWidget {
+  const _ResearchNotesOverlayCard({
+    required this.isDarkMode,
+    required this.title,
+    required this.subtitle,
+    required this.onClose,
+    required this.child,
+  });
+
+  final bool isDarkMode;
+  final String title;
+  final String subtitle;
+  final VoidCallback onClose;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 420,
+        height: 560,
+        decoration: BoxDecoration(
+          color: HomeUi.cardBg(isDarkMode),
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.38 : 0.12),
+              blurRadius: 28,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDarkMode,
+                      icon: Icons.sticky_note_2_outlined,
+                      title: title,
+                      subtitleText: subtitle.isNotEmpty ? subtitle : null,
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: onClose,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: HomeUi.elevatedBg(isDarkMode),
+                          shape: BoxShape.circle,
+                          border:
+                              Border.all(color: HomeUi.borderLight(isDarkMode)),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: HomeUi.muted(isDarkMode),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: HomeUi.borderLight(isDarkMode)),
+            Expanded(child: child),
+          ],
+        ),
       ),
     );
   }
@@ -1847,7 +1986,8 @@ class _AddResearchNoteDialogState extends State<_AddResearchNoteDialog> {
                       child: HomeUi.ghostAction(
                         label: 'Cancel',
                         dark: isDark,
-                        onTap: _saving ? () {} : () => Navigator.of(context).pop(),
+                        onTap:
+                            _saving ? () {} : () => Navigator.of(context).pop(),
                       ),
                     ),
                   ),
