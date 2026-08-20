@@ -67,8 +67,48 @@ class FinnhubDisplayFormatters {
       case 'dmh':
         return 'During Market Hours';
       default:
-        return hour == null || hour.isEmpty ? '-' : hour.toUpperCase();
+        return hour == null || hour.isEmpty
+            ? 'Time not available'
+            : hour.toUpperCase();
     }
+  }
+
+  static String formatHourBadge(String? hour) {
+    switch (hour?.toLowerCase()) {
+      case 'bmo':
+        return 'BMO';
+      case 'amc':
+        return 'AMC';
+      case 'dmh':
+        return 'DMH';
+      default:
+        return '—';
+    }
+  }
+
+  /// Formats large currency values as `$91.82B`, `$2.35T`, etc.
+  static String formatCompactCurrency(num? value) {
+    if (value == null) return '—';
+    final double abs = value.abs().toDouble();
+    final String sign = value < 0 ? '-' : '';
+    if (abs >= 1e12) {
+      return '$sign\$${(abs / 1e12).toStringAsFixed(2)}T';
+    }
+    if (abs >= 1e9) {
+      return '$sign\$${(abs / 1e9).toStringAsFixed(2)}B';
+    }
+    if (abs >= 1e6) {
+      return '$sign\$${(abs / 1e6).toStringAsFixed(2)}M';
+    }
+    if (abs >= 1e3) {
+      return '$sign\$${(abs / 1e3).toStringAsFixed(2)}K';
+    }
+    return '$sign\$${abs.toStringAsFixed(2)}';
+  }
+
+  static String dashIfNull(String? value) {
+    if (value == null || value.trim().isEmpty) return '—';
+    return value;
   }
 
   static int? daysUntil(DateTime date) {

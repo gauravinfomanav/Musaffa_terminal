@@ -40,13 +40,27 @@ class StockProfileService {
     );
   }
 
+  /// Free Company Profile 2 endpoint preferred by Finnhub docs.
+  Future<StockProfileModel?> fetchProfile2(
+    String symbol, {
+    bool forceRefresh = false,
+  }) {
+    return _fetch(
+      apiPath: 'stock/profile2',
+      queryParameters: <String, String>{'symbol': symbol.trim().toUpperCase()},
+      cacheKey: 'stock/profile2:symbol:${symbol.trim().toUpperCase()}',
+      forceRefresh: forceRefresh,
+    );
+  }
+
   Future<StockProfileModel?> _fetch({
+    String apiPath = 'stock/profile',
     required Map<String, String> queryParameters,
     required String cacheKey,
     required bool forceRefresh,
   }) async {
     final dynamic decoded = await _client.get(
-      'stock/profile',
+      apiPath,
       queryParameters: queryParameters,
       cacheKey: cacheKey,
       forceRefresh: forceRefresh,

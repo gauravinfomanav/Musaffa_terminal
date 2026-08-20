@@ -873,7 +873,14 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
     });
   }
 
-  double get _loopWidth => _loopKey.currentContext?.size?.width ?? 0;
+  double get _loopWidth {
+    try {
+      return _loopKey.currentContext?.size?.width ?? 0;
+    } catch (_) {
+      // Size can be read while the render object is still dirty for layout.
+      return 0;
+    }
+  }
 
   void _advance(double delta) {
     if (!mounted || _isHovered || !_scrollController.hasClients) return;

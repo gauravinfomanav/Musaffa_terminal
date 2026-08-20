@@ -7,16 +7,24 @@ class EarningsSurprisesService {
 
   final FinnhubApiClient _client;
 
-  Future<List<EarningsSurprise>> fetchForSymbol(String symbol) async {
+  Future<List<EarningsSurprise>> fetchForSymbol(
+    String symbol, {
+    int? limit,
+  }) async {
     final String normalized = symbol.trim().toUpperCase();
     if (normalized.isEmpty) {
       return <EarningsSurprise>[];
     }
 
+    final Map<String, String> params = <String, String>{
+      'symbol': normalized,
+      if (limit != null) 'limit': '$limit',
+    };
+
     final dynamic decoded = await _client.get(
       'stock/earnings',
-      queryParameters: <String, String>{'symbol': normalized},
-      cacheKey: 'stock/earnings:$normalized',
+      queryParameters: params,
+      cacheKey: 'stock/earnings:$normalized:${limit ?? 'all'}',
     );
 
     final List<dynamic> rawList = decoded is List<dynamic>
@@ -25,11 +33,16 @@ class EarningsSurprisesService {
             ? (decoded['earnings'] as List<dynamic>? ?? <dynamic>[])
             : <dynamic>[];
 
-    return rawList
+    final List<EarningsSurprise> items = rawList
         .whereType<Map<String, dynamic>>()
         .map(EarningsSurprise.fromJson)
         .toList()
       ..sort((EarningsSurprise a, EarningsSurprise b) =>
           b.period.compareTo(a.period));
+
+    if (limit != null && items.length > limit) {
+      return items.take(limit).toList();
+    }
+    return items;
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
+import 'package:musaffa_terminal/Screens/earnings_calendar_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
@@ -144,6 +145,17 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
       FeatureKeys.portfolios,
       () => const PortfolioIdeaScreen(),
     );
+  }
+
+  void _goEarnings() {
+    final sidebar = Get.find<GlobalSidebarService>();
+    if (sidebar.activeItem.value == SidebarNavItem.earnings) {
+      sidebar.close();
+      return;
+    }
+    sidebar.setActive(SidebarNavItem.earnings);
+    sidebar.close();
+    Get.to(() => const EarningsCalendarScreen());
   }
 
   void _showProfileSheet(bool isDark) {
@@ -442,6 +454,13 @@ class _AppSidebarPanelState extends State<AppSidebarPanel> {
                           isDark: isDark,
                           onTap: _goPortfolio,
                         ),
+                      _NavTile(
+                        icon: CupertinoIcons.calendar,
+                        label: 'Earnings Calendar',
+                        selected: active == SidebarNavItem.earnings,
+                        isDark: isDark,
+                        onTap: _goEarnings,
+                      ),
                     ],
                   );
                 }),

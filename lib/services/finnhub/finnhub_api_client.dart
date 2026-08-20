@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,9 +6,19 @@ import 'package:http/http.dart' as http;
 import 'package:musaffa_terminal/config/infomanav_api_config.dart';
 
 class FinnhubApiException implements Exception {
-  FinnhubApiException(this.message);
+  FinnhubApiException(
+    this.message, {
+    this.statusCode,
+    this.isAccessDenied = false,
+    this.isRateLimited = false,
+  });
 
   final String message;
+  final int? statusCode;
+  final bool isAccessDenied;
+  final bool isRateLimited;
+
+  bool get isPremiumUnavailable => isAccessDenied;
 
   @override
   String toString() => message;
@@ -40,20 +51,89 @@ class FinnhubApiClient {
       queryParameters: params,
     );
 
-    final http.Response response = await http.get(
-      uri,
-      headers: const <String, String>{
-        HttpHeaders.acceptHeader: 'application/json',
-      },
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    late http.Response response;
+    try {
+      response = await http
+          .get(
+            uri,
+            headers: const <String, String>{
+              HttpHeaders.acceptHeader: 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+    } on SocketException {
       throw FinnhubApiException(
-        'Finnhub request failed (${response.statusCode})',
+        'No internet connection. Please check your network and try again.',
+      );
+    } on http.ClientException catch (e) {
+      throw FinnhubApiException('Network error: ${e.message}');
+    } on TimeoutException {
+      throw FinnhubApiException('Request timed out. Please try again.');
+    }
+
+    final int code = response.statusCode;
+    if (code == 401 || code == 403) {
+      throw FinnhubApiException(
+        'This data is unavailable on the current API plan.',
+        statusCode: code,
+        isAccessDenied: true,
+      );
+    }
+    if (code == 429) {
+      throw FinnhubApiException(
+        'Rate limit exceeded. Please wait a moment and try again.',
+        statusCode: code,
+        isRateLimited: true,
+      );
+    }
+    if (code < 200 || code >= 300) {
+      throw FinnhubApiException(
+        'Finnhub request failed ($code)',
+        statusCode: code,
       );
     }
 
-    final dynamic decoded = jsonDecode(response.body);
+    final String body = response.body.trim();
+    if (body.isEmpty) {
+      throw FinnhubApiException('Empty response from Finnhub.');
+    }
+
+    final String lower = body.toLowerCase();
+    if (lower.contains("don't have access") ||
+        lower.contains('does not have access') ||
+        (lower.contains('premium') && lower.contains('access')) ||
+        lower.contains('permission denied')) {
+      throw FinnhubApiException(
+        'This data is unavailable on the current API plan.',
+        statusCode: code,
+        isAccessDenied: true,
+      );
+    }
+
+    late final dynamic decoded;
+    try {
+      decoded = jsonDecode(body);
+    } catch (_) {
+      throw FinnhubApiException('Malformed response from Finnhub.');
+    }
+
+    if (decoded is Map<String, dynamic>) {
+      final String? err = decoded['error']?.toString() ??
+          decoded['Error']?.toString();
+      if (err != null && err.isNotEmpty) {
+        final String errLower = err.toLowerCase();
+        final bool access = errLower.contains('access') ||
+            errLower.contains('premium') ||
+            errLower.contains('permission') ||
+            errLower.contains('unauthorized');
+        throw FinnhubApiException(
+          err,
+          statusCode: code,
+          isAccessDenied: access,
+        );
+      }
+    }
+
     if (cacheKey != null) {
       _cache[cacheKey] = decoded;
     }
@@ -65,5 +145,13 @@ class FinnhubApiClient {
     _cache.removeWhere(
       (String key, _) => key.contains(normalized),
     );
+  }
+
+  static void clearCacheKey(String key) {
+    _cache.remove(key);
+  }
+
+  static void clearAllCache() {
+    _cache.clear();
   }
 }

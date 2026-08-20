@@ -696,7 +696,8 @@ class _DynamicTableState extends State<DynamicTable> {
       }
 
       return DynamicTableRow(
-        id: row.symbol.isNotEmpty ? row.symbol : row.name,
+        id: data['_row_id']?.toString() ??
+            (row.symbol.isNotEmpty ? row.symbol : row.name),
         data: data,
       );
     }).toList();

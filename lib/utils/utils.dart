@@ -340,6 +340,11 @@ Widget showLogo(
     ),
   );
 
+  // Sentinel used while company logos are still being fetched.
+  if (url == '__loading__') {
+    return _buildShimmerPlaceholder(sideWidth ?? 25);
+  }
+
   // If no URL provided, return placeholder immediately
   if (url.isEmpty) {
     return circular
