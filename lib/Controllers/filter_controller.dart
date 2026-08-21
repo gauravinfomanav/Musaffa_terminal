@@ -40,7 +40,7 @@ import 'package:musaffa_terminal/models/stocks_data.dart';
 ///     fields: {
 ///       'price': stock.currentPrice != null ? '\$${stock.currentPrice!.toStringAsFixed(2)}' : '--',
 ///       'change': stock.priceChange1DPercent != null ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%' : '--',
-///       'marketCap': stock.usdMarketCap != null ? getShortenedT(stock.usdMarketCap! * 1000000) : '--',
+///       'marketCap': Constants.formatMarketCapFromMillions(stock.usdMarketCap),
 ///       'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
 ///       // Add more fields as needed
 ///     },

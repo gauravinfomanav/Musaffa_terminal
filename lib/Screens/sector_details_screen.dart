@@ -175,9 +175,9 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           'Largest Market Cap', 'No data available', '--', isDarkMode);
     }
 
-    final marketCap =
-        largestMarketCap.usdMarketCap! * 1000000; // Convert to actual value
-    final marketCapStr = getShortenedT(marketCap);
+    final marketCapStr = Constants.formatMarketCapFromMillions(
+      largestMarketCap.usdMarketCap,
+    );
 
     return _buildPerformanceRow(
       'Largest Market Cap',
@@ -632,12 +632,15 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     final stocks = sectorStocksController.allSectorStocks;
     if (stocks.isEmpty) return '--';
 
-    final totalMarketCap = stocks
-        .where((stock) => stock.usdMarketCap != null)
-        .fold<double>(0, (sum, stock) => sum + (stock.usdMarketCap! * 1000000));
+    final withCap = stocks.where((stock) => stock.usdMarketCap != null).toList();
+    if (withCap.isEmpty) return '--';
 
-    final average = totalMarketCap / stocks.length;
-    return getShortenedT(average);
+    final averageMillions = withCap.fold<double>(
+          0,
+          (sum, stock) => sum + stock.usdMarketCap!.toDouble(),
+        ) /
+        withCap.length;
+    return Constants.formatMarketCapFromMillions(averageMillions);
   }
 
   String _getTotalVolume() {
@@ -818,7 +821,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
               ? '\$${stock.change1D!.toStringAsFixed(2)}'
               : '--',
           'marketCap': stock.usdMarketCap != null
-              ? getShortenedT(stock.usdMarketCap! * 1000000)
+              ? Constants.formatMarketCapFromMillions(stock.usdMarketCap)
               : '--',
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
           'sector': stock.sector ?? '--',
@@ -1030,7 +1033,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
               : '--',
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
           'marketCap': stock.usdMarketCap != null
-              ? getShortenedT(stock.usdMarketCap! * 1000000)
+              ? Constants.formatMarketCapFromMillions(stock.usdMarketCap)
               : '--',
           'avgVol10d': stock.avgVolume10days != null
               ? getShortenedT(stock.avgVolume10days!)

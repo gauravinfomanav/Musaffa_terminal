@@ -109,9 +109,9 @@ class PremiumChartFormatters {
     return volume.toStringAsFixed(0);
   }
 
-  static String marketCap(num? value) {
-    if (value == null) return '--';
-    return Constants.getShortenedMarketCapV2(value);
+  static String marketCap(num? valueInMillions) {
+    if (valueInMillions == null) return '--';
+    return Constants.formatMarketCapFromMillions(valueInMillions);
   }
 }
 

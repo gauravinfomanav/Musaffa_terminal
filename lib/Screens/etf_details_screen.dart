@@ -1118,7 +1118,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                 ? '${((stockData!.volume! / 1000000).toStringAsFixed(1))}M'
                 : '--',
             'marketCap': stockData?.usdMarketCap != null
-                ? Constants.getShortenedMarketCapV2(stockData!.usdMarketCap!)
+                ? Constants.formatMarketCapFromMillions(stockData!.usdMarketCap!)
                 : '--',
             'pe': stockData?.peTTM != null
                 ? '${stockData!.peTTM!.toStringAsFixed(1)}'

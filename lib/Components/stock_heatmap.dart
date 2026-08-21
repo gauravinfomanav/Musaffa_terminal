@@ -144,6 +144,10 @@ class _StockHeatmapState extends State<StockHeatmap>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Stock Heatmap</title>
         <style>
+          /* Pin the scheme to the app theme; otherwise the WebView follows the
+             macOS system appearance and paints uncovered pixels and scrollbars
+             dark while the app is on the light theme. */
+          :root { color-scheme: $colorTheme; }
           html, body { margin:0; padding:0; height:100%; width:100%; background:$backgroundColor; }
           .tradingview-widget-container { height:100%; width:100%; background:$backgroundColor; }
           .tradingview-widget-container__widget { height:100%; width:100%; }
@@ -662,6 +666,10 @@ class _EtfHeatmapState extends State<EtfHeatmap>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
+      /* Pin the scheme to the app theme; otherwise the WebView follows the
+         macOS system appearance and paints uncovered pixels and scrollbars
+         dark while the app is on the light theme. */
+      :root { color-scheme: $colorTheme; }
       html, body { margin:0; padding:0; height:100%; width:100%; background:$bg; }
       .tradingview-widget-container, .tradingview-widget-container__widget { height:100%; width:100%; }
       .tradingview-widget-copyright { display:none !important; }
@@ -986,7 +994,7 @@ class _CryptoHeatmapState extends State<CryptoHeatmap>
 
   String _cryptoHtml(String theme) {
     final bg = theme == 'dark' ? '#0F1115' : '#FFFFFF';
-    return '''<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><style>html,body{margin:0;padding:0;height:100%;width:100%;background:${bg}}.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}.tradingview-widget-copyright{display:none!important}</style></head><body><div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>{"dataSource":"Crypto","blockSize":"market_cap_calc","blockColor":"Perf.W","locale":"en","symbolUrl":"","colorTheme":"${theme}","hasTopBar":false,"isDataSetEnabled":false,"isZoomEnabled":true,"hasSymbolTooltip":true,"isMonoSize":false,"width":"100%","height":"100%"}</script></div></body></html>''';
+    return '''<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><style>:root{color-scheme:${theme}}html,body{margin:0;padding:0;height:100%;width:100%;background:${bg}}.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}.tradingview-widget-copyright{display:none!important}</style></head><body><div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>{"dataSource":"Crypto","blockSize":"market_cap_calc","blockColor":"Perf.W","locale":"en","symbolUrl":"","colorTheme":"${theme}","hasTopBar":false,"isDataSetEnabled":false,"isZoomEnabled":true,"hasSymbolTooltip":true,"isMonoSize":false,"width":"100%","height":"100%"}</script></div></body></html>''';
   }
 
   @override
@@ -1093,7 +1101,7 @@ class _ForexHeatmapState extends State<ForexHeatmap>
   String _forexHtml(bool isDark) {
     final theme = isDark ? 'dark' : 'light';
     final bg = isDark ? '#0F0F0F' : '#FFFFFF';
-    return '''<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><style>html,body{margin:0;padding:0;height:100%;width:100%;background:${bg}}.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}.tradingview-widget-copyright{display:none!important}</style></head><body><div class=tradingview-widget-container><div class=tradingview-widget-container__widget></div><script type=text/javascript src=https://s3.tradingview.com/external-embedding/embed-widget-forex-heat-map.js async>{"colorTheme":"${theme}","isTransparent":false,"locale":"en","currencies":["EUR","USD","JPY","GBP","CHF","AUD","CAD","NZD","CNY","TRY","NOK","SEK","DKK","ZAR","HKD","SGD"],"backgroundColor":"${bg}","width":"100%","height":"100%"}</script></div></body></html>''';
+    return '''<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><style>:root{color-scheme:${theme}}html,body{margin:0;padding:0;height:100%;width:100%;background:${bg}}.tradingview-widget-container,.tradingview-widget-container__widget{height:100%;width:100%}.tradingview-widget-copyright{display:none!important}</style></head><body><div class=tradingview-widget-container><div class=tradingview-widget-container__widget></div><script type=text/javascript src=https://s3.tradingview.com/external-embedding/embed-widget-forex-heat-map.js async>{"colorTheme":"${theme}","isTransparent":false,"locale":"en","currencies":["EUR","USD","JPY","GBP","CHF","AUD","CAD","NZD","CNY","TRY","NOK","SEK","DKK","ZAR","HKD","SGD"],"backgroundColor":"${bg}","width":"100%","height":"100%"}</script></div></body></html>''';
   }
 
   @override

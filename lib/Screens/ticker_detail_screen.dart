@@ -477,7 +477,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
           [
             (
               'Market Cap',
-              Constants.getShortenedMarketCapV2(stockData.usdMarketCap)
+              Constants.formatMarketCapFromMillions(stockData.usdMarketCap)
             ),
             (
               '52W High',
@@ -597,7 +597,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: _KeyMetricsQuoteStrip(
               isDark: isDarkMode,
-              marketCap: Constants.getShortenedMarketCapV2(
+              marketCap: Constants.formatMarketCapFromMillions(
                 stockData.usdMarketCap,
               ),
               peRatio: _fmtNum(stockData.peTTM),
@@ -766,7 +766,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     _headerKv(
                       isDarkMode,
                       'Market Cap',
-                      Constants.getShortenedMarketCapV2(stockData.usdMarketCap),
+                      Constants.formatMarketCapFromMillions(
+                          stockData.usdMarketCap),
                     ),
                     _headerKv(
                       isDarkMode,

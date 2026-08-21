@@ -81,6 +81,10 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Mini Widgets</title>
         <style>
+            /* Pin the scheme to the app theme; otherwise the WebView follows
+               the macOS system appearance and paints uncovered pixels and
+               scrollbars dark while the app is on the light theme. */
+            :root { color-scheme: $colorTheme; }
             body, html { 
                 margin: 0 !important; 
                 padding: 0 !important; 
@@ -203,7 +207,32 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             .mini-widget, .mini-widget-wrapper, .tradingview-widget-container {
                 overflow: hidden !important;
             }
+            /* Copyright / attribution links outside the iframe. */
+            .tradingview-widget-copyright,
+            .tradingview-widget-copyright a {
+                pointer-events: none !important;
+                cursor: default !important;
+            }
         </style>
+        <script>
+          // Runs before the embed scripts. Logo clicks use window.open /
+          // target=_blank to leave the app — neutralize that here.
+          (function () {
+            window.open = function () { return null; };
+            document.addEventListener('click', function (e) {
+              var el = e.target;
+              if (!el || !el.closest) return;
+              var a = el.closest('a');
+              if (!a) return;
+              var href = (a.getAttribute('href') || '').toLowerCase();
+              if (href.indexOf('tradingview.com') !== -1 ||
+                  href.indexOf('tradingview-widget.com') !== -1) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }, true);
+          })();
+        </script>
     </head>
     <body>
         <div class="widgets-container">
@@ -273,6 +302,47 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     ''';
   }
 
+  /// CDN / embed hosts the mini widgets need to load charts and assets.
+  static bool _isTradingViewWidgetResource(String url) {
+    return url.contains('s3.tradingview.com') ||
+        url.contains('s.tradingview.com') ||
+        url.contains('tradingview-widget.com') ||
+        url.contains('cdn.tradingview.com') ||
+        url.contains('widget.tradingview.com');
+  }
+
+  /// Logo / symbol / “open on TradingView” destinations (any frame).
+  static bool _isTradingViewSiteNavigation(String url) {
+    // Anything on tradingview.com that is not a known embed/CDN host is a
+    // leave-the-app navigation (logo, symbol page, marketing site, etc.).
+    return url.contains('tradingview.com') &&
+        !_isTradingViewWidgetResource(url);
+  }
+
+  void _injectTradingViewClickGuard() {
+    const String script = '''
+      (function () {
+        window.open = function () { return null; };
+        try {
+          document.querySelectorAll('a[href*="tradingview.com"]').forEach(function (a) {
+            a.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }, true);
+            a.style.pointerEvents = 'none';
+            a.removeAttribute('href');
+          });
+        } catch (_) {}
+      })();
+    ''';
+    _controller?.runJavaScript(script);
+    // Embed scripts create the logo/copyright links after first paint.
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      _controller?.runJavaScript(script);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -302,6 +372,7 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
           },
           onPageFinished: (String url) {
+            _injectTradingViewClickGuard();
             Future.delayed(Duration(milliseconds: MiniWidgetsRowConstants.loadingDelayMs), () {
               if (mounted) {
                 setState(() {
@@ -321,18 +392,27 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
             }
           },
           onNavigationRequest: (NavigationRequest request) {
-            // The widget's script and its iframes are sub-frame loads and must
-            // go through. Any other main-frame navigation is a click on the
-            // TradingView logo or a symbol trying to replace this row with
-            // tradingview.com, so it stays blocked. A `target="_blank"` click
-            // is reported as a sub-frame first, then re-issued against the main
-            // frame, where it is caught here.
-            if (!request.isMainFrame) {
+            final String url = request.url.toLowerCase();
+
+            // Initial page + blank frames.
+            if (url.startsWith('data:') || url == 'about:blank') {
               return NavigationDecision.navigate;
             }
 
-            final String url = request.url.toLowerCase();
-            if (url.startsWith('data:') || url == 'about:blank') {
+            // Widget CDN / embed hosts — needed in every frame for the charts.
+            if (_isTradingViewWidgetResource(url)) {
+              return NavigationDecision.navigate;
+            }
+
+            // Logo / symbol / “open on TradingView” links (any frame, including
+            // target=_blank popups that WKWebView surfaces as navigations).
+            if (_isTradingViewSiteNavigation(url)) {
+              debugPrint('Blocked TradingView site navigation: ${request.url}');
+              return NavigationDecision.prevent;
+            }
+
+            // Allow other subresource loads; block every other main-frame leave.
+            if (!request.isMainFrame) {
               return NavigationDecision.navigate;
             }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_stock_model.dart';
@@ -154,8 +155,9 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
             // Format gain/loss to 1 decimal place
             final formattedGainLoss = double.parse(priceDiff.toStringAsFixed(1));
             
-            // Format market cap
-            final marketCapFormatted = _formatMarketCap(marketCap);
+            // Format market cap (stocks_data.usdMarketCap is in millions)
+            final marketCapFormatted =
+                Constants.formatMarketCapFromMillions(marketCap);
             
             tableData.add(SimpleRowModel(
               symbol: watchlistStock.ticker,
@@ -246,20 +248,6 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       
       // Notify parent widget that data is ready
       widget.onDataReady?.call(_tableData);
-    }
-  }
-
-  String _formatMarketCap(double marketCap) {
-    if (marketCap >= 1e12) {
-      return '\$${(marketCap / 1e12).toStringAsFixed(1)}T';
-    } else if (marketCap >= 1e9) {
-      return '\$${(marketCap / 1e9).toStringAsFixed(1)}B';
-    } else if (marketCap >= 1e6) {
-      return '\$${(marketCap / 1e6).toStringAsFixed(1)}M';
-    } else if (marketCap >= 1e3) {
-      return '\$${(marketCap / 1e3).toStringAsFixed(1)}K';
-    } else {
-      return '\$${marketCap.toStringAsFixed(0)}';
     }
   }
 
