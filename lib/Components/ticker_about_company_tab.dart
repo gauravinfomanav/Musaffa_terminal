@@ -202,8 +202,8 @@ class _CompanyProfileCardState extends State<_CompanyProfileCard> {
         'Market Cap',
         profile?.marketCapitalization != null &&
                 profile!.marketCapitalization! > 0
-            ? Constants.getShortenedMarketCapV2(
-                profile.marketCapitalization! * 1000000,
+            ? Constants.formatMarketCapFromMillions(
+                profile.marketCapitalization,
               )
             : '--',
       ),

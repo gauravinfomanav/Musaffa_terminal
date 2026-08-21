@@ -39,6 +39,10 @@ class _DynamicHeightMarketQuotesState extends State<DynamicHeightMarketQuotes> {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>TradingView Market Quotes</title>
         <style>
+            /* Pin the scheme to the app theme; otherwise the WebView follows
+               the macOS system appearance and paints uncovered pixels and
+               scrollbars dark while the app is on the light theme. */
+            :root { color-scheme: light; }
             body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #FFFFFF; }
             .tradingview-widget-container { height: 100%; width: 100%; background: #FFFFFF !important; }
             .tradingview-widget-container__widget { background: #FFFFFF !important; }

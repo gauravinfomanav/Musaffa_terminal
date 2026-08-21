@@ -25,6 +25,13 @@ class Constants {
       return "\$${value.toStringAsFixed(2)}";
     }
   }
+
+  /// Formats [stocks_data.usdMarketCap], which is stored in millions of USD.
+  /// Example: `4200000` → `$4.20T` (not `$4.20M`).
+  static String formatMarketCapFromMillions(num? millions) {
+    if (millions == null) return "-";
+    return getShortenedMarketCapV2(millions * 1000000);
+  }
 }
 
 class WebResponse<T, P> {

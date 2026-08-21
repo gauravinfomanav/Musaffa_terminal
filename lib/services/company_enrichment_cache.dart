@@ -12,7 +12,7 @@ class CompanyEnrichment {
 
   final String? name;
   final String? logo;
-  final num? marketCap;
+  final num? marketCap; // stocks_data usdMarketCap — millions of USD
 }
 
 /// Cached Typesense lookups for company name / logo / market cap by symbol.

@@ -131,6 +131,7 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
   String _generateTradingViewHtml(String colorTheme) {
     // Ensure width and height in the *script config* are 100%
     // Added ResizeObserver JavaScript
+    final String pageBg = colorTheme == 'dark' ? '#14161A' : '#FFFFFF';
     return '''
     <html>
     <head>
@@ -138,12 +139,19 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>TradingView Widget</title>        
         <style>
-          
-            body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-user-select: none; user-select: none; }
-            .tradingview-widget-container { height: 100%; width: 100%; overflow: hidden; }
+            /* Without an explicit scheme the WebView follows the macOS system
+               appearance, so a system in Dark Mode paints the canvas and the
+               scrollbars dark even while the app is on the light theme. */
+            :root { color-scheme: $colorTheme; }
+            /* The embedded iframe does not always cover the last few pixels of
+               the page. An explicit background makes that remainder match the
+               card instead of exposing the WebView's default canvas. */
+            body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: $pageBg; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-user-select: none; user-select: none; }
+            .tradingview-widget-container { height: 100%; width: 100%; overflow: hidden; background: $pageBg; }
+            .tradingview-widget-container__widget { background: $pageBg; }
             /* display:block keeps the iframe off the text baseline, which
                otherwise leaves dead pixels under the widget. */
-            iframe { width: 100%; height: 100%; border: 0; display: block; vertical-align: bottom; }
+            iframe { width: 100%; height: 100%; border: 0; display: block; vertical-align: bottom; background: $pageBg; }
             
         </style>
     </head>

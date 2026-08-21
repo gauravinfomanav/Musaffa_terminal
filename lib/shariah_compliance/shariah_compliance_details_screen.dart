@@ -704,7 +704,7 @@ class _ShariahComplianceDetailsScreenState
                       isDark,
                       'Market Cap',
                       stock?.usdMarketCap != null
-                          ? Constants.getShortenedMarketCapV2(
+                          ? Constants.formatMarketCapFromMillions(
                               stock!.usdMarketCap)
                           : '--',
                     ),

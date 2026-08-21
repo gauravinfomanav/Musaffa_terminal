@@ -178,7 +178,7 @@ class StocksData {
   num? totalDebtTotalEquityAnnual;
   num? totalDebtTotalEquityQuarterly;
   String? updatedAt;
-  num? usdMarketCap;
+  num? usdMarketCap; // USD market cap in millions
   num? volume;
 
   StocksData(

@@ -6,8 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TradingView Chart</title>
     <style>
+        /* Without an explicit scheme the WebView follows the macOS system
+           appearance, so a system in Dark Mode paints the canvas dark even
+           while the app is on the light theme. initChart overrides both to
+           match the Flutter theme. */
+        :root {
+            color-scheme: light;
+        }
+
         html, body {
-            background: transparent;
+            background: #FFFFFF;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -123,6 +131,10 @@
                 options.gridLineColor = "#2B2B43";
                 options.fontColor = "#D1D4DC";
             }
+
+            document.documentElement.style.colorScheme = colorTheme;
+            document.documentElement.style.background = options.backgroundColor;
+            document.body.style.background = options.backgroundColor;
 
             // Create the chart
             new TradingView.MediumWidget(options);

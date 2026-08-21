@@ -1366,7 +1366,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           ? '\$${stock.currentPrice!.toStringAsFixed(2)}'
           : '--',
       'marketCap': stock.usdMarketCap != null
-          ? getShortenedT(stock.usdMarketCap! * 1000000)
+          ? Constants.formatMarketCapFromMillions(stock.usdMarketCap)
           : '--',
       'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
       'sector': stock.sector ?? '--',

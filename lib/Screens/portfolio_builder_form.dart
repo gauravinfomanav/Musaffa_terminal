@@ -653,15 +653,8 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
     return HomeUi.tableInlineFieldDecoration(isDark, hintText: hintText);
   }
 
-  String _formatMarketCap(double marketCap) {
-    if (marketCap >= 1000000000) {
-      return '\$${(marketCap / 1000000000).toStringAsFixed(2)}B';
-    } else if (marketCap >= 1000000) {
-      return '\$${(marketCap / 1000000).toStringAsFixed(2)}M';
-    } else if (marketCap >= 1000) {
-      return '\$${(marketCap / 1000).toStringAsFixed(2)}K';
-    }
-    return '\$${marketCap.toStringAsFixed(2)}';
+  String _formatMarketCap(double marketCapMillions) {
+    return Constants.formatMarketCapFromMillions(marketCapMillions);
   }
 
   Future<void> _fetchStockData(int index, String ticker) async {

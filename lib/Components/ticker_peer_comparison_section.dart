@@ -82,7 +82,8 @@ class TickerPeerComparisonSection extends StatelessWidget {
         fields: <String, dynamic>{
           'currentPrice': _fmtPrice(row),
           'change1DPercent': _fmtPercent(row.stockData.change1DPercent),
-          'marketCap': Constants.getShortenedMarketCapV2(row.stockData.usdMarketCap),
+          'marketCap': Constants.formatMarketCapFromMillions(
+              row.stockData.usdMarketCap),
           'peTTM': _fmtNum(row.stockData.peTTM),
           'epsTTM': _fmtNum(row.stockData.epsTTM),
           'roe': _fmtPercent(row.stockData.rOE),
