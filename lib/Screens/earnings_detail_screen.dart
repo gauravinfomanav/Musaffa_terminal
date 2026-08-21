@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
+import 'package:musaffa_terminal/Components/sliding_pill_tabs.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/ticker_earnings_compact_chart.dart';
 import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
@@ -16,7 +17,6 @@ import 'package:musaffa_terminal/models/revenue_estimate_model.dart';
 import 'package:musaffa_terminal/models/stock_profile_model.dart';
 import 'package:musaffa_terminal/models/transcript_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -125,19 +125,31 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                 visible.indexOf(_selectedTab).clamp(0, visible.length - 1);
 
             return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: (visible.length * 140.0).clamp(280.0, 720.0),
-                  ),
-                  child: HomeUi.segmentedControl(
-                    dark: isDark,
-                    options: visible.map(_tabLabel).toList(),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SlidingPillTabs(
+                    itemCount: visible.length,
                     selectedIndex: selectedIndex,
-                    onChanged: (int index) {
+                    isDarkMode: isDark,
+                    onSelect: (int index) {
                       setState(() => _selectedTab = visible[index]);
+                    },
+                    itemBuilder:
+                        (BuildContext context, int index, bool isSelected) {
+                      return Text(
+                        _tabLabel(visible[index]),
+                        style: HomeUi.control(isDark, active: isSelected)
+                            .copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white
+                              : HomeUi.muted(isDark),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -164,7 +176,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
 
   Widget _buildOverviewTab(bool isDark) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
       children: [
         _buildHeroHeader(isDark),
         const SizedBox(height: 16),
@@ -990,7 +1002,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
 
   Widget _buildHistoryTab(bool isDark) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
       children: [
         Obx(() {
           final SectionLoadState state = _controller.historyState.value;
@@ -1136,81 +1148,208 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
 
   Widget _buildFinancialsTab(bool isDark) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
       children: [
         Obx(() {
+          final String freq = _controller.statementFreq.value;
+          final bool loading =
+              _controller.incomeState.value == SectionLoadState.loading ||
+                  _controller.balanceState.value == SectionLoadState.loading ||
+                  _controller.cashFlowState.value == SectionLoadState.loading;
+          final bool hasIncome =
+              _controller.incomeState.value == SectionLoadState.success;
+          final bool hasBalance =
+              _controller.balanceState.value == SectionLoadState.success;
+          final bool hasCashFlow =
+              _controller.cashFlowState.value == SectionLoadState.success;
+          final bool anySuccess = hasIncome || hasBalance || hasCashFlow;
+          final bool anyError =
+              _controller.incomeState.value == SectionLoadState.error ||
+                  _controller.balanceState.value == SectionLoadState.error ||
+                  _controller.cashFlowState.value == SectionLoadState.error;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Frequency',
-                    style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    height: HomeUi.controlHeight,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-                      border: Border.all(color: HomeUi.border(isDark)),
-                      color: HomeUi.cardBg(isDark),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                decoration: BoxDecoration(
+                  color: HomeUi.cardBg(isDark),
+                  borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                  boxShadow: HomeUi.cardShadow(isDark),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Frequency',
+                      style: HomeUi.filterFieldLabelStyle(isDark),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _controller.statementFreq.value,
-                        isDense: true,
-                        style: HomeUi.control(isDark, active: true),
-                        items: const <DropdownMenuItem<String>>[
-                          DropdownMenuItem(
-                            value: 'quarterly',
-                            child: Text('Quarterly'),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 168,
+                      child: HomeUi.filterFieldShell(
+                        dark: isDark,
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: freq == 'annual' ? 'Annual' : 'Quarterly',
+                            dropdownColor: HomeUi.cardBg(isDark),
+                            borderRadius:
+                                BorderRadius.circular(HomeUi.radiusMd),
+                            icon: HomeUi.filterChevron(isDark),
+                            style: HomeUi.control(isDark, active: true)
+                                .copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            items: const <String>['Quarterly', 'Annual']
+                                .map(
+                                  (String item) => DropdownMenuItem<String>(
+                                    value: item,
+                                    child: Text(item),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (String? v) {
+                              if (v == null) return;
+                              _controller.setStatementFrequency(
+                                v == 'Annual' ? 'annual' : 'quarterly',
+                              );
+                            },
                           ),
-                          DropdownMenuItem(
-                            value: 'annual',
-                            child: Text('Annual'),
-                          ),
-                        ],
-                        onChanged: (String? v) {
-                          if (v != null) _controller.setStatementFrequency(v);
-                        },
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                    Text(
+                      'Income · Balance · Cash flow',
+                      style: HomeUi.subtitle(isDark).copyWith(
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              if (_controller.incomeState.value == SectionLoadState.loading ||
-                  _controller.balanceState.value == SectionLoadState.loading ||
-                  _controller.cashFlowState.value == SectionLoadState.loading)
+              const SizedBox(height: 14),
+              if (loading && !anySuccess)
                 TickerFinnhubSectionCard(
                   isDarkMode: isDark,
                   child: _sectionShimmer(isDark, height: 180),
                 ),
-              if (_controller.incomeState.value == SectionLoadState.success)
-                _statementCard(
-                  'Income Statement',
-                  _controller.incomeStatement.value,
-                  isDark,
+              if (anySuccess)
+                LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    final bool dual = constraints.maxWidth >= 860;
+                    final List<Widget> cards = <Widget>[
+                      if (hasIncome)
+                        _statementCard(
+                          'Income Statement',
+                          _controller.incomeStatement.value,
+                          isDark,
+                          icon: Icons.receipt_long_rounded,
+                          compact: dual,
+                        ),
+                      if (hasBalance)
+                        _statementCard(
+                          'Balance Sheet',
+                          _controller.balanceSheet.value,
+                          isDark,
+                          icon: Icons.account_balance_rounded,
+                          compact: dual,
+                        ),
+                      if (hasCashFlow)
+                        _statementCard(
+                          'Cash Flow',
+                          _controller.cashFlow.value,
+                          isDark,
+                          icon: Icons.payments_rounded,
+                          compact: dual,
+                        ),
+                    ];
+
+                    if (!dual || cards.length == 1) {
+                      return Column(
+                        children: [
+                          for (int i = 0; i < cards.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 12),
+                            cards[i],
+                          ],
+                        ],
+                      );
+                    }
+
+                    final List<Widget> rows = <Widget>[];
+                    for (int i = 0; i < cards.length; i += 2) {
+                      if (i > 0) rows.add(const SizedBox(height: 12));
+                      final Widget left = cards[i];
+                      final Widget? right =
+                          i + 1 < cards.length ? cards[i + 1] : null;
+                      rows.add(
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: left),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: right ?? const SizedBox.shrink(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return Column(children: rows);
+                  },
                 ),
-              if (_controller.balanceState.value == SectionLoadState.success) ...[
-                const SizedBox(height: 16),
-                _statementCard(
-                  'Balance Sheet',
-                  _controller.balanceSheet.value,
-                  isDark,
+              if (!loading && !anySuccess)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+                  decoration: HomeUi.cardDecoration(isDark),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          gradient: HomeUi.iconWellGradient,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: HomeUi.iconWellBorder),
+                        ),
+                        child: HomeUi.brandIcon(
+                          icon: anyError
+                              ? Icons.error_outline_rounded
+                              : Icons.insights_outlined,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        anyError
+                            ? 'Financials unavailable'
+                            : 'No statements for this window',
+                        style: HomeUi.heading(isDark).copyWith(fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        anyError
+                            ? 'Pull to refresh, or try another frequency.'
+                            : 'Switch Quarterly / Annual, or refresh the page.',
+                        style: HomeUi.subtitle(isDark).copyWith(
+                          fontSize: 12.5,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-              if (_controller.cashFlowState.value ==
-                  SectionLoadState.success) ...[
-                const SizedBox(height: 16),
-                _statementCard(
-                  'Cash Flow',
-                  _controller.cashFlow.value,
-                  isDark,
-                ),
-              ],
             ],
           );
         }),
@@ -1221,8 +1360,10 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
   Widget _statementCard(
     String title,
     FinancialStatementModel? model,
-    bool isDark,
-  ) {
+    bool isDark, {
+    IconData icon = Icons.description_outlined,
+    bool compact = false,
+  }) {
     if (model == null || model.periods.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -1242,48 +1383,49 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
         .toList();
     if (entries.isEmpty) return const SizedBox.shrink();
 
-    return DynamicTable(
+    final String period = '${latest['period'] ?? '—'}';
+    final List<_StatementMetric> rows = entries
+        .map(
+          (MapEntry<String, dynamic> e) => _StatementMetric(
+            keyName: e.key,
+            label: _humanize(e.key),
+            raw: e.value,
+            emphasized: _isKeyFinancialMetric(e.key),
+          ),
+        )
+        .toList();
+
+    return _PremiumStatementCard(
+      isDark: isDark,
       title: title,
-      subtitle: 'Period: ${latest['period'] ?? '—'}',
-      toolbarLeadingIcon: Icons.description_outlined,
-      showOuterShadow: true,
-      showFixedColumn: true,
-      considerPadding: false,
-      columnSpacing: 8,
-      fixedColumnWidth: 220,
-      enableLivePrices: false,
-      zebraStripes: true,
-      enableColumnCustomization: false,
-      tableId: 'earnings_${title.toLowerCase().replaceAll(' ', '_')}',
-      tickerHeaderLabel: 'METRIC',
-      columns: const <SimpleColumn>[
-        SimpleColumn(
-          label: 'VALUE',
-          fieldName: 'value',
-          isNumeric: true,
-          width: 140,
-        ),
-      ],
-      rows: entries.map((MapEntry<String, dynamic> e) {
-        final String value = e.value is num
-            ? FinnhubDisplayFormatters.formatCompactCurrency(e.value as num)
-            : e.value.toString();
-        return SimpleRowModel(
-          symbol: '',
-          name: _humanize(e.key),
-          logo: null,
-          fields: <String, dynamic>{
-            '_row_id': '${title}_${e.key}',
-            'value': value,
-          },
-        );
-      }).toList(),
+      period: period,
+      icon: icon,
+      compact: compact,
+      rows: rows,
     );
+  }
+
+  bool _isKeyFinancialMetric(String key) {
+    final String k = key.toLowerCase();
+    return k == 'netincome' ||
+        k == 'grossincome' ||
+        k == 'totalrevenue' ||
+        k == 'revenue' ||
+        k == 'ebit' ||
+        k == 'ebitda' ||
+        k == 'operatingincome' ||
+        k == 'totalassets' ||
+        k == 'totalliabilities' ||
+        k == 'totalequity' ||
+        k == 'operatingcashflow' ||
+        k == 'freecashflow' ||
+        k == 'cashatendofperiod' ||
+        k == 'netoperatingcashflow';
   }
 
   Widget _buildEstimatesTab(bool isDark) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
       children: [
         Obx(() {
           final bool loading =
@@ -1475,7 +1617,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
 
   Widget _buildTranscriptsTab(bool isDark) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
       children: [
         Obx(() {
           if (_controller.transcripts.isEmpty) {
@@ -1734,6 +1876,329 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StatementMetric {
+  const _StatementMetric({
+    required this.keyName,
+    required this.label,
+    required this.raw,
+    required this.emphasized,
+  });
+
+  final String keyName;
+  final String label;
+  final dynamic raw;
+  final bool emphasized;
+}
+
+class _PremiumStatementCard extends StatelessWidget {
+  const _PremiumStatementCard({
+    required this.isDark,
+    required this.title,
+    required this.period,
+    required this.icon,
+    required this.rows,
+    this.compact = false,
+  });
+
+  final bool isDark;
+  final String title;
+  final String period;
+  final IconData icon;
+  final List<_StatementMetric> rows;
+  final bool compact;
+
+  _StatementMetric? get _hero {
+    for (final _StatementMetric row in rows) {
+      if (row.emphasized && row.raw is num) return row;
+    }
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final _StatementMetric? hero = _hero;
+    final num? heroNum = hero?.raw is num ? hero!.raw as num : null;
+    final String heroValue = heroNum != null
+        ? FinnhubDisplayFormatters.formatCompactCurrency(heroNum)
+        : (hero?.raw?.toString() ?? '—');
+    final bool? heroSign =
+        heroNum == null ? null : (heroNum < 0 ? false : true);
+
+    return Container(
+      decoration: HomeUi.cardDecoration(isDark),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              compact ? 14 : 16,
+              14,
+              compact ? 14 : 16,
+              10,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: compact ? 32 : 36,
+                  height: compact ? 32 : 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: HomeUi.iconWellGradient,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: HomeUi.iconWellBorder),
+                  ),
+                  child: HomeUi.brandIcon(
+                    icon: icon,
+                    size: compact ? 14 : 16,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeUi.cardTitle(isDark).copyWith(
+                          fontSize: compact ? 14.5 : 15.5,
+                          height: 1.15,
+                          letterSpacing: -0.25,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        period,
+                        style: HomeUi.overline(isDark).copyWith(
+                          fontSize: 10,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hero != null) ...[
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 14 : 16,
+                0,
+                compact ? 14 : 16,
+                12,
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? <Color>[
+                            const Color(0xFF1A1F2A),
+                            const Color(0xFF141820),
+                          ]
+                        : <Color>[
+                            const Color(0xFFF8FAFC),
+                            const Color(0xFFF1F5F9),
+                          ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'HIGHLIGHT',
+                            style: HomeUi.overline(isDark).copyWith(
+                              fontSize: 9,
+                              letterSpacing: 0.9,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            hero.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: HomeUi.subtitle(isDark).copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      heroValue,
+                      style: HomeUi.tableNumeric(
+                        isDark,
+                        positiveValue: heroSign,
+                      ).copyWith(
+                        fontSize: compact ? 18 : 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 14 : 16,
+              vertical: 7,
+            ),
+            decoration: BoxDecoration(
+              color: HomeUi.elevatedBg(isDark),
+              border: Border(
+                top: BorderSide(color: HomeUi.borderLight(isDark)),
+                bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+              ),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'LINE ITEM',
+                  style: HomeUi.overline(isDark).copyWith(
+                    fontSize: 9.5,
+                    letterSpacing: 0.75,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'AMOUNT',
+                  style: HomeUi.overline(isDark).copyWith(
+                    fontSize: 9.5,
+                    letterSpacing: 0.75,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (int i = 0; i < rows.length; i++)
+            _PremiumStatementRow(
+              isDark: isDark,
+              metric: rows[i],
+              compact: compact,
+              showDivider: i < rows.length - 1,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumStatementRow extends StatefulWidget {
+  const _PremiumStatementRow({
+    required this.isDark,
+    required this.metric,
+    required this.compact,
+    required this.showDivider,
+  });
+
+  final bool isDark;
+  final _StatementMetric metric;
+  final bool compact;
+  final bool showDivider;
+
+  @override
+  State<_PremiumStatementRow> createState() => _PremiumStatementRowState();
+}
+
+class _PremiumStatementRowState extends State<_PremiumStatementRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final _StatementMetric metric = widget.metric;
+    final bool isDark = widget.isDark;
+    final num? numeric = metric.raw is num ? metric.raw as num : null;
+    final String value = numeric != null
+        ? FinnhubDisplayFormatters.formatCompactCurrency(numeric)
+        : metric.raw.toString();
+    final bool? positiveValue =
+        numeric == null ? null : (numeric < 0 ? false : null);
+
+    final Color baseBg = metric.emphasized
+        ? (isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : const Color(0xFFF8FAFC))
+        : Colors.transparent;
+    final Color bg = _hover ? HomeUi.accentSoft(isDark) : baseBg;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        decoration: BoxDecoration(
+          color: bg,
+          border: widget.showDivider
+              ? Border(
+                  bottom: BorderSide(
+                    width: 1,
+                    color: HomeUi.borderLight(isDark),
+                  ),
+                )
+              : null,
+        ),
+        padding: EdgeInsets.fromLTRB(
+          widget.compact ? 14 : 16,
+          metric.emphasized ? 10 : 8,
+          widget.compact ? 14 : 16,
+          metric.emphasized ? 10 : 8,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                metric.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: HomeUi.control(isDark, active: true).copyWith(
+                  fontSize: widget.compact
+                      ? (metric.emphasized ? 12.5 : 12)
+                      : (metric.emphasized ? 13 : 12.5),
+                  fontWeight:
+                      metric.emphasized ? FontWeight.w700 : FontWeight.w500,
+                  letterSpacing: -0.12,
+                  color: HomeUi.title(isDark),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              value,
+              textAlign: TextAlign.right,
+              style: HomeUi.tableNumeric(
+                isDark,
+                positiveValue: positiveValue,
+              ).copyWith(
+                fontSize: widget.compact
+                    ? (metric.emphasized ? 12.5 : 12)
+                    : (metric.emphasized ? 13 : 12.5),
+                fontWeight:
+                    metric.emphasized ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
