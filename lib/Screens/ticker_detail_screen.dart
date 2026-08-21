@@ -81,7 +81,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   final GlobalWatchlistService _watchlistService =
       Get.find<GlobalWatchlistService>();
   int _selectedTabIndex =
-      0; // 0 Overview, 1 Financial, 2 Charts, 3 Custom Charts, 4 About Company
+      0; // 0 Overview, 1 Financial, 2 Charts, 3 Custom Charts, 4 Business
   bool _isInWatchlist = false;
 
   bool _isResearchNotesOpen = false;
@@ -386,7 +386,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       'Financial',
       'Charts',
       'Custom Charts',
-      'About Company',
+      'Business',
     ];
     return SizedBox(
       width: 620,

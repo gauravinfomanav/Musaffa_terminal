@@ -677,15 +677,25 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
             'Are you sure you want to delete this portfolio?',
             style: HomeUi.subtitle(isDark),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           actions: [
-            HomeUi.ghostAction(
-              label: 'Cancel',
-              dark: isDark,
-              onTap: () => Navigator.pop(context, false),
-            ),
-            HomeUi.primaryAction(
-              label: 'Delete',
-              onTap: () => Navigator.pop(context, true),
+            Row(
+              children: [
+                Expanded(
+                  child: HomeUi.ghostAction(
+                    label: 'Cancel',
+                    dark: isDark,
+                    onTap: () => Navigator.pop(context, false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: HomeUi.primaryAction(
+                    label: 'Delete',
+                    onTap: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
             ),
           ],
         );

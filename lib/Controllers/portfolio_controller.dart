@@ -27,6 +27,7 @@ class PortfolioController extends GetxController {
     double? expectedRateOfReturn,
     String? commentary,
   }) async {
+    if (isSaving.value) return null;
     try {
       isSaving.value = true;
       saveError.value = '';
@@ -100,6 +101,7 @@ class PortfolioController extends GetxController {
     double? expectedRateOfReturn,
     String? commentary,
   }) async {
+    if (isSaving.value) return null;
     try {
       isSaving.value = true;
       saveError.value = '';
@@ -178,6 +180,7 @@ class PortfolioController extends GetxController {
     double? expectedRateOfReturn,
     String? commentary,
   }) async {
+    if (isSaving.value) return null;
     try {
       isSaving.value = true;
       saveError.value = '';

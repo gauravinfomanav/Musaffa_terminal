@@ -152,9 +152,9 @@ class HomeUi {
           height: controlHeight,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: primaryButton(),
-          alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
                 Icon(icon, size: 14, color: Colors.white),

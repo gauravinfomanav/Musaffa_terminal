@@ -196,12 +196,15 @@ class WebService {
         }
       }
 
+      final extracted = _extractErrorMessage(response.body);
       return ApiResponse(
         status: ApiStatus.FAIL,
         data: response.body,
         statusCode: response.statusCode,
-        errorMessage: _extractErrorMessage(response.body) ??
-            'API call failed with status: ${response.statusCode}',
+        errorMessage: extracted ??
+            (response.statusCode == 429
+                ? 'Too many requests. Please wait a moment and try again.'
+                : 'API call failed with status: ${response.statusCode}'),
       );
     } catch (e) {
       return ApiResponse(
@@ -214,13 +217,21 @@ class WebService {
 
   static String? _extractErrorMessage(String body) {
     if (body.isEmpty) return null;
+    final trimmed = body.trim();
     try {
-      final json = jsonDecode(body);
+      final json = jsonDecode(trimmed);
       if (json is Map<String, dynamic>) {
         final message = json['message']?.toString();
         if (message != null && message.isNotEmpty) return message;
       }
-    } catch (_) {}
+    } catch (_) {
+      // Plain-text error bodies (e.g. rate-limit 429).
+      if (trimmed.isNotEmpty &&
+          !trimmed.startsWith('{') &&
+          !trimmed.startsWith('[')) {
+        return trimmed;
+      }
+    }
     return null;
   }
 

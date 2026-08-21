@@ -13,8 +13,8 @@ typedef NotesPanelBuilder = Widget Function(
 class NotesController extends GetxController {
   final RxBool isNotesPanelOpen = false.obs;
   final RxString notesText = ''.obs;
-  final RxString panelTitle = 'Notes'.obs;
-  final RxString panelSubtitle = 'Quick scratch pad'.obs;
+  final RxString panelTitle = 'Memo'.obs;
+  final RxString panelSubtitle = 'Private research pad'.obs;
   final RxBool showPeekBadge = false.obs;
 
   NotesPanelBuilder? _customPanelBuilder;
@@ -60,8 +60,8 @@ class NotesController extends GetxController {
 
   void clearCustomPanel() {
     _customPanelBuilder = null;
-    panelTitle.value = 'Notes';
-    panelSubtitle.value = 'Quick scratch pad';
+    panelTitle.value = 'Memo';
+    panelSubtitle.value = 'Private research pad';
     showPeekBadge.value = false;
     panelContentRevision.value++;
   }

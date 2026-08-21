@@ -11,10 +11,12 @@ class GlobalNotesPanelContent extends StatefulWidget {
       _GlobalNotesPanelContentState();
 }
 
-class _GlobalNotesPanelContentState extends State<GlobalNotesPanelContent> {
+class _GlobalNotesPanelContentState extends State<GlobalNotesPanelContent>
+    with SingleTickerProviderStateMixin {
   late TextEditingController _textController;
   late FocusNode _focusNode;
   late Worker _notesWorker;
+  late AnimationController _pulse;
   final NotesController _controller = Get.find<NotesController>();
   bool _focused = false;
 
@@ -31,6 +33,10 @@ class _GlobalNotesPanelContentState extends State<GlobalNotesPanelContent> {
         _textController.text = text;
       }
     });
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -38,140 +44,250 @@ class _GlobalNotesPanelContentState extends State<GlobalNotesPanelContent> {
     _notesWorker.dispose();
     _focusNode.dispose();
     _textController.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final charCount =
-        _textController.text.trim().isEmpty ? 0 : _textController.text.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool empty = _textController.text.trim().isEmpty;
+    final int charCount = empty ? 0 : _textController.text.length;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
               decoration: BoxDecoration(
-                color: isDarkMode
-                    ? const Color(0xFF14161A)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                color: isDark ? const Color(0xFF141820) : Colors.white,
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: _focused
-                      ? HomeUi.accent(isDarkMode).withValues(alpha: 0.45)
-                      : (isDarkMode
-                          ? const Color(0xFF2A2F38)
-                          : const Color(0xFFE2E8F0)),
-                  width: _focused ? 1.5 : 1,
+                      ? const Color(0xFFE4621E).withValues(alpha: 0.42)
+                      : HomeUi.borderLight(isDark),
+                  width: _focused ? 1.35 : 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: _focused
-                        ? HomeUi.accent(isDarkMode).withValues(alpha: 0.10)
-                        : const Color(0xFF0F172A).withValues(
-                            alpha: isDarkMode ? 0.25 : 0.04,
-                          ),
-                    blurRadius: _focused ? 20 : 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                boxShadow: _focused
+                    ? <BoxShadow>[
+                        BoxShadow(
+                          color:
+                              const Color(0xFFE4621E).withValues(alpha: 0.10),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ]
+                    : HomeUi.cardShadow(isDark),
               ),
-              child: TextField(
-                controller: _textController,
-                focusNode: _focusNode,
-                onChanged: (value) {
-                  _controller.updateNotes(value);
-                  setState(() {});
-                },
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                cursorColor: HomeUi.accent(isDarkMode),
-                cursorWidth: 2,
-                style: HomeUi.bodyText(isDarkMode).copyWith(
-                  fontSize: 14.5,
-                  height: 1.65,
-                  letterSpacing: -0.15,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Jot a thought, ticker idea, or follow-up…',
-                  hintStyle: HomeUi.subtitle(isDarkMode).copyWith(
-                    fontSize: 14.5,
-                    height: 1.6,
-                    color: isDarkMode
-                        ? HomeUi.muted(true)
-                        : const Color(0xFF94A3B8),
-                  ),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  isDense: true,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(17),
+                child: Stack(
+                  children: [
+                    if (empty && !_focused)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: _EmptyChatState(isDark: isDark, pulse: _pulse),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                      child: TextField(
+                        controller: _textController,
+                        focusNode: _focusNode,
+                        onChanged: (value) {
+                          _controller.updateNotes(value);
+                          setState(() {});
+                        },
+                        maxLines: null,
+                        expands: true,
+                        textAlignVertical: TextAlignVertical.top,
+                        cursorColor: const Color(0xFFE4621E),
+                        cursorWidth: 2,
+                        style: HomeUi.bodyText(isDark).copyWith(
+                          fontSize: 14.5,
+                          height: 1.6,
+                          letterSpacing: -0.12,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: empty && _focused
+                              ? 'Write a thought, ticker idea, or follow-up…'
+                              : null,
+                          hintStyle: HomeUi.subtitle(isDark).copyWith(
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? HomeUi.elevatedBg(true)
-                  : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDarkMode
-                    ? const Color(0xFF2A2F38)
-                    : const Color(0xFFE2E8F0),
+        ),
+        _ComposerFooter(
+          isDark: isDark,
+          empty: empty,
+          charCount: charCount,
+          onFocusComposer: () => _focusNode.requestFocus(),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyChatState extends StatelessWidget {
+  const _EmptyChatState({
+    required this.isDark,
+    required this.pulse,
+  });
+
+  final bool isDark;
+  final Animation<double> pulse;
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.78, end: 1).animate(pulse),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: HomeUi.iconWellGradient,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: HomeUi.iconWellBorder),
+                ),
+                child: HomeUi.brandIcon(
+                  icon: Icons.edit_note_rounded,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Start a memo',
+                style: HomeUi.heading(isDark).copyWith(
+                  fontSize: 16,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Capture ideas and research — autosaved on this device.',
+                textAlign: TextAlign.center,
+                style: HomeUi.subtitle(isDark).copyWith(
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ComposerFooter extends StatelessWidget {
+  const _ComposerFooter({
+    required this.isDark,
+    required this.empty,
+    required this.charCount,
+    required this.onFocusComposer,
+  });
+
+  final bool isDark;
+  final bool empty;
+  final int charCount;
+  final VoidCallback onFocusComposer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+      child: Row(
+        children: [
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: onFocusComposer,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  gradient: HomeUi.iconFillGradient,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: const Color(0xFFE4621E).withValues(alpha: 0.22),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add_rounded, size: 15, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Write',
+                      style: HomeUi.control(isDark, active: true).copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.cloud_done_outlined,
-                  size: 15,
-                  color: HomeUi.accent(isDarkMode),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Autosaved on this device',
-                    style: HomeUi.subtitle(isDarkMode).copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: isDarkMode
-                          ? const Color(0xFF2A2F38)
-                          : const Color(0xFFE2E8F0),
-                    ),
-                  ),
-                  child: Text(
-                    charCount == 0 ? 'Empty' : '$charCount',
-                    style: HomeUi.overline(isDarkMode).copyWith(
-                      fontSize: 10.5,
-                      letterSpacing: 0.3,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(width: 10),
+          Icon(
+            Icons.cloud_done_outlined,
+            size: 14,
+            color: HomeUi.muted(isDark),
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              'Autosaved locally',
+              style: HomeUi.subtitle(isDark).copyWith(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: HomeUi.elevatedBg(isDark),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
+            child: Text(
+              empty ? 'Empty' : '$charCount',
+              style: HomeUi.overline(isDark).copyWith(
+                fontSize: 10,
+                letterSpacing: 0.35,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

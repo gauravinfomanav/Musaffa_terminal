@@ -34,12 +34,15 @@ class GlobalSidebarService extends GetxController {
     _opening = true;
     isOpen.value = true;
 
+    final isDark = Get.context != null &&
+        Theme.of(Get.context!).brightness == Brightness.dark;
+
     try {
       await Get.generalDialog<void>(
         barrierLabel: 'Navigation sidebar',
         barrierDismissible: true,
-        barrierColor: Colors.black.withOpacity(0.4),
-        transitionDuration: const Duration(milliseconds: 320),
+        barrierColor: Colors.black.withValues(alpha: isDark ? 0.52 : 0.28),
+        transitionDuration: const Duration(milliseconds: 420),
         pageBuilder: (context, animation, secondaryAnimation) {
           return const Align(
             alignment: Alignment.centerLeft,
@@ -47,17 +50,35 @@ class GlobalSidebarService extends GetxController {
           );
         },
         transitionBuilder: (context, animation, secondaryAnimation, child) {
-          final curved = CurvedAnimation(
+          final slide = CurvedAnimation(
             parent: animation,
             curve: Curves.easeOutCubic,
             reverseCurve: Curves.easeInCubic,
           );
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(-1.0, 0),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
+          final fade = CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
+            reverseCurve: const Interval(0.45, 1.0, curve: Curves.easeIn),
+          );
+          final scale = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+
+          return FadeTransition(
+            opacity: fade,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(-1.04, 0),
+                end: Offset.zero,
+              ).animate(slide),
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.97, end: 1).animate(scale),
+                alignment: Alignment.centerLeft,
+                child: child,
+              ),
+            ),
           );
         },
       );
