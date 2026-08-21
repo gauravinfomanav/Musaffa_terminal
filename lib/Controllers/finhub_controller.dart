@@ -12,6 +12,7 @@ class FinhubController extends GetxController {
   final RxString errorMessage = ''.obs;
   final Rx<DateTime?> lastUpdated = Rx<DateTime?>(null);
   Timer? _pollTimer;
+  bool _isFetching = false;
 
   @override
   void onInit() {
@@ -30,9 +31,16 @@ class FinhubController extends GetxController {
   }
 
   Future<void> fetchMarketIndices() async {
-    if (isLoading.value) return;
-    
-    isLoading.value = true;
+    if (_isFetching) return;
+    _isFetching = true;
+
+    final bool isInitialLoad = indices.isEmpty;
+    // Only show the strip shimmer on the first load. Subsequent polls must not
+    // clear the list first — that briefly makes `indices` empty while
+    // `isLoading` is true, which swaps the ticker for a blank/shimmer frame.
+    if (isInitialLoad) {
+      isLoading.value = true;
+    }
     errorMessage.value = '';
 
     try {
@@ -50,17 +58,27 @@ class FinhubController extends GetxController {
       final futures = symbols.map((symbol) => _fetchQuoteWithFallback(symbol));
       final results = await Future.wait(futures);
 
-      indices.clear();
+      final next = <MarketIndex>[];
       for (int i = 0; i < symbols.length; i++) {
-        if (results[i] != null) {
-          indices.add(results[i]!);
+        final quote = results[i];
+        if (quote != null) {
+          next.add(quote);
         }
       }
-      lastUpdated.value = DateTime.now();
+
+      // Keep the previous strip visible if this poll returned nothing (rate
+      // limit / network blip). Only replace when we have a fresh set.
+      if (next.isNotEmpty) {
+        indices.assignAll(next);
+        lastUpdated.value = DateTime.now();
+      } else if (indices.isEmpty) {
+        errorMessage.value = 'No market data available';
+      }
     } catch (e) {
       errorMessage.value = 'Failed to fetch market data: $e';
     } finally {
       isLoading.value = false;
+      _isFetching = false;
     }
   }
 

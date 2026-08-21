@@ -113,6 +113,8 @@ class WebService {
     Map<String, dynamic>? body,
     String? baseUrl,
     bool attachAuthToken = true,
+    /// When set, used instead of [tokenProvider] (e.g. logout after local clear).
+    String? bearerToken,
   }) async {
     try {
       final headers = <String, String>{
@@ -120,7 +122,9 @@ class WebService {
         HttpHeaders.acceptHeader: 'application/json',
       };
 
-      if (attachAuthToken && tokenProvider != null) {
+      if (bearerToken != null && bearerToken.isNotEmpty) {
+        headers[HttpHeaders.authorizationHeader] = 'Bearer $bearerToken';
+      } else if (attachAuthToken && tokenProvider != null) {
         final token = await tokenProvider!();
         if (token != null && token.isNotEmpty) {
           headers[HttpHeaders.authorizationHeader] = 'Bearer $token';

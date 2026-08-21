@@ -884,8 +884,9 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
 
   void _advance(double delta) {
     if (!mounted || _isHovered || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
     final loop = _loopWidth;
-    if (loop <= 0) return;
+    if (loop <= 0 || !position.hasContentDimensions) return;
     var next = _scrollController.offset + delta;
     while (next >= loop) {
       next -= loop;
@@ -893,7 +894,11 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
     while (next < 0) {
       next += loop;
     }
-    _scrollController.jumpTo(next);
+    // After a data refresh the loop width can change; keep the offset inside
+    // the scrollable range so the strip never jumps to a blank region.
+    final max = position.maxScrollExtent;
+    if (max <= 0) return;
+    _scrollController.jumpTo(next.clamp(0.0, max));
   }
 
   @override
@@ -984,8 +989,9 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
         child: Listener(
           onPointerSignal: (event) {
             if (event is PointerScrollEvent && _scrollController.hasClients) {
+              final position = _scrollController.position;
               final loop = _loopWidth;
-              if (loop <= 0) return;
+              if (loop <= 0 || !position.hasContentDimensions) return;
               var next = _scrollController.offset + event.scrollDelta.dy;
               while (next >= loop) {
                 next -= loop;
@@ -993,7 +999,9 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
               while (next < 0) {
                 next += loop;
               }
-              _scrollController.jumpTo(next);
+              final max = position.maxScrollExtent;
+              if (max <= 0) return;
+              _scrollController.jumpTo(next.clamp(0.0, max));
             }
           },
           child: ShaderMask(

@@ -86,11 +86,12 @@ class AuthService {
     );
   }
 
-  Future<void> logout() async {
+  Future<void> logout({String? bearerToken}) async {
     final response = await WebService.callApi(
       method: HttpMethod.POST,
       path: ['auth', 'logout'],
-      attachAuthToken: true,
+      attachAuthToken: bearerToken == null,
+      bearerToken: bearerToken,
     );
 
     // Local session is cleared by AuthController regardless of API result.

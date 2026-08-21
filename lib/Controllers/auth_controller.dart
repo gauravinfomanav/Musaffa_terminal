@@ -227,15 +227,30 @@ class AuthController extends GetxController {
 
   Future<void> logout() async {
     isLoading.value = true;
+    clearMessages();
+
+    // Capture the JWT, wipe local storage first, then revoke on the server.
+    // On Windows a hung logout API (or a skipped secure-store delete) used to
+    // leave the token on disk — a reload then restored the session.
+    final token = await _tokenStore.getToken();
+
     try {
-      await _authService.logout();
-    } catch (_) {
-      // Always clear local session.
-    } finally {
       _clearUserScopedControllers();
       await _clearLocalSession();
+    } finally {
       isLoading.value = false;
       Get.offAll(() => const LoginScreen());
+    }
+
+    if (token != null && token.isNotEmpty) {
+      // Fire-and-forget server revoke with the captured JWT.
+      () async {
+        try {
+          await _authService
+              .logout(bearerToken: token)
+              .timeout(const Duration(seconds: 8));
+        } catch (_) {}
+      }();
     }
   }
 
