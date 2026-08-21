@@ -256,24 +256,12 @@ class _AuthPageShellState extends State<AuthPageShell>
                                 crossAxisAlignment:
                                     CrossAxisAlignment.stretch,
                                 children: [
-                                  _StaggerIn(
-                                    controller: _enter,
-                                    begin: 0.05,
-                                    end: 0.38,
+                                  SizedBox(
+                                    width: double.infinity,
                                     child: Center(
-                                      child: AnimatedBuilder(
-                                        animation: _pulse,
-                                        builder: (context, child) {
-                                          return Transform.translate(
-                                            offset: Offset(
-                                              0,
-                                              -2.5 * math.sin(
-                                                _pulse.value * math.pi,
-                                              ),
-                                            ),
-                                            child: child,
-                                          );
-                                        },
+                                      // ® sits on the right — slight nudge so the wordmark looks centered.
+                                      child: Transform.translate(
+                                        offset: const Offset(3, 0),
                                         child: const MusaffaLogo(height: 30),
                                       ),
                                     ),

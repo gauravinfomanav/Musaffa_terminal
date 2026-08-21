@@ -283,21 +283,31 @@ class EnumValues<T> {
 }
 
 class MusaffaLogo extends StatelessWidget {
-  const MusaffaLogo({super.key, this.height = 22});
+  const MusaffaLogo({
+    super.key,
+    this.height = 22,
+    this.alignment = Alignment.center,
+  });
 
   final double height;
+  final Alignment alignment;
   static const String assetPath = 'resources/Small Logo.png';
   static const double _aspectRatio = 176 / 28;
 
   @override
   Widget build(BuildContext context) {
     final width = height * _aspectRatio;
-    return Image.asset(
-      assetPath,
+    return SizedBox(
       width: width,
       height: height,
-      fit: BoxFit.contain,
-      alignment: Alignment.centerLeft,
+      child: Image.asset(
+        assetPath,
+        width: width,
+        height: height,
+        fit: BoxFit.contain,
+        alignment: alignment,
+        filterQuality: FilterQuality.high,
+      ),
     );
   }
 }
