@@ -383,19 +383,13 @@ class _CompanyProfileCardState extends State<_CompanyProfileCard> {
           ),
           if (hasDescription) ...[
             const SizedBox(height: 14),
-            Row(
-              children: [
-                Icon(
-                  Icons.menu_book_outlined,
-                  size: 15,
-                  color: HomeUi.accent(isDark),
-                ),
-                const SizedBox(width: 7),
-                Text(
-                  'Business Overview',
-                  style: HomeUi.cardTitle(isDark).copyWith(fontSize: 13),
-                ),
-              ],
+            Text(
+              'Business Overview',
+              style: HomeUi.sectionTitle(isDark).copyWith(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -631,7 +625,7 @@ class _DetailTilePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
+        color: isDark ? HomeUi.elevatedBg(true) : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(HomeUi.radiusLg),
         border: Border.all(color: HomeUi.borderLight(isDark)),
       ),

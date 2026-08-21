@@ -3,13 +3,15 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class TerminalPerShareScreen extends StatefulWidget {
   final String symbol;
   final String currency;
   final Function(String)? onMetricSelected;
   final String? title;
+  /// When set, card fills this height (matches adjacent chart).
+  final double? height;
 
   const TerminalPerShareScreen({
     Key? key,
@@ -17,6 +19,7 @@ class TerminalPerShareScreen extends StatefulWidget {
     required this.currency,
     this.onMetricSelected,
     this.title,
+    this.height,
   }) : super(key: key);
 
   @override
@@ -39,27 +42,29 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
 
     return Obx(() {
       if (controller.isLoading.value) {
-        return ShimmerWidgets.perShareTableShimmer(
+        final shimmer = ShimmerWidgets.perShareTableShimmer(
           baseColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[300]!,
           highlightColor:
               isDarkMode ? const Color(0xFF404040) : Colors.grey[100]!,
         );
+        if (widget.height != null) {
+          return SizedBox(height: widget.height, child: shimmer);
+        }
+        return shimmer;
       }
 
       final financialData = controller.financialData.value;
       if (financialData == null) {
-        return Center(
+        final empty = Center(
           child: Text(
             'No per share data available',
-            style: TextStyle(
-              fontSize: 11,
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              color: isDarkMode
-                  ? const Color(0xFF9CA3AF)
-                  : const Color(0xFF6B7280),
-            ),
+            style: HomeUi.subtitle(isDarkMode),
           ),
         );
+        if (widget.height != null) {
+          return SizedBox(height: widget.height, child: empty);
+        }
+        return empty;
       }
 
       return _buildTerminalPerShareTable(financialData);
@@ -179,34 +184,54 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       ));
     }
 
-    return DynamicTableFromWeb(
-          title: widget.title,
-          subtitle: 'Per-share fundamentals',
-          toolbarLeadingIcon: Icons.pie_chart_outline,
-          showOuterShadow: true,
-          columns: columns,
-          rows: tableData,
-          paginated: false,
-          selectable: false,
-          showTickerCell: false,
-          enableColumnFilters: false,
-          loading: controller.isLoading.value,
-          rowHeight: 40,
-          headerHeight: 32,
-          indentSize: 20,
-          considerPadding: false,
-          showNameColumn: false,
-          compactPinnedLayout: true,
-          autoPinStatColumns: false,
-          showPinnedSectionDividers: false,
-          columnSpacing: 22,
-          onRowDoubleClick: (row) {
-            final metricName = row.data['metric']?.toString() ?? '';
-            if (metricName.isNotEmpty) {
-              widget.onMetricSelected?.call(metricName);
-            }
-          },
-        );
+    // Toolbar (~70) + divider — match Overview Peer Comparison row rhythm.
+    final tableBodyMaxHeight =
+        widget.height != null ? (widget.height! - 72).clamp(180.0, 2000.0) : null;
+
+    final table = DynamicTableFromWeb(
+      title: widget.title,
+      subtitle: 'Per-share fundamentals over time',
+      toolbarLeadingIcon: Icons.pie_chart_outline,
+      showOuterShadow: true,
+      showHeaderTooltip: false,
+      showColumnActionMenu: true,
+      showColumnResizeHandle: true,
+      enableColumnVisibilityToggle: true,
+      enableColumnReorder: true,
+      enableColumnPinning: true,
+      enableRowReorder: false,
+      columns: columns,
+      rows: tableData,
+      paginated: false,
+      selectable: false,
+      showTickerCell: false,
+      enableColumnFilters: false,
+      loading: controller.isLoading.value,
+      headerHeight: 42,
+      rowHeight: 48,
+      headingRowHeight: 42,
+      dataRowMinHeight: 48,
+      dataRowMaxHeight: 48,
+      maxHeight: tableBodyMaxHeight,
+      indentSize: 20,
+      considerPadding: false,
+      showNameColumn: false,
+      compactPinnedLayout: true,
+      autoPinStatColumns: false,
+      showPinnedSectionDividers: true,
+      columnSpacing: 22,
+      onRowDoubleClick: (row) {
+        final metricName = row.data['metric']?.toString() ?? '';
+        if (metricName.isNotEmpty) {
+          widget.onMetricSelected?.call(metricName);
+        }
+      },
+    );
+
+    if (widget.height != null) {
+      return SizedBox(height: widget.height, child: table);
+    }
+    return table;
   }
 
   Map<String, dynamic> _createYearDataMap(

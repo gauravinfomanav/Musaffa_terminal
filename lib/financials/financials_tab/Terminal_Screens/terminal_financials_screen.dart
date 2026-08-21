@@ -88,41 +88,89 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
       child: SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TerminalPerShareScreen(
-                    symbol: widget.symbol,
-                    currency: widget.currency,
-                    title: 'Per Share Data',
-                    onMetricSelected: (metric) {
-                      setState(() {
-                        selectedMetric = metric;
-                      });
-                    },
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Financials',
+                    style: HomeUi.sectionTitle(isDarkMode).copyWith(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildDynamicChart(isDarkMode),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    'Per-share metrics, ratios, and full statements',
+                    style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12.5),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 960;
+                // Fixed equal height — avoids IntrinsicHeight + mouse_tracker crash.
+                const topRowHeight = 360.0;
+
+                final perShare = TerminalPerShareScreen(
+                  symbol: widget.symbol,
+                  currency: widget.currency,
+                  title: 'Per Share Data',
+                  height: topRowHeight,
+                  onMetricSelected: (metric) {
+                    // Defer — avoids mouse_tracker assert during pointer updates.
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      setState(() => selectedMetric = metric);
+                    });
+                  },
+                );
+                final chart = _buildDynamicChart(
+                  isDarkMode,
+                  height: topRowHeight,
+                );
+
+                if (!wide) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      perShare,
+                      const SizedBox(height: 12),
+                      chart,
+                    ],
+                  );
+                }
+
+                return SizedBox(
+                  height: topRowHeight,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 55, child: perShare),
+                      const SizedBox(width: 12),
+                      Expanded(flex: 45, child: chart),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
             TerminalRatiosScreen(
               symbol: widget.symbol,
               title: 'Company Financials',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TerminalStatementsScreen(
               symbol: widget.symbol,
               title: 'Financial Statements',
@@ -133,56 +181,73 @@ class _TerminalFinancialsScreenState extends State<TerminalFinancialsScreen> {
     );
   }
 
-  Widget _buildDynamicChart(bool isDarkMode) {
+  Widget _buildDynamicChart(bool isDarkMode, {required double height}) {
     return Container(
+      height: height,
       decoration: HomeUi.cardDecoration(isDarkMode),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Obx(() {
-          if (controller.isLoading.value) {
-            return Center(
-              child: ShimmerWidgets.chartShimmer(
-                baseColor: HomeUi.elevatedBg(isDarkMode),
-                highlightColor: HomeUi.borderLight(isDarkMode),
-                width: 400,
-                height: 300,
-              ),
-            );
-          }
-
-          final financialData = controller.financialData.value;
-          if (financialData == null) {
-            return Center(
-              child: Text(
-                'No data available',
-                style: HomeUi.subtitle(isDarkMode),
-              ),
-            );
-          }
-
-          List<BarData> chartData = _getRealChartDataForMetric(selectedMetric, financialData);
-          
-          return TerminalBarChart(
-            title: selectedMetric,
-            data: chartData,
-            unit: '',
-            height: 270,
-            barColor: const Color(0xFFE4621E),
-            titleWidget: Row(
-              children: [
-                Expanded(
-                  child: HomeUi.tableToolbarHeader(
-                    isDarkMode,
-                    icon: Icons.show_chart_rounded,
-                    title: _getShortMetricName(selectedMetric),
-                    subtitleText: selectedMetric,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _buildMetricToggleButton(isDarkMode),
-              ],
+        if (controller.isLoading.value) {
+          return Center(
+            child: ShimmerWidgets.chartShimmer(
+              baseColor: HomeUi.elevatedBg(isDarkMode),
+              highlightColor: HomeUi.borderLight(isDarkMode),
+              width: 400,
+              height: height - 40,
             ),
           );
-        }),
+        }
+
+        final financialData = controller.financialData.value;
+        if (financialData == null) {
+          return Center(
+            child: Text(
+              'No chart data available',
+              style: HomeUi.subtitle(isDarkMode),
+            ),
+          );
+        }
+
+        final chartData =
+            _getRealChartDataForMetric(selectedMetric, financialData);
+
+        return TerminalBarChart(
+          title: selectedMetric,
+          data: chartData,
+          unit: '',
+          height: (height - 72).clamp(200.0, 400.0),
+          barColor: HomeUi.accent(isDarkMode),
+          titleWidget: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _getShortMetricName(selectedMetric),
+                      style: HomeUi.sectionTitle(isDarkMode).copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      selectedMetric,
+                      style:
+                          HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildMetricToggleButton(isDarkMode),
+            ],
+          ),
+        );
+      }),
     );
   }
 

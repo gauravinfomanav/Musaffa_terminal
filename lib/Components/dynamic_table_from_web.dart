@@ -954,7 +954,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
 
     return DataColumn(
-      tooltip: widget.showHeaderTooltip ? col.label : '',
+      tooltip: widget.showHeaderTooltip ? col.label : null,
       numeric: _isEndAlign(col.align),
       headingRowAlignment: _headingAlignmentFor(col.align),
       label: _maybeHeaderTooltip(
@@ -1419,7 +1419,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             ),
           if (includeTicker)
             DataColumn(
-              tooltip: widget.showHeaderTooltip ? widget.tickerHeaderLabel : '',
+              tooltip: widget.showHeaderTooltip ? widget.tickerHeaderLabel : null,
               headingRowAlignment: MainAxisAlignment.start,
               label: SizedBox(
                 width: widget.tickerColumnWidth,

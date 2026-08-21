@@ -1,145 +1,290 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/global_notes_panel_content.dart';
 import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
-/// Left-edge peek tab + slide-in notes drawer (global scratch pad or custom content).
-class NotesSideOverlay extends StatelessWidget {
+/// Premium left-edge notes drawer with smooth open/close motion.
+class NotesSideOverlay extends StatefulWidget {
   const NotesSideOverlay({super.key});
 
-  static const double _drawerWidth = 400;
+  static const double drawerWidth = 428;
+
+  @override
+  State<NotesSideOverlay> createState() => _NotesSideOverlayState();
+}
+
+class _NotesSideOverlayState extends State<NotesSideOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _fade;
+  late final Animation<double> _scrim;
+  late final Worker _openWorker;
+  late final NotesController _notes;
+
+  @override
+  void initState() {
+    super.initState();
+    _notes = Get.find<NotesController>();
+
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+      reverseDuration: const Duration(milliseconds: 300),
+    );
+
+    final curve = CurvedAnimation(
+      parent: _anim,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    _slide = Tween<Offset>(
+      begin: const Offset(-1.02, 0),
+      end: Offset.zero,
+    ).animate(curve);
+
+    _fade = Tween<double>(begin: 0.92, end: 1).animate(curve);
+    _scrim = Tween<double>(begin: 0, end: 1).animate(curve);
+
+    if (_notes.isNotesPanelOpen.value) {
+      _anim.value = 1;
+    }
+
+    _openWorker = ever<bool>(_notes.isNotesPanelOpen, (open) {
+      if (open) {
+        _anim.forward();
+      } else {
+        _anim.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _openWorker.dispose();
+    _anim.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final controller = Get.find<NotesController>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Obx(() {
-      final isOpen = controller.isNotesPanelOpen.value;
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, _) {
+        final openProgress = _anim.value;
+        final handleVisible = openProgress < 0.85;
 
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          if (isOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: controller.closeNotesPanel,
-                child: AnimatedOpacity(
-                  opacity: isOpen ? 1 : 0,
-                  duration: const Duration(milliseconds: 240),
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.32),
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Dim scrim
+            if (openProgress > 0.001)
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: openProgress < 0.05,
+                  child: GestureDetector(
+                    onTap: _notes.closeNotesPanel,
+                    child: ColoredBox(
+                      color: Colors.black.withValues(
+                        alpha: (isDark ? 0.48 : 0.30) * _scrim.value,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Sliding drawer
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SlideTransition(
+                position: _slide,
+                child: FadeTransition(
+                  opacity: _fade,
+                  child: SizedBox(
+                    width: NotesSideOverlay.drawerWidth,
+                    height: double.infinity,
+                    child: _NotesDrawer(
+                      isDarkMode: isDark,
+                      controller: _notes,
+                      onClose: _notes.closeNotesPanel,
+                    ),
                   ),
                 ),
               ),
             ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            left: isOpen ? 0 : -_drawerWidth,
-            top: 0,
-            bottom: 0,
-            width: _drawerWidth,
-            child: _NotesDrawer(
-              isDarkMode: isDarkMode,
-              controller: controller,
-              onClose: controller.closeNotesPanel,
-            ),
-          ),
-          if (!isOpen) _NotesPeekHandle(isDarkMode: isDarkMode),
-        ],
-      );
-    });
+
+            // Peek handle
+            if (handleVisible)
+              Positioned(
+                left: 0,
+                bottom: 28,
+                child: Opacity(
+                  opacity: (1 - openProgress * 1.35).clamp(0.0, 1.0),
+                  child: Transform.translate(
+                    offset: Offset(-18 * openProgress, 0),
+                    child: IgnorePointer(
+                      ignoring: openProgress > 0.2,
+                      child: _NotesPeekHandle(isDarkMode: isDark),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 }
 
-class _NotesPeekHandle extends StatelessWidget {
+class _NotesPeekHandle extends StatefulWidget {
   const _NotesPeekHandle({required this.isDarkMode});
 
   final bool isDarkMode;
 
   @override
+  State<_NotesPeekHandle> createState() => _NotesPeekHandleState();
+}
+
+class _NotesPeekHandleState extends State<_NotesPeekHandle> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.find<NotesController>();
+    final isDark = widget.isDarkMode;
+    final notes = Get.find<NotesController>();
 
-    return Positioned(
-      left: 0,
-      bottom: 24,
-      child: Obx(() {
-        final showBadge = controller.showPeekBadge.value;
+    return Obx(() {
+      final showBadge = notes.showPeekBadge.value;
 
-        return MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: controller.toggleNotesPanel,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(6, 14, 12, 14),
-              decoration: BoxDecoration(
-                gradient: HomeUi.iconWellGradient,
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(14),
-                  bottomRight: Radius.circular(14),
-                ),
-                border: Border.all(color: HomeUi.iconWellBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black
-                        .withValues(alpha: isDarkMode ? 0.35 : 0.12),
-                    blurRadius: 16,
-                    offset: const Offset(4, 0),
-                  ),
-                ],
+      return MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: notes.toggleNotesPanel,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            transform: Matrix4.translationValues(_hovered ? 4 : 0, 0, 0),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A1D22) : Colors.white,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(18),
+                bottomRight: Radius.circular(18),
               ),
-              child: Column(
+              border: Border.all(
+                color: _hovered
+                    ? HomeUi.accent(isDark).withValues(alpha: 0.45)
+                    : (isDark
+                        ? const Color(0xFF2A2F38)
+                        : const Color(0xFFE2E8F0)),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: HomeUi.accent(isDark).withValues(
+                    alpha: _hovered ? 0.18 : 0.08,
+                  ),
+                  blurRadius: _hovered ? 24 : 14,
+                  offset: Offset(_hovered ? 6 : 3, 2),
+                ),
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(
+                    alpha: isDark ? 0.35 : 0.06,
+                  ),
+                  blurRadius: 18,
+                  offset: const Offset(4, 4),
+                ),
+              ],
+            ),
+            child: IntrinsicHeight(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Icon(
-                        Icons.sticky_note_2_outlined,
-                        size: 18,
-                        color: HomeUi.accent(isDarkMode),
+                  // Accent rail
+                  Container(
+                    width: 3.5,
+                    decoration: BoxDecoration(
+                      color: HomeUi.accent(isDark),
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(2),
+                        bottomRight: Radius.circular(2),
                       ),
-                      if (showBadge)
-                        Positioned(
-                          right: -4,
-                          top: -4,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: HomeUi.accent(isDarkMode),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: HomeUi.pageBg(isDarkMode),
-                                width: 1.5,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 16, 14, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: HomeUi.accent(isDark)
+                                    .withValues(alpha: isDark ? 0.22 : 0.12),
+                                borderRadius: BorderRadius.circular(10),
                               ),
+                              child: Icon(
+                                Icons.notes_rounded,
+                                size: 18,
+                                color: HomeUi.accent(isDark),
+                              ),
+                            ),
+                            if (showBadge)
+                              Positioned(
+                                right: -3,
+                                top: -3,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: HomeUi.accent(isDark),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF1A1D22)
+                                          : Colors.white,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        RotatedBox(
+                          quarterTurns: 3,
+                          child: Text(
+                            'NOTES',
+                            style: HomeUi.overline(isDark).copyWith(
+                              fontSize: 10.5,
+                              letterSpacing: 1.8,
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? const Color(0xFFCBD5E1)
+                                  : const Color(0xFF475569),
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  RotatedBox(
-                    quarterTurns: 3,
-                    child: Text(
-                      'NOTES',
-                      style: HomeUi.overline(isDarkMode).copyWith(
-                        fontSize: 9,
-                        letterSpacing: 1.4,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        );
-      }),
-    );
+        ),
+      );
+    });
   }
 }
 
@@ -156,79 +301,204 @@ class _NotesDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = isDarkMode;
+
     return Material(
-      elevation: 12,
-      color: HomeUi.pageBg(isDarkMode),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: HomeUi.pageBg(isDarkMode),
-          border: Border(
-            right: BorderSide(color: HomeUi.borderLight(isDarkMode)),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDarkMode ? 0.45 : 0.14),
-              blurRadius: 28,
-              offset: const Offset(8, 0),
+      color: Colors.transparent,
+      elevation: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? const [
+                        Color(0xF214161A),
+                        Color(0xF01A1D22),
+                      ]
+                    : const [
+                        Color(0xFFFAFBFC),
+                        Color(0xFFFFFFFF),
+                      ],
+              ),
+              border: Border(
+                right: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF2A2F38)
+                      : const Color(0xFFE2E8F0),
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(
+                    alpha: isDark ? 0.55 : 0.18,
+                  ),
+                  blurRadius: 48,
+                  offset: const Offset(16, 0),
+                ),
+              ],
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _DrawerHeader(
+                  isDark: isDark,
+                  controller: controller,
+                  onClose: onClose,
+                ),
+                Expanded(
+                  child: Obx(() {
+                    controller.panelContentRevision.value;
+                    controller.panelTitle.value;
+                    final custom =
+                        controller.buildPanelContent(context, onClose);
+                    if (custom != null) return custom;
+                    return const GlobalNotesPanelContent();
+                  }),
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
-              child: Row(
+      ),
+    );
+  }
+}
+
+class _DrawerHeader extends StatefulWidget {
+  const _DrawerHeader({
+    required this.isDark,
+    required this.controller,
+    required this.onClose,
+  });
+
+  final bool isDark;
+  final NotesController controller;
+  final VoidCallback onClose;
+
+  @override
+  State<_DrawerHeader> createState() => _DrawerHeaderState();
+}
+
+class _DrawerHeaderState extends State<_DrawerHeader> {
+  bool _closeHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 16, 18),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.02)
+            : const Color(0xFFF1F5F9).withValues(alpha: 0.65),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF2A2F38) : const Color(0xFFE2E8F0),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: HomeUi.accent(isDark).withValues(alpha: isDark ? 0.22 : 0.12),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: HomeUi.accent(isDark).withValues(alpha: 0.15),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.notes_rounded,
+              size: 22,
+              color: HomeUi.accent(isDark),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Obx(
+              () => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Obx(
-                      () => HomeUi.tableToolbarHeader(
-                        isDarkMode,
-                        icon: Icons.sticky_note_2_outlined,
-                        title: controller.panelTitle.value,
-                        subtitleText: controller.panelSubtitle.value.isNotEmpty
-                            ? controller.panelSubtitle.value
-                            : null,
-                      ),
+                  Text(
+                    widget.controller.panelTitle.value,
+                    style: HomeUi.sectionTitle(isDark).copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.4,
                     ),
                   ),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: onClose,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: HomeUi.elevatedBg(isDarkMode),
-                          shape: BoxShape.circle,
-                          border:
-                              Border.all(color: HomeUi.borderLight(isDarkMode)),
-                        ),
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 16,
-                          color: HomeUi.muted(isDarkMode),
-                        ),
-                      ),
+                  const SizedBox(height: 3),
+                  Text(
+                    widget.controller.panelSubtitle.value.isNotEmpty
+                        ? widget.controller.panelSubtitle.value
+                        : 'Private scratch space',
+                    style: HomeUi.subtitle(isDark).copyWith(
+                      fontSize: 12.5,
+                      color: isDark
+                          ? HomeUi.muted(true)
+                          : const Color(0xFF64748B),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, color: HomeUi.borderLight(isDarkMode)),
-            Expanded(
-              child: Obx(() {
-                controller.panelContentRevision.value;
-                controller.panelTitle.value;
-
-                final custom = controller.buildPanelContent(context, onClose);
-                if (custom != null) return custom;
-                return const GlobalNotesPanelContent();
-              }),
+          ),
+          MouseRegion(
+            onEnter: (_) => setState(() => _closeHovered = true),
+            onExit: (_) => setState(() => _closeHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: widget.onClose,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _closeHovered
+                      ? (isDark
+                          ? HomeUi.elevatedBg(true)
+                          : Colors.white)
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _closeHovered
+                        ? HomeUi.borderStrong(isDark)
+                        : HomeUi.borderLight(isDark),
+                  ),
+                  boxShadow: _closeHovered && !isDark
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: _closeHovered
+                      ? HomeUi.title(isDark)
+                      : HomeUi.muted(isDark),
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

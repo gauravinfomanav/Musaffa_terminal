@@ -6,9 +6,9 @@ import 'package:musaffa_terminal/Components/financial_expandable_table.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_annual_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_quarterly_controller.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
-import 'package:musaffa_terminal/utils/constants.dart';
 
 class TerminalRatiosScreen extends StatefulWidget {
   final String symbol;
@@ -124,13 +124,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
           return Center(
             child: Text(
               'No quarterly data available',
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode
-                    ? const Color(0xFF9CA3AF)
-                    : const Color(0xFF6B7280),
-              ),
+              style: HomeUi.subtitle(isDarkMode),
             ),
           );
         }
@@ -152,6 +146,12 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               subtitle: 'Quarterly financial ratios',
               toolbarLeadingIcon: Icons.percent_rounded,
               showOuterShadow: true,
+              showHeaderTooltip: false,
+              showColumnActionMenu: true,
+              showColumnResizeHandle: true,
+              enableColumnVisibilityToggle: true,
+              enableColumnReorder: true,
+              enableRowReorder: false,
               columns: columns,
               rows: _mapFinancialRowsToDynamicRows(transformedData),
               paginated: false,
@@ -159,8 +159,11 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               showTickerCell: false,
               enableColumnFilters: false,
               loading: quarterlyRatiosController.isLoading.value,
-              rowHeight: 40,
-              headerHeight: 32,
+              rowHeight: 48,
+              headerHeight: 42,
+              headingRowHeight: 42,
+              dataRowMinHeight: 48,
+              dataRowMaxHeight: 48,
               indentSize: 20,
               considerPadding: false,
               showNameColumn: false,
@@ -171,7 +174,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               showStandardDeviation: true,
               compactPinnedLayout: true,
               autoPinStatColumns: false,
-              showPinnedSectionDividers: false,
+              showPinnedSectionDividers: true,
               columnSpacing: responsiveColumnSpacing,
             );
       } else {
@@ -189,13 +192,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
           return Center(
             child: Text(
               'No annual data available',
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-                color: isDarkMode
-                    ? const Color(0xFF9CA3AF)
-                    : const Color(0xFF6B7280),
-              ),
+              style: HomeUi.subtitle(isDarkMode),
             ),
           );
         }
@@ -212,6 +209,12 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               subtitle: 'Annual financial ratios',
               toolbarLeadingIcon: Icons.percent_rounded,
               showOuterShadow: true,
+              showHeaderTooltip: false,
+              showColumnActionMenu: true,
+              showColumnResizeHandle: true,
+              enableColumnVisibilityToggle: true,
+              enableColumnReorder: true,
+              enableRowReorder: false,
               columns: columns,
               rows: transformedData,
               paginated: false,
@@ -219,8 +222,11 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               showTickerCell: false,
               enableColumnFilters: false,
               loading: annualRatiosController.isLoading.value,
-              rowHeight: 40,
-              headerHeight: 32,
+              rowHeight: 48,
+              headerHeight: 42,
+              headingRowHeight: 42,
+              dataRowMinHeight: 48,
+              dataRowMaxHeight: 48,
               indentSize: 20,
               considerPadding: false,
               showNameColumn: false,
@@ -231,7 +237,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               showStandardDeviation: true,
               compactPinnedLayout: true,
               autoPinStatColumns: false,
-              showPinnedSectionDividers: false,
+              showPinnedSectionDividers: true,
               columnSpacing: responsiveColumnSpacing,
             );
       }
