@@ -526,16 +526,23 @@ class _SignOutConfirmDialog extends StatelessWidget {
                     height: 42,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: HomeUi.negativeSoft(isDark),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFFE4621E).withValues(alpha: 0.14),
+                          const Color(0xFF88123E).withValues(alpha: 0.10),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: HomeUi.negative(isDark).withValues(alpha: 0.22),
+                        color: HomeUi.buttonBorder.withValues(alpha: 0.55),
                       ),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.logout_rounded,
                       size: 20,
-                      color: HomeUi.negative(isDark),
+                      color: Color(0xFFE4621E),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -578,7 +585,6 @@ class _SignOutConfirmDialog extends StatelessWidget {
                   Expanded(
                     child: _DestructiveAction(
                       label: 'Sign out',
-                      isDark: isDark,
                       onTap: onConfirm,
                     ),
                   ),
@@ -595,12 +601,10 @@ class _SignOutConfirmDialog extends StatelessWidget {
 class _DestructiveAction extends StatefulWidget {
   const _DestructiveAction({
     required this.label,
-    required this.isDark,
     required this.onTap,
   });
 
   final String label;
-  final bool isDark;
   final VoidCallback onTap;
 
   @override
@@ -609,34 +613,52 @@ class _DestructiveAction extends StatefulWidget {
 
 class _DestructiveActionState extends State<_DestructiveAction> {
   bool _hover = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final danger = HomeUi.negative(widget.isDark);
+    final scale = _pressed ? 0.98 : (_hover ? 1.02 : 1.0);
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
+      onExit: (_) => setState(() {
+        _hover = false;
+        _pressed = false;
+      }),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: scale,
           duration: const Duration(milliseconds: 150),
-          height: HomeUi.controlHeight,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: _hover ? danger.withValues(alpha: 0.92) : danger,
-            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-            boxShadow: [
-              BoxShadow(
-                color: danger.withValues(alpha: _hover ? 0.28 : 0.18),
-                blurRadius: _hover ? 14 : 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Text(
-            widget.label,
-            style: HomeUi.primaryActionLabel(),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            height: HomeUi.controlHeight,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: HomeUi.iconFillGradient,
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              border: Border.all(color: HomeUi.buttonBorder, width: 0.856),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFE4621E).withValues(
+                    alpha: _hover ? 0.34 : 0.18,
+                  ),
+                  blurRadius: _hover ? 16 : 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              widget.label,
+              style: HomeUi.primaryActionLabel(),
+            ),
           ),
         ),
       ),
