@@ -335,6 +335,48 @@ class StaticPremiumChartData {
 
   static double get sunburstTotal =>
       sunburstNodes.where((StaticSunburstNode n) => n.parentId == null).fold(0.0, (double s, StaticSunburstNode n) => s + n.value);
+
+  /// Dense series for scrollable / pan chart demos.
+  static List<StaticScrollPoint> get scrollableVolume {
+    final List<StaticScrollPoint> points = <StaticScrollPoint>[];
+    double value = 48;
+    for (int i = 0; i < 48; i++) {
+      value = (value + ((i % 5) - 2) * 1.8 + (i % 9 == 0 ? 6 : 0))
+          .clamp(28.0, 92.0);
+      points.add(StaticScrollPoint('M${i + 1}', value));
+    }
+    return points;
+  }
+
+  /// Multi-year weekly OHLCV for stock chart with GUI / range selector.
+  static List<OhlcCandlePoint> get stockGuiHistory {
+    final List<OhlcCandlePoint> points = <OhlcCandlePoint>[];
+    DateTime date = DateTime(2020, 7, 6);
+    final DateTime end = DateTime(2024, 8, 1);
+    double close = 10.2;
+    int i = 0;
+    while (!date.isAfter(end)) {
+      final double open = close;
+      final double drift = 0.012 + (i % 23 == 0 ? -0.08 : 0) + (i % 11 - 5) * 0.002;
+      close = (close * (1 + drift)).clamp(8.0, 140.0);
+      final double high = [open, close].reduce((a, b) => a > b ? a : b) * (1.02 + (i % 5) * 0.004);
+      final double low = [open, close].reduce((a, b) => a < b ? a : b) * (0.98 - (i % 4) * 0.003);
+      final double volume = 1800000000 + (i % 17) * 320000000.0 + (i % 9) * 90000000.0;
+      points.add(
+        OhlcCandlePoint(
+          date: date,
+          open: double.parse(open.toStringAsFixed(3)),
+          high: double.parse(high.toStringAsFixed(3)),
+          low: double.parse(low.toStringAsFixed(3)),
+          close: double.parse(close.toStringAsFixed(3)),
+          volume: volume,
+        ),
+      );
+      date = date.add(const Duration(days: 7));
+      i++;
+    }
+    return points;
+  }
 }
 
 class StaticBarItem {
@@ -537,4 +579,10 @@ class StaticSunburstNode {
   final String label;
   final double value;
   final int colorGroup;
+}
+
+class StaticScrollPoint {
+  const StaticScrollPoint(this.label, this.value);
+  final String label;
+  final double value;
 }

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/charts/custom/widgets/premium_finance_extra_charts.dart';
 import 'package:musaffa_terminal/charts/custom/widgets/premium_allocation_donut.dart';
+import 'package:musaffa_terminal/charts/custom/widgets/premium_timeline_process_charts.dart';
+import 'package:musaffa_terminal/charts/custom/widgets/premium_stock_gui_chart.dart';
 import 'package:musaffa_terminal/charts/custom/static_premium_chart_data.dart';
 import 'package:musaffa_terminal/charts/custom/us_premium_palette.dart';
 import 'package:musaffa_terminal/charts/models/ohlc_candle_point.dart';
@@ -13,7 +15,13 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 
 /// Pure chart showcase — US institutional fintech visual language, static data.
 class PremiumFinanceChartShowcase extends StatefulWidget {
-  const PremiumFinanceChartShowcase({super.key});
+  const PremiumFinanceChartShowcase({
+    super.key,
+    this.includeHero = true,
+  });
+
+  /// When false, the static hero price chart is omitted (e.g. live chart above).
+  final bool includeHero;
 
   @override
   State<PremiumFinanceChartShowcase> createState() =>
@@ -39,13 +47,15 @@ class _PremiumFinanceChartShowcaseState extends State<PremiumFinanceChartShowcas
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            _HeroPriceChart(
-              dark: dark,
-              rangeIndex: _priceRangeIndex,
-              ranges: _ranges,
-              onRangeChanged: (int i) => setState(() => _priceRangeIndex = i),
-            ),
-            const SizedBox(height: 14),
+            if (widget.includeHero) ...<Widget>[
+              _HeroPriceChart(
+                dark: dark,
+                rangeIndex: _priceRangeIndex,
+                ranges: _ranges,
+                onRangeChanged: (int i) => setState(() => _priceRangeIndex = i),
+              ),
+              const SizedBox(height: 14),
+            ],
             if (wide)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +205,27 @@ class _PremiumFinanceChartShowcaseState extends State<PremiumFinanceChartShowcas
               const SizedBox(height: 14),
               _AnalystRecommendationsChart(dark: dark),
             ],
+            const SizedBox(height: 14),
+            if (medium)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: PremiumTimelineProcessCharts.scrollableChart(dark),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: PremiumTimelineProcessCharts.realTimeChart(dark),
+                  ),
+                ],
+              )
+            else ...<Widget>[
+              PremiumTimelineProcessCharts.scrollableChart(dark),
+              const SizedBox(height: 14),
+              PremiumTimelineProcessCharts.realTimeChart(dark),
+            ],
+            const SizedBox(height: 14),
+            PremiumStockGuiChart(dark: dark),
           ],
         );
       },

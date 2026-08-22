@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -14,40 +15,41 @@
             color-scheme: light;
         }
 
-        html, body {
+        html,
+        body {
             background: #FFFFFF;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-        
+
         .tradingview-widget-container {
             width: 100%;
             height: 100%;
         }
-        
+
         #trading-view-chart {
             width: 100%;
             height: 100%;
         }
-        
+
         /* Hide scrollbars completely */
         ::-webkit-scrollbar {
             display: none;
             width: 0;
             height: 0;
         }
-        
+
         /* Hide scrollbars for Firefox */
         * {
             scrollbar-width: none;
         }
-        
+
         /* Hide scrollbars for IE/Edge */
         * {
             -ms-overflow-style: none;
         }
-        
+
         /* Prevent any internal scrolling in the chart */
         .tradingview-widget-container,
         #trading-view-chart,
@@ -58,14 +60,16 @@
             scroll-behavior: auto !important;
             overscroll-behavior: none !important;
         }
-        
+
         /* Ensure chart container has no scroll */
-        body, html {
+        body,
+        html {
             overflow: hidden !important;
             scroll-behavior: auto !important;
         }
     </style>
 </head>
+
 <body>
     <div class="tradingview-widget-container">
         <div id="trading-view-chart"></div>
@@ -73,15 +77,15 @@
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script type="text/javascript">
-        
-        
+
+
         function initChart(symbolStr, colorTheme, height) {
-            
+
             // Format symbol for TradingView
             const formattedSymbol = formatSymbol(symbolStr);
-            
-           
-            
+
+
+
             const options = {
                 "symbols": [
                     [formattedSymbol]
@@ -146,11 +150,11 @@
                 console.log('Symbol already has exchange prefix:', symbol);
                 return symbol;
             }
-            
+
             // Extract just the ticker symbol if it contains exchange info in parentheses
             const cleanSymbol = symbol.split('(')[0].trim();
             const upperSymbol = cleanSymbol.toUpperCase();
-            
+
             // Map common suffixes (e.g. HDFCBANK.NS) to TradingView's EXCHANGE:TICKER format
             const suffixExchangeMap = [
                 { suffix: '.NS', exchange: 'NSE' },
@@ -158,7 +162,7 @@
                 { suffix: '.BO', exchange: 'BSE' },
                 { suffix: '.BSE', exchange: 'BSE' }
             ];
-            
+
             for (const mapping of suffixExchangeMap) {
                 if (upperSymbol.endsWith(mapping.suffix)) {
                     const ticker = upperSymbol.replace(mapping.suffix, '');
@@ -168,7 +172,7 @@
                     return formatted;
                 }
             }
-            
+
             // For US symbols (or any symbol without exchange info), let TradingView auto-resolve it
             console.log('Symbol without exchange, will auto-resolve:', cleanSymbol);
             return cleanSymbol;
@@ -184,44 +188,45 @@
             }
         }
 
-                 function updateTheme(newTheme) {
-             const container = document.getElementById('trading-view-chart');
-             if (container) {
-                 container.innerHTML = '';
-                 const currentSymbol = document.body.getAttribute('data-symbol') || 'AAPL';
-                 const currentHeight = document.body.getAttribute('data-height') || '400px';
-                 initChart(currentSymbol, newTheme, currentHeight);
-             }
-         }
-         
-         function updateHeight(newHeight) {
-             const container = document.getElementById('trading-view-chart');
-             if (container) {
-                 container.innerHTML = '';
-                 const currentSymbol = document.body.getAttribute('data-symbol') || 'AAPL';
-                 const currentTheme = document.body.getAttribute('data-theme') || 'light';
-                 initChart(currentSymbol, currentTheme, newHeight);
-             }
-         }
+        function updateTheme(newTheme) {
+            const container = document.getElementById('trading-view-chart');
+            if (container) {
+                container.innerHTML = '';
+                const currentSymbol = document.body.getAttribute('data-symbol') || 'AAPL';
+                const currentHeight = document.body.getAttribute('data-height') || '400px';
+                initChart(currentSymbol, newTheme, currentHeight);
+            }
+        }
 
-                 // Initialize with default values
-         document.addEventListener('DOMContentLoaded', function() {
-             console.log('DOM loaded, initializing chart...');
-             try {
-                 initChart('AAPL', 'light', '400px');
-                 console.log('Chart initialization completed');
-             } catch (error) {
-                 console.error('Error initializing chart:', error);
-             }
-         });
-         
-         // Also expose functions globally for Flutter to call
-         window.initChart = initChart;
-         window.updateSymbol = updateSymbol;
-         window.updateTheme = updateTheme;
-         window.updateHeight = updateHeight;
-         
-         console.log('TradingView chart functions exposed to window object');
+        function updateHeight(newHeight) {
+            const container = document.getElementById('trading-view-chart');
+            if (container) {
+                container.innerHTML = '';
+                const currentSymbol = document.body.getAttribute('data-symbol') || 'AAPL';
+                const currentTheme = document.body.getAttribute('data-theme') || 'light';
+                initChart(currentSymbol, currentTheme, newHeight);
+            }
+        }
+
+        // Initialize with default values
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM loaded, initializing chart...');
+            try {
+                initChart('AAPL', 'light', '400px');
+                console.log('Chart initialization completed');
+            } catch (error) {
+                console.error('Error initializing chart:', error);
+            }
+        });
+
+        // Also expose functions globally for Flutter to call
+        window.initChart = initChart;
+        window.updateSymbol = updateSymbol;
+        window.updateTheme = updateTheme;
+        window.updateHeight = updateHeight;
+
+        console.log('TradingView chart functions exposed to window object');
     </script>
 </body>
+
 </html>
