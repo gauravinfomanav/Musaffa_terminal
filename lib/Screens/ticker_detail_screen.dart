@@ -798,11 +798,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     const SizedBox(height: 12),
                     _headerKv(
                       isDarkMode,
-                      'Sector',
-                      widget.ticker.sectorname ?? '--',
-                    ),
-                    _headerKv(
-                      isDarkMode,
                       'Industry',
                       stockData.industry ?? '--',
                       maxLines: 2,

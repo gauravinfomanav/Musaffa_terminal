@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlobalKeyboardShortcutsWrapper(
       child: GetMaterialApp(
-        title: 'Infomanav Terminal',
+        title: Constants.appName,
         theme: _terminalTheme(Brightness.light),
         darkTheme: _terminalTheme(Brightness.dark),
         themeMode: ThemeMode.light, // Set default to light mode

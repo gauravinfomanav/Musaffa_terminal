@@ -10,6 +10,10 @@ class Constants {
     'sans-serif',
   ];
 
+  /// User-facing product name shown in auth, headers, dialogs, and platform titles.
+  static const String appName = 'Infomanav Terminal';
+  static const String appShortName = 'Infomanav';
+
   static String getShortenedMarketCapV2(num? value) {
     if (value == null) return "-";
 

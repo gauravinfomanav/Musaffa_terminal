@@ -1,6 +1,6 @@
 {
-    "name": "musaffa_terminal",
-    "short_name": "musaffa_terminal",
+    "name": "Infomanav Terminal",
+    "short_name": "Infomanav",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
