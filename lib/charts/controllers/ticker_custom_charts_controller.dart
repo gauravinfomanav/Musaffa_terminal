@@ -31,41 +31,58 @@ class TickerCustomChartsController extends GetxController {
   final RxBool isLoadingPrice = false.obs;
   final RxString priceError = ''.obs;
   final RxList<OhlcCandlePoint> candles = <OhlcCandlePoint>[].obs;
+  final RxList<OhlcCandlePoint> intradayCandles = <OhlcCandlePoint>[].obs;
   final Rx<PremiumPriceRange> selectedRange = PremiumPriceRange.oneYear.obs;
   final Rx<PremiumPriceChartMode> chartMode = PremiumPriceChartMode.area.obs;
+  final RxnDouble livePrice = RxnDouble();
 
   String? _loadedSymbol;
 
+  bool get isIntraday => selectedRange.value == PremiumPriceRange.oneDay;
+
+  List<OhlcCandlePoint> get _sourceCandles =>
+      isIntraday && intradayCandles.isNotEmpty ? intradayCandles : candles;
+
   List<OhlcCandlePoint> get visibleCandles {
-    if (candles.isEmpty) return <OhlcCandlePoint>[];
+    final List<OhlcCandlePoint> source = _sourceCandles;
+    if (source.isEmpty) return <OhlcCandlePoint>[];
+    if (isIntraday) return source.toList();
     final DateTime? cutoff = _cutoffForRange(selectedRange.value);
-    if (cutoff == null) return candles.toList();
-    return candles.where((OhlcCandlePoint c) => !c.date.isBefore(cutoff)).toList();
+    if (cutoff == null) return source.toList();
+    return source
+        .where((OhlcCandlePoint c) => !c.date.isBefore(cutoff))
+        .toList();
   }
 
   OhlcCandlePoint? get latestCandle =>
       visibleCandles.isEmpty ? null : visibleCandles.last;
 
+  double? get displayPrice =>
+      livePrice.value ?? latestCandle?.close;
+
   double? get rangeChangePercent {
     final List<OhlcCandlePoint> visible = visibleCandles;
-    if (visible.length < 2) return null;
+    if (visible.isEmpty) return null;
     final double first = visible.first.close;
-    final double last = visible.last.close;
+    final double last = livePrice.value ?? visible.last.close;
     if (first == 0) return null;
     return ((last - first) / first) * 100;
   }
 
   double? get rangeChangeAbsolute {
     final List<OhlcCandlePoint> visible = visibleCandles;
-    if (visible.length < 2) return null;
-    return visible.last.close - visible.first.close;
+    if (visible.isEmpty) return null;
+    final double last = livePrice.value ?? visible.last.close;
+    return last - visible.first.close;
   }
 
   Future<void> loadPriceHistory(String symbol, {bool forceRefresh = false}) async {
     final String normalized = symbol.trim().toUpperCase();
     if (normalized.isEmpty) return;
 
-    if (!forceRefresh && _loadedSymbol == normalized && candles.isNotEmpty) {
+    if (!forceRefresh &&
+        _loadedSymbol == normalized &&
+        candles.isNotEmpty) {
       return;
     }
 
@@ -89,6 +106,10 @@ class TickerCustomChartsController extends GetxController {
         priceError.value = 'No price history available';
       } else {
         candles.assignAll(loaded);
+      }
+
+      if (selectedRange.value == PremiumPriceRange.oneDay) {
+        await _loadIntraday(normalized);
       }
     } catch (error) {
       candles.clear();
@@ -125,17 +146,34 @@ class TickerCustomChartsController extends GetxController {
         final List<OhlcCandlePoint> todaySession = intraday
             .where((OhlcCandlePoint c) => !c.date.isBefore(cutoff))
             .toList();
-        if (todaySession.isNotEmpty) {
-          candles.assignAll(todaySession);
-          return;
-        }
-        candles.assignAll(intraday);
+        intradayCandles.assignAll(
+          todaySession.isNotEmpty ? todaySession : intraday,
+        );
+      } else {
+        intradayCandles.clear();
       }
     } catch (_) {
-      // Fall back to daily filter below.
+      // Keep daily candles as fallback via visibleCandles.
     } finally {
       isLoadingPrice.value = false;
     }
+  }
+
+  /// Soft-merge a live tick into the last candle for a smooth live chart.
+  void applyLivePrice(double price) {
+    livePrice.value = price;
+    if (!isIntraday || intradayCandles.isEmpty) return;
+
+    final OhlcCandlePoint last = intradayCandles.last;
+    final OhlcCandlePoint updated = OhlcCandlePoint(
+      date: last.date,
+      open: last.open,
+      high: price > last.high ? price : last.high,
+      low: price < last.low ? price : last.low,
+      close: price,
+      volume: last.volume,
+    );
+    intradayCandles[intradayCandles.length - 1] = updated;
   }
 
   void setChartMode(PremiumPriceChartMode mode) {

@@ -1229,7 +1229,17 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   }
 
   Widget _buildCustomChartsTab(bool isDarkMode) {
-    return const TickerCustomChartsTabContent();
+    final String symbol = widget.ticker.symbol ?? widget.ticker.ticker ?? '';
+    final String companyName =
+        widget.ticker.companyName ?? widget.ticker.name ?? '';
+    final stockData = controller.stockData.value;
+
+    return TickerCustomChartsTabContent(
+      symbol: symbol,
+      companyName: companyName,
+      fallbackPrice: _livePrice ?? stockData?.currentPrice?.toDouble(),
+      dayChangePercent: stockData?.change1DPercent?.toDouble(),
+    );
   }
 
   Widget _buildAboutCompanyTab(bool isDarkMode) {
