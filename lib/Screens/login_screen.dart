@@ -63,8 +63,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return AuthPageShell(
       title: 'Welcome back',
-      subtitle: 'Sign in to Musaffa Terminal',
-      footnote: 'Use your Terminal account credentials',
+      subtitle: 'Sign in to ${Constants.appName}',
+      footnote: 'Use your ${Constants.appName} account credentials',
       form: Form(
         key: _formKey,
         child: Column(

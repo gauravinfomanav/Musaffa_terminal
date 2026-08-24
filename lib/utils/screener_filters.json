@@ -6,8 +6,14 @@
       "type": "dropdown",
       "field": "exchange",
       "options": [
-        {"value": "NYSE", "label": "NYSE"},
-        {"value": "NASDAQ", "label": "NASDAQ"}
+        {
+          "value": "NYSE",
+          "label": "NYSE"
+        },
+        {
+          "value": "NASDAQ",
+          "label": "NASDAQ"
+        }
       ]
     },
     {
@@ -16,17 +22,126 @@
       "type": "dropdown",
       "field": "sector",
       "options": [
-        {"value": "Technology", "label": "Technology"},
-        {"value": "Healthcare", "label": "Healthcare"},
-        {"value": "Financial Services", "label": "Financial Services"},
-        {"value": "Consumer Cyclical", "label": "Consumer Cyclical"},
-        {"value": "Industrials", "label": "Industrials"},
-        {"value": "Consumer Defensive", "label": "Consumer Defensive"},
-        {"value": "Energy", "label": "Energy"},
-        {"value": "Utilities", "label": "Utilities"},
-        {"value": "Real Estate", "label": "Real Estate"},
-        {"value": "Communication Services", "label": "Communication Services"},
-        {"value": "Basic Materials", "label": "Basic Materials"}
+        {
+          "value": "Technology Services",
+          "label": "Technology Services"
+        },
+        {
+          "value": "Electronic Technology",
+          "label": "Electronic Technology"
+        },
+        {
+          "value": "Technology",
+          "label": "Technology"
+        },
+        {
+          "value": "Finance",
+          "label": "Finance"
+        },
+        {
+          "value": "Financial Services",
+          "label": "Financial Services"
+        },
+        {
+          "value": "Healthcare",
+          "label": "Healthcare"
+        },
+        {
+          "value": "Health Technology",
+          "label": "Health Technology"
+        },
+        {
+          "value": "Health Services",
+          "label": "Health Services"
+        },
+        {
+          "value": "Consumer Cyclical",
+          "label": "Consumer Cyclical"
+        },
+        {
+          "value": "Consumer Services",
+          "label": "Consumer Services"
+        },
+        {
+          "value": "Consumer Durables",
+          "label": "Consumer Durables"
+        },
+        {
+          "value": "Consumer Non-Durables",
+          "label": "Consumer Non-Durables"
+        },
+        {
+          "value": "Consumer Defensive",
+          "label": "Consumer Defensive"
+        },
+        {
+          "value": "Retail Trade",
+          "label": "Retail Trade"
+        },
+        {
+          "value": "Distribution Services",
+          "label": "Distribution Services"
+        },
+        {
+          "value": "Industrials",
+          "label": "Industrials"
+        },
+        {
+          "value": "Producer Manufacturing",
+          "label": "Producer Manufacturing"
+        },
+        {
+          "value": "Industrial Services",
+          "label": "Industrial Services"
+        },
+        {
+          "value": "Commercial Services",
+          "label": "Commercial Services"
+        },
+        {
+          "value": "Transportation",
+          "label": "Transportation"
+        },
+        {
+          "value": "Energy",
+          "label": "Energy"
+        },
+        {
+          "value": "Energy Minerals",
+          "label": "Energy Minerals"
+        },
+        {
+          "value": "Utilities",
+          "label": "Utilities"
+        },
+        {
+          "value": "Real Estate",
+          "label": "Real Estate"
+        },
+        {
+          "value": "Communication Services",
+          "label": "Communication Services"
+        },
+        {
+          "value": "Communications",
+          "label": "Communications"
+        },
+        {
+          "value": "Basic Materials",
+          "label": "Basic Materials"
+        },
+        {
+          "value": "Non-Energy Minerals",
+          "label": "Non-Energy Minerals"
+        },
+        {
+          "value": "Process Industries",
+          "label": "Process Industries"
+        },
+        {
+          "value": "Miscellaneous",
+          "label": "Miscellaneous"
+        }
       ]
     },
     {
@@ -35,14 +150,38 @@
       "type": "dropdown",
       "field": "currency",
       "options": [
-        {"value": "USD", "label": "USD"},
-        {"value": "EUR", "label": "EUR"},
-        {"value": "GBP", "label": "GBP"},
-        {"value": "CAD", "label": "CAD"},
-        {"value": "JPY", "label": "JPY"},
-        {"value": "CNY", "label": "CNY"},
-        {"value": "HKD", "label": "HKD"},
-        {"value": "CHF", "label": "CHF"}
+        {
+          "value": "USD",
+          "label": "USD"
+        },
+        {
+          "value": "EUR",
+          "label": "EUR"
+        },
+        {
+          "value": "GBP",
+          "label": "GBP"
+        },
+        {
+          "value": "CAD",
+          "label": "CAD"
+        },
+        {
+          "value": "JPY",
+          "label": "JPY"
+        },
+        {
+          "value": "CNY",
+          "label": "CNY"
+        },
+        {
+          "value": "HKD",
+          "label": "HKD"
+        },
+        {
+          "value": "CHF",
+          "label": "CHF"
+        }
       ]
     },
     {
@@ -51,12 +190,30 @@
       "type": "dropdown",
       "field": "marketcap",
       "options": [
-        {"value": "under_50m", "label": "Nano (Under $50M)"},
-        {"value": "50m_300m", "label": "Micro ($50M - $300M)"},
-        {"value": "300m_2b", "label": "Small ($300M - $2B)"},
-        {"value": "2b_10b", "label": "Mid ($2B - $10B)"},
-        {"value": "10b_200b", "label": "Large ($10B - $200B)"},
-        {"value": "over_200b", "label": "Mega (Over $200B)"}
+        {
+          "value": "under_50m",
+          "label": "Nano (Under $50M)"
+        },
+        {
+          "value": "50m_300m",
+          "label": "Micro ($50M - $300M)"
+        },
+        {
+          "value": "300m_2b",
+          "label": "Small ($300M - $2B)"
+        },
+        {
+          "value": "2b_10b",
+          "label": "Mid ($2B - $10B)"
+        },
+        {
+          "value": "10b_200b",
+          "label": "Large ($10B - $200B)"
+        },
+        {
+          "value": "over_200b",
+          "label": "Mega (Over $200B)"
+        }
       ]
     },
     {
@@ -65,12 +222,30 @@
       "type": "dropdown",
       "field": "sharesOutStanding",
       "options": [
-        {"value": "under_10m", "label": "Under 10M"},
-        {"value": "10m_50m", "label": "10M - 50M"},
-        {"value": "50m_100m", "label": "50M - 100M"},
-        {"value": "100m_500m", "label": "100M - 500M"},
-        {"value": "500m_1b", "label": "500M - 1B"},
-        {"value": "over_1b", "label": "Over 1B"}
+        {
+          "value": "under_10m",
+          "label": "Under 10M"
+        },
+        {
+          "value": "10m_50m",
+          "label": "10M - 50M"
+        },
+        {
+          "value": "50m_100m",
+          "label": "50M - 100M"
+        },
+        {
+          "value": "100m_500m",
+          "label": "100M - 500M"
+        },
+        {
+          "value": "500m_1b",
+          "label": "500M - 1B"
+        },
+        {
+          "value": "over_1b",
+          "label": "Over 1B"
+        }
       ]
     },
     {
@@ -79,13 +254,34 @@
       "type": "dropdown",
       "field": "currentPrice",
       "options": [
-        {"value": "under_1", "label": "Under $1"},
-        {"value": "1_5", "label": "$1 - $5"},
-        {"value": "5_10", "label": "$5 - $10"},
-        {"value": "10_20", "label": "$10 - $20"},
-        {"value": "20_50", "label": "$20 - $50"},
-        {"value": "50_100", "label": "$50 - $100"},
-        {"value": "over_100", "label": "Over $100"}
+        {
+          "value": "under_1",
+          "label": "Under $1"
+        },
+        {
+          "value": "1_5",
+          "label": "$1 - $5"
+        },
+        {
+          "value": "5_10",
+          "label": "$5 - $10"
+        },
+        {
+          "value": "10_20",
+          "label": "$10 - $20"
+        },
+        {
+          "value": "20_50",
+          "label": "$20 - $50"
+        },
+        {
+          "value": "50_100",
+          "label": "$50 - $100"
+        },
+        {
+          "value": "over_100",
+          "label": "Over $100"
+        }
       ]
     },
     {
@@ -94,12 +290,30 @@
       "type": "dropdown",
       "field": "volume",
       "options": [
-        {"value": "under_50k", "label": "Under 50K"},
-        {"value": "50k_100k", "label": "50K - 100K"},
-        {"value": "100k_500k", "label": "100K - 500K"},
-        {"value": "500k_1m", "label": "500K - 1M"},
-        {"value": "1m_5m", "label": "1M - 5M"},
-        {"value": "over_5m", "label": "Over 5M"}
+        {
+          "value": "under_50k",
+          "label": "Under 50K"
+        },
+        {
+          "value": "50k_100k",
+          "label": "50K - 100K"
+        },
+        {
+          "value": "100k_500k",
+          "label": "100K - 500K"
+        },
+        {
+          "value": "500k_1m",
+          "label": "500K - 1M"
+        },
+        {
+          "value": "1m_5m",
+          "label": "1M - 5M"
+        },
+        {
+          "value": "over_5m",
+          "label": "Over 5M"
+        }
       ]
     },
     {
@@ -108,12 +322,30 @@
       "type": "dropdown",
       "field": "avgVolume10days",
       "options": [
-        {"value": "under_50k", "label": "Under 50K"},
-        {"value": "50k_100k", "label": "50K - 100K"},
-        {"value": "100k_500k", "label": "100K - 500K"},
-        {"value": "500k_1m", "label": "500K - 1M"},
-        {"value": "1m_5m", "label": "1M - 5M"},
-        {"value": "over_5m", "label": "Over 5M"}
+        {
+          "value": "under_50k",
+          "label": "Under 50K"
+        },
+        {
+          "value": "50k_100k",
+          "label": "50K - 100K"
+        },
+        {
+          "value": "100k_500k",
+          "label": "100K - 500K"
+        },
+        {
+          "value": "500k_1m",
+          "label": "500K - 1M"
+        },
+        {
+          "value": "1m_5m",
+          "label": "1M - 5M"
+        },
+        {
+          "value": "over_5m",
+          "label": "Over 5M"
+        }
       ]
     },
     {
@@ -122,12 +354,30 @@
       "type": "dropdown",
       "field": "avgVolume30days",
       "options": [
-        {"value": "under_50k", "label": "Under 50K"},
-        {"value": "50k_100k", "label": "50K - 100K"},
-        {"value": "100k_500k", "label": "100K - 500K"},
-        {"value": "500k_1m", "label": "500K - 1M"},
-        {"value": "1m_5m", "label": "1M - 5M"},
-        {"value": "over_5m", "label": "Over 5M"}
+        {
+          "value": "under_50k",
+          "label": "Under 50K"
+        },
+        {
+          "value": "50k_100k",
+          "label": "50K - 100K"
+        },
+        {
+          "value": "100k_500k",
+          "label": "100K - 500K"
+        },
+        {
+          "value": "500k_1m",
+          "label": "500K - 1M"
+        },
+        {
+          "value": "1m_5m",
+          "label": "1M - 5M"
+        },
+        {
+          "value": "over_5m",
+          "label": "Over 5M"
+        }
       ]
     },
     {
@@ -136,14 +386,38 @@
       "type": "dropdown",
       "field": "priceChangeYTD",
       "options": [
-        {"value": "under_minus30", "label": "Down >30%"},
-        {"value": "minus30_minus20", "label": "Down 20-30%"},
-        {"value": "minus20_minus10", "label": "Down 10-20%"},
-        {"value": "minus10_0", "label": "Down 0-10%"},
-        {"value": "0_10", "label": "Up 0-10%"},
-        {"value": "10_20", "label": "Up 10-20%"},
-        {"value": "20_30", "label": "Up 20-30%"},
-        {"value": "over_30", "label": "Up >30%"}
+        {
+          "value": "under_minus30",
+          "label": "Down >30%"
+        },
+        {
+          "value": "minus30_minus20",
+          "label": "Down 20-30%"
+        },
+        {
+          "value": "minus20_minus10",
+          "label": "Down 10-20%"
+        },
+        {
+          "value": "minus10_0",
+          "label": "Down 0-10%"
+        },
+        {
+          "value": "0_10",
+          "label": "Up 0-10%"
+        },
+        {
+          "value": "10_20",
+          "label": "Up 10-20%"
+        },
+        {
+          "value": "20_30",
+          "label": "Up 20-30%"
+        },
+        {
+          "value": "over_30",
+          "label": "Up >30%"
+        }
       ]
     },
     {
@@ -152,12 +426,30 @@
       "type": "dropdown",
       "field": "marketCapClassification",
       "options": [
-        {"value": "Mega Cap", "label": "Mega Cap"},
-        {"value": "Large Cap", "label": "Large Cap"},
-        {"value": "Mid Cap", "label": "Mid Cap"},
-        {"value": "Small Cap", "label": "Small Cap"},
-        {"value": "Micro Cap", "label": "Micro Cap"},
-        {"value": "Nano Cap", "label": "Nano Cap"}
+        {
+          "value": "Mega Cap",
+          "label": "Mega Cap"
+        },
+        {
+          "value": "Large Cap",
+          "label": "Large Cap"
+        },
+        {
+          "value": "Mid Cap",
+          "label": "Mid Cap"
+        },
+        {
+          "value": "Small Cap",
+          "label": "Small Cap"
+        },
+        {
+          "value": "Micro Cap",
+          "label": "Micro Cap"
+        },
+        {
+          "value": "Nano Cap",
+          "label": "Nano Cap"
+        }
       ]
     },
     {
@@ -166,12 +458,30 @@
       "type": "dropdown",
       "field": "ROE",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_15", "label": "10% - 15%"},
-        {"value": "15_20", "label": "15% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_15",
+          "label": "10% - 15%"
+        },
+        {
+          "value": "15_20",
+          "label": "15% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     }
   ],
@@ -182,13 +492,34 @@
       "type": "dropdown",
       "field": "peAnnual",
       "options": [
-        {"value": "under_5", "label": "Under 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "10_15", "label": "10 - 15"},
-        {"value": "15_20", "label": "15 - 20"},
-        {"value": "20_25", "label": "20 - 25"},
-        {"value": "25_30", "label": "25 - 30"},
-        {"value": "over_30", "label": "Over 30"}
+        {
+          "value": "under_5",
+          "label": "Under 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "10_15",
+          "label": "10 - 15"
+        },
+        {
+          "value": "15_20",
+          "label": "15 - 20"
+        },
+        {
+          "value": "20_25",
+          "label": "20 - 25"
+        },
+        {
+          "value": "25_30",
+          "label": "25 - 30"
+        },
+        {
+          "value": "over_30",
+          "label": "Over 30"
+        }
       ]
     },
     {
@@ -197,13 +528,34 @@
       "type": "dropdown",
       "field": "peTTM",
       "options": [
-        {"value": "under_5", "label": "Under 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "10_15", "label": "10 - 15"},
-        {"value": "15_20", "label": "15 - 20"},
-        {"value": "20_25", "label": "20 - 25"},
-        {"value": "25_30", "label": "25 - 30"},
-        {"value": "over_30", "label": "Over 30"}
+        {
+          "value": "under_5",
+          "label": "Under 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "10_15",
+          "label": "10 - 15"
+        },
+        {
+          "value": "15_20",
+          "label": "15 - 20"
+        },
+        {
+          "value": "20_25",
+          "label": "20 - 25"
+        },
+        {
+          "value": "25_30",
+          "label": "25 - 30"
+        },
+        {
+          "value": "over_30",
+          "label": "Over 30"
+        }
       ]
     },
     {
@@ -212,11 +564,26 @@
       "type": "dropdown",
       "field": "pbAnnual",
       "options": [
-        {"value": "under_1", "label": "Under 1"},
-        {"value": "1_2", "label": "1 - 2"},
-        {"value": "2_3", "label": "2 - 3"},
-        {"value": "3_5", "label": "3 - 5"},
-        {"value": "over_5", "label": "Over 5"}
+        {
+          "value": "under_1",
+          "label": "Under 1"
+        },
+        {
+          "value": "1_2",
+          "label": "1 - 2"
+        },
+        {
+          "value": "2_3",
+          "label": "2 - 3"
+        },
+        {
+          "value": "3_5",
+          "label": "3 - 5"
+        },
+        {
+          "value": "over_5",
+          "label": "Over 5"
+        }
       ]
     },
     {
@@ -225,12 +592,30 @@
       "type": "dropdown",
       "field": "psAnnual",
       "options": [
-        {"value": "under_1", "label": "Under 1"},
-        {"value": "1_2", "label": "1 - 2"},
-        {"value": "2_3", "label": "2 - 3"},
-        {"value": "3_5", "label": "3 - 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "over_10", "label": "Over 10"}
+        {
+          "value": "under_1",
+          "label": "Under 1"
+        },
+        {
+          "value": "1_2",
+          "label": "1 - 2"
+        },
+        {
+          "value": "2_3",
+          "label": "2 - 3"
+        },
+        {
+          "value": "3_5",
+          "label": "3 - 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "over_10",
+          "label": "Over 10"
+        }
       ]
     },
     {
@@ -239,12 +624,30 @@
       "type": "dropdown",
       "field": "psTTM",
       "options": [
-        {"value": "under_1", "label": "Under 1"},
-        {"value": "1_2", "label": "1 - 2"},
-        {"value": "2_3", "label": "2 - 3"},
-        {"value": "3_5", "label": "3 - 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "over_10", "label": "Over 10"}
+        {
+          "value": "under_1",
+          "label": "Under 1"
+        },
+        {
+          "value": "1_2",
+          "label": "1 - 2"
+        },
+        {
+          "value": "2_3",
+          "label": "2 - 3"
+        },
+        {
+          "value": "3_5",
+          "label": "3 - 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "over_10",
+          "label": "Over 10"
+        }
       ]
     },
     {
@@ -253,11 +656,26 @@
       "type": "dropdown",
       "field": "analystRecommendationWeightedAvg",
       "options": [
-        {"value": "1_1.5", "label": "Strong Buy (1-1.5)"},
-        {"value": "1.5_2.5", "label": "Buy (1.5-2.5)"},
-        {"value": "2.5_3.5", "label": "Hold (2.5-3.5)"},
-        {"value": "3.5_4.5", "label": "Sell (3.5-4.5)"},
-        {"value": "4.5_5", "label": "Strong Sell (4.5-5)"}
+        {
+          "value": "1_1.5",
+          "label": "Strong Buy (1-1.5)"
+        },
+        {
+          "value": "1.5_2.5",
+          "label": "Buy (1.5-2.5)"
+        },
+        {
+          "value": "2.5_3.5",
+          "label": "Hold (2.5-3.5)"
+        },
+        {
+          "value": "3.5_4.5",
+          "label": "Sell (3.5-4.5)"
+        },
+        {
+          "value": "4.5_5",
+          "label": "Strong Sell (4.5-5)"
+        }
       ]
     },
     {
@@ -266,10 +684,22 @@
       "type": "dropdown",
       "field": "currentRatioAnnual",
       "options": [
-        {"value": "under_1", "label": "Under 1"},
-        {"value": "1_2", "label": "1 - 2"},
-        {"value": "2_3", "label": "2 - 3"},
-        {"value": "over_3", "label": "Over 3"}
+        {
+          "value": "under_1",
+          "label": "Under 1"
+        },
+        {
+          "value": "1_2",
+          "label": "1 - 2"
+        },
+        {
+          "value": "2_3",
+          "label": "2 - 3"
+        },
+        {
+          "value": "over_3",
+          "label": "Over 3"
+        }
       ]
     },
     {
@@ -278,10 +708,22 @@
       "type": "dropdown",
       "field": "totalDebtTotalEquityAnnual",
       "options": [
-        {"value": "under_0.5", "label": "Under 0.5"},
-        {"value": "0.5_1", "label": "0.5 - 1"},
-        {"value": "1_2", "label": "1 - 2"},
-        {"value": "over_2", "label": "Over 2"}
+        {
+          "value": "under_0.5",
+          "label": "Under 0.5"
+        },
+        {
+          "value": "0.5_1",
+          "label": "0.5 - 1"
+        },
+        {
+          "value": "1_2",
+          "label": "1 - 2"
+        },
+        {
+          "value": "over_2",
+          "label": "Over 2"
+        }
       ]
     },
     {
@@ -290,11 +732,26 @@
       "type": "dropdown",
       "field": "netProfitMarginAnnual",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -303,11 +760,26 @@
       "type": "dropdown",
       "field": "roiAnnual",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -316,11 +788,26 @@
       "type": "dropdown",
       "field": "currentDividendYieldTTM",
       "options": [
-        {"value": "0", "label": "0%"},
-        {"value": "1_2", "label": "1% - 2%"},
-        {"value": "2_3", "label": "2% - 3%"},
-        {"value": "3_5", "label": "3% - 5%"},
-        {"value": "over_5", "label": "Over 5%"}
+        {
+          "value": "0",
+          "label": "0%"
+        },
+        {
+          "value": "1_2",
+          "label": "1% - 2%"
+        },
+        {
+          "value": "2_3",
+          "label": "2% - 3%"
+        },
+        {
+          "value": "3_5",
+          "label": "3% - 5%"
+        },
+        {
+          "value": "over_5",
+          "label": "Over 5%"
+        }
       ]
     },
     {
@@ -329,12 +816,30 @@
       "type": "dropdown",
       "field": "rOE",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_15", "label": "10% - 15%"},
-        {"value": "15_20", "label": "15% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_15",
+          "label": "10% - 15%"
+        },
+        {
+          "value": "15_20",
+          "label": "15% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -343,12 +848,30 @@
       "type": "dropdown",
       "field": "grossMarginAnnual",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "20_30", "label": "20% - 30%"},
-        {"value": "30_50", "label": "30% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "20_30",
+          "label": "20% - 30%"
+        },
+        {
+          "value": "30_50",
+          "label": "30% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -357,12 +880,30 @@
       "type": "dropdown",
       "field": "operatingMarginAnnual",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_15", "label": "10% - 15%"},
-        {"value": "15_25", "label": "15% - 25%"},
-        {"value": "over_25", "label": "Over 25%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_15",
+          "label": "10% - 15%"
+        },
+        {
+          "value": "15_25",
+          "label": "15% - 25%"
+        },
+        {
+          "value": "over_25",
+          "label": "Over 25%"
+        }
       ]
     },
     {
@@ -371,11 +912,26 @@
       "type": "dropdown",
       "field": "quickRatioAnnual",
       "options": [
-        {"value": "under_0.5", "label": "Under 0.5"},
-        {"value": "0.5_1", "label": "0.5 - 1"},
-        {"value": "1_1.5", "label": "1 - 1.5"},
-        {"value": "1.5_2", "label": "1.5 - 2"},
-        {"value": "over_2", "label": "Over 2"}
+        {
+          "value": "under_0.5",
+          "label": "Under 0.5"
+        },
+        {
+          "value": "0.5_1",
+          "label": "0.5 - 1"
+        },
+        {
+          "value": "1_1.5",
+          "label": "1 - 1.5"
+        },
+        {
+          "value": "1.5_2",
+          "label": "1.5 - 2"
+        },
+        {
+          "value": "over_2",
+          "label": "Over 2"
+        }
       ]
     },
     {
@@ -384,11 +940,26 @@
       "type": "dropdown",
       "field": "assetTurnoverAnnual",
       "options": [
-        {"value": "under_0.5", "label": "Under 0.5"},
-        {"value": "0.5_1", "label": "0.5 - 1"},
-        {"value": "1_1.5", "label": "1 - 1.5"},
-        {"value": "1.5_2", "label": "1.5 - 2"},
-        {"value": "over_2", "label": "Over 2"}
+        {
+          "value": "under_0.5",
+          "label": "Under 0.5"
+        },
+        {
+          "value": "0.5_1",
+          "label": "0.5 - 1"
+        },
+        {
+          "value": "1_1.5",
+          "label": "1 - 1.5"
+        },
+        {
+          "value": "1.5_2",
+          "label": "1.5 - 2"
+        },
+        {
+          "value": "over_2",
+          "label": "Over 2"
+        }
       ]
     },
     {
@@ -397,11 +968,26 @@
       "type": "dropdown",
       "field": "inventoryTurnoverAnnual",
       "options": [
-        {"value": "under_2", "label": "Under 2"},
-        {"value": "2_5", "label": "2 - 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "10_20", "label": "10 - 20"},
-        {"value": "over_20", "label": "Over 20"}
+        {
+          "value": "under_2",
+          "label": "Under 2"
+        },
+        {
+          "value": "2_5",
+          "label": "2 - 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "10_20",
+          "label": "10 - 20"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20"
+        }
       ]
     },
     {
@@ -410,11 +996,26 @@
       "type": "dropdown",
       "field": "receivablesTurnoverTTM",
       "options": [
-        {"value": "under_5", "label": "Under 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "10_15", "label": "10 - 15"},
-        {"value": "15_25", "label": "15 - 25"},
-        {"value": "over_25", "label": "Over 25"}
+        {
+          "value": "under_5",
+          "label": "Under 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "10_15",
+          "label": "10 - 15"
+        },
+        {
+          "value": "15_25",
+          "label": "15 - 25"
+        },
+        {
+          "value": "over_25",
+          "label": "Over 25"
+        }
       ]
     },
     {
@@ -423,11 +1024,26 @@
       "type": "dropdown",
       "field": "payoutRatioTTM",
       "options": [
-        {"value": "0", "label": "0%"},
-        {"value": "0_25", "label": "0% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "50_75", "label": "50% - 75%"},
-        {"value": "over_75", "label": "Over 75%"}
+        {
+          "value": "0",
+          "label": "0%"
+        },
+        {
+          "value": "0_25",
+          "label": "0% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "50_75",
+          "label": "50% - 75%"
+        },
+        {
+          "value": "over_75",
+          "label": "Over 75%"
+        }
       ]
     },
     {
@@ -436,12 +1052,30 @@
       "type": "dropdown",
       "field": "epsGrowth1y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "20_50", "label": "20% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "20_50",
+          "label": "20% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -450,12 +1084,30 @@
       "type": "dropdown",
       "field": "revenueGrowth1Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "20_50", "label": "20% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "20_50",
+          "label": "20% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -464,12 +1116,30 @@
       "type": "dropdown",
       "field": "epsTTM",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "under_1", "label": "Under $1"},
-        {"value": "1_2", "label": "$1 - $2"},
-        {"value": "2_5", "label": "$2 - $5"},
-        {"value": "5_10", "label": "$5 - $10"},
-        {"value": "over_10", "label": "Over $10"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "under_1",
+          "label": "Under $1"
+        },
+        {
+          "value": "1_2",
+          "label": "$1 - $2"
+        },
+        {
+          "value": "2_5",
+          "label": "$2 - $5"
+        },
+        {
+          "value": "5_10",
+          "label": "$5 - $10"
+        },
+        {
+          "value": "over_10",
+          "label": "Over $10"
+        }
       ]
     },
     {
@@ -478,11 +1148,26 @@
       "type": "dropdown",
       "field": "evEbit",
       "options": [
-        {"value": "under_5", "label": "Under 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "10_15", "label": "10 - 15"},
-        {"value": "15_20", "label": "15 - 20"},
-        {"value": "over_20", "label": "Over 20"}
+        {
+          "value": "under_5",
+          "label": "Under 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "10_15",
+          "label": "10 - 15"
+        },
+        {
+          "value": "15_20",
+          "label": "15 - 20"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20"
+        }
       ]
     },
     {
@@ -491,11 +1176,26 @@
       "type": "dropdown",
       "field": "evFcf",
       "options": [
-        {"value": "under_10", "label": "Under 10"},
-        {"value": "10_15", "label": "10 - 15"},
-        {"value": "15_20", "label": "15 - 20"},
-        {"value": "20_30", "label": "20 - 30"},
-        {"value": "over_30", "label": "Over 30"}
+        {
+          "value": "under_10",
+          "label": "Under 10"
+        },
+        {
+          "value": "10_15",
+          "label": "10 - 15"
+        },
+        {
+          "value": "15_20",
+          "label": "15 - 20"
+        },
+        {
+          "value": "20_30",
+          "label": "20 - 30"
+        },
+        {
+          "value": "over_30",
+          "label": "Over 30"
+        }
       ]
     },
     {
@@ -504,12 +1204,30 @@
       "type": "dropdown",
       "field": "evRevenue",
       "options": [
-        {"value": "under_1", "label": "Under 1"},
-        {"value": "1_2", "label": "1 - 2"},
-        {"value": "2_3", "label": "2 - 3"},
-        {"value": "3_5", "label": "3 - 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "over_10", "label": "Over 10"}
+        {
+          "value": "under_1",
+          "label": "Under 1"
+        },
+        {
+          "value": "1_2",
+          "label": "1 - 2"
+        },
+        {
+          "value": "2_3",
+          "label": "2 - 3"
+        },
+        {
+          "value": "3_5",
+          "label": "3 - 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "over_10",
+          "label": "Over 10"
+        }
       ]
     },
     {
@@ -518,11 +1236,26 @@
       "type": "dropdown",
       "field": "enterpriseValue",
       "options": [
-        {"value": "under_100m", "label": "Under $100M"},
-        {"value": "100m_1b", "label": "$100M - $1B"},
-        {"value": "1b_10b", "label": "$1B - $10B"},
-        {"value": "10b_50b", "label": "$10B - $50B"},
-        {"value": "over_50b", "label": "Over $50B"}
+        {
+          "value": "under_100m",
+          "label": "Under $100M"
+        },
+        {
+          "value": "100m_1b",
+          "label": "$100M - $1B"
+        },
+        {
+          "value": "1b_10b",
+          "label": "$1B - $10B"
+        },
+        {
+          "value": "10b_50b",
+          "label": "$10B - $50B"
+        },
+        {
+          "value": "over_50b",
+          "label": "Over $50B"
+        }
       ]
     },
     {
@@ -531,11 +1264,26 @@
       "type": "dropdown",
       "field": "longTermDebtEquityAnnual",
       "options": [
-        {"value": "under_0.3", "label": "Under 0.3"},
-        {"value": "0.3_0.5", "label": "0.3 - 0.5"},
-        {"value": "0.5_1", "label": "0.5 - 1"},
-        {"value": "1_2", "label": "1 - 2"},
-        {"value": "over_2", "label": "Over 2"}
+        {
+          "value": "under_0.3",
+          "label": "Under 0.3"
+        },
+        {
+          "value": "0.3_0.5",
+          "label": "0.3 - 0.5"
+        },
+        {
+          "value": "0.5_1",
+          "label": "0.5 - 1"
+        },
+        {
+          "value": "1_2",
+          "label": "1 - 2"
+        },
+        {
+          "value": "over_2",
+          "label": "Over 2"
+        }
       ]
     },
     {
@@ -544,11 +1292,26 @@
       "type": "dropdown",
       "field": "netInterestCoverageAnnual",
       "options": [
-        {"value": "under_1", "label": "Under 1"},
-        {"value": "1_3", "label": "1 - 3"},
-        {"value": "3_5", "label": "3 - 5"},
-        {"value": "5_10", "label": "5 - 10"},
-        {"value": "over_10", "label": "Over 10"}
+        {
+          "value": "under_1",
+          "label": "Under 1"
+        },
+        {
+          "value": "1_3",
+          "label": "1 - 3"
+        },
+        {
+          "value": "3_5",
+          "label": "3 - 5"
+        },
+        {
+          "value": "5_10",
+          "label": "5 - 10"
+        },
+        {
+          "value": "over_10",
+          "label": "Over 10"
+        }
       ]
     },
     {
@@ -557,11 +1320,26 @@
       "type": "dropdown",
       "field": "equityToAssetsAnnual",
       "options": [
-        {"value": "under_20", "label": "Under 20%"},
-        {"value": "20_40", "label": "20% - 40%"},
-        {"value": "40_60", "label": "40% - 60%"},
-        {"value": "60_80", "label": "60% - 80%"},
-        {"value": "over_80", "label": "Over 80%"}
+        {
+          "value": "under_20",
+          "label": "Under 20%"
+        },
+        {
+          "value": "20_40",
+          "label": "20% - 40%"
+        },
+        {
+          "value": "40_60",
+          "label": "40% - 60%"
+        },
+        {
+          "value": "60_80",
+          "label": "60% - 80%"
+        },
+        {
+          "value": "over_80",
+          "label": "Over 80%"
+        }
       ]
     },
     {
@@ -570,11 +1348,26 @@
       "type": "dropdown",
       "field": "pretaxMarginAnnual",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -583,12 +1376,30 @@
       "type": "dropdown",
       "field": "epsAnnual",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "under_1", "label": "Under $1"},
-        {"value": "1_2", "label": "$1 - $2"},
-        {"value": "2_5", "label": "$2 - $5"},
-        {"value": "5_10", "label": "$5 - $10"},
-        {"value": "over_10", "label": "Over $10"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "under_1",
+          "label": "Under $1"
+        },
+        {
+          "value": "1_2",
+          "label": "$1 - $2"
+        },
+        {
+          "value": "2_5",
+          "label": "$2 - $5"
+        },
+        {
+          "value": "5_10",
+          "label": "$5 - $10"
+        },
+        {
+          "value": "over_10",
+          "label": "Over $10"
+        }
       ]
     },
     {
@@ -597,11 +1408,26 @@
       "type": "dropdown",
       "field": "bookValuePerShareAnnual",
       "options": [
-        {"value": "under_5", "label": "Under $5"},
-        {"value": "5_10", "label": "$5 - $10"},
-        {"value": "10_20", "label": "$10 - $20"},
-        {"value": "20_50", "label": "$20 - $50"},
-        {"value": "over_50", "label": "Over $50"}
+        {
+          "value": "under_5",
+          "label": "Under $5"
+        },
+        {
+          "value": "5_10",
+          "label": "$5 - $10"
+        },
+        {
+          "value": "10_20",
+          "label": "$10 - $20"
+        },
+        {
+          "value": "20_50",
+          "label": "$20 - $50"
+        },
+        {
+          "value": "over_50",
+          "label": "Over $50"
+        }
       ]
     }
   ],
@@ -612,12 +1438,30 @@
       "type": "dropdown",
       "field": "priceChange1D",
       "options": [
-        {"value": "under_minus10", "label": "Under -10%"},
-        {"value": "minus10_minus5", "label": "-10% to -5%"},
-        {"value": "minus5_0", "label": "-5% to 0%"},
-        {"value": "0_5", "label": "0% to 5%"},
-        {"value": "5_10", "label": "5% to 10%"},
-        {"value": "over_10", "label": "Over 10%"}
+        {
+          "value": "under_minus10",
+          "label": "Under -10%"
+        },
+        {
+          "value": "minus10_minus5",
+          "label": "-10% to -5%"
+        },
+        {
+          "value": "minus5_0",
+          "label": "-5% to 0%"
+        },
+        {
+          "value": "0_5",
+          "label": "0% to 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% to 10%"
+        },
+        {
+          "value": "over_10",
+          "label": "Over 10%"
+        }
       ]
     },
     {
@@ -626,12 +1470,30 @@
       "type": "dropdown",
       "field": "priceChange1M",
       "options": [
-        {"value": "under_minus20", "label": "Under -20%"},
-        {"value": "minus20_minus10", "label": "-20% to -10%"},
-        {"value": "minus10_0", "label": "-10% to 0%"},
-        {"value": "0_10", "label": "0% to 10%"},
-        {"value": "10_20", "label": "10% to 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "under_minus20",
+          "label": "Under -20%"
+        },
+        {
+          "value": "minus20_minus10",
+          "label": "-20% to -10%"
+        },
+        {
+          "value": "minus10_0",
+          "label": "-10% to 0%"
+        },
+        {
+          "value": "0_10",
+          "label": "0% to 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% to 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -640,12 +1502,30 @@
       "type": "dropdown",
       "field": "priceChange1Y",
       "options": [
-        {"value": "under_minus50", "label": "Under -50%"},
-        {"value": "minus50_minus20", "label": "-50% to -20%"},
-        {"value": "minus20_0", "label": "-20% to 0%"},
-        {"value": "0_20", "label": "0% to 20%"},
-        {"value": "20_50", "label": "20% to 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "under_minus50",
+          "label": "Under -50%"
+        },
+        {
+          "value": "minus50_minus20",
+          "label": "-50% to -20%"
+        },
+        {
+          "value": "minus20_0",
+          "label": "-20% to 0%"
+        },
+        {
+          "value": "0_20",
+          "label": "0% to 20%"
+        },
+        {
+          "value": "20_50",
+          "label": "20% to 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -654,10 +1534,22 @@
       "type": "dropdown",
       "field": "beta",
       "options": [
-        {"value": "under_0.5", "label": "Under 0.5"},
-        {"value": "0.5_1", "label": "0.5 - 1"},
-        {"value": "1_1.5", "label": "1 - 1.5"},
-        {"value": "over_1.5", "label": "Over 1.5"}
+        {
+          "value": "under_0.5",
+          "label": "Under 0.5"
+        },
+        {
+          "value": "0.5_1",
+          "label": "0.5 - 1"
+        },
+        {
+          "value": "1_1.5",
+          "label": "1 - 1.5"
+        },
+        {
+          "value": "over_1.5",
+          "label": "Over 1.5"
+        }
       ]
     },
     {
@@ -666,10 +1558,22 @@
       "type": "dropdown",
       "field": "d52WeekHigh",
       "options": [
-        {"value": "under_10", "label": "Under $10"},
-        {"value": "10_50", "label": "$10 - $50"},
-        {"value": "50_100", "label": "$50 - $100"},
-        {"value": "over_100", "label": "Over $100"}
+        {
+          "value": "under_10",
+          "label": "Under $10"
+        },
+        {
+          "value": "10_50",
+          "label": "$10 - $50"
+        },
+        {
+          "value": "50_100",
+          "label": "$50 - $100"
+        },
+        {
+          "value": "over_100",
+          "label": "Over $100"
+        }
       ]
     },
     {
@@ -678,10 +1582,22 @@
       "type": "dropdown",
       "field": "d52WeekLow",
       "options": [
-        {"value": "under_10", "label": "Under $10"},
-        {"value": "10_50", "label": "$10 - $50"},
-        {"value": "50_100", "label": "$50 - $100"},
-        {"value": "over_100", "label": "Over $100"}
+        {
+          "value": "under_10",
+          "label": "Under $10"
+        },
+        {
+          "value": "10_50",
+          "label": "$10 - $50"
+        },
+        {
+          "value": "50_100",
+          "label": "$50 - $100"
+        },
+        {
+          "value": "over_100",
+          "label": "Over $100"
+        }
       ]
     },
     {
@@ -690,12 +1606,30 @@
       "type": "dropdown",
       "field": "priceChange1W",
       "options": [
-        {"value": "under_minus10", "label": "Under -10%"},
-        {"value": "minus10_minus5", "label": "-10% to -5%"},
-        {"value": "minus5_0", "label": "-5% to 0%"},
-        {"value": "0_5", "label": "0% to 5%"},
-        {"value": "5_10", "label": "5% to 10%"},
-        {"value": "over_10", "label": "Over 10%"}
+        {
+          "value": "under_minus10",
+          "label": "Under -10%"
+        },
+        {
+          "value": "minus10_minus5",
+          "label": "-10% to -5%"
+        },
+        {
+          "value": "minus5_0",
+          "label": "-5% to 0%"
+        },
+        {
+          "value": "0_5",
+          "label": "0% to 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% to 10%"
+        },
+        {
+          "value": "over_10",
+          "label": "Over 10%"
+        }
       ]
     },
     {
@@ -704,12 +1638,30 @@
       "type": "dropdown",
       "field": "priceChange3M",
       "options": [
-        {"value": "under_minus30", "label": "Under -30%"},
-        {"value": "minus30_minus15", "label": "-30% to -15%"},
-        {"value": "minus15_0", "label": "-15% to 0%"},
-        {"value": "0_15", "label": "0% to 15%"},
-        {"value": "15_30", "label": "15% to 30%"},
-        {"value": "over_30", "label": "Over 30%"}
+        {
+          "value": "under_minus30",
+          "label": "Under -30%"
+        },
+        {
+          "value": "minus30_minus15",
+          "label": "-30% to -15%"
+        },
+        {
+          "value": "minus15_0",
+          "label": "-15% to 0%"
+        },
+        {
+          "value": "0_15",
+          "label": "0% to 15%"
+        },
+        {
+          "value": "15_30",
+          "label": "15% to 30%"
+        },
+        {
+          "value": "over_30",
+          "label": "Over 30%"
+        }
       ]
     },
     {
@@ -718,12 +1670,30 @@
       "type": "dropdown",
       "field": "priceChange6M",
       "options": [
-        {"value": "under_minus40", "label": "Under -40%"},
-        {"value": "minus40_minus20", "label": "-40% to -20%"},
-        {"value": "minus20_0", "label": "-20% to 0%"},
-        {"value": "0_20", "label": "0% to 20%"},
-        {"value": "20_40", "label": "20% to 40%"},
-        {"value": "over_40", "label": "Over 40%"}
+        {
+          "value": "under_minus40",
+          "label": "Under -40%"
+        },
+        {
+          "value": "minus40_minus20",
+          "label": "-40% to -20%"
+        },
+        {
+          "value": "minus20_0",
+          "label": "-20% to 0%"
+        },
+        {
+          "value": "0_20",
+          "label": "0% to 20%"
+        },
+        {
+          "value": "20_40",
+          "label": "20% to 40%"
+        },
+        {
+          "value": "over_40",
+          "label": "Over 40%"
+        }
       ]
     },
     {
@@ -732,12 +1702,30 @@
       "type": "dropdown",
       "field": "priceChange3Y",
       "options": [
-        {"value": "under_minus50", "label": "Under -50%"},
-        {"value": "minus50_0", "label": "-50% to 0%"},
-        {"value": "0_50", "label": "0% to 50%"},
-        {"value": "50_100", "label": "50% to 100%"},
-        {"value": "100_200", "label": "100% to 200%"},
-        {"value": "over_200", "label": "Over 200%"}
+        {
+          "value": "under_minus50",
+          "label": "Under -50%"
+        },
+        {
+          "value": "minus50_0",
+          "label": "-50% to 0%"
+        },
+        {
+          "value": "0_50",
+          "label": "0% to 50%"
+        },
+        {
+          "value": "50_100",
+          "label": "50% to 100%"
+        },
+        {
+          "value": "100_200",
+          "label": "100% to 200%"
+        },
+        {
+          "value": "over_200",
+          "label": "Over 200%"
+        }
       ]
     },
     {
@@ -746,12 +1734,30 @@
       "type": "dropdown",
       "field": "priceChange5Y",
       "options": [
-        {"value": "under_minus50", "label": "Under -50%"},
-        {"value": "minus50_0", "label": "-50% to 0%"},
-        {"value": "0_100", "label": "0% to 100%"},
-        {"value": "100_200", "label": "100% to 200%"},
-        {"value": "200_500", "label": "200% to 500%"},
-        {"value": "over_500", "label": "Over 500%"}
+        {
+          "value": "under_minus50",
+          "label": "Under -50%"
+        },
+        {
+          "value": "minus50_0",
+          "label": "-50% to 0%"
+        },
+        {
+          "value": "0_100",
+          "label": "0% to 100%"
+        },
+        {
+          "value": "100_200",
+          "label": "100% to 200%"
+        },
+        {
+          "value": "200_500",
+          "label": "200% to 500%"
+        },
+        {
+          "value": "over_500",
+          "label": "Over 500%"
+        }
       ]
     },
     {
@@ -760,12 +1766,30 @@
       "type": "dropdown",
       "field": "marketCapChange3y",
       "options": [
-        {"value": "under_minus50", "label": "Under -50%"},
-        {"value": "minus50_0", "label": "-50% to 0%"},
-        {"value": "0_50", "label": "0% to 50%"},
-        {"value": "50_100", "label": "50% to 100%"},
-        {"value": "100_200", "label": "100% to 200%"},
-        {"value": "over_200", "label": "Over 200%"}
+        {
+          "value": "under_minus50",
+          "label": "Under -50%"
+        },
+        {
+          "value": "minus50_0",
+          "label": "-50% to 0%"
+        },
+        {
+          "value": "0_50",
+          "label": "0% to 50%"
+        },
+        {
+          "value": "50_100",
+          "label": "50% to 100%"
+        },
+        {
+          "value": "100_200",
+          "label": "100% to 200%"
+        },
+        {
+          "value": "over_200",
+          "label": "Over 200%"
+        }
       ]
     },
     {
@@ -774,13 +1798,34 @@
       "type": "dropdown",
       "field": "currentPrice",
       "options": [
-        {"value": "under_5", "label": "Under $5"},
-        {"value": "5_10", "label": "$5 - $10"},
-        {"value": "10_20", "label": "$10 - $20"},
-        {"value": "20_50", "label": "$20 - $50"},
-        {"value": "50_100", "label": "$50 - $100"},
-        {"value": "100_200", "label": "$100 - $200"},
-        {"value": "over_200", "label": "Over $200"}
+        {
+          "value": "under_5",
+          "label": "Under $5"
+        },
+        {
+          "value": "5_10",
+          "label": "$5 - $10"
+        },
+        {
+          "value": "10_20",
+          "label": "$10 - $20"
+        },
+        {
+          "value": "20_50",
+          "label": "$20 - $50"
+        },
+        {
+          "value": "50_100",
+          "label": "$50 - $100"
+        },
+        {
+          "value": "100_200",
+          "label": "$100 - $200"
+        },
+        {
+          "value": "over_200",
+          "label": "Over $200"
+        }
       ]
     },
     {
@@ -789,12 +1834,30 @@
       "type": "dropdown",
       "field": "priceProximityToHigh",
       "options": [
-        {"value": "under_20", "label": "Under 20%"},
-        {"value": "20_40", "label": "20% - 40%"},
-        {"value": "40_60", "label": "40% - 60%"},
-        {"value": "60_80", "label": "60% - 80%"},
-        {"value": "80_95", "label": "80% - 95%"},
-        {"value": "over_95", "label": "Over 95%"}
+        {
+          "value": "under_20",
+          "label": "Under 20%"
+        },
+        {
+          "value": "20_40",
+          "label": "20% - 40%"
+        },
+        {
+          "value": "40_60",
+          "label": "40% - 60%"
+        },
+        {
+          "value": "60_80",
+          "label": "60% - 80%"
+        },
+        {
+          "value": "80_95",
+          "label": "80% - 95%"
+        },
+        {
+          "value": "over_95",
+          "label": "Over 95%"
+        }
       ]
     }
   ],
@@ -805,11 +1868,26 @@
       "type": "dropdown",
       "field": "revenueGrowth3Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -818,11 +1896,26 @@
       "type": "dropdown",
       "field": "revenueGrowth5Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -831,11 +1924,26 @@
       "type": "dropdown",
       "field": "epsGrowth3Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -844,11 +1952,26 @@
       "type": "dropdown",
       "field": "epsGrowth5Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -857,11 +1980,26 @@
       "type": "dropdown",
       "field": "epsGrowthQuarterlyYoy",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -870,11 +2008,26 @@
       "type": "dropdown",
       "field": "epsGrowthTTMYoy",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -883,11 +2036,26 @@
       "type": "dropdown",
       "field": "revenueGrowthQuarterlyYoy",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -896,11 +2064,26 @@
       "type": "dropdown",
       "field": "revenueGrowthTTMYoy",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -909,11 +2092,26 @@
       "type": "dropdown",
       "field": "revenueShareGrowth5Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -922,12 +2120,30 @@
       "type": "dropdown",
       "field": "roe5Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_15", "label": "10% - 15%"},
-        {"value": "15_20", "label": "15% - 20%"},
-        {"value": "over_20", "label": "Over 20%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_15",
+          "label": "10% - 15%"
+        },
+        {
+          "value": "15_20",
+          "label": "15% - 20%"
+        },
+        {
+          "value": "over_20",
+          "label": "Over 20%"
+        }
       ]
     },
     {
@@ -936,12 +2152,30 @@
       "type": "dropdown",
       "field": "roa5Y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_2", "label": "0% - 2%"},
-        {"value": "2_5", "label": "2% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_15", "label": "10% - 15%"},
-        {"value": "over_15", "label": "Over 15%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_2",
+          "label": "0% - 2%"
+        },
+        {
+          "value": "2_5",
+          "label": "2% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_15",
+          "label": "10% - 15%"
+        },
+        {
+          "value": "over_15",
+          "label": "Over 15%"
+        }
       ]
     },
     {
@@ -950,12 +2184,30 @@
       "type": "dropdown",
       "field": "assets_growth_1y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_5", "label": "0% - 5%"},
-        {"value": "5_10", "label": "5% - 10%"},
-        {"value": "10_20", "label": "10% - 20%"},
-        {"value": "20_50", "label": "20% - 50%"},
-        {"value": "over_50", "label": "Over 50%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_5",
+          "label": "0% - 5%"
+        },
+        {
+          "value": "5_10",
+          "label": "5% - 10%"
+        },
+        {
+          "value": "10_20",
+          "label": "10% - 20%"
+        },
+        {
+          "value": "20_50",
+          "label": "20% - 50%"
+        },
+        {
+          "value": "over_50",
+          "label": "Over 50%"
+        }
       ]
     },
     {
@@ -964,12 +2216,30 @@
       "type": "dropdown",
       "field": "assets_growth_3y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_10", "label": "0% - 10%"},
-        {"value": "10_25", "label": "10% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "50_100", "label": "50% - 100%"},
-        {"value": "over_100", "label": "Over 100%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_10",
+          "label": "0% - 10%"
+        },
+        {
+          "value": "10_25",
+          "label": "10% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "50_100",
+          "label": "50% - 100%"
+        },
+        {
+          "value": "over_100",
+          "label": "Over 100%"
+        }
       ]
     },
     {
@@ -978,12 +2248,30 @@
       "type": "dropdown",
       "field": "assets_growth_5y",
       "options": [
-        {"value": "negative", "label": "Negative"},
-        {"value": "0_25", "label": "0% - 25%"},
-        {"value": "25_50", "label": "25% - 50%"},
-        {"value": "50_100", "label": "50% - 100%"},
-        {"value": "100_200", "label": "100% - 200%"},
-        {"value": "over_200", "label": "Over 200%"}
+        {
+          "value": "negative",
+          "label": "Negative"
+        },
+        {
+          "value": "0_25",
+          "label": "0% - 25%"
+        },
+        {
+          "value": "25_50",
+          "label": "25% - 50%"
+        },
+        {
+          "value": "50_100",
+          "label": "50% - 100%"
+        },
+        {
+          "value": "100_200",
+          "label": "100% - 200%"
+        },
+        {
+          "value": "over_200",
+          "label": "Over 200%"
+        }
       ]
     }
   ],
@@ -994,10 +2282,22 @@
       "type": "dropdown",
       "field": "aum",
       "options": [
-        {"value": "under_100m", "label": "Under $100M"},
-        {"value": "100m_1b", "label": "$100M - $1B"},
-        {"value": "1b_10b", "label": "$1B - $10B"},
-        {"value": "over_10b", "label": "Over $10B"}
+        {
+          "value": "under_100m",
+          "label": "Under $100M"
+        },
+        {
+          "value": "100m_1b",
+          "label": "$100M - $1B"
+        },
+        {
+          "value": "1b_10b",
+          "label": "$1B - $10B"
+        },
+        {
+          "value": "over_10b",
+          "label": "Over $10B"
+        }
       ]
     },
     {
@@ -1006,12 +2306,23 @@
       "type": "dropdown",
       "field": "holdingsCount",
       "options": [
-        {"value": "under_50", "label": "Under 50"},
-        {"value": "50_100", "label": "50 - 100"},
-        {"value": "100_500", "label": "100 - 500"},
-        {"value": "over_500", "label": "Over 500"}
+        {
+          "value": "under_50",
+          "label": "Under 50"
+        },
+        {
+          "value": "50_100",
+          "label": "50 - 100"
+        },
+        {
+          "value": "100_500",
+          "label": "100 - 500"
+        },
+        {
+          "value": "over_500",
+          "label": "Over 500"
+        }
       ]
     }
   ]
 }
-

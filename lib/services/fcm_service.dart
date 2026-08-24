@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:musaffa_terminal/firebase_options.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/platform_capabilities.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'dart:io';
@@ -260,7 +261,9 @@ class FCMService {
       final response = await WebService.registerFCMToken(
         token: _fcmToken!,
         deviceType: Platform.isMacOS ? 'macos' : 'web', // Use macos for macOS
-        deviceName: Platform.isMacOS ? 'Musaffa Terminal (macOS)' : 'Musaffa Terminal',
+        deviceName: Platform.isMacOS
+            ? '${Constants.appName} (macOS)'
+            : Constants.appName,
       );
 
       if (response.status == ApiStatus.SUCCESS) {

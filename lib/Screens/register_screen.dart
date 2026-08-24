@@ -85,7 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (_emailCheck?.domainAllowed == true) {
         return 'Company email verified — create a password';
       }
-      return 'Create a password for your Terminal account';
+      return 'Create a password for your ${Constants.appName} account';
     }
     return 'Enter your email to continue registration';
   }

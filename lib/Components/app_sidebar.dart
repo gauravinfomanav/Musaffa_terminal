@@ -560,7 +560,7 @@ class _SignOutConfirmDialog extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Are you sure you want to sign out of Musaffa Terminal?',
+                          'Are you sure you want to sign out of ${Constants.appName}?',
                           style: HomeUi.subtitle(isDark).copyWith(
                             fontSize: 13,
                             height: 1.4,

@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Components/screener_dropdown.dart';
 
 class FilterWidgetBuilder {
   static Widget buildFilter({
+    Key? key,
     required FilterConfig config,
     required String? selectedValue,
     required Function(String?) onChanged,
@@ -13,37 +14,10 @@ class FilterWidgetBuilder {
   }) {
     switch (config.type) {
       case 'dropdown':
-        return ScreenerDropdown(
-          label: config.label,
-          value: selectedValue,
-          options: config.options
-              .map((opt) => {"value": opt.value, "label": opt.label})
-              .toList(),
-          onChanged: onChanged,
-          isDarkMode: isDarkMode,
-          isApplied: isApplied,
-          onReset: onReset,
-        );
-      
       case 'range':
-        // For range dropdowns, we'd need to handle from/to separately
-        // For now, treat as regular dropdown
-        return ScreenerDropdown(
-          label: config.label,
-          value: selectedValue,
-          options: config.options
-              .map((opt) => {"value": opt.value, "label": opt.label})
-              .toList(),
-          onChanged: onChanged,
-          isDarkMode: isDarkMode,
-          isApplied: isApplied,
-          onReset: onReset,
-        );
-      
       case 'multi-select':
-        // For multi-select, we'd need different handling
-        // For now, treat as regular dropdown
         return ScreenerDropdown(
+          key: key,
           label: config.label,
           value: selectedValue,
           options: config.options
@@ -54,10 +28,9 @@ class FilterWidgetBuilder {
           isApplied: isApplied,
           onReset: onReset,
         );
-      
+
       default:
         return const SizedBox();
     }
   }
 }
-
