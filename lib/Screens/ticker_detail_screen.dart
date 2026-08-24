@@ -389,7 +389,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       'Business',
     ];
     return SizedBox(
-      width: 620,
+      width: 560,
       child: HomeUi.segmentedControl(
         dark: isDarkMode,
         options: tabs,
