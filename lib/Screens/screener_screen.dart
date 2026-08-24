@@ -17,11 +17,13 @@ import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/Controllers/filter_controller.dart';
 import 'package:musaffa_terminal/Controllers/screener_strategy_controller.dart';
 import 'package:musaffa_terminal/models/filter_config.dart';
+import 'package:musaffa_terminal/models/screener_query.dart';
 import 'package:musaffa_terminal/models/results_tab_config.dart';
 import 'package:musaffa_terminal/models/screener_strategy.dart';
 import 'package:musaffa_terminal/services/filter_loader.dart';
 import 'package:musaffa_terminal/services/results_tabs_loader.dart';
 import 'package:musaffa_terminal/widgets/filter_widget_builder.dart';
+import 'package:musaffa_terminal/Components/screener_query_bar.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
@@ -61,6 +63,9 @@ class _ScreenerScreenState extends State<ScreenerScreen>
 
   // Store all filter values in a map: filterId -> selectedValue
   final Map<String, String?> _filterValues = {};
+  List<ScreenerQueryClause> _queryClauses = [];
+  bool _isQueryBarOpen = false;
+  String? _queryDraft;
   bool _isFilterExpanded = false;
 
   // Method to count applied filters for a specific category
@@ -129,6 +134,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
 
   Future<void> _loadFilters() async {
     try {
+      FilterLoader.clearCache();
       final config = await FilterLoader.loadFilters();
       setState(() {
         _filtersConfig = config;
@@ -223,6 +229,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
         }
       }
     });
+    _attachQueryClauses(filters);
 
     // Always fetch stocks - FilterController handles default filters when none are applied
     filterController.fetchStocks(filters: filters);
@@ -233,7 +240,8 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   }
 
   int _getTotalAppliedFiltersCount() {
-    return _filterValues.values.where((v) => v != null && v != "any").length;
+    return _filterValues.values.where((v) => v != null && v != "any").length +
+        _queryClauses.length;
   }
 
   bool _isFilterApplied(String filterId) {
@@ -251,6 +259,29 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   void _resetAllFilters() {
     setState(() {
       _filterValues.clear();
+      _queryClauses = [];
+      _isQueryBarOpen = false;
+    });
+    _applyFilters();
+  }
+
+  void _toggleQueryBar() {
+    setState(() {
+      _isQueryBarOpen = !_isQueryBarOpen;
+      if (!_isQueryBarOpen) _queryDraft = null;
+    });
+  }
+
+  void _beginEditQueryClause(int index) {
+    if (index < 0 || index >= _queryClauses.length) return;
+    final clause = _queryClauses[index];
+    final value = clause.rawValue.contains(' ')
+        ? '"${clause.rawValue}"'
+        : clause.rawValue;
+    setState(() {
+      _queryClauses = [..._queryClauses]..removeAt(index);
+      _queryDraft = '${clause.field.id} ${clause.operator.symbol} $value ';
+      _isQueryBarOpen = true;
     });
     _applyFilters();
   }
@@ -260,11 +291,25 @@ class _ScreenerScreenState extends State<ScreenerScreen>
     setState(() {
       // Clear current filters
       _filterValues.clear();
+      _queryClauses = [];
 
-      // Map API filters to _filterValues
-      // API returns filters as Map<String, dynamic>
-      // _filterValues stores Map<String, String?>
       strategy.filters.forEach((filterId, filterValue) {
+        if (filterId == ScreenerQueryKeys.clauses && filterValue is List) {
+          _queryClauses = filterValue
+              .whereType<Map>()
+              .map((e) => ScreenerQueryClause.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ))
+              .whereType<ScreenerQueryClause>()
+              .toList();
+          return;
+        }
+        if (filterId == ScreenerQueryKeys.text) {
+          if (_queryClauses.isEmpty && filterValue != null) {
+            _queryClauses = ScreenerQueryParser.parse(filterValue.toString(), closeValue: true).clauses;
+          }
+          return;
+        }
         if (filterValue != null) {
           if (filterValue is List) {
             // For array filters (e.g., exchange: ["NYSE", "NASDAQ"]), join with comma
@@ -293,11 +338,12 @@ class _ScreenerScreenState extends State<ScreenerScreen>
         // If value contains comma, it's a comma-separated list - convert to array
         if (value.contains(',')) {
           currentFilters[key] = value.split(',').map((e) => e.trim()).toList();
-        } else {
-          currentFilters[key] = value;
+          } else {
+            currentFilters[key] = value;
+          }
         }
-      }
-    });
+      });
+      _attachQueryClauses(currentFilters);
 
     // Show dialog to enter strategy name
     final result = await showDialog<Map<String, String>>(
@@ -437,6 +483,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
       body: LayoutBuilder(
         builder: (context, constraints) {
           return GestureDetector(
+            behavior: HitTestBehavior.deferToChild,
             onTap: () {
               if (_watchlistService.isWatchlistOpen.value) {
                 _watchlistService.closeWatchlist();
@@ -518,7 +565,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
         Text('Stock Screener', style: HomeUi.heading(isDarkMode)),
         const SizedBox(height: 4),
         Text(
-          'Filter the universe, then save a strategy.',
+          'Write a query, or use the dropdowns. Save a strategy when it looks right.',
           style: HomeUi.subtitle(isDarkMode),
         ),
       ],
@@ -621,6 +668,8 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             children: [
               _buildFilterTabs(isDarkMode),
               const Spacer(),
+              _buildQueryTrigger(isDarkMode),
+              const SizedBox(width: 6),
               if (totalApplied > 0) ...[
                 _buildCompactActionChip(
                   isDarkMode,
@@ -649,26 +698,45 @@ class _ScreenerScreenState extends State<ScreenerScreen>
               ],
             ],
           ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topLeft,
+            child: _isQueryBarOpen
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: ScreenerQueryBar(
+                      key: ValueKey('query_${_queryDraft ?? 'new'}'),
+                      isDarkMode: isDarkMode,
+                      clauses: _queryClauses,
+                      maxWidth: 460,
+                      initialDraft: _queryDraft,
+                      onClose: () => setState(() {
+                        _isQueryBarOpen = false;
+                        _queryDraft = null;
+                      }),
+                      onChanged: (clauses) {
+                        setState(() {
+                          _queryClauses = clauses;
+                          _queryDraft = null;
+                        });
+                        _applyFilters();
+                      },
+                    ),
+                  )
+                : _queryClauses.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: _buildCollapsedQuerySummary(isDarkMode),
+                      )
+                    : const SizedBox.shrink(),
+          ),
           const SizedBox(height: 12),
 
           // Compact filter row — inline chips style
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            layoutBuilder: (currentChild, previousChildren) {
-              return Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  ...previousChildren,
-                  if (currentChild != null) currentChild,
-                ],
-              );
-            },
-            child: KeyedSubtree(
-              key: ValueKey('${_selectedCategory}_$_isFilterExpanded'),
-              child: _buildCompactFilterGrid(filters, visibleCount, isDarkMode),
-            ),
+          KeyedSubtree(
+            key: ValueKey('${_selectedCategory}_$_isFilterExpanded'),
+            child: _buildCompactFilterGrid(filters, visibleCount, isDarkMode),
           ),
 
           // Applied chips + expand toggle
@@ -719,6 +787,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                       right: colIdx < rowCount - 1 ? gap : 0,
                     ),
                     child: FilterWidgetBuilder.buildFilter(
+                      key: ValueKey('screener_filter_${f.id}'),
                       config: f,
                       selectedValue: _filterValues[f.id],
                       onChanged: (value) {
@@ -739,6 +808,165 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildQueryTrigger(bool isDarkMode) {
+    final count = _queryClauses.length;
+    final active = _isQueryBarOpen || count > 0;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: _toggleQueryBar,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: HomeUi.controlHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            gradient: active ? HomeUi.iconWellGradient : null,
+            color: active
+                ? null
+                : (isDarkMode
+                    ? const Color(0xFF1A1E2A)
+                    : const Color(0xFFF3F4F6)),
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(
+              color: active
+                  ? HomeUi.iconWellBorder
+                  : (isDarkMode
+                      ? const Color(0xFF2A2E3A)
+                      : const Color(0xFFE5E7EB)),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              active
+                  ? HomeUi.brandIcon(
+                      icon: Icons.edit_note_rounded,
+                      size: 14,
+                      gradient: HomeUi.iconFillGradient,
+                    )
+                  : Icon(
+                      Icons.edit_note_rounded,
+                      size: 14,
+                      color: isDarkMode
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF6B7280),
+                    ),
+              const SizedBox(width: 6),
+              Text(
+                _isQueryBarOpen ? 'Hide query' : 'Query',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: active
+                      ? (isDarkMode
+                          ? const Color(0xFFF4F5F7)
+                          : const Color(0xFF111827))
+                      : (isDarkMode
+                          ? const Color(0xFFD1D5DB)
+                          : const Color(0xFF374151)),
+                ),
+              ),
+              if (count > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    gradient: HomeUi.iconFillGradient,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  constraints:
+                      const BoxConstraints(minWidth: 18, minHeight: 16),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollapsedQuerySummary(bool isDarkMode) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (var i = 0; i < _queryClauses.length; i++)
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => _beginEditQueryClause(i),
+                  child: Container(
+                    padding: const EdgeInsets.only(
+                      left: 9,
+                      top: 4,
+                      bottom: 4,
+                      right: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? const Color(0xFF1A1E2A)
+                          : const Color(0xFFF0F1F4),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: HomeUi.border(isDarkMode)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 12,
+                          color: HomeUi.muted(isDarkMode),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _queryClauses[i].display,
+                          style: HomeUi.control(isDarkMode, active: true)
+                              .copyWith(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _queryClauses = [..._queryClauses]..removeAt(i);
+                            });
+                            _applyFilters();
+                          },
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 13,
+                            color: HomeUi.muted(isDarkMode),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1301,8 +1529,17 @@ class _ScreenerScreenState extends State<ScreenerScreen>
         filters[key] = value;
       }
     });
+    _attachQueryClauses(filters);
 
     return filters;
+  }
+
+  void _attachQueryClauses(Map<String, dynamic> filters) {
+    if (_queryClauses.isEmpty) return;
+    filters[ScreenerQueryKeys.clauses] =
+        _queryClauses.map((c) => c.toJson()).toList();
+    filters[ScreenerQueryKeys.text] =
+        _queryClauses.map((c) => c.display).join(' AND ');
   }
 
   List<SimpleColumn> _getColumnsForSelectedTab() {
@@ -1784,6 +2021,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           filters[filterId] = value;
         }
       }
+      _attachQueryClauses(filters);
 
       // Use the filter controller to fetch all stocks with the same filters
       // but with a large per_page to get all results
@@ -1803,18 +2041,17 @@ class _ScreenerScreenState extends State<ScreenerScreen>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate how many shimmer boxes we need to fill the width
-        // Fixed column: ~200px, each scrollable column: ~75px (smaller), spacing: 8px
-        final fixedColumnWidth = 200.0;
-        final columnWidth = 75.0;
-        final spacing = 8.0;
+        const fixedColumnWidth = 200.0;
+        const spacing = 8.0;
         final availableWidth =
-            constraints.maxWidth - fixedColumnWidth - spacing;
-        final numColumns =
-            (availableWidth / (columnWidth + spacing)).floor().clamp(4, 20);
+            (constraints.maxWidth - fixedColumnWidth - spacing).clamp(0.0, double.infinity);
+        // ~75px cells; keep at least 4 columns when space allows.
+        final numColumns = availableWidth > 0
+            ? (availableWidth / 83).floor().clamp(4, 16)
+            : 4;
 
         return Padding(
-          padding: const EdgeInsets.only(left: 16),
+          padding: const EdgeInsets.only(left: 16, right: 16),
           child: Column(
             children: List.generate(
               10,
@@ -1828,18 +2065,22 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                       baseColor: baseColor,
                       highlightColor: highlightColor,
                     ),
-                    SizedBox(width: spacing),
+                    const SizedBox(width: spacing),
                     Expanded(
                       child: Row(
                         children: List.generate(
                           numColumns,
-                          (colIndex) => Padding(
-                            padding: EdgeInsets.only(right: spacing),
-                            child: ShimmerWidgets.box(
-                              height: 36,
-                              width: columnWidth,
-                              baseColor: baseColor,
-                              highlightColor: highlightColor,
+                          (colIndex) => Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: colIndex < numColumns - 1 ? spacing : 0,
+                              ),
+                              child: ShimmerWidgets.box(
+                                height: 36,
+                                width: double.infinity,
+                                baseColor: baseColor,
+                                highlightColor: highlightColor,
+                              ),
                             ),
                           ),
                         ),

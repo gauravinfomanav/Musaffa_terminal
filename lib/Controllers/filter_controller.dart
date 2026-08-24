@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/web_service.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
+import 'package:musaffa_terminal/models/screener_query.dart';
 
 /// Controller for filtering and displaying stocks with pagination
 /// 
@@ -193,19 +194,39 @@ class FilterController extends GetxController {
     }
   }
 
+  List<ScreenerQueryClause> _queryClausesFrom(Map<String, dynamic>? filters) {
+    if (filters == null) return const [];
+    final raw = filters[ScreenerQueryKeys.clauses];
+    if (raw is List) {
+      return raw
+          .whereType<Map>()
+          .map((e) => ScreenerQueryClause.fromJson(Map<String, dynamic>.from(e)))
+          .whereType<ScreenerQueryClause>()
+          .toList();
+    }
+    final text = filters[ScreenerQueryKeys.text]?.toString();
+    if (text != null && text.trim().isNotEmpty) {
+      return ScreenerQueryParser.parse(text, closeValue: true).clauses;
+    }
+    return const [];
+  }
+
   /// Build filter query from filters map
   String _buildFilterQuery(Map<String, dynamic>? filters) {
     
     List<String> filterParts = [];
+    final queryClauses = _queryClausesFrom(filters);
+    final queryFields = queryClauses.map((c) => c.field.typesenseField).toSet();
     
     // Always include status and isMainTicker
     filterParts.add('status:=PUBLISH');
     filterParts.add('isMainTicker:=1');
     
     // Check if filters are empty or all values are "any"
-    bool hasValidFilters = false;
-    if (filters != null && filters.isNotEmpty) {
+    bool hasValidFilters = queryClauses.isNotEmpty;
+    if (!hasValidFilters && filters != null && filters.isNotEmpty) {
       for (var entry in filters.entries) {
+        if (entry.key.startsWith('_')) continue;
         if (entry.value != null && entry.value != "any" && entry.value.toString().isNotEmpty) {
           hasValidFilters = true;
           break;
@@ -225,6 +246,11 @@ class FilterController extends GetxController {
       return defaultFilter;
     }
     
+    for (final clause in queryClauses) {
+      final part = clause.toTypesense(mapSector: _mapSectorToApiValues);
+      if (part.isNotEmpty) filterParts.add(part);
+    }
+
     // Country filter
     if (filters.containsKey('country') && filters['country'] != null && filters['country'] != "any") {
       if (filters['country'] is List) {
@@ -233,7 +259,7 @@ class FilterController extends GetxController {
       } else {
         filterParts.add('country:=${filters['country']}');
       }
-    } else {
+    } else if (!queryFields.contains('country')) {
       filterParts.add('country:=US'); // Default country
     }
     
@@ -255,7 +281,7 @@ class FilterController extends GetxController {
       } else {
         filterParts.add('exchange:=${filters['exchange']}');
       }
-    } else {
+    } else if (!queryFields.contains('exchange')) {
       filterParts.add('exchange:=[`NYSE`,`NASDAQ`]'); 
     }
     
@@ -2244,15 +2270,33 @@ class FilterController extends GetxController {
     }
   }
 
-  /// Map UI sector to API sector values
+  /// Map a UI / query sector label to the `sector` values stored in Typesense.
+  ///
+  /// [sector_api_mapping.json] keys are the values that appear on stocks (and
+  /// in the screener table). Values are alternate GICS-style labels. Selecting
+  /// either an API key or a GICS label expands to the matching API keys.
   List<String> _mapSectorToApiValues(String uiSector) {
-    // First try direct mapping
-    if (_sectorMapping.containsKey(uiSector)) {
-      return _sectorMapping[uiSector]!;
+    final needle = uiSector.trim();
+    if (needle.isEmpty) return const [];
+
+    final lower = needle.toLowerCase();
+    final matches = <String>{};
+
+    for (final entry in _sectorMapping.entries) {
+      if (entry.key.toLowerCase() == lower) {
+        matches.add(entry.key);
+      }
+      for (final alias in entry.value) {
+        if (alias.toLowerCase() == lower) {
+          matches.add(entry.key);
+        }
+      }
     }
-    
-    // If no direct mapping found, return the original sector
-    return [uiSector];
+
+    if (matches.isNotEmpty) {
+      return matches.toList()..sort();
+    }
+    return [needle];
   }
 
   /// Fetch all filtered stocks across all pages (for watchlist addition)

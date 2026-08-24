@@ -65,6 +65,9 @@ class _ScreenerDropdownState extends State<ScreenerDropdown> {
 
   @override
   void dispose() {
+    if (_portal.isShowing) {
+      _portal.hide();
+    }
     _search.dispose();
     _searchFocus.dispose();
     super.dispose();
@@ -142,6 +145,7 @@ class _ScreenerDropdownState extends State<ScreenerDropdown> {
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
                   onTap: _toggle,
+                  behavior: HitTestBehavior.opaque,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOutCubic,
