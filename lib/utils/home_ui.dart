@@ -1023,7 +1023,6 @@ class HomeUi {
       );
 
   /// Label-free pill segmented control — Overview / Financial / Charts style.
-  /// Active tab uses a sliding brand-gradient border (not filled), compact size.
   static Widget segmentedControl({
     required bool dark,
     required List<String> options,
@@ -1033,15 +1032,12 @@ class HomeUi {
     final index = options.isEmpty
         ? 0
         : selectedIndex.clamp(0, options.length - 1);
-    const double height = 30;
-    const double trackPad = 2;
-    const double borderWidth = 1.5;
 
     return filterFieldShell(
       dark: dark,
-      height: height,
+      height: filterFieldHeight,
       radius: radiusPill,
-      padding: const EdgeInsets.all(trackPad),
+      padding: const EdgeInsets.all(3),
       alignment: Alignment.center,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1060,19 +1056,7 @@ class HomeUi {
                 bottom: 0,
                 width: segmentWidth,
                 child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: iconFillGradient,
-                    borderRadius: BorderRadius.circular(radiusPill),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(borderWidth),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: cardBg(dark),
-                        borderRadius: BorderRadius.circular(radiusPill),
-                      ),
-                    ),
-                  ),
+                  decoration: primaryButton(radius: radiusPill),
                 ),
               ),
               Row(
@@ -1090,14 +1074,10 @@ class HomeUi {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: control(dark, active: true).copyWith(
-                              fontSize: 10.5,
+                              fontSize: 11.5,
                               fontWeight:
                                   isSelected ? FontWeight.w600 : FontWeight.w500,
-                              color: isSelected
-                                  ? (dark
-                                      ? const Color(0xFFE8ECF2)
-                                      : const Color(0xFF1A1D24))
-                                  : body(dark),
+                              color: isSelected ? Colors.white : body(dark),
                             ),
                           ),
                         ),
