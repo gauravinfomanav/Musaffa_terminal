@@ -93,8 +93,8 @@ class TickerRevenueBreakdownSection extends StatelessWidget {
             children: <Widget>[
               _header(),
               const SizedBox(height: 22),
-              // Stack divider: full height without IntrinsicHeight/stretch
-              // (those re-layout under donut hover and trip mouse_tracker).
+              // Full-height divider (header → legend). Avoid IntrinsicHeight /
+              // CrossAxisAlignment.stretch on the panels — those trip hover asserts.
               if (product != null && geography != null)
                 Stack(
                   children: <Widget>[
@@ -102,28 +102,37 @@ class TickerRevenueBreakdownSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Expanded(
-                          child: _RevenueSlicePanel(
-                            slice: product,
-                            isDarkMode: isDarkMode,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 28),
+                            child: _RevenueSlicePanel(
+                              slice: product,
+                              isDarkMode: isDarkMode,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 57),
                         Expanded(
-                          child: _RevenueSlicePanel(
-                            slice: geography,
-                            isDarkMode: isDarkMode,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 28),
+                            child: _RevenueSlicePanel(
+                              slice: geography,
+                              isDarkMode: isDarkMode,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     Positioned.fill(
                       child: IgnorePointer(
-                        child: Align(
-                          alignment: Alignment.center,
-                          child: ColoredBox(
-                            color: HomeUi.borderLight(isDarkMode),
-                            child: const SizedBox(width: 1),
-                          ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const Spacer(),
+                            ColoredBox(
+                              color: HomeUi.borderLight(isDarkMode),
+                              child: const SizedBox(width: 1),
+                            ),
+                            const Spacer(),
+                          ],
                         ),
                       ),
                     ),
@@ -234,7 +243,8 @@ class _RevenueSlicePanel extends StatelessWidget {
     if (items.isEmpty) return const SizedBox.shrink();
 
     final bool dark = isDarkMode;
-    final int rowCount = (items.length + 1) ~/ 2;
+    const int cols = 3;
+    final int rowCount = (items.length + cols - 1) ~/ cols;
     final Color line = HomeUi.borderLight(dark);
 
     return Container(
@@ -248,6 +258,7 @@ class _RevenueSlicePanel extends StatelessWidget {
         columnWidths: const <int, TableColumnWidth>{
           0: FlexColumnWidth(),
           1: FlexColumnWidth(),
+          2: FlexColumnWidth(),
         },
         border: TableBorder(
           verticalInside: BorderSide(color: line, width: 0.5),
@@ -258,23 +269,21 @@ class _RevenueSlicePanel extends StatelessWidget {
           for (int r = 0; r < rowCount; r++)
             TableRow(
               children: <Widget>[
-                _legendCell(
-                  color: TickerRevenueBreakdownSection.palette[
-                      (r * 2) % TickerRevenueBreakdownSection.palette.length],
-                  item: items[r * 2],
-                ),
-                r * 2 + 1 < items.length
-                    ? _legendCell(
-                        color: TickerRevenueBreakdownSection.palette[
-                            (r * 2 + 1) %
-                                TickerRevenueBreakdownSection.palette.length],
-                        item: items[r * 2 + 1],
-                      )
-                    : const SizedBox.shrink(),
+                for (int c = 0; c < cols; c++)
+                  _legendCellAt(items, r * cols + c),
               ],
             ),
         ],
       ),
+    );
+  }
+
+  Widget _legendCellAt(List<RevenueBreakdownItem> items, int index) {
+    if (index >= items.length) return const SizedBox.shrink();
+    return _legendCell(
+      color: TickerRevenueBreakdownSection
+          .palette[index % TickerRevenueBreakdownSection.palette.length],
+      item: items[index],
     );
   }
 
