@@ -7,14 +7,21 @@ class FundOwnershipService {
 
   final FinnhubApiClient _client;
 
-  Future<List<FundOwnershipModel>> fetchForSymbol(String symbol) async {
+  Future<List<FundOwnershipModel>> fetchForSymbol(
+    String symbol, {
+    bool forceRefresh = false,
+  }) async {
     final String normalized = symbol.trim().toUpperCase();
     if (normalized.isEmpty) return <FundOwnershipModel>[];
 
     final dynamic decoded = await _client.get(
       'stock/fund-ownership',
-      queryParameters: <String, String>{'symbol': normalized},
-      cacheKey: 'stock/fund-ownership:$normalized',
+      queryParameters: <String, String>{
+        'symbol': normalized,
+        'limit': '50',
+      },
+      cacheKey: 'stock/fund-ownership:$normalized:50',
+      forceRefresh: forceRefresh,
     );
 
     final List<dynamic> rawList = _extractOwnershipList(decoded);

@@ -22,6 +22,7 @@ import 'package:musaffa_terminal/Controllers/ticker_insider_trading_controller.d
 import 'package:musaffa_terminal/Controllers/ticker_news_sentiment_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_price_target_controller.dart';
+import 'package:musaffa_terminal/Controllers/ticker_revenue_breakdown_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_youtube_videos_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_profile_controller.dart';
 import 'package:musaffa_terminal/Components/ticker_about_company_tab.dart';
@@ -74,6 +75,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TickerNewsSentimentController tickerNewsSentimentController;
   late TickerFundOwnershipController tickerFundOwnershipController;
   late TickerPriceTargetController tickerPriceTargetController;
+  late TickerRevenueBreakdownController tickerRevenueBreakdownController;
   late StockYouTubeVideosController stockYouTubeVideosController;
   late StockProfileController stockProfileController;
 
@@ -111,6 +113,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerNewsSentimentController = TickerNewsSentimentController();
     tickerFundOwnershipController = TickerFundOwnershipController();
     tickerPriceTargetController = TickerPriceTargetController();
+    tickerRevenueBreakdownController = TickerRevenueBreakdownController();
     stockYouTubeVideosController = StockYouTubeVideosController();
     stockProfileController = StockProfileController();
 
@@ -202,6 +205,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerNewsSentimentController.dispose();
     tickerFundOwnershipController.dispose();
     tickerPriceTargetController.dispose();
+    tickerRevenueBreakdownController.dispose();
     stockYouTubeVideosController.dispose();
     stockProfileController.dispose();
     financialFundamentalsController.dispose();
@@ -1109,50 +1113,35 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
             _buildKeyMetricsCard(stockData, isDarkMode),
             const SizedBox(height: 16),
-            // Gap only when the section is visible — empty sections must not
-            // stack multiple SizedBoxes (e.g. EPS Surprise → Peer Comparison).
-            _GapBelowIfVisible(
-              child: TickerUpcomingEarningsCard(
-                controller: tickerEarningsController,
-                isDarkMode: isDarkMode,
+            TickerUpcomingEarningsCard(
+              controller: tickerEarningsController,
+              isDarkMode: isDarkMode,
+            ),
+            const SizedBox(height: 16),
+            TickerEarningsHistorySection(
+              controller: tickerEarningsController,
+              isDarkMode: isDarkMode,
+            ),
+            const SizedBox(height: 16),
+            TickerDividendHistorySection(
+              controller: tickerDividendController,
+              isDarkMode: isDarkMode,
+            ),
+            const SizedBox(height: 16),
+            TickerPeerComparisonSection(
+              controller: tickerPeerComparisonController,
+              isDarkMode: isDarkMode,
+            ),
+            const SizedBox(height: 16),
+            TickerPriceTargetSection(
+              controller: tickerPriceTargetController,
+              isDarkMode: isDarkMode,
+              onRetry: () => tickerPriceTargetController.load(
+                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                forceRefresh: true,
               ),
             ),
-            _GapBelowIfVisible(
-              child: TickerEarningsHistorySection(
-                controller: tickerEarningsController,
-                isDarkMode: isDarkMode,
-              ),
-            ),
-            // TickerRevenueGeographySection(
-            //   controller: tickerRevenueGeographyController,
-            //   isDarkMode: isDarkMode,
-            //   onRetry: () => tickerRevenueGeographyController.load(
-            //     widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-            //     forceRefresh: true,
-            //   ),
-            // ),
-            _GapBelowIfVisible(
-              child: TickerDividendHistorySection(
-                controller: tickerDividendController,
-                isDarkMode: isDarkMode,
-              ),
-            ),
-            _GapBelowIfVisible(
-              child: TickerPeerComparisonSection(
-                controller: tickerPeerComparisonController,
-                isDarkMode: isDarkMode,
-              ),
-            ),
-            _GapBelowIfVisible(
-              child: TickerPriceTargetSection(
-                controller: tickerPriceTargetController,
-                isDarkMode: isDarkMode,
-                onRetry: () => tickerPriceTargetController.load(
-                  widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                  forceRefresh: true,
-                ),
-              ),
-            ),
+            const SizedBox(height: 16),
             // Forecast/Recommendation Widget
             _GapBelowIfVisible(
               child: ListenableBuilder(
@@ -1258,6 +1247,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ticker: widget.ticker,
       profileController: stockProfileController,
       youtubeController: stockYouTubeVideosController,
+      revenueController: tickerRevenueBreakdownController,
       isDarkMode: isDarkMode,
     );
   }

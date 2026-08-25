@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/stock_youtube_videos_section.dart';
 import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
+import 'package:musaffa_terminal/Components/ticker_revenue_breakdown_section.dart';
 import 'package:musaffa_terminal/Controllers/stock_profile_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_youtube_videos_controller.dart';
+import 'package:musaffa_terminal/Controllers/ticker_revenue_breakdown_controller.dart';
 import 'package:musaffa_terminal/models/stock_profile_model.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -17,12 +19,14 @@ class TickerAboutCompanyTab extends StatefulWidget {
     required this.ticker,
     required this.profileController,
     required this.youtubeController,
+    required this.revenueController,
     required this.isDarkMode,
   });
 
   final TickerModel ticker;
   final StockProfileController profileController;
   final StockYouTubeVideosController youtubeController;
+  final TickerRevenueBreakdownController revenueController;
   final bool isDarkMode;
 
   @override
@@ -44,6 +48,7 @@ class _TickerAboutCompanyTabState extends State<TickerAboutCompanyTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.profileController.load(_symbol);
+      widget.revenueController.load(_symbol);
       widget.youtubeController.load(
         ticker: _symbol,
         companyName: _companyName,
@@ -54,6 +59,7 @@ class _TickerAboutCompanyTabState extends State<TickerAboutCompanyTab> {
   Future<void> _refresh() async {
     await Future.wait([
       widget.profileController.load(_symbol, forceRefresh: true),
+      widget.revenueController.load(_symbol, forceRefresh: true),
       widget.youtubeController.load(
         ticker: _symbol,
         companyName: _companyName,
@@ -137,6 +143,15 @@ class _TickerAboutCompanyTabState extends State<TickerAboutCompanyTab> {
                   isDarkMode: widget.isDarkMode,
                 ),
               ],
+              const SizedBox(height: 12),
+              TickerRevenueBreakdownSection(
+                controller: widget.revenueController,
+                isDarkMode: widget.isDarkMode,
+                onRetry: () => widget.revenueController.load(
+                  _symbol,
+                  forceRefresh: true,
+                ),
+              ),
               const SizedBox(height: 12),
               StockYouTubeVideosSection(
                 controller: widget.youtubeController,

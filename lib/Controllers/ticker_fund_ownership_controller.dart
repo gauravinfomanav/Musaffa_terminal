@@ -34,7 +34,10 @@ class TickerFundOwnershipController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _items = await _service.fetchForSymbol(normalized);
+      _items = await _service.fetchForSymbol(
+        normalized,
+        forceRefresh: forceRefresh,
+      );
       _error = _items.isEmpty ? 'No fund ownership data found' : null;
     } catch (e) {
       _items = <FundOwnershipModel>[];

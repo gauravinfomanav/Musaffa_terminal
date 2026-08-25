@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:musaffa_terminal/models/revenue_breakdown_model.dart';
 import 'package:musaffa_terminal/services/finnhub/revenue_breakdown_service.dart';
 
-class TickerRevenueGeographyController extends ChangeNotifier {
-  TickerRevenueGeographyController({RevenueBreakdownService? service})
+class TickerRevenueBreakdownController extends ChangeNotifier {
+  TickerRevenueBreakdownController({RevenueBreakdownService? service})
       : _service = service ?? RevenueBreakdownService();
 
   final RevenueBreakdownService _service;
@@ -16,18 +16,9 @@ class TickerRevenueGeographyController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   RevenueBreakdownModel? get model => _model;
-  bool get hasData => _model != null && _model!.items.isNotEmpty;
-
-  RevenueBreakdownItem? get largestRegion {
-    if (!hasData) return null;
-    final List<RevenueBreakdownItem> sorted = List<RevenueBreakdownItem>.from(_model!.items)
-      ..sort((RevenueBreakdownItem a, RevenueBreakdownItem b) => b.revenue.compareTo(a.revenue));
-    return sorted.first;
-  }
-
-  num get totalRevenue => hasData
-      ? _model!.items.fold<num>(0, (num s, RevenueBreakdownItem i) => s + i.revenue)
-      : 0;
+  bool get hasData => _model?.hasData ?? false;
+  RevenueBreakdownSlice? get product => _model?.product;
+  RevenueBreakdownSlice? get geography => _model?.geography;
 
   Future<void> load(String symbol, {bool forceRefresh = false}) async {
     final String normalized = symbol.trim().toUpperCase();
@@ -40,8 +31,11 @@ class TickerRevenueGeographyController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _model = await _service.fetchLatestForSymbol(normalized);
-      _error = _model == null ? 'No revenue geography data found' : null;
+      _model = await _service.fetchLatestForSymbol(
+        normalized,
+        forceRefresh: forceRefresh,
+      );
+      _error = _model == null ? 'No revenue breakdown data found' : null;
     } catch (e) {
       _model = null;
       _error = e.toString();
