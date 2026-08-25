@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_annual_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/data%20sources/ratios_annual_datasource.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
@@ -100,6 +101,12 @@ class _AnnualRatiosState extends State<AnnualRatios> {
                 data: SfDataGridThemeData(
                   frozenPaneLineWidth: 0,
                   frozenPaneLineColor: Colors.transparent,
+                  headerColor: HomeUi.tableHeaderBg(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ),
+                  gridLineColor: HomeUi.tableBorder(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ),
                 ),
                 child: SfDataGrid(
                   source: dataSource,

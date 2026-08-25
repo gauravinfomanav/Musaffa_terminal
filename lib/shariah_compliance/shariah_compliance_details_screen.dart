@@ -3135,8 +3135,8 @@ class _ShariahComplianceDetailsScreenState
               decoration: BoxDecoration(
                 color: HomeUi.tableHeaderBg(isDark),
                 border: Border(
-                  top: BorderSide(color: HomeUi.borderLight(isDark)),
-                  bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+                  top: BorderSide(color: HomeUi.tableBorder(isDark)),
+                  bottom: BorderSide(color: HomeUi.tableBorder(isDark)),
                 ),
               ),
               child: Row(
@@ -3175,14 +3175,12 @@ class _ShariahComplianceDetailsScreenState
                   decoration: BoxDecoration(
                     color: _hoveredHistoryRow == index
                         ? HomeUi.tableRowHover(isDark)
-                        : index.isEven
-                            ? HomeUi.tableRowEven(isDark)
-                            : HomeUi.tableRowOdd(isDark),
+                        : Colors.transparent,
                     border: lastRow
                         ? null
                         : Border(
                             bottom: BorderSide(
-                              color: HomeUi.borderLight(isDark),
+                              color: HomeUi.tableBorder(isDark),
                             ),
                           ),
                   ),

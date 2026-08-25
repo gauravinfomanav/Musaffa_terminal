@@ -5,6 +5,7 @@ import 'package:syncfusion_flutter_core/theme.dart';
 import '../controllers/statements_chart_annual.dart' as annual;
 import '../controllers/statements_chart_quarterly.dart' as quarterly;
 import '../data sources/statements_chart_datasource.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class FinancialStatementsTable extends StatefulWidget {
   final String symbol;
@@ -85,6 +86,12 @@ class _FinancialStatementsTableState extends State<FinancialStatementsTable> {
             data: SfDataGridThemeData(
               frozenPaneLineWidth: 0,
               frozenPaneLineColor: Colors.transparent,
+              headerColor: HomeUi.tableHeaderBg(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+              gridLineColor: HomeUi.tableBorder(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
             ),
             child: SfDataGrid(
               source: financialDataSource,

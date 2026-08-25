@@ -546,18 +546,15 @@ class _HeatmapHubTileState extends State<_HeatmapHubTile> {
               Container(
                 width: 52,
                 height: 52,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: HomeUi.iconWellBorder,
-                    width: 1,
-                  ),
-                  gradient: HomeUi.iconWellGradient,
+                  gradient: HomeUi.softBrandWellGradient,
                 ),
                 child: Center(
                   child: HomeUi.brandIcon(
                     icon: widget.icon,
                     size: HomeUi.iconXl,
+                    gradient: HomeUi.softBrandIconGradient,
                   ),
                 ),
               ),

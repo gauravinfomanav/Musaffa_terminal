@@ -83,6 +83,33 @@ class HomeUi {
 
   static const Color buttonBorder = Color(0xE3E4621E);
 
+  /// Homepage card icon well — soft multi-stop brand wash (very light).
+  static const LinearGradient softBrandWellGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: <Color>[
+      Color(0x17E4621E), // rgba(228, 98, 30, 0.09)
+      Color(0x1AD2364C), // rgba(210, 54, 76, 0.10)
+      Color(0x1AA72669), // rgba(167, 38, 105, 0.10)
+      Color(0x1A6A2C72), // rgba(106, 44, 114, 0.10)
+      Color(0x1A232C64), // rgba(35, 44, 100, 0.10)
+    ],
+    stops: <double>[0.0, 0.25, 0.50, 0.75, 1.0],
+  );
+
+  /// Soft brand glyph tint for homepage-style decorative icons.
+  static const LinearGradient softBrandIconGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[
+      Color(0xFFE2A88A),
+      Color(0xFFD0909A),
+      Color(0xFFB890B0),
+      Color(0xFF9898B8),
+      Color(0xFF888EB0),
+    ],
+  );
+
   /// Muted glyph for decorative wells. Brand color is reserved for real focus.
   static const LinearGradient quietIconGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -250,16 +277,19 @@ class HomeUi {
   }
 
   static Color tableHeaderBg(bool dark) =>
-      dark ? const Color(0xFF16191E) : const Color(0xFFF7F8FA);
+      dark ? const Color(0xFF16191E) : const Color(0xFFFAFAFA);
 
-  static Color tableRowEven(bool dark) =>
-      dark ? const Color(0xFF14161A) : const Color(0xFFFFFFFF);
+  /// Body rows share one fill — no odd/even zebra.
+  static Color tableRowEven(bool dark) => Colors.transparent;
 
-  static Color tableRowOdd(bool dark) =>
-      dark ? const Color(0xFF181B20) : const Color(0xFFF8F9FB);
+  static Color tableRowOdd(bool dark) => Colors.transparent;
 
   static Color tableRowHover(bool dark) =>
-      dark ? const Color(0xFF1E232A) : const Color(0xFFF2F4F7);
+      dark ? const Color(0xFF1E232A) : const Color(0xFFFAFAFA);
+
+  /// Table grid / inner borders.
+  static Color tableBorder(bool dark) =>
+      dark ? const Color(0xFF2A2E34) : const Color(0xFFE6EAF0);
 
   static TextStyle tableHeader(bool dark) => TextStyle(
         fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -376,6 +406,17 @@ class HomeUi {
     return words >= 6;
   }
 
+  static const int tableCellMaxChars = 25;
+
+  /// Shows up to [maxChars] characters; truncates with ellipsis from the 26th.
+  static String truncateTableText(
+    String text, {
+    int maxChars = tableCellMaxChars,
+  }) {
+    if (text.length <= maxChars) return text;
+    return '${text.substring(0, maxChars)}…';
+  }
+
   static TextOverflow tableCellOverflow(String text, {String? columnKey}) {
     return isCommentLikeTableText(text, columnKey: columnKey)
         ? TextOverflow.ellipsis
@@ -384,12 +425,75 @@ class HomeUi {
 
   static Widget signedPercentPill(bool dark, String text, double value) {
     final positive = value > 0 ? true : value < 0 ? false : null;
-    return Text(
-      text,
+    final display = truncateTableText(text);
+    final child = Text(
+      display,
       maxLines: 1,
       softWrap: false,
       overflow: TextOverflow.clip,
       style: tableNumeric(dark, positiveValue: positive),
+    );
+    if (display == text) return child;
+    return premiumTooltip(message: text, child: child);
+  }
+
+  /// Dark premium tooltip used across tables and chrome.
+  static Widget premiumTooltip({
+    required String message,
+    required Widget child,
+    bool? dark,
+    Duration waitDuration = const Duration(milliseconds: 350),
+    Duration showDuration = const Duration(seconds: 4),
+    bool preferBelow = true,
+    double verticalOffset = 12,
+  }) {
+    return Builder(
+      builder: (BuildContext context) {
+        final bool isDark =
+            dark ?? Theme.of(context).brightness == Brightness.dark;
+        return Tooltip(
+          message: message,
+          waitDuration: waitDuration,
+          showDuration: showDuration,
+          preferBelow: preferBelow,
+          verticalOffset: verticalOffset,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: premiumTooltipDecoration(isDark),
+          textStyle: premiumTooltipTextStyle(isDark),
+          child: child,
+        );
+      },
+    );
+  }
+
+  static BoxDecoration premiumTooltipDecoration(bool dark) {
+    return BoxDecoration(
+      color: dark ? const Color(0xFF1A1D22) : const Color(0xFF111827),
+      borderRadius: BorderRadius.circular(radiusMd),
+      border: Border.all(
+        color: dark ? const Color(0xFF3A4048) : const Color(0xFF1F2937),
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: dark ? 0.40 : 0.18),
+          blurRadius: 18,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+  }
+
+  static TextStyle premiumTooltipTextStyle(bool dark) {
+    return TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontFamilyFallback: Constants.FONT_FALLBACK,
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+      height: 1.3,
+      color: dark ? const Color(0xFFF3F4F6) : Colors.white,
     );
   }
 
@@ -782,14 +886,14 @@ class HomeUi {
             width: 36,
             height: 36,
             alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: iconWellGradient,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: iconWellBorder),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: softBrandWellGradient,
             ),
             child: brandIcon(
               icon: icon,
               size: iconMd,
+              gradient: softBrandIconGradient,
             ),
           ),
           const SizedBox(width: 12),
@@ -840,7 +944,6 @@ class HomeUi {
     Color? valueColor,
   }) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -865,33 +968,88 @@ class HomeUi {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
-              color: dark
-                  ? const Color(0xFF8B8FA3)
-                  : const Color(0xFF9CA3AF),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: tableCellEmphasis(dark).copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              color: valueColor,
+          decorativeCardSparkline(dark: dark, seed: label, height: 44),
+          Padding(
+            // Extra bottom space so value text clears the sparkline.
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 52),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                    color: dark
+                        ? const Color(0xFF8B8FA3)
+                        : const Color(0xFF9CA3AF),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  value,
+                  style: tableCellEmphasis(dark).copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                    color: valueColor,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// Full-width decorative sparkline for summary cards (very light grey).
+  static Widget decorativeCardSparkline({
+    required bool dark,
+    required String seed,
+    double height = 56,
+  }) {
+    final Color lineColor = dark
+        ? const Color(0xFF6B7280).withValues(alpha: 0.28)
+        : const Color(0xFFE8EAED);
+    final Color fillColor = dark
+        ? const Color(0xFF6B7280).withValues(alpha: 0.06)
+        : const Color(0xFFF1F4F8).withValues(alpha: 0.90);
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: -2,
+      height: height,
+      child: IgnorePointer(
+        child: CustomPaint(
+          painter: _DecorativeSparklinePainter(
+            values: _sparklineSeriesFor(seed),
+            lineColor: lineColor,
+            fillColor: fillColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static List<double> _sparklineSeriesFor(String seed) {
+    switch (seed.toLowerCase()) {
+      case 'p/e ratio':
+      case 'latest analysts':
+        return const [0.42, 0.38, 0.48, 0.44, 0.55, 0.52, 0.62, 0.58, 0.72, 0.78];
+      case 'roe':
+      case 'trend':
+        return const [0.35, 0.48, 0.40, 0.55, 0.50, 0.68, 0.60, 0.74, 0.70, 0.86];
+      case 'current consensus':
+        return const [0.45, 0.40, 0.52, 0.48, 0.60, 0.55, 0.68, 0.64, 0.76, 0.82];
+      default:
+        return const [0.40, 0.35, 0.48, 0.42, 0.58, 0.52, 0.66, 0.60, 0.78, 0.88];
+    }
   }
 
   /// Grouped read-only rows — label left, value right.
@@ -2444,5 +2602,79 @@ class _DayCellState extends State<_DayCell> {
         ),
       ),
     );
+  }
+}
+
+class _DecorativeSparklinePainter extends CustomPainter {
+  const _DecorativeSparklinePainter({
+    required this.values,
+    required this.lineColor,
+    required this.fillColor,
+  });
+
+  final List<double> values;
+  final Color lineColor;
+  final Color fillColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2 || size.width <= 0 || size.height <= 0) return;
+
+    const double padX = 0;
+    const double padY = 6;
+    final double usableW = size.width;
+    final double usableH = size.height - padY * 2;
+    final int last = values.length - 1;
+
+    Offset pointAt(int i) {
+      final double t = i / last;
+      final double v = values[i].clamp(0.0, 1.0);
+      return Offset(
+        padX + usableW * t,
+        padY + usableH * (1 - v),
+      );
+    }
+
+    final Path line = Path()..moveTo(pointAt(0).dx, pointAt(0).dy);
+    for (int i = 1; i <= last; i++) {
+      final Offset p = pointAt(i);
+      line.lineTo(p.dx, p.dy);
+    }
+
+    final Path area = Path.from(line)
+      ..lineTo(pointAt(last).dx, size.height)
+      ..lineTo(pointAt(0).dx, size.height)
+      ..close();
+
+    canvas.drawPath(
+      area,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..color = fillColor,
+    );
+
+    canvas.drawPath(
+      line,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = lineColor,
+    );
+
+    final Paint dotFill = Paint()
+      ..style = PaintingStyle.fill
+      ..color = lineColor;
+    for (int i = 0; i <= last; i++) {
+      canvas.drawCircle(pointAt(i), 1.6, dotFill);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DecorativeSparklinePainter oldDelegate) {
+    return oldDelegate.lineColor != lineColor ||
+        oldDelegate.fillColor != fillColor ||
+        oldDelegate.values != values;
   }
 }

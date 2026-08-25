@@ -5,6 +5,7 @@ import 'package:syncfusion_flutter_core/theme.dart';
 import '../controllers/ratios_quarterly_controller.dart';
 import '../data sources/quarterly_ratio_data_source.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class QuarterlyRatiosTable extends StatelessWidget {
   final String symbol;
@@ -66,6 +67,12 @@ class QuarterlyRatiosTable extends StatelessWidget {
                 data: SfDataGridThemeData(
                   frozenPaneLineWidth: 0,
                   frozenPaneLineColor: Colors.transparent,
+                  headerColor: HomeUi.tableHeaderBg(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ),
+                  gridLineColor: HomeUi.tableBorder(
+                    Theme.of(context).brightness == Brightness.dark,
+                  ),
                 ),
                 child: SfDataGrid(
                   source: dataSource,

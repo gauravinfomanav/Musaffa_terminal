@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 
 // Simple data model for table rows
 class TableRowData {
@@ -86,6 +87,8 @@ class DynamicTable extends StatefulWidget {
 class _DynamicTableState extends State<DynamicTable> {
   final ScrollController _scrollController = ScrollController();
   bool _increaseShadow = false;
+  String? _hoveredRowId;
+  int _rowHoverGeneration = 0;
 
   @override
   void initState() {
@@ -101,6 +104,36 @@ class _DynamicTableState extends State<DynamicTable> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onRowHoverEnter(String rowId) {
+    _rowHoverGeneration++;
+    if (_hoveredRowId == rowId) return;
+    setState(() => _hoveredRowId = rowId);
+  }
+
+  void _onRowHoverExit(String rowId) {
+    final int generation = _rowHoverGeneration;
+    Future<void>.delayed(const Duration(milliseconds: 20), () {
+      if (!mounted) return;
+      if (_rowHoverGeneration != generation) return;
+      if (_hoveredRowId != rowId) return;
+      setState(() => _hoveredRowId = null);
+    });
+  }
+
+  Widget _wrapRowHover(String rowId, Widget child) {
+    return MouseRegion(
+      onEnter: (_) => _onRowHoverEnter(rowId),
+      onExit: (_) => _onRowHoverExit(rowId),
+      child: child,
+    );
+  }
+
+  Color _rowColor(String rowId, bool isDark) {
+    return _hoveredRowId == rowId
+        ? HomeUi.tableRowHover(isDark)
+        : Colors.transparent;
   }
 
   // Get filtered rows that have at least one non-empty value
@@ -158,6 +191,11 @@ class _DynamicTableState extends State<DynamicTable> {
           dataRowColor: widget.disableHoverHighlight
               ? MaterialStateProperty.all(Colors.transparent)
               : null,
+          headingRowColor: WidgetStateProperty.all(
+            HomeUi.tableHeaderBg(
+              Theme.of(context).brightness == Brightness.dark,
+            ),
+          ),
           headingRowHeight: widget.headerHeight,
           horizontalMargin: 0,
           dataRowMinHeight: widget.rowHeight,
@@ -177,20 +215,27 @@ class _DynamicTableState extends State<DynamicTable> {
               ),
             ),
           ],
-          rows: widget.data.map((row) {
+          rows: widget.data.asMap().entries.map((entry) {
+            final row = entry.value;
+            final bool isDark =
+                Theme.of(context).brightness == Brightness.dark;
             return DataRow(
+              color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
               cells: [
                 DataCell(
-                  Padding(
-                    padding: const EdgeInsets.only(right: 30.0),
-                    child: BasicTickerCell(
-                      model: BasicCellModel(
-                        logo: row.logo,
-                        symbol: row.symbol,
-                        name: row.name,
-                        nameFontSize: widget.nameFontSize,
-                        nameFontWeight: widget.nameFontWeight,
-                        fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
+                  _wrapRowHover(
+                    row.id,
+                    Padding(
+                      padding: const EdgeInsets.only(right: 30.0),
+                      child: BasicTickerCell(
+                        model: BasicCellModel(
+                          logo: row.logo,
+                          symbol: row.symbol,
+                          name: row.name,
+                          nameFontSize: widget.nameFontSize,
+                          nameFontWeight: widget.nameFontWeight,
+                          fontFamily: widget.fontFamily ?? Constants.FONT_DEFAULT_NEW,
+                        ),
                       ),
                     ),
                   ),
@@ -204,8 +249,10 @@ class _DynamicTableState extends State<DynamicTable> {
             bottom: BorderSide.none,
             verticalInside: BorderSide.none,
             horizontalInside: BorderSide(
-              color: Theme.of(context).primaryColorLight,
-              width: 0.8,
+              color: HomeUi.tableBorder(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+              width: 0.5,
             ),
           ),
         ),
@@ -230,6 +277,11 @@ class _DynamicTableState extends State<DynamicTable> {
             dataRowColor: widget.disableHoverHighlight
                 ? MaterialStateProperty.all(Colors.transparent)
                 : null,
+            headingRowColor: WidgetStateProperty.all(
+              HomeUi.tableHeaderBg(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+            ),
             headingRowHeight: widget.headerHeight,
             horizontalMargin: 0,
             dataRowMinHeight: widget.rowHeight,
@@ -250,11 +302,14 @@ class _DynamicTableState extends State<DynamicTable> {
               );
             }).toList(),
             rows: _getFilteredRows().map((row) {
+              final bool isDark =
+                  Theme.of(context).brightness == Brightness.dark;
               return DataRow(
+                color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
                 onSelectChanged: (_) => widget.onRowSelect?.call(row),
                 cells: widget.columns.map((column) {
                   return DataCell(
-                    _buildCellContent(row, column),
+                    _wrapRowHover(row.id, _buildCellContent(row, column)),
                   );
                 }).toList(),
               );
@@ -264,8 +319,10 @@ class _DynamicTableState extends State<DynamicTable> {
               bottom: BorderSide.none,
               verticalInside: BorderSide.none,
               horizontalInside: BorderSide(
-                color: Theme.of(context).primaryColorLight,
-                width: 0.8,
+                color: HomeUi.tableBorder(
+                  Theme.of(context).brightness == Brightness.dark,
+                ),
+                width: 0.5,
               ),
             ),
           ),
@@ -290,8 +347,9 @@ class _DynamicTableState extends State<DynamicTable> {
     }
 
     if (value is num) {
+      final text = value.toString();
       return Text(
-        value.toString(),
+        HomeUi.truncateTableText(text),
         style: TextStyle(
           fontSize: widget.cellFontSize,
           color: widget.cellTextColor ?? Theme.of(context).primaryColor,
@@ -313,7 +371,7 @@ class _DynamicTableState extends State<DynamicTable> {
       }
       
       return Text(
-        value,
+        HomeUi.truncateTableText(value),
         style: TextStyle(
           fontSize: widget.cellFontSize,
           color: textColor,
@@ -383,7 +441,7 @@ class BasicTickerCell extends StatelessWidget {
                 children: [
                   Container(
                     child: Text(
-                      symbol,
+                      HomeUi.truncateTableText(symbol),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -396,7 +454,7 @@ class BasicTickerCell extends StatelessWidget {
                   ),
                   if (model.name != null && model.name!.isNotEmpty)
                     Text(
-                      model.name!,
+                      HomeUi.truncateTableText(model.name!),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

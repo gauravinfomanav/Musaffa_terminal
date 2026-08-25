@@ -1355,7 +1355,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             showColumnResizeHandle: true,
             headerHeight: 44,
             rowHeight: 56,
-            columnSpacing: 24,
+            columnSpacing: 40,
             tableId: 'screener_results_table_${_selectedResultsTab}',
             sortState: _resultsSortState,
             onSortChange: (key, direction) {

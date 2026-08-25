@@ -156,23 +156,28 @@ class MarketSummaryController extends GetxController {
         var sector = document['Sector']?.toString() ?? 'Unknown';
 
         var sectorCell = DataCell(
-          GestureDetector(
-            onTap: () {
-              FeatureNavigation.toIfAllowed(
-                FeatureKeys.sectorDetails,
-                () => SectorDetailsScreen(sectorName: sector),
-              );
-            },
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  sector,
-                  style: rowTextStyle,
-                  textAlign: TextAlign.left,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          HomeUi.premiumTooltip(
+            message: sector,
+            waitDuration: const Duration(milliseconds: 350),
+            child: GestureDetector(
+              onTap: () {
+                FeatureNavigation.toIfAllowed(
+                  FeatureKeys.sectorDetails,
+                  () => SectorDetailsScreen(sectorName: sector),
+                );
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    HomeUi.truncateTableText(sector),
+                    style: rowTextStyle,
+                    textAlign: TextAlign.left,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.clip,
+                  ),
                 ),
               ),
             ),
@@ -213,16 +218,13 @@ class MarketSummaryController extends GetxController {
                     numericValue == null ? '—' : '0.0%',
                     maxLines: 1,
                     softWrap: false,
-                    overflow: TextOverflow.ellipsis,
+                    overflow: TextOverflow.clip,
                     style: HomeUi.tableNumeric(isDarkMode == true),
                   )
-                : FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: HomeUi.signedPercentPill(
-                      isDarkMode == true,
-                      matchedFieldStr,
-                      numericValue,
-                    ),
+                : HomeUi.signedPercentPill(
+                    isDarkMode == true,
+                    matchedFieldStr,
+                    numericValue,
                   ),
           ));
           cellArr.add(valueCell);

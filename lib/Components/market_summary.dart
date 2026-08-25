@@ -171,12 +171,13 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
             } else {
               final isDarkMode =
                   Theme.of(context).brightness == Brightness.dark;
+                  final Color tableBorderColor = HomeUi.tableBorder(isDarkMode);
               return Container(
                 width: double.infinity,
                 clipBehavior: Clip.antiAlias,
                 decoration: HomeUi.cardDecoration(isDarkMode).copyWith(
                   border: Border.all(
-                    color: HomeUi.borderLight(isDarkMode),
+                    color: tableBorderColor,
                     width: 1,
                   ),
                 ),
@@ -197,27 +198,61 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                     Divider(
                       height: 1,
                       thickness: 1,
-                      color: HomeUi.borderLight(isDarkMode),
+                      color: tableBorderColor,
                     ),
                     LayoutBuilder(
                     builder: (context, constraints) {
                       final availableWidth = constraints.maxWidth;
-                      const fixedColumnWidth = 176.0;
-                      final scrollableAreaWidth =
-                          availableWidth - fixedColumnWidth;
+                      final periodCount =
+                          math.max(1, controller.dataCols.length);
 
                       final screenWidth = MediaQuery.of(context).size.width;
                       final bool isLargeScreen = screenWidth >= 1600;
                       final dataRowMaxHeight = isLargeScreen ? 44.0 : 42.0;
                       const headingRowHeight = 40.0;
-                      const columnSpacing = 8.0;
-                      const numColumns = 6;
-                      final periodColumnWidth = scrollableAreaWidth > 0
-                          ? ((scrollableAreaWidth -
-                                      ((numColumns - 1) * columnSpacing)) /
-                                  numColumns)
-                              .clamp(96.0, 140.0)
-                          : 96.0;
+                      const columnSpacing = 40.0;
+                      const horizontalMargin = 10.0;
+
+                      // Sector is pinned left; periods live in a second DataTable.
+                      // Each section applies its own horizontalMargin.
+                      final double leftChrome = horizontalMargin * 2;
+                      final double centerChrome = horizontalMargin * 2 +
+                          (columnSpacing * math.max(0, periodCount - 1));
+                      const double pinDivider = 1.0;
+                      final double usable = math.max(
+                        0.0,
+                        availableWidth - leftChrome - centerChrome - pinDivider,
+                      );
+
+                      // Compact % columns; scroll only when viewport is too narrow.
+                      // Sector wide enough for ~25 chars; period wide enough for +XXX.X%.
+                      const double periodIdeal = 76.0;
+                      const double periodMin = 68.0;
+                      const double periodMax = 92.0;
+                      const double sectorMin = 200.0;
+                      const double sectorIdeal = 220.0;
+
+                      late final double periodColumnWidth;
+                      late final double fixedColumnWidth;
+                      final double periodsIdealTotal = periodIdeal * periodCount;
+                      if (usable >= sectorIdeal + periodsIdealTotal) {
+                        final double leftover =
+                            usable - sectorIdeal - periodsIdealTotal;
+                        periodColumnWidth = (periodIdeal +
+                                leftover / periodCount)
+                            .clamp(periodIdeal, periodMax);
+                        fixedColumnWidth =
+                            usable - (periodColumnWidth * periodCount);
+                      } else if (usable >=
+                          sectorMin + periodMin * periodCount) {
+                        fixedColumnWidth = sectorMin;
+                        periodColumnWidth =
+                            (usable - fixedColumnWidth) / periodCount;
+                      } else {
+                        fixedColumnWidth = sectorMin;
+                        periodColumnWidth = periodMin;
+                      }
+
                       final dynamicColumns = _mapToDynamicColumns(
                         fixedSectorColumnWidth: fixedColumnWidth,
                         periodColumnWidth: periodColumnWidth,
@@ -250,16 +285,19 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           headingRowHeight: headingRowHeight,
                           dataRowMinHeight: 32,
                           dataRowMaxHeight: dataRowMaxHeight,
-                          horizontalMargin: 12,
+                          horizontalMargin: horizontalMargin,
                           columnSpacing: columnSpacing,
                           dividerThickness: 0.5,
                           showBottomBorder: false,
                           tableBorder: TableBorder(
                             bottom: BorderSide.none,
                             top: BorderSide.none,
-                            verticalInside: BorderSide.none,
+                            verticalInside: BorderSide(
+                              color: tableBorderColor,
+                              width: 0.5,
+                            ),
                             horizontalInside: BorderSide(
-                              color: HomeUi.borderLight(isDarkMode),
+                              color: tableBorderColor,
                               width: 0.5,
                             ),
                           ),

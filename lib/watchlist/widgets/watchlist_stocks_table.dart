@@ -369,7 +369,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       fixedColumnWidth: 220,
       headerHeight: 44,
       rowHeight: 56,
-      columnSpacing: 24,
+      columnSpacing: 40,
       zebraStripes: true,
       enableLivePrices: true,
       enableColumnCustomization: true,

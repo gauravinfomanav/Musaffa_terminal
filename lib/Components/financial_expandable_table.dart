@@ -117,6 +117,8 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
   bool _increaseShadow = false;
   Map<String, bool> _expandedRows = {};
   Set<String> _splashRowIds = {}; // Track which rows should show splash effect
+  String? _hoveredRowId;
+  int _rowHoverGeneration = 0;
 
   TextOverflow _cellOverflow(String text, [String key = '']) {
     return HomeUi.tableCellOverflow(text, columnKey: key);
@@ -137,6 +139,36 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onRowHoverEnter(String rowId) {
+    _rowHoverGeneration++;
+    if (_hoveredRowId == rowId) return;
+    setState(() => _hoveredRowId = rowId);
+  }
+
+  void _onRowHoverExit(String rowId) {
+    final int generation = _rowHoverGeneration;
+    Future<void>.delayed(const Duration(milliseconds: 20), () {
+      if (!mounted) return;
+      if (_rowHoverGeneration != generation) return;
+      if (_hoveredRowId != rowId) return;
+      setState(() => _hoveredRowId = null);
+    });
+  }
+
+  Widget _wrapRowHover(String rowId, Widget child) {
+    return MouseRegion(
+      onEnter: (_) => _onRowHoverEnter(rowId),
+      onExit: (_) => _onRowHoverExit(rowId),
+      child: child,
+    );
+  }
+
+  Color _rowColor(String rowId, bool isDark) {
+    return _hoveredRowId == rowId
+        ? HomeUi.tableRowHover(isDark)
+        : Colors.transparent;
   }
 
   void _initializeExpandedState() {
@@ -358,6 +390,11 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       ),
       child: DataTable(
           showCheckboxColumn: false,
+          headingRowColor: WidgetStateProperty.all(
+            HomeUi.tableHeaderBg(
+              Theme.of(context).brightness == Brightness.dark,
+            ),
+          ),
           headingRowHeight: widget.headerHeight,
           horizontalMargin: 0,
           dataRowMinHeight: widget.rowHeight,
@@ -373,15 +410,20 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
             ),
           ],
           rows: flattenedRows.map((row) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return DataRow(
+              color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
               cells: [
                 DataCell(
-                  Padding(
-                    padding: EdgeInsets.only(
-                      right: 30.0,
-                      left: 0, // No spacing for any rows
+                  _wrapRowHover(
+                    row.id,
+                    Padding(
+                      padding: EdgeInsets.only(
+                        right: 30.0,
+                        left: 0, // No spacing for any rows
+                      ),
+                      child: _buildNameCell(row),
                     ),
-                    child: _buildNameCell(row),
                   ),
                   onTap: row.isExpandable ? null : () => widget.onRowSelect?.call(row),
                 ),
@@ -393,8 +435,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
             bottom: BorderSide.none,
             verticalInside: BorderSide.none,
             horizontalInside: BorderSide(
-              color: Theme.of(context).primaryColorLight,
-              width: 0.8,
+              color: HomeUi.tableBorder(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+              width: 1,
             ),
           ),
         ),
@@ -448,20 +492,20 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (title.isNotEmpty)
-          Tooltip(
+          HomeUi.premiumTooltip(
             message: title,
             child: Text(
-              title,
+              HomeUi.truncateTableText(title),
               style: titleStyle,
               maxLines: 1,
               overflow: _cellOverflow(title),
             ),
           ),
         if (subtitle != null && subtitle.isNotEmpty)
-          Tooltip(
+          HomeUi.premiumTooltip(
             message: subtitle,
             child: Text(
-              subtitle,
+              HomeUi.truncateTableText(subtitle),
               style: subtitleStyle,
               maxLines: 1,
               overflow: _cellOverflow(subtitle),
@@ -499,6 +543,11 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
           ),
           child: DataTable(
             showCheckboxColumn: false,
+            headingRowColor: WidgetStateProperty.all(
+              HomeUi.tableHeaderBg(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+            ),
             headingRowHeight: widget.headerHeight,
             horizontalMargin: 0,
             dataRowMinHeight: widget.rowHeight,
@@ -531,26 +580,35 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               );
             }).toList(),
             rows: flattenedRows.map((row) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return DataRow(
-                color: _splashRowIds.contains(row.id) 
-                    ? WidgetStateProperty.all(const Color.fromARGB(255, 105, 177, 236).withOpacity(0.1))
-                    : null,
+                color: _splashRowIds.contains(row.id)
+                    ? WidgetStateProperty.all(
+                        const Color.fromARGB(255, 105, 177, 236)
+                            .withOpacity(0.1))
+                    : WidgetStateProperty.all(_rowColor(row.id, isDark)),
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
                 cells: allColumns.map((column) {
                   // If showNameColumn is false and this is the first column (metric column), add expand/collapse functionality
                   if (!widget.showNameColumn && column.key == 'metric') {
                     return DataCell(
-                      SizedBox(
-                        width: metricColumnWidth,
-                        child: _buildExpandableCellContent(row, column),
+                      _wrapRowHover(
+                        row.id,
+                        SizedBox(
+                          width: metricColumnWidth,
+                          child: _buildExpandableCellContent(row, column),
+                        ),
                       ),
                     );
                   }
                   // For all other columns, use calculated width to fill screen
                   return DataCell(
-                    SizedBox(
-                      width: dataColumnWidth,
-                      child: _buildCellContent(row, column),
+                    _wrapRowHover(
+                      row.id,
+                      SizedBox(
+                        width: dataColumnWidth,
+                        child: _buildCellContent(row, column),
+                      ),
                     ),
                   );
                 }).toList(),
@@ -561,8 +619,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               bottom: BorderSide.none,
               verticalInside: BorderSide.none,
               horizontalInside: BorderSide(
-                color: Theme.of(context).primaryColorLight,
-                width: 0.8,
+                color: HomeUi.tableBorder(
+                  Theme.of(context).brightness == Brightness.dark,
+                ),
+                width: 1,
               ),
             ),
           ),
@@ -591,7 +651,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       }
       
       return Text(
-        formattedValue,
+        HomeUi.truncateTableText(formattedValue),
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
         maxLines: 1,
@@ -610,10 +670,10 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               children: [
                 // No spacing for any rows
                 Expanded(
-                  child: Tooltip(
+                  child: HomeUi.premiumTooltip(
                     message: value,
                     child: Text(
-                      value,
+                      HomeUi.truncateTableText(value),
                       style: DashboardTextStyles.stockName,
                       textAlign: TextAlign.left,
                       maxLines: 1,
@@ -651,7 +711,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       }
       
       return Text(
-        value,
+        HomeUi.truncateTableText(value),
         style: DashboardTextStyles.dataCell.copyWith(color: textColor),
         textAlign: column.alignment,
         maxLines: 1,
@@ -688,7 +748,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       }
       
       return Text(
-        formattedValue,
+        HomeUi.truncateTableText(formattedValue),
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
         maxLines: 1,
@@ -714,7 +774,7 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
       }
       
       return Text(
-        value,
+        HomeUi.truncateTableText(value),
         style: textStyle.copyWith(color: textColor),
         textAlign: column.alignment,
         maxLines: 1,

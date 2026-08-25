@@ -254,31 +254,24 @@ class _CompanyProfileCardState extends State<_CompanyProfileCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: HomeUi.elevatedBg(isDark),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: HomeUi.borderLight(isDark)),
-                ),
-                child: showLogo(
-                  symbol,
-                  logoUrl,
-                  sideWidth: 30,
-                  name: symbol,
-                ),
+              showLogo(
+                symbol,
+                logoUrl,
+                sideWidth: 52,
+                name: symbol,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.companyName,
-                      style:
-                          HomeUi.sectionTitle(isDark).copyWith(fontSize: 17),
+                      style: HomeUi.sectionTitle(isDark).copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -297,28 +290,16 @@ class _CompanyProfileCardState extends State<_CompanyProfileCard> {
                     if (chips.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(
-                        spacing: 6,
+                        spacing: 12,
                         runSpacing: 6,
                         children: chips
                             .map(
-                              (chip) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: HomeUi.elevatedBg(isDark),
-                                  borderRadius: BorderRadius.circular(
-                                    HomeUi.radiusPill,
-                                  ),
-                                  border: Border.all(
-                                    color: HomeUi.borderLight(isDark),
-                                  ),
-                                ),
-                                child: Text(
-                                  chip,
-                                  style: HomeUi.control(isDark)
-                                      .copyWith(fontSize: 10.5),
+                              (chip) => Text(
+                                chip,
+                                style: HomeUi.control(isDark).copyWith(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: HomeUi.title(isDark),
                                 ),
                               ),
                             )
@@ -344,12 +325,7 @@ class _CompanyProfileCardState extends State<_CompanyProfileCard> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Color.alphaBlend(
-                      HomeUi.accent(true).withValues(alpha: 0.05),
-                      HomeUi.elevatedBg(true),
-                    )
-                  : const Color(0xFFF8FAFC),
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(HomeUi.radiusLg),
               border: Border.all(color: HomeUi.borderLight(isDark)),
             ),
@@ -457,8 +433,9 @@ class _CompactMetricCell extends StatelessWidget {
           Text(
             label.toUpperCase(),
             style: HomeUi.overline(isDark).copyWith(
-              fontSize: 9.5,
+              fontSize: 11,
               letterSpacing: 0.9,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 4),
@@ -467,7 +444,7 @@ class _CompactMetricCell extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: HomeUi.tableCellEmphasis(isDark).copyWith(
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -640,7 +617,7 @@ class _DetailTilePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: isDark ? HomeUi.elevatedBg(true) : const Color(0xFFF9FAFB),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(HomeUi.radiusLg),
         border: Border.all(color: HomeUi.borderLight(isDark)),
       ),
@@ -649,27 +626,19 @@ class _DetailTilePanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? HomeUi.cardBg(true)
-                      : Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: HomeUi.borderLight(isDark)),
-                ),
-                child: Icon(
-                  icon,
-                  size: 15,
-                  color: HomeUi.muted(isDark),
-                ),
+              Icon(
+                icon,
+                size: 22,
+                color: HomeUi.title(isDark),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
-                  style: HomeUi.cardTitle(isDark).copyWith(fontSize: 13),
+                  style: HomeUi.cardTitle(isDark).copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
