@@ -21,6 +21,7 @@ import 'package:musaffa_terminal/Controllers/ticker_insider_trading_controller.d
 import 'package:musaffa_terminal/Controllers/ticker_news_sentiment_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_price_target_controller.dart';
+import 'package:musaffa_terminal/Controllers/ticker_revenue_breakdown_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_youtube_videos_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_profile_controller.dart';
 import 'package:musaffa_terminal/Components/ticker_about_company_tab.dart';
@@ -73,6 +74,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TickerNewsSentimentController tickerNewsSentimentController;
   late TickerFundOwnershipController tickerFundOwnershipController;
   late TickerPriceTargetController tickerPriceTargetController;
+  late TickerRevenueBreakdownController tickerRevenueBreakdownController;
   late StockYouTubeVideosController stockYouTubeVideosController;
   late StockProfileController stockProfileController;
 
@@ -110,6 +112,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerNewsSentimentController = TickerNewsSentimentController();
     tickerFundOwnershipController = TickerFundOwnershipController();
     tickerPriceTargetController = TickerPriceTargetController();
+    tickerRevenueBreakdownController = TickerRevenueBreakdownController();
     stockYouTubeVideosController = StockYouTubeVideosController();
     stockProfileController = StockProfileController();
 
@@ -201,6 +204,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerNewsSentimentController.dispose();
     tickerFundOwnershipController.dispose();
     tickerPriceTargetController.dispose();
+    tickerRevenueBreakdownController.dispose();
     stockYouTubeVideosController.dispose();
     stockProfileController.dispose();
     financialFundamentalsController.dispose();
@@ -1119,15 +1123,6 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               controller: tickerEarningsController,
               isDarkMode: isDarkMode,
             ),
-            // const SizedBox(height: 16),
-            // TickerRevenueGeographySection(
-            //   controller: tickerRevenueGeographyController,
-            //   isDarkMode: isDarkMode,
-            //   onRetry: () => tickerRevenueGeographyController.load(
-            //     widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-            //     forceRefresh: true,
-            //   ),
-            // ),
             const SizedBox(height: 16),
             TickerDividendHistorySection(
               controller: tickerDividendController,
@@ -1247,6 +1242,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ticker: widget.ticker,
       profileController: stockProfileController,
       youtubeController: stockYouTubeVideosController,
+      revenueController: tickerRevenueBreakdownController,
       isDarkMode: isDarkMode,
     );
   }

@@ -98,18 +98,6 @@ class FinnhubApiClient {
       throw FinnhubApiException('Empty response from Finnhub.');
     }
 
-    final String lower = body.toLowerCase();
-    if (lower.contains("don't have access") ||
-        lower.contains('does not have access') ||
-        (lower.contains('premium') && lower.contains('access')) ||
-        lower.contains('permission denied')) {
-      throw FinnhubApiException(
-        'This data is unavailable on the current API plan.',
-        statusCode: code,
-        isAccessDenied: true,
-      );
-    }
-
     late final dynamic decoded;
     try {
       decoded = jsonDecode(body);
@@ -117,17 +105,23 @@ class FinnhubApiClient {
       throw FinnhubApiException('Malformed response from Finnhub.');
     }
 
+    if (decoded is String && _isAccessDeniedMessage(decoded)) {
+      throw FinnhubApiException(
+        'This data is unavailable on the current API plan.',
+        statusCode: code,
+        isAccessDenied: true,
+      );
+    }
+
     if (decoded is Map<String, dynamic>) {
       final String? err = decoded['error']?.toString() ??
           decoded['Error']?.toString();
       if (err != null && err.isNotEmpty) {
-        final String errLower = err.toLowerCase();
-        final bool access = errLower.contains('access') ||
-            errLower.contains('premium') ||
-            errLower.contains('permission') ||
-            errLower.contains('unauthorized');
+        final bool access = _isAccessDeniedMessage(err);
         throw FinnhubApiException(
-          err,
+          access
+              ? 'This data is unavailable on the current API plan.'
+              : err,
           statusCode: code,
           isAccessDenied: access,
         );
@@ -153,5 +147,15 @@ class FinnhubApiClient {
 
   static void clearAllCache() {
     _cache.clear();
+  }
+
+  static bool _isAccessDeniedMessage(String message) {
+    final String lower = message.toLowerCase();
+    return lower.contains("don't have access") ||
+        lower.contains('does not have access') ||
+        lower.contains('you dont have access') ||
+        lower.contains('permission denied') ||
+        lower.contains('unauthorized') ||
+        (lower.contains('premium') && lower.contains('access'));
   }
 }
