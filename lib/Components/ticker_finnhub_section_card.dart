@@ -7,17 +7,21 @@ class TickerFinnhubSectionCard extends StatelessWidget {
     required this.isDarkMode,
     required this.child,
     this.padding = const EdgeInsets.all(16),
+    this.backgroundColor,
   });
 
   final bool isDarkMode;
   final Widget child;
   final EdgeInsets padding;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
-      decoration: HomeUi.cardDecoration(isDarkMode),
+      decoration: HomeUi.cardDecoration(isDarkMode).copyWith(
+        color: backgroundColor,
+      ),
       child: child,
     );
   }

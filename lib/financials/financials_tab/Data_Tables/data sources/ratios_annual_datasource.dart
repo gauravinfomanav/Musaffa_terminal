@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class RatioDefinition {
@@ -95,7 +96,11 @@ class FinancialRatiosDataSource extends DataGridSource {
 
   @override
   DataGridRowAdapter? buildRow(DataGridRow row) {
+    final int rowIndex = _dataGridRows.indexOf(row);
     return DataGridRowAdapter(
+      color: rowIndex.isEven
+          ? HomeUi.tableRowEven(false)
+          : HomeUi.tableRowOdd(false),
       cells: row.getCells().map<Widget>((cell) {
         return Container(
           alignment: cell.columnName == 'metric'
@@ -103,7 +108,7 @@ class FinancialRatiosDataSource extends DataGridSource {
               : Alignment.center,
           padding: const EdgeInsets.all(10.0),
           child: Text(
-            cell.value.toString(),
+            HomeUi.truncateTableText(cell.value.toString()),
             style: const TextStyle(fontFamily: Constants.FONT_DEFAULT_NEW),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,

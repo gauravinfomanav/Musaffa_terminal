@@ -119,8 +119,8 @@ class DynamicTable extends StatefulWidget {
     this.toolbar,
     this.showFixedColumn = true,
     this.considerPadding = true,
-    this.columnSpacing = 6,
-    this.horizontalMargin = 0,
+    this.columnSpacing = 40,
+    this.horizontalMargin = 16,
     this.fixedColumnWidth,
     this.enableDragging = false,
     this.enableLivePrices = false,
@@ -1254,10 +1254,8 @@ class _DynamicTableState extends State<DynamicTable> {
   MaterialStateProperty<Color?>? _resolveRowColor(int index) {
     if (!widget.zebraStripes) return null;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final evenColor = widget.evenRowColor ?? Colors.transparent;
-    final oddDefault =
-        isDarkMode ? const Color(0xFF1B1F25) : const Color(0xFFF5F5F5);
-    final oddColor = widget.oddRowColor ?? oddDefault;
+    final evenColor = widget.evenRowColor ?? HomeUi.tableRowEven(isDarkMode);
+    final oddColor = widget.oddRowColor ?? HomeUi.tableRowOdd(isDarkMode);
     final color = index.isEven ? evenColor : oddColor;
     return MaterialStateProperty.all(color);
   }

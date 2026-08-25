@@ -166,13 +166,7 @@ class TickerNewsSentimentSection extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDarkMode
-              ? <Color>[const Color(0xFF1F2937), const Color(0xFF111827)]
-              : <Color>[Colors.white, const Color(0xFFF8FAFC)],
-        ),
+        color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFFFFFFF),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
         ),
@@ -232,7 +226,7 @@ class TickerNewsSentimentSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF111827) : const Color(0xFFF8FAFC),
+        color: isDarkMode ? const Color(0xFF111827) : const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isDarkMode ? const Color(0xFF273244) : const Color(0xFFE2E8F0),

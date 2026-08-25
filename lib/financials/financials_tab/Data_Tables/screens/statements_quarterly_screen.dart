@@ -4,6 +4,7 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import '../data sources/quarterly_financial_datasource.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import '../controllers/statements_chart_quarterly.dart';
 
 
@@ -68,6 +69,12 @@ class _FinancialStatementsQuarterlyTableState extends State<FinancialStatementsQ
             data: SfDataGridThemeData(
               frozenPaneLineWidth: 0,
               frozenPaneLineColor: Colors.transparent,
+              headerColor: HomeUi.tableHeaderBg(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+              gridLineColor: HomeUi.tableBorder(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
             ),
             child: SfDataGrid(
               source: financialDataSource,

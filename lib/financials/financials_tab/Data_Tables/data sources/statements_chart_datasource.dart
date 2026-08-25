@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/statements_chart_quarterly.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class FinancialDataSource extends DataGridSource {
@@ -160,7 +161,11 @@ bool _hasDataInSubItems(
 
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
+    final int rowIndex = rows.indexOf(row);
     return DataGridRowAdapter(
+      color: rowIndex.isEven
+          ? HomeUi.tableRowEven(false)
+          : HomeUi.tableRowOdd(false),
       cells: row.getCells().map<Widget>((cell) {
         bool isFirstCell = cell.columnName == 'metric';
         Alignment alignment = isFirstCell ? Alignment.centerLeft : Alignment.center;
@@ -200,7 +205,7 @@ bool _hasDataInSubItems(
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          cellValue,
+                          '${cellValue.substring(0, cellValue.length - trimmedValue.length)}${HomeUi.truncateTableText(trimmedValue)}',
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 14,
@@ -223,7 +228,7 @@ bool _hasDataInSubItems(
                 padding: const EdgeInsets.all(8.0),
                 alignment: alignment,
                 child: Text(
-                  cellValue,
+                  '${cellValue.substring(0, cellValue.length - trimmedValue.length)}${HomeUi.truncateTableText(trimmedValue)}',
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 14,
@@ -241,7 +246,7 @@ bool _hasDataInSubItems(
           padding: const EdgeInsets.all(8.0),
           alignment: alignment,
           child: Text(
-            cell.value.toString(),
+            HomeUi.truncateTableText(cell.value.toString()),
             style: TextStyle(
               color: isNegative ? const Color.fromARGB(255, 23, 23, 23) : null,
               fontSize: 14,

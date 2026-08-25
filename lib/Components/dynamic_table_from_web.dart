@@ -268,6 +268,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   String? _draggingColumnKey;
   String? _dragOverColumnKey;
   String? _hoveredResizeColumnKey;
+  String? _hoveredRowId;
+  int _rowHoverGeneration = 0;
   final Set<String> _pinnedLeftColumns = <String>{};
   final Set<String> _pinnedRightColumns = <String>{};
   final Map<String, double> _naturalMinWidths = <String, double>{};
@@ -335,6 +337,30 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     super.dispose();
   }
 
+  void _onRowHoverEnter(String rowId) {
+    _rowHoverGeneration++;
+    if (_hoveredRowId == rowId) return;
+    setState(() => _hoveredRowId = rowId);
+  }
+
+  void _onRowHoverExit(String rowId) {
+    final int generation = _rowHoverGeneration;
+    Future<void>.delayed(const Duration(milliseconds: 20), () {
+      if (!mounted) return;
+      if (_rowHoverGeneration != generation) return;
+      if (_hoveredRowId != rowId) return;
+      setState(() => _hoveredRowId = null);
+    });
+  }
+
+  Widget _wrapRowHover(String rowId, Widget child) {
+    return MouseRegion(
+      onEnter: (_) => _onRowHoverEnter(rowId),
+      onExit: (_) => _onRowHoverExit(rowId),
+      child: child,
+    );
+  }
+
   List<DynamicTableColumn> _getEffectiveColumns() {
     final columns = <DynamicTableColumn>[...widget.columns];
     final existingKeys = columns.map((c) => c.key).toSet();
@@ -385,8 +411,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   double get _headerResizeReserve => widget.showColumnResizeHandle ? 8 : 0;
   double get _headerTrailing => 8 + _headerActionReserve + _headerResizeReserve;
   static const double _headerLeading = 8;
-  /// Matches [tableToolbarHeader] card inset so the company column lines up with the icon.
-  static const double _toolbarInset = 16;
 
   bool _isEndAlign(TextAlign align) =>
       align == TextAlign.right || align == TextAlign.end;
@@ -644,14 +668,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _stretchedColumnWidths = <String, double>{};
     if (columns.isEmpty) return;
 
-    // Account for ticker column, horizontal margins, and DataTable internal spacing.
+    // Account for ticker column, horizontal margins, and DataTable spacing.
+    final double spacing = widget.columnSpacing ?? 40;
     double reserved = widget.horizontalMargin * 2;
     if (includeTicker) {
-      reserved += (widget.tickerColumnWidth ?? 200) + _toolbarInset + 8;
+      reserved += (widget.tickerColumnWidth ?? 200) + 8;
     }
-    if (widget.columnSpacing != null) {
-      reserved += widget.columnSpacing! * (columns.length - 1).clamp(0, 999);
-    }
+    reserved += spacing * (columns.length - 1).clamp(0, 999);
     final usable = availableWidth - reserved;
     if (usable <= 0) return;
 
@@ -665,7 +688,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       totalBase += base;
     }
 
-    if (totalBase >= usable) return; // no extra space to distribute
+    if (totalBase <= 0) return;
+    if (totalBase >= usable) return; // already fills / overflows — no stretch
 
     final extra = usable - totalBase;
     for (final col in columns) {
@@ -859,7 +883,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Tooltip(
+          child: HomeUi.premiumTooltip(
             message: fullTitle,
             waitDuration: const Duration(milliseconds: 400),
             child: Column(
@@ -868,7 +892,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  split.title,
+                  HomeUi.truncateTableText(split.title),
                   maxLines: 1,
                   overflow: HomeUi.tableCellOverflow(split.title),
                   style: HomeUi.tableCellEmphasis(isDark),
@@ -876,7 +900,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 if (split.subtitle.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
-                    split.subtitle,
+                    HomeUi.truncateTableText(split.subtitle),
                     maxLines: 1,
                     overflow: HomeUi.tableCellOverflow(split.subtitle),
                     style: HomeUi.tableCellSecondary(isDark).copyWith(
@@ -909,7 +933,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
   Widget _maybeHeaderTooltip(String message, Widget child) {
     if (!widget.showHeaderTooltip) return child;
-    return Tooltip(message: message, child: child);
+    return HomeUi.premiumTooltip(message: message, child: child);
   }
 
   Widget _headerLabel({
@@ -917,15 +941,20 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required TextStyle headerStyle,
   }) {
     final sorted = _sortState?.key == col.key;
-    final label = col.headerWidget ??
+    final fullLabel = col.label.toUpperCase();
+    final displayLabel = HomeUi.truncateTableText(fullLabel);
+    Widget label = col.headerWidget ??
         Text(
-          col.label.toUpperCase(),
+          displayLabel,
           style: headerStyle,
           textAlign: col.align,
           maxLines: 1,
           softWrap: false,
           overflow: HomeUi.tableCellOverflow(col.label),
         );
+    if (col.headerWidget == null && displayLabel != fullLabel) {
+      label = HomeUi.premiumTooltip(message: fullLabel, child: label);
+    }
     if (!sorted) return label;
     final icon = Icon(
       _sortState!.direction == 'asc'
@@ -1272,16 +1301,17 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         } else {
           final commentLike =
               HomeUi.isCommentLikeTableText(cellText, columnKey: col.key);
+          final displayText = HomeUi.truncateTableText(cellText);
           Widget text = Text(
-            cellText,
+            displayText,
             maxLines: 1,
             softWrap: false,
             overflow: commentLike ? TextOverflow.ellipsis : TextOverflow.clip,
             textAlign: col.align,
             style: style,
           );
-          if (commentLike) {
-            text = Tooltip(
+          if (commentLike || displayText != cellText) {
+            text = HomeUi.premiumTooltip(
               message: cellText,
               waitDuration: const Duration(milliseconds: 400),
               child: text,
@@ -1320,16 +1350,19 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           : defaultCell;
 
       return DataCell(
-        Align(
-          alignment: _alignmentFor(col.align),
-          child: SizedBox(
-            width: resolvedWidth,
-            height: _effectiveDataRowHeight,
-            child: Padding(
-              padding: _columnInsets(),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.basic,
-                child: content,
+        _wrapRowHover(
+          row.id,
+          Align(
+            alignment: _alignmentFor(col.align),
+            child: SizedBox(
+              width: resolvedWidth,
+              height: _effectiveDataRowHeight,
+              child: Padding(
+                padding: _columnInsets(),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.basic,
+                  child: content,
+                ),
               ),
             ),
           ),
@@ -1361,7 +1394,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _refreshNaturalMinWidths(columns);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final line = HomeUi.borderLight(isDark);
+    final Color line = widget.tableBorder?.horizontalInside.color ??
+        widget.tableBorder?.verticalInside.color ??
+        HomeUi.tableBorder(isDark);
     return Theme(
       data: Theme.of(context).copyWith(
         dividerColor: line,
@@ -1382,7 +1417,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         dataRowMinHeight: widget.rowHeight ?? widget.dataRowMinHeight,
         dataRowMaxHeight: _effectiveDataRowHeight,
         horizontalMargin: widget.horizontalMargin,
-        columnSpacing: widget.columnSpacing,
+        columnSpacing: widget.columnSpacing ?? 40,
         dividerThickness: widget.dividerThickness ?? 0.5,
         showBottomBorder: widget.showBottomBorder,
         border: widget.tableBorder ??
@@ -1424,10 +1459,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               label: SizedBox(
                 width: widget.tickerColumnWidth,
                 child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: _toolbarInset,
-                    right: 8,
-                  ),
+                  // Match card toolbar inset via DataTable.horizontalMargin only.
+                  padding: const EdgeInsets.only(right: 8),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -1442,50 +1475,50 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         ],
         rows: rows.asMap().entries.map((entry) {
           final row = entry.value;
-          final rowIndex = entry.key;
           return DataRow(
-            color: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.hovered)) {
-                return HomeUi.tableRowHover(isDark);
-              }
-              return rowIndex.isEven
-                  ? HomeUi.tableRowEven(isDark)
-                  : HomeUi.tableRowOdd(isDark);
-            }),
+            color: WidgetStateProperty.all(
+              _hoveredRowId == row.id
+                  ? HomeUi.tableRowHover(isDark)
+                  : Colors.transparent,
+            ),
             cells: [
               if (includeSelectable)
                 DataCell(
-                  Checkbox(
-                    value: _selectedRowIds.contains(row.id),
-                    onChanged: (val) {
-                      setState(() {
-                        if (val == true) {
-                          _selectedRowIds.add(row.id);
-                        } else {
-                          _selectedRowIds.remove(row.id);
-                        }
-                      });
-                      widget.onSelectionChange?.call(
-                        widget.rows
-                            .where((r) => _selectedRowIds.contains(r.id))
-                            .toList(),
-                      );
-                    },
+                  _wrapRowHover(
+                    row.id,
+                    Checkbox(
+                      value: _selectedRowIds.contains(row.id),
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedRowIds.add(row.id);
+                          } else {
+                            _selectedRowIds.remove(row.id);
+                          }
+                        });
+                        widget.onSelectionChange?.call(
+                          widget.rows
+                              .where((r) => _selectedRowIds.contains(r.id))
+                              .toList(),
+                        );
+                      },
+                    ),
                   ),
                 ),
               if (includeTicker)
                 DataCell(
-                  SizedBox(
-                    width: widget.tickerColumnWidth,
-                    height: _effectiveDataRowHeight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                    left: _toolbarInset,
-                    right: 8,
-                  ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _buildTickerCell(row, textColor, mutedColor),
+                  _wrapRowHover(
+                    row.id,
+                    SizedBox(
+                      width: widget.tickerColumnWidth,
+                      height: _effectiveDataRowHeight,
+                      child: Padding(
+                        // Match card toolbar inset via DataTable.horizontalMargin only.
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _buildTickerCell(row, textColor, mutedColor),
+                        ),
                       ),
                     ),
                   ),
@@ -1601,7 +1634,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = HomeUi.cardBg(isDark);
-    final borderColor = HomeUi.borderLight(isDark);
+    final borderColor = HomeUi.tableBorder(isDark);
     final textColor = HomeUi.title(isDark);
     final mutedColor = HomeUi.muted(isDark);
 
@@ -1723,7 +1756,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           Divider(
             height: 1,
             thickness: 1,
-            color: HomeUi.borderLight(isDark),
+            color: HomeUi.tableBorder(isDark),
           ),
         // Table
         if (widget.loading)

@@ -581,7 +581,9 @@ class _DynamicHeightTradingViewState extends State<DynamicHeightTradingView> {
                   Divider(
                     height: 1,
                     thickness: 1,
-                    color: HomeUi.borderLight(isDark),
+                    color: isDark
+                        ? HomeUi.borderLight(true)
+                        : const Color(0xFFF1F4F8),
                   ),
                   // Callers derive the body height by subtracting an estimated
                   // `chromeHeight` from the card height, so the request can be a

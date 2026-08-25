@@ -141,7 +141,7 @@ class TickerFundOwnershipSection extends StatelessWidget {
           showFixedColumn: true,
           tickerHeaderLabel: 'FUND',
           considerPadding: false,
-          columnSpacing: 10,
+          columnSpacing: 40,
           fixedColumnWidth: 248,
           enableLivePrices: false,
           zebraStripes: true,

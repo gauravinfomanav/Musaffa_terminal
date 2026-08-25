@@ -1207,7 +1207,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
         showFixedColumn: true,
         tickerHeaderLabel: 'COMPANY',
         considerPadding: false,
-        columnSpacing: 12,
+        columnSpacing: 40,
         fixedColumnWidth: 280,
         enableDragging: true,
         enableLivePrices: true,

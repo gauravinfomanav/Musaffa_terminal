@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
-/// Pill track whose gradient indicator slides between tabs.
+enum SlidingPillStyle {
+  /// Gradient pill indicator inside a rounded track (default).
+  pill,
+
+  /// Compact tabs with a sliding bottom border indicator only.
+  underline,
+}
+
+/// Pill / underline tabs whose indicator slides between selections.
 class SlidingPillTabs extends StatefulWidget {
   final int itemCount;
   final int selectedIndex;
@@ -10,6 +18,7 @@ class SlidingPillTabs extends StatefulWidget {
   final ValueChanged<int> onSelect;
   final TabController? controller;
   final bool isDarkMode;
+  final SlidingPillStyle style;
 
   const SlidingPillTabs({
     super.key,
@@ -19,6 +28,7 @@ class SlidingPillTabs extends StatefulWidget {
     required this.onSelect,
     required this.isDarkMode,
     this.controller,
+    this.style = SlidingPillStyle.pill,
   });
 
   @override
@@ -36,6 +46,7 @@ class _SlidingPillTabsState extends State<SlidingPillTabs>
   TabController? _boundController;
 
   int get _selected => widget.controller?.index ?? widget.selectedIndex;
+  bool get _underline => widget.style == SlidingPillStyle.underline;
 
   @override
   void initState() {
@@ -165,6 +176,96 @@ class _SlidingPillTabsState extends State<SlidingPillTabs>
 
     final bool dark = widget.isDarkMode;
 
+    if (_underline) {
+      return _buildUnderline(dark, n, selected, left, width);
+    }
+    return _buildPill(dark, n, selected, left, width);
+  }
+
+  Widget _buildUnderline(
+    bool dark,
+    int n,
+    int selected,
+    double left,
+    double width,
+  ) {
+    const double indicatorH = 2.5;
+
+    return IntrinsicWidth(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(n, (index) {
+              return KeyedSubtree(
+                key: _keys[index],
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      _animateTo(index);
+                      widget.onSelect(index);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                      child: widget.itemBuilder(
+                        context,
+                        index,
+                        index == selected,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 1,
+            child: ColoredBox(
+              color: dark
+                  ? const Color(0xFF1E2230)
+                  : const Color(0xFFE5E7EB),
+            ),
+          ),
+          if (n > 0 && width > 0)
+            Positioned(
+              left: left + 12,
+              width: (width - 24).clamp(12.0, width),
+              bottom: 0,
+              height: indicatorH,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: HomeUi.brandGradient,
+                    borderRadius: BorderRadius.circular(2),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: const Color(0xFFE4621E).withValues(alpha: 0.28),
+                        blurRadius: 6,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPill(
+    bool dark,
+    int n,
+    int selected,
+    double left,
+    double width,
+  ) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       padding: const EdgeInsets.all(3),

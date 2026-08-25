@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/trading_view_widget.dart';
@@ -618,8 +619,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     colIndex++) ...[
                   if (colIndex > 0)
                     Container(
-                      width: 1,
-                      color: HomeUi.borderLight(isDarkMode),
+                      width: 40,
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 1,
+                        color: HomeUi.borderLight(isDarkMode),
+                      ),
                     ),
                   Expanded(
                     child: _KeyMetricColumn(
@@ -661,24 +666,13 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: HomeUi.elevatedBg(isDarkMode),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: HomeUi.borderLight(isDarkMode)),
-                          ),
-                          child: showLogo(
-                            ticker,
-                            widget.ticker.logo ?? '',
-                            sideWidth: 28,
-                            name: ticker,
-                          ),
+                        showLogo(
+                          ticker,
+                          widget.ticker.logo ?? '',
+                          sideWidth: 48,
+                          name: ticker,
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,16 +680,21 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                               Text(
                                 companyName,
                                 style: HomeUi.sectionTitle(isDarkMode)
-                                    .copyWith(fontSize: 15),
+                                    .copyWith(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.3,
+                                  height: 1.2,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 3),
                               Text(
                                 ticker,
                                 style: HomeUi.overline(isDarkMode).copyWith(
                                   letterSpacing: 1.2,
-                                  fontSize: 10,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
@@ -1110,16 +1109,20 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
 
             _buildKeyMetricsCard(stockData, isDarkMode),
             const SizedBox(height: 16),
-            TickerUpcomingEarningsCard(
-              controller: tickerEarningsController,
-              isDarkMode: isDarkMode,
+            // Gap only when the section is visible — empty sections must not
+            // stack multiple SizedBoxes (e.g. EPS Surprise → Peer Comparison).
+            _GapBelowIfVisible(
+              child: TickerUpcomingEarningsCard(
+                controller: tickerEarningsController,
+                isDarkMode: isDarkMode,
+              ),
             ),
-            const SizedBox(height: 16),
-            TickerEarningsHistorySection(
-              controller: tickerEarningsController,
-              isDarkMode: isDarkMode,
+            _GapBelowIfVisible(
+              child: TickerEarningsHistorySection(
+                controller: tickerEarningsController,
+                isDarkMode: isDarkMode,
+              ),
             ),
-            // const SizedBox(height: 16),
             // TickerRevenueGeographySection(
             //   controller: tickerRevenueGeographyController,
             //   isDarkMode: isDarkMode,
@@ -1128,83 +1131,91 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
             //     forceRefresh: true,
             //   ),
             // ),
-            const SizedBox(height: 16),
-            TickerDividendHistorySection(
-              controller: tickerDividendController,
-              isDarkMode: isDarkMode,
-            ),
-            const SizedBox(height: 16),
-            TickerPeerComparisonSection(
-              controller: tickerPeerComparisonController,
-              isDarkMode: isDarkMode,
-            ),
-            const SizedBox(height: 16),
-            TickerPriceTargetSection(
-              controller: tickerPriceTargetController,
-              isDarkMode: isDarkMode,
-              onRetry: () => tickerPriceTargetController.load(
-                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                forceRefresh: true,
+            _GapBelowIfVisible(
+              child: TickerDividendHistorySection(
+                controller: tickerDividendController,
+                isDarkMode: isDarkMode,
               ),
             ),
-            const SizedBox(height: 16),
+            _GapBelowIfVisible(
+              child: TickerPeerComparisonSection(
+                controller: tickerPeerComparisonController,
+                isDarkMode: isDarkMode,
+              ),
+            ),
+            _GapBelowIfVisible(
+              child: TickerPriceTargetSection(
+                controller: tickerPriceTargetController,
+                isDarkMode: isDarkMode,
+                onRetry: () => tickerPriceTargetController.load(
+                  widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                  forceRefresh: true,
+                ),
+              ),
+            ),
             // Forecast/Recommendation Widget
-            ListenableBuilder(
-              listenable: recommendationController,
-              builder: (context, child) {
-                // Hide container only if not loading AND (error OR no recommendation)
-                if (!recommendationController.isLoading &&
-                    (recommendationController.error != null ||
-                        recommendationController.recommendation == null)) {
-                  return const SizedBox.shrink();
-                }
+            _GapBelowIfVisible(
+              child: ListenableBuilder(
+                listenable: recommendationController,
+                builder: (context, child) {
+                  // Hide container only if not loading AND (error OR no recommendation)
+                  if (!recommendationController.isLoading &&
+                      (recommendationController.error != null ||
+                          recommendationController.recommendation == null)) {
+                    return const SizedBox.shrink();
+                  }
 
-                return Container(
-                  decoration: HomeUi.cardDecoration(isDarkMode),
-                  child: RecommendationWidget(
-                    symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: recommendationController,
-                  ),
-                );
-              },
+                  return Container(
+                    decoration: HomeUi.cardDecoration(isDarkMode),
+                    child: RecommendationWidget(
+                      symbol:
+                          widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                      controller: recommendationController,
+                    ),
+                  );
+                },
+              ),
             ),
-            const SizedBox(height: 16),
             // Super Investors Section
-            SuperInvestorsSection(
-              symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-            ),
-            const SizedBox(height: 16),
-            TickerFundOwnershipSection(
-              controller: tickerFundOwnershipController,
-              isDarkMode: isDarkMode,
-              currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
-              onRetry: () => tickerFundOwnershipController.load(
-                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                forceRefresh: true,
+            _GapBelowIfVisible(
+              child: SuperInvestorsSection(
+                symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
               ),
             ),
-            const SizedBox(height: 16),
-            TickerInsiderTradingSection(
-              controller: tickerInsiderTradingController,
-              isDarkMode: isDarkMode,
-              ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-              currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
-              companyLogoUrl: widget.ticker.logo ?? '',
-              onRetry: () => tickerInsiderTradingController.load(
-                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                forceRefresh: true,
+            _GapBelowIfVisible(
+              child: TickerFundOwnershipSection(
+                controller: tickerFundOwnershipController,
+                isDarkMode: isDarkMode,
+                currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
+                onRetry: () => tickerFundOwnershipController.load(
+                  widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                  forceRefresh: true,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            TickerNewsSentimentSection(
-              controller: tickerNewsSentimentController,
-              isDarkMode: isDarkMode,
-              onRetry: () => tickerNewsSentimentController.load(
-                widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                forceRefresh: true,
+            _GapBelowIfVisible(
+              child: TickerInsiderTradingSection(
+                controller: tickerInsiderTradingController,
+                isDarkMode: isDarkMode,
+                ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
+                companyLogoUrl: widget.ticker.logo ?? '',
+                onRetry: () => tickerInsiderTradingController.load(
+                  widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                  forceRefresh: true,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            _GapBelowIfVisible(
+              child: TickerNewsSentimentSection(
+                controller: tickerNewsSentimentController,
+                isDarkMode: isDarkMode,
+                onRetry: () => tickerNewsSentimentController.load(
+                  widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                  forceRefresh: true,
+                ),
+              ),
+            ),
             // News Section
             SimpleNewsWidget(
               symbol: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
@@ -1374,7 +1385,6 @@ class _PremiumStatCard extends StatelessWidget {
 
     return Container(
       height: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1399,31 +1409,42 @@ class _PremiumStatCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Text(
-            label.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
-              color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF9CA3AF),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.7,
-              height: 1.05,
-              color: valueColor,
+          HomeUi.decorativeCardSparkline(dark: isDark, seed: label),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                    color: isDark
+                        ? const Color(0xFF8B8FA3)
+                        : const Color(0xFF9CA3AF),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.7,
+                    height: 1.05,
+                    color: valueColor,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1663,7 +1684,7 @@ class _KeyMetricColumn extends StatelessWidget {
               isDark: isDark,
               label: group.rows[i].$1,
               value: group.rows[i].$2,
-              striped: i.isOdd,
+              showDivider: i < group.rows.length - 1,
             ),
         ],
       ),
@@ -1676,23 +1697,26 @@ class _MetricKvRow extends StatelessWidget {
     required this.isDark,
     required this.label,
     required this.value,
-    required this.striped,
+    required this.showDivider,
   });
 
   final bool isDark;
   final String label;
   final String value;
-  final bool striped;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
     final signed = _metricSignedTone(label, value);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
-        color: striped ? HomeUi.tableRowOdd(isDark) : Colors.transparent,
-        borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+        border: showDivider
+            ? Border(
+                bottom: BorderSide(color: HomeUi.tableBorder(isDark)),
+              )
+            : null,
       ),
       child: Row(
         children: [
@@ -2014,5 +2038,41 @@ class _AddResearchNoteDialogState extends State<_AddResearchNoteDialog> {
         ),
       ),
     );
+  }
+}
+
+/// Adds [gap] below [child] only when the child lays out with non-zero height.
+/// Prevents empty/shrink sections from stacking multiple spacers.
+class _GapBelowIfVisible extends SingleChildRenderObjectWidget {
+  const _GapBelowIfVisible({
+    required Widget child,
+  }) : super(child: child);
+
+  static const double _gap = 16;
+
+  @override
+  _RenderGapBelowIfVisible createRenderObject(BuildContext context) {
+    return _RenderGapBelowIfVisible(gap: _gap);
+  }
+}
+
+class _RenderGapBelowIfVisible extends RenderProxyBox {
+  _RenderGapBelowIfVisible({required this.gap});
+
+  final double gap;
+
+  @override
+  void performLayout() {
+    if (child == null) {
+      size = constraints.smallest;
+      return;
+    }
+    child!.layout(constraints, parentUsesSize: true);
+    final Size childSize = child!.size;
+    if (childSize.height <= 0) {
+      size = childSize;
+    } else {
+      size = Size(childSize.width, childSize.height + gap);
+    }
   }
 }

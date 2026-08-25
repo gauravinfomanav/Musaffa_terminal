@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_quarterly_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class QuarterlyRatiosDataSource extends DataGridSource {
@@ -52,15 +53,21 @@ class QuarterlyRatiosDataSource extends DataGridSource {
   DataGridRowAdapter buildRow(DataGridRow row) {
     // Check if this is a header row
     bool isHeader = row.getCells()[0].value.toString().startsWith('**');
-    
+    final String metric = row.getCells()[0].value.toString();
+    final int rowIndex = tableData.indexWhere((m) => m.metric == metric);
+
     return DataGridRowAdapter(
-      color: isHeader ? Color(0xFFEEEEEE) : Colors.white, // Gray background for headers
+      color: isHeader
+          ? HomeUi.tableHeaderBg(false)
+          : rowIndex.isEven
+              ? HomeUi.tableRowEven(false)
+              : HomeUi.tableRowOdd(false),
       cells: [
         Container(
           padding: const EdgeInsets.all(8.0),
           alignment: Alignment.centerLeft,
           child: Text(
-            row.getCells()[0].value.toString(),
+            HomeUi.truncateTableText(row.getCells()[0].value.toString()),
             style: TextStyle(
               fontSize: 14,
               fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
@@ -75,7 +82,7 @@ class QuarterlyRatiosDataSource extends DataGridSource {
             padding: const EdgeInsets.all(8.0),
             alignment: Alignment.center,
             child: Text(
-              cell.value.toString(),
+              HomeUi.truncateTableText(cell.value.toString()),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,

@@ -884,8 +884,12 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                       for (int col = 0; col < columns.length; col++) ...[
                         if (col > 0)
                           Container(
-                            width: 1,
-                            color: HomeUi.borderLight(isDark),
+                            width: 40,
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: 1,
+                              color: HomeUi.borderLight(isDark),
+                            ),
                           ),
                         Expanded(
                           child: _metricsColumn(
@@ -939,7 +943,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
               isDark,
               label: rows[i].$1,
               value: rows[i].$2,
-              striped: i.isOdd,
+              showDivider: i < rows.length - 1,
             ),
         ],
       ),
@@ -950,7 +954,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
     bool isDark, {
     required String label,
     required String value,
-    required bool striped,
+    required bool showDivider,
   }) {
     final bool? signed = () {
       final String lower = label.toLowerCase();
@@ -965,10 +969,13 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
     }();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
-        color: striped ? HomeUi.tableRowOdd(isDark) : Colors.transparent,
-        borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+        border: showDivider
+            ? Border(
+                bottom: BorderSide(color: HomeUi.tableBorder(isDark)),
+              )
+            : null,
       ),
       child: Row(
         children: [
@@ -1080,7 +1087,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                 showOuterShadow: true,
                 showFixedColumn: true,
                 considerPadding: false,
-                columnSpacing: 8,
+                columnSpacing: 40,
                 fixedColumnWidth: 110,
                 enableLivePrices: false,
                 zebraStripes: true,
@@ -1492,7 +1499,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                   showOuterShadow: true,
                   showFixedColumn: true,
                   considerPadding: false,
-                  columnSpacing: 8,
+                  columnSpacing: 40,
                   fixedColumnWidth: 140,
                   enableLivePrices: false,
                   zebraStripes: true,
@@ -1551,7 +1558,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                   showOuterShadow: true,
                   showFixedColumn: true,
                   considerPadding: false,
-                  columnSpacing: 8,
+                  columnSpacing: 40,
                   fixedColumnWidth: 140,
                   enableLivePrices: false,
                   zebraStripes: true,

@@ -10,6 +10,7 @@ import 'package:musaffa_terminal/services/global_search_service.dart';
 import 'package:musaffa_terminal/services/feature_access_service.dart';
 import 'package:musaffa_terminal/services/table_column_preferences_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/global_keyboard_shortcuts.dart';
 import 'services/websocket_service.dart';
 import 'services/live_price_service.dart';
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
 }
 
 ThemeData _terminalTheme(Brightness brightness) {
+  final bool isDark = brightness == Brightness.dark;
   return ThemeData(
     fontFamily: Constants.FONT_DEFAULT_NEW,
     fontFamilyFallback: Constants.FONT_FALLBACK,
@@ -57,6 +59,16 @@ ThemeData _terminalTheme(Brightness brightness) {
     hoverColor: Colors.transparent,
     focusColor: Colors.transparent,
     visualDensity: VisualDensity.compact,
+    tooltipTheme: TooltipThemeData(
+      waitDuration: const Duration(milliseconds: 350),
+      showDuration: const Duration(seconds: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      verticalOffset: 12,
+      preferBelow: true,
+      decoration: HomeUi.premiumTooltipDecoration(isDark),
+      textStyle: HomeUi.premiumTooltipTextStyle(isDark),
+    ),
   );
 }
 

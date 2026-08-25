@@ -427,7 +427,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
           showFixedColumn: true,
           considerPadding: false,
           showOuterShadow: false,
-          columnSpacing: 24,
+          columnSpacing: 40,
           horizontalMargin: 16,
           fixedColumnWidth: fixedColumnWidth,
           headerHeight: 44,

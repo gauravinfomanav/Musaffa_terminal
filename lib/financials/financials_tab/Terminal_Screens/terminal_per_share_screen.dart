@@ -219,7 +219,7 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       compactPinnedLayout: true,
       autoPinStatColumns: false,
       showPinnedSectionDividers: true,
-      columnSpacing: 22,
+      columnSpacing: 40,
       onRowDoubleClick: (row) {
         final metricName = row.data['metric']?.toString() ?? '';
         if (metricName.isNotEmpty) {

@@ -112,6 +112,8 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
   final ScrollController _scrollController = ScrollController();
   bool _increaseShadow = false;
   Map<String, bool> _expandedRows = {};
+  String? _hoveredRowId;
+  int _rowHoverGeneration = 0;
 
   @override
   void initState() {
@@ -128,6 +130,36 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onRowHoverEnter(String rowId) {
+    _rowHoverGeneration++;
+    if (_hoveredRowId == rowId) return;
+    setState(() => _hoveredRowId = rowId);
+  }
+
+  void _onRowHoverExit(String rowId) {
+    final int generation = _rowHoverGeneration;
+    Future<void>.delayed(const Duration(milliseconds: 20), () {
+      if (!mounted) return;
+      if (_rowHoverGeneration != generation) return;
+      if (_hoveredRowId != rowId) return;
+      setState(() => _hoveredRowId = null);
+    });
+  }
+
+  Widget _wrapRowHover(String rowId, Widget child) {
+    return MouseRegion(
+      onEnter: (_) => _onRowHoverEnter(rowId),
+      onExit: (_) => _onRowHoverExit(rowId),
+      child: child,
+    );
+  }
+
+  Color _rowColor(String rowId, bool isDark) {
+    return _hoveredRowId == rowId
+        ? HomeUi.tableRowHover(isDark)
+        : Colors.transparent;
   }
 
   void _initializeExpandedState() {
@@ -221,8 +253,12 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       child: Theme(
         data: Theme.of(context).copyWith(
           dataTableTheme: DataTableThemeData(
-            dataRowColor: WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
-            headingRowColor: WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
+            dataRowColor: WidgetStateProperty.all(Colors.transparent),
+            headingRowColor: WidgetStateProperty.all(
+              HomeUi.tableHeaderBg(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+            ),
           ),
         ),
         child: DataTable(
@@ -242,15 +278,21 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
           ),
         ],
         rows: flattenedRows.map((row) {
+          final bool isDark =
+              Theme.of(context).brightness == Brightness.dark;
           return DataRow(
+            color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
             cells: [
               DataCell(
-                Padding(
-                  padding: EdgeInsets.only(
-                    right: 30.0,
-                    left: row.level * widget.indentSize,
+                _wrapRowHover(
+                  row.id,
+                  Padding(
+                    padding: EdgeInsets.only(
+                      right: 30.0,
+                      left: row.level * widget.indentSize,
+                    ),
+                    child: _buildNameCell(row),
                   ),
-                  child: _buildNameCell(row),
                 ),
                 onTap: row.isExpandable ? null : () => widget.onRowSelect?.call(row),
               ),
@@ -262,8 +304,10 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
           bottom: BorderSide.none,
           verticalInside: BorderSide.none,
           horizontalInside: BorderSide(
-            color: Theme.of(context).primaryColorLight,
-            width: 0.8,
+            color: HomeUi.tableBorder(
+              Theme.of(context).brightness == Brightness.dark,
+            ),
+            width: 0.5,
           ),
         ),
         ),
@@ -322,20 +366,20 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (title.isNotEmpty)
-          Tooltip(
+          HomeUi.premiumTooltip(
             message: title,
             child: Text(
-              title,
+              HomeUi.truncateTableText(title),
               style: titleStyle,
               maxLines: row.showAsId ? 2 : 1,
               overflow: HomeUi.tableCellOverflow(title),
             ),
           ),
         if (subtitle != null && subtitle.isNotEmpty)
-          Tooltip(
+          HomeUi.premiumTooltip(
             message: subtitle,
             child: Text(
-              subtitle,
+              HomeUi.truncateTableText(subtitle),
               style: subtitleStyle,
               maxLines: 1,
               overflow: HomeUi.tableCellOverflow(subtitle),
@@ -361,6 +405,11 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
           ),
           child: DataTable(
             showCheckboxColumn: false,
+            headingRowColor: WidgetStateProperty.all(
+              HomeUi.tableHeaderBg(
+                Theme.of(context).brightness == Brightness.dark,
+              ),
+            ),
             headingRowHeight: widget.headerHeight,
             horizontalMargin: 0,
             dataRowMinHeight: widget.rowHeight,
@@ -377,11 +426,14 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
               );
             }).toList(),
             rows: flattenedRows.map((row) {
+              final bool isDark =
+                  Theme.of(context).brightness == Brightness.dark;
               return DataRow(
+                color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
                 cells: widget.columns.map((column) {
                   return DataCell(
-                    _buildCellContent(row, column),
+                    _wrapRowHover(row.id, _buildCellContent(row, column)),
                   );
                 }).toList(),
               );
@@ -391,8 +443,10 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
               bottom: BorderSide.none,
               verticalInside: BorderSide.none,
               horizontalInside: BorderSide(
-                color: Theme.of(context).primaryColorLight,
-                width: 0.8,
+                color: HomeUi.tableBorder(
+                  Theme.of(context).brightness == Brightness.dark,
+                ),
+                width: 0.5,
               ),
             ),
           ),
@@ -417,9 +471,10 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       if (column.isNumeric) {
         formattedValue = value.abs().toStringAsFixed(2);
       }
+      final display = HomeUi.truncateTableText(formattedValue);
       
       return Text(
-        formattedValue,
+        display,
         style: DashboardTextStyles.dataCell,
         textAlign: column.alignment,
         maxLines: 1,
@@ -435,9 +490,10 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
       } else if (value.startsWith('-')) {
         textColor = Colors.red;
       }
+      final display = HomeUi.truncateTableText(value);
       
       return Text(
-        value,
+        display,
         style: DashboardTextStyles.dataCell.copyWith(color: textColor),
         textAlign: column.alignment,
         maxLines: 1,

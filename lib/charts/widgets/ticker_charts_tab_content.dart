@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
+import 'package:musaffa_terminal/Components/sliding_pill_tabs.dart';
 import 'package:musaffa_terminal/charts/controllers/ticker_quarterly_charts_controller.dart';
 import 'package:musaffa_terminal/charts/models/financial_statement_type.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
@@ -122,8 +123,8 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Expanded(child: _buildStatementTabs(isDark)),
-        const SizedBox(width: 8),
+        _buildStatementTabs(isDark),
+        const Spacer(),
         _buildPriceToggle(isDark),
       ],
     );
@@ -136,12 +137,23 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
         .indexOf(_controller.selectedStatement.value)
         .clamp(0, labels.length - 1);
 
-    return HomeUi.segmentedControl(
-      dark: isDark,
-      options: labels,
+    return SlidingPillTabs(
+      style: SlidingPillStyle.underline,
+      itemCount: labels.length,
       selectedIndex: selectedIndex,
-      onChanged: (index) =>
+      isDarkMode: isDark,
+      onSelect: (int index) =>
           _controller.selectStatement(FinancialStatementType.values[index]),
+      itemBuilder: (BuildContext context, int index, bool selected) {
+        return Text(
+          labels[index],
+          style: HomeUi.control(isDark, active: selected).copyWith(
+            fontSize: 12.5,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            color: selected ? const Color(0xFF000000) : HomeUi.muted(isDark),
+          ),
+        );
+      },
     );
   }
 

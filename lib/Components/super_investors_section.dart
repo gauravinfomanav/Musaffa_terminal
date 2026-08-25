@@ -177,7 +177,7 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
               showFixedColumn: true,
               tickerHeaderLabel: 'SUPER INVESTOR',
               considerPadding: false,
-              columnSpacing: 16,
+              columnSpacing: 40,
               fixedColumnWidth: nameColumnWidth,
               enableLivePrices: false,
               zebraStripes: true,

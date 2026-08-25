@@ -1063,7 +1063,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       rows: rows,
       showFixedColumn: true,
       considerPadding: false,
-      columnSpacing: 16,
+      columnSpacing: 40,
       horizontalMargin: 12,
       fixedColumnWidth: 220,
       enableDragging: false,
@@ -1123,7 +1123,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: HomeUi.elevatedBg(isDarkMode),
+              color: isDarkMode ? HomeUi.cardBg(true) : Colors.white,
               borderRadius: BorderRadius.circular(HomeUi.radiusPill),
               border: Border.all(color: HomeUi.borderLight(isDarkMode)),
             ),
