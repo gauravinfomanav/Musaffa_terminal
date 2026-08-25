@@ -6,6 +6,7 @@ import '../controllers/per_share_data_controller.dart';
 import '../data sources/financial_data_source.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 
 class FinancialTable extends StatelessWidget {
   final String symbol;
@@ -90,7 +91,7 @@ class FinancialTable extends StatelessWidget {
       allYears.addAll(financialData.epsData!.keys);
     }
 
-    return allYears.toList()..sort();
+    return FinancialTableYears.descendingForDisplay(allYears);
   }
 
   List<GridColumn> _buildColumns(List<String> years) {

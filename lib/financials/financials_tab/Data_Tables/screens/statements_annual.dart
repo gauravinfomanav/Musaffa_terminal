@@ -6,6 +6,7 @@ import '../controllers/statements_chart_annual.dart' as annual;
 import '../controllers/statements_chart_quarterly.dart' as quarterly;
 import '../data sources/statements_chart_datasource.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 
 class FinancialStatementsTable extends StatefulWidget {
   final String symbol;
@@ -57,9 +58,12 @@ class _FinancialStatementsTableState extends State<FinancialStatementsTable> {
         )
       ).toList();
 
+      final List<String> displayYears =
+          FinancialTableYears.descendingForDisplay(controller.years);
+
       final financialDataSource = FinancialDataSource(
         data: convertedData,
-        years: controller.years.toList(),
+        years: displayYears,
       );
 
       final screenHeight = MediaQuery.of(context).size.height;
@@ -95,7 +99,7 @@ class _FinancialStatementsTableState extends State<FinancialStatementsTable> {
             ),
             child: SfDataGrid(
               source: financialDataSource,
-              columns: _buildColumns(controller.years, widget.title),
+              columns: _buildColumns(displayYears, widget.title),
               columnWidthMode: ColumnWidthMode.auto,
               gridLinesVisibility: GridLinesVisibility.horizontal,
               headerGridLinesVisibility: GridLinesVisibility.none,

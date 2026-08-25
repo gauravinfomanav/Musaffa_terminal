@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Controllers/financial_fundamentals_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 
 class FinancialFundamentalsWidget extends StatefulWidget {
@@ -102,7 +103,28 @@ class _FinancialFundamentalsWidgetState extends State<FinancialFundamentalsWidge
   }
 
   Widget _buildComprehensiveTable(Map<String, dynamic> fundamentals, bool isDarkMode) {
-    final years = ['2020', '2021', '2022', '2023', '2024'];
+    // Prefer dynamic years from payload when present; fall back to a sample set.
+    final Set<String> discovered = <String>{};
+    void collectYears(dynamic value) {
+      if (value is Map) {
+        for (final Object? key in value.keys) {
+          final String k = key.toString();
+          if (RegExp(r'^\d{4}$').hasMatch(k)) {
+            discovered.add(k);
+          }
+        }
+      }
+    }
+
+    for (final dynamic value in fundamentals.values) {
+      collectYears(value);
+    }
+
+    final List<String> years = discovered.isNotEmpty
+        ? FinancialTableYears.descendingForDisplay(discovered)
+        : FinancialTableYears.descendingForDisplay(
+            const ['2020', '2021', '2022', '2023', '2024'],
+          );
     
     return Container(
       width: double.infinity,

@@ -11,6 +11,7 @@ import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 
 class TerminalStatementsScreen extends StatefulWidget {
   final String symbol;
@@ -426,7 +427,11 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       ),
     ];
 
-    columns.addAll(periods.map((period) {
+    // Newest → oldest for table headers only; transforms/YoY keep ASC [periods].
+    final List<String> displayPeriods =
+        FinancialTableYears.descendingForDisplay(periods);
+
+    columns.addAll(displayPeriods.map((period) {
       return DynamicTableColumn(
         key: period,
         label: period,

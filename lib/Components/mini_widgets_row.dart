@@ -236,43 +236,19 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
     </head>
     <body>
         <div class="widgets-container">
-            <!-- US100 Widget -->
+            <!-- 1. S&P 500 -->
             <div class="mini-widget">
                 <div class="mini-widget-wrapper">
                 <div class="tradingview-widget-container">
                     <div class="tradingview-widget-container__widget"></div>
                     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    ${tvConfig("CAPITALCOM:US100")}
+                    ${tvConfig("FOREXCOM:SPX500")}
                     </script>
                 </div>
                 </div>
             </div>
             
-            <!-- US500 Widget -->
-            <div class="mini-widget">
-                <div class="mini-widget-wrapper">
-                <div class="tradingview-widget-container">
-                    <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    ${tvConfig("CAPITALCOM:US500")}
-                    </script>
-                </div>
-                </div>
-            </div>
-            
-            <!-- NASDAQ Widget -->
-            <div class="mini-widget">
-                <div class="mini-widget-wrapper">
-                <div class="tradingview-widget-container">
-                    <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-                    ${tvConfig("PEPPERSTONE:XAUUSD")}
-                    </script>
-                </div>
-                </div>
-            </div>
-            
-            <!-- USTEC Widget -->
+            <!-- 2. Nasdaq / US Tech 100 -->
             <div class="mini-widget">
                 <div class="mini-widget-wrapper">
                 <div class="tradingview-widget-container">
@@ -283,8 +259,32 @@ class _MiniWidgetsRowState extends State<MiniWidgetsRow>
                 </div>
                 </div>
             </div>
+            
+            <!-- 3. Gold -->
+            <div class="mini-widget">
+                <div class="mini-widget-wrapper">
+                <div class="tradingview-widget-container">
+                    <div class="tradingview-widget-container__widget"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+                    ${tvConfig("PEPPERSTONE:XAUUSD")}
+                    </script>
+                </div>
+                </div>
+            </div>
 
-            <!-- Bitcoin Widget -->
+            <!-- 4. WTI Crude Oil -->
+            <div class="mini-widget">
+                <div class="mini-widget-wrapper">
+                <div class="tradingview-widget-container">
+                    <div class="tradingview-widget-container__widget"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+                    ${tvConfig("TVC:USOIL")}
+                    </script>
+                </div>
+                </div>
+            </div>
+
+            <!-- 5. Bitcoin -->
             <div class="mini-widget">
                 <div class="mini-widget-wrapper">
                 <div class="tradingview-widget-container">

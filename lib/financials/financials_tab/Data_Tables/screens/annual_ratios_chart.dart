@@ -5,6 +5,7 @@ import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controlle
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/data%20sources/ratios_annual_datasource.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
@@ -66,7 +67,8 @@ class _AnnualRatiosState extends State<AnnualRatios> {
 
       final data = controller.getFinancialDataForYears();
       final dataSource = FinancialRatiosDataSource(ratiosData: data);
-      final years = controller.years;
+      final years =
+          FinancialTableYears.descendingForDisplay(controller.years);
 
       // Calculate dynamic row height based on screen height
       final screenHeight = MediaQuery.of(context).size.height;

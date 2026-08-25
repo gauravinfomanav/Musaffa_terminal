@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class RatioDefinition {
@@ -75,8 +76,10 @@ class FinancialRatiosDataSource extends DataGridSource {
         ),
       ];
 
-      // Add cells for each year, using the order from the first metric's data
-      final years = ratiosData.values.firstOrNull?.keys.toList() ?? [];
+      // Add cells for each year, newest → oldest to match table columns.
+      final years = FinancialTableYears.descendingForDisplay(
+        ratiosData.values.firstOrNull?.keys ?? const <String>[],
+      );
       years.forEach((year) {
         final value = ratiosData[metricKey]?[year];
         cells.add(
