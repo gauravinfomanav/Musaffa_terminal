@@ -17,6 +17,7 @@ import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_history_formatters.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_charts.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_detail_search.dart';
+import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_ratio_bar.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_report_period_selector.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -1850,173 +1851,13 @@ class _ShariahComplianceDetailsScreenState
     required String numeratorValue,
     required String denominatorValue,
   }) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color statusColor =
-        pass ? ComplianceFormatters.halalColor : ComplianceFormatters.notHalalColor;
-    final double clampedValue = value.clamp(0.0, 100.0);
-    final double thresholdFactor = (threshold / 100).clamp(0.0, 1.0);
-    final double fillFactor = (clampedValue / 100).clamp(0.0, 1.0);
-    final double thresholdX = -1.0 + (2.0 * thresholdFactor);
-    final String valueText = '${value.toStringAsFixed(2)}%';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: isDark ? 0.12 : 0.08),
-            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-            border: Border.all(color: statusColor.withValues(alpha: 0.18)),
-          ),
-          child: Row(
-            children: [
-              Text(
-                'Current ratio',
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                  color: HomeUi.subtitle(isDark).color,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                valueText,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: statusColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          height: 8,
-          child: Stack(
-            clipBehavior: Clip.none,
-            fit: StackFit.expand,
-            children: [
-              Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF24292F) : const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: fillFactor,
-                heightFactor: 1,
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment(thresholdX, 0),
-                child: Container(
-                  width: 2,
-                  height: 14,
-                  color: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF374151),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        SizedBox(
-          height: 16,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '0%',
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment(thresholdX, 0),
-                child: Text(
-                  '${threshold.toInt()}% limit',
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF374151),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '100%',
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 12,
-                    color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: HomeUi.cardBg(isDark),
-            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-            border: Border.all(color: HomeUi.borderLight(isDark)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$numeratorLabel ÷ Trailing 36M Avg Market Cap',
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                  color: HomeUi.subtitle(isDark).color,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                '$numeratorValue ÷ $denominatorValue = $valueText',
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          pass
-              ? 'Pass — ratio is below the ${threshold.toInt()}% Shariah screening limit.'
-              : 'Fail — ratio exceeds the ${threshold.toInt()}% Shariah screening limit.',
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: pass ? ComplianceFormatters.halalColor : ComplianceFormatters.notHalalColor,
-          ),
-        ),
-      ],
+    return ComplianceRatioBar(
+      value: value,
+      threshold: threshold,
+      pass: pass,
+      numeratorLabel: numeratorLabel,
+      numeratorValue: numeratorValue,
+      denominatorValue: denominatorValue,
     );
   }
 
