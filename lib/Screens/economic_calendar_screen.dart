@@ -28,8 +28,8 @@ class _EconomicCalendarScreenState extends State<EconomicCalendarScreen> {
   final GlobalWatchlistService _watchlistService =
       Get.find<GlobalWatchlistService>();
 
-  /// Flush with TradingView table left edge — keep header tight to the card.
-  static const double _cardContentInset = 8;
+  /// Match TradingView toolbar left inset (globe / country filter row).
+  static const double _cardContentInset = 16;
 
   WebViewController? _controller;
   WindowsWebViewHandle? _windowsHandle;
