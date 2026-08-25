@@ -21,7 +21,7 @@ bool _forwardWheelToParent(BuildContext context, dynamic message) {
   if (dy == null || dy == 0) return false;
 
   final controller = PrimaryScrollController.maybeOf(context);
-  if (controller == null || !controller.hasClients) return true;
+  if (controller == null || !controller.hasClients) return false;
 
   final position = controller.position;
   final next = (position.pixels + dy).clamp(
@@ -48,14 +48,16 @@ class WindowsWebViewHandle {
 class WindowsHtmlWebView extends StatefulWidget {
   const WindowsHtmlWebView({
     super.key,
-    required this.html,
+    this.html,
+    this.url,
     this.onCreated,
     this.onPageFinished,
     this.onJsMessage,
     this.backgroundColor,
-  });
+  }) : assert(html != null || url != null, 'html or url is required');
 
-  final String html;
+  final String? html;
+  final String? url;
   final void Function(WindowsWebViewHandle handle)? onCreated;
   final VoidCallback? onPageFinished;
   final void Function(dynamic message)? onJsMessage;
@@ -129,7 +131,11 @@ class _WindowsHtmlWebViewState extends State<WindowsHtmlWebView> {
       });
       _urlSub = _controller.url.listen(_blockExternalSiteNavigation);
 
-      await _controller.loadStringContent(widget.html);
+      if (widget.url != null) {
+        await _controller.loadUrl(widget.url!);
+      } else {
+        await _controller.loadStringContent(widget.html!);
+      }
       if (!mounted) return;
       setState(() => _ready = true);
     } catch (e) {
@@ -143,6 +149,7 @@ class _WindowsHtmlWebViewState extends State<WindowsHtmlWebView> {
     if (lower.startsWith('data:') ||
         lower == 'about:blank' ||
         lower.contains('s3.tradingview.com') ||
+        lower.contains('s.tradingview.com/embed-widget') ||
         lower.contains('tradingview-widget.com')) {
       return;
     }
@@ -156,8 +163,13 @@ class _WindowsHtmlWebViewState extends State<WindowsHtmlWebView> {
   @override
   void didUpdateWidget(WindowsHtmlWebView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.html != widget.html && _ready) {
-      _controller.loadStringContent(widget.html);
+    if (!_ready) return;
+    if (widget.url != null && oldWidget.url != widget.url) {
+      _controller.loadUrl(widget.url!);
+      return;
+    }
+    if (widget.html != null && oldWidget.html != widget.html) {
+      _controller.loadStringContent(widget.html!);
     }
   }
 
@@ -255,16 +267,18 @@ class _EdgeSeamGuard extends StatelessWidget {
 class AdaptiveHtmlWebView extends StatelessWidget {
   const AdaptiveHtmlWebView({
     super.key,
-    required this.html,
+    this.html,
+    this.url,
     this.flutterController,
     this.onWindowsCreated,
     this.onWindowsPageFinished,
     this.onWindowsJsMessage,
     this.backgroundColor,
     this.gestureRecognizers,
-  });
+  }) : assert(html != null || url != null, 'html or url is required');
 
-  final String html;
+  final String? html;
+  final String? url;
   final WebViewController? flutterController;
   final void Function(WindowsWebViewHandle handle)? onWindowsCreated;
   final VoidCallback? onWindowsPageFinished;
@@ -290,6 +304,7 @@ class AdaptiveHtmlWebView extends StatelessWidget {
     if (PlatformCapabilities.isWindows) {
       return WindowsHtmlWebView(
         html: html,
+        url: url,
         onCreated: onWindowsCreated,
         onPageFinished: onWindowsPageFinished,
         onJsMessage: onWindowsJsMessage,

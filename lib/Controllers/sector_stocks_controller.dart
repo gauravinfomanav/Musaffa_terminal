@@ -393,6 +393,14 @@ class SectorStocksController extends GetxController {
     }
   }
 
+  /// Change rows per page and jump back to the first page.
+  Future<void> setPageSize(int newPageSize) async {
+    if (newPageSize < 1 || newPageSize == _pageSize.value) return;
+    _pageSize.value = newPageSize;
+    _currentPage.value = 0;
+    await _updatePaginatedStocks();
+  }
+
   /// Clear the current stocks
   void clearStocks() {
     _allSectorStocks.clear();
