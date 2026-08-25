@@ -12,6 +12,8 @@ import 'package:musaffa_terminal/utils/utils.dart';
 class DynamicTableColumn {
   final String key;
   final String label;
+  /// Full header name for tooltips when [label] is abbreviated.
+  final String? tooltipLabel;
   final Widget? headerWidget;
   final double? width;
   final bool sortable;
@@ -27,6 +29,7 @@ class DynamicTableColumn {
   const DynamicTableColumn({
     required this.key,
     required this.label,
+    this.tooltipLabel,
     this.headerWidget,
     this.width,
     this.sortable = true,
@@ -39,6 +42,8 @@ class DynamicTableColumn {
     this.align = TextAlign.left,
     this.editable = false,
   });
+
+  String get fullLabel => (tooltipLabel ?? label).trim();
 }
 
 /// Row data model
@@ -173,6 +178,12 @@ class DynamicTableFromWeb extends StatefulWidget {
   final bool autoPinStatColumns;
   final bool showPinnedSectionDividers;
   final bool showHeaderTooltip;
+  /// When true, visible columns expand to fill unused horizontal space.
+  final bool enableColumnStretch;
+  /// Optional override for header/cell horizontal insets inside each column.
+  final EdgeInsets? columnCellPadding;
+  /// Optional override for the title/toolbar row insets.
+  final EdgeInsets? toolbarPadding;
 
   const DynamicTableFromWeb({
     Key? key,
@@ -248,6 +259,9 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.autoPinStatColumns = true,
     this.showPinnedSectionDividers = true,
     this.showHeaderTooltip = true,
+    this.enableColumnStretch = true,
+    this.columnCellPadding,
+    this.toolbarPadding,
   }) : super(key: key);
 
   @override
@@ -430,7 +444,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   }
 
   EdgeInsets _columnInsets() {
-    return EdgeInsets.only(left: _headerLeading, right: _headerTrailing);
+    return widget.columnCellPadding ??
+        EdgeInsets.only(left: _headerLeading, right: _headerTrailing);
   }
 
   double get _effectiveHeadingRowHeight =>
@@ -620,12 +635,16 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     const double maxShortContentWidth = 300;
 
     for (final col in columns) {
-      final headerWidth =
-          _measureTextWidth(col.label.toUpperCase(), headerStyle);
+      final headerWidth = _measureTextWidth(
+        HomeUi.shortTableHeader(
+          label: col.fullLabel.toUpperCase(),
+          key: col.key,
+        ).toUpperCase(),
+        headerStyle,
+      );
+      // Content/header driven — do not floor at col.width or every numeric
+      // column inherits the same large preferred width and looks identical.
       var minWidth = headerWidth + 8 + _headerTrailing + 4;
-      if (col.width != null && col.width! > minWidth) {
-        minWidth = col.width!;
-      }
 
       for (final row in widget.rows) {
         final value = row.data[col.key];
@@ -666,7 +685,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     bool includeTicker = false,
   }) {
     _stretchedColumnWidths = <String, double>{};
-    if (columns.isEmpty) return;
+    if (!widget.enableColumnStretch || columns.isEmpty) return;
 
     // Account for ticker column, horizontal margins, and DataTable spacing.
     final double spacing = widget.columnSpacing ?? 40;
@@ -681,9 +700,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final baseWidths = <String, double>{};
     double totalBase = 0;
     for (final col in columns) {
-      final minWidth = _getNaturalMinWidth(col);
-      final w = _columnWidths[col.key] ?? col.width ?? minWidth;
-      final base = w < minWidth ? minWidth : w;
+      // Stretch from content/header natural width so short cols (Beta, P/E)
+      // stay narrower than text cols (Sector) instead of all matching col.width.
+      final base = _getNaturalMinWidth(col);
       baseWidths[col.key] = base;
       totalBase += base;
     }
@@ -932,8 +951,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   }
 
   Widget _maybeHeaderTooltip(String message, Widget child) {
-    if (!widget.showHeaderTooltip) return child;
-    return HomeUi.premiumTooltip(message: message, child: child);
+    // Header label owns premium tooltips (short name → full name on hover).
+    return child;
   }
 
   Widget _headerLabel({
@@ -941,8 +960,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required TextStyle headerStyle,
   }) {
     final sorted = _sortState?.key == col.key;
-    final fullLabel = col.label.toUpperCase();
-    final displayLabel = HomeUi.truncateTableText(fullLabel);
+    final fullLabel = col.fullLabel.toUpperCase();
+    final displayLabel = HomeUi.shortTableHeader(
+      label: fullLabel,
+      key: col.key,
+    ).toUpperCase();
     Widget label = col.headerWidget ??
         Text(
           displayLabel,
@@ -950,25 +972,33 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           textAlign: col.align,
           maxLines: 1,
           softWrap: false,
-          overflow: HomeUi.tableCellOverflow(col.label),
+          overflow: TextOverflow.ellipsis,
         );
-    if (col.headerWidget == null && displayLabel != fullLabel) {
+
+    if (sorted && widget.showSortIndicators) {
+      final icon = Icon(
+        _sortState!.direction == 'asc'
+            ? Icons.arrow_upward_rounded
+            : Icons.arrow_downward_rounded,
+        size: 11,
+        color: headerStyle.color,
+      );
+      label = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: _isEndAlign(col.align)
+            ? [icon, const SizedBox(width: 4), label]
+            : [label, const SizedBox(width: 4), icon],
+      );
+    }
+
+    // Short / sorted headers: hover shows the full original name.
+    if (col.headerWidget == null &&
+        (sorted ||
+            widget.showHeaderTooltip ||
+            displayLabel != fullLabel)) {
       label = HomeUi.premiumTooltip(message: fullLabel, child: label);
     }
-    if (!sorted) return label;
-    final icon = Icon(
-      _sortState!.direction == 'asc'
-          ? Icons.arrow_upward_rounded
-          : Icons.arrow_downward_rounded,
-      size: 11,
-      color: headerStyle.color,
-    );
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: _isEndAlign(col.align)
-          ? [icon, const SizedBox(width: 4), label]
-          : [label, const SizedBox(width: 4), icon],
-    );
+    return label;
   }
 
   DataColumn _buildHeaderColumn(
@@ -983,11 +1013,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
 
     return DataColumn(
-      tooltip: widget.showHeaderTooltip ? col.label : null,
       numeric: _isEndAlign(col.align),
       headingRowAlignment: _headingAlignmentFor(col.align),
       label: _maybeHeaderTooltip(
-        col.label,
+        col.fullLabel.toUpperCase(),
         DragTarget<String>(
           onWillAcceptWithDetails: (details) {
             if (!widget.enableColumnReorder) return false;
@@ -1704,7 +1733,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             widget.enableColumnVisibilityToggle ||
             widget.toolbar != null)
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            padding: widget.toolbarPadding ??
+                const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [

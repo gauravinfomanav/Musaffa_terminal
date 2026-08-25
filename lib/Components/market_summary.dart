@@ -210,8 +210,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       final bool isLargeScreen = screenWidth >= 1600;
                       final dataRowMaxHeight = isLargeScreen ? 44.0 : 42.0;
                       const headingRowHeight = 40.0;
-                      const columnSpacing = 40.0;
-                      const horizontalMargin = 10.0;
+                      const columnSpacing = 16.0;
+                      // Match card title inset (Padding 16) so SECTOR aligns with title.
+                      const horizontalMargin = 16.0;
 
                       // Sector is pinned left; periods live in a second DataTable.
                       // Each section applies its own horizontalMargin.
@@ -224,33 +225,27 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                         availableWidth - leftChrome - centerChrome - pinDivider,
                       );
 
-                      // Compact % columns; scroll only when viewport is too narrow.
-                      // Sector wide enough for ~25 chars; period wide enough for +XXX.X%.
-                      const double periodIdeal = 76.0;
-                      const double periodMin = 68.0;
-                      const double periodMax = 92.0;
+                      // Sector stays readable; period cols stretch to fill card width.
+                      const double periodIdeal = 64.0;
+                      const double periodMin = 56.0;
                       const double sectorMin = 200.0;
                       const double sectorIdeal = 220.0;
 
                       late final double periodColumnWidth;
                       late final double fixedColumnWidth;
-                      final double periodsIdealTotal = periodIdeal * periodCount;
-                      if (usable >= sectorIdeal + periodsIdealTotal) {
-                        final double leftover =
-                            usable - sectorIdeal - periodsIdealTotal;
-                        periodColumnWidth = (periodIdeal +
-                                leftover / periodCount)
-                            .clamp(periodIdeal, periodMax);
-                        fixedColumnWidth =
-                            usable - (periodColumnWidth * periodCount);
+                      if (usable >= sectorIdeal + periodIdeal * periodCount) {
+                        fixedColumnWidth = sectorIdeal;
+                        periodColumnWidth = periodIdeal;
                       } else if (usable >=
                           sectorMin + periodMin * periodCount) {
                         fixedColumnWidth = sectorMin;
-                        periodColumnWidth =
-                            (usable - fixedColumnWidth) / periodCount;
-                      } else {
-                        fixedColumnWidth = sectorMin;
                         periodColumnWidth = periodMin;
+                      } else {
+                        periodColumnWidth = periodMin;
+                        fixedColumnWidth = math.max(
+                          180.0,
+                          usable - periodMin * periodCount,
+                        );
                       }
 
                       final dynamicColumns = _mapToDynamicColumns(
@@ -287,15 +282,15 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           dataRowMaxHeight: dataRowMaxHeight,
                           horizontalMargin: horizontalMargin,
                           columnSpacing: columnSpacing,
+                          // Align cell text with card title (no extra 8px inset).
+                          columnCellPadding:
+                              const EdgeInsets.only(left: 0, right: 4),
                           dividerThickness: 0.5,
                           showBottomBorder: false,
                           tableBorder: TableBorder(
                             bottom: BorderSide.none,
                             top: BorderSide.none,
-                            verticalInside: BorderSide(
-                              color: tableBorderColor,
-                              width: 0.5,
-                            ),
+                            verticalInside: BorderSide.none,
                             horizontalInside: BorderSide(
                               color: tableBorderColor,
                               width: 0.5,
@@ -306,6 +301,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           showColumnResizeHandle: false,
                           showHeaderTooltip: false,
                           enforceColumnWidths: true,
+                          enableColumnStretch: true,
+                          showPinnedSectionDividers: true,
                           initialPinnedLeftColumnKeys: const <String>['sector'],
                         );
                     },

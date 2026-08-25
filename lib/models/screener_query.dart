@@ -558,9 +558,8 @@ class ScreenerQueryParser {
 
   static ScreenerQuerySuggestion _fieldSuggestion(ScreenerQueryField f) {
     return ScreenerQuerySuggestion(
-      title: f.id,
-      subtitle: '${f.label} · ${f.category}'
-          '${f.unitHint != null ? ' · ${f.unitHint}' : ''}',
+      title: f.label,
+      subtitle: f.category + (f.unitHint != null ? ' · ${f.unitHint}' : ''),
       insert: f.id,
       kind: ScreenerQuerySuggestionKind.field,
     );

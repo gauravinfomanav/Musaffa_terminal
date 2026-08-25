@@ -813,89 +813,16 @@ class _ScreenerScreenState extends State<ScreenerScreen>
 
   Widget _buildQueryTrigger(bool isDarkMode) {
     final count = _queryClauses.length;
-    final active = _isQueryBarOpen || count > 0;
+    final open = _isQueryBarOpen;
+    final hasRules = count > 0;
+    final emphasized = open || hasRules;
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: _toggleQueryBar,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          height: HomeUi.controlHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            gradient: active ? HomeUi.iconWellGradient : null,
-            color: active
-                ? null
-                : (isDarkMode
-                    ? const Color(0xFF1A1E2A)
-                    : const Color(0xFFF3F4F6)),
-            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-            border: Border.all(
-              color: active
-                  ? HomeUi.iconWellBorder
-                  : (isDarkMode
-                      ? const Color(0xFF2A2E3A)
-                      : const Color(0xFFE5E7EB)),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              active
-                  ? HomeUi.brandIcon(
-                      icon: Icons.edit_note_rounded,
-                      size: 14,
-                      gradient: HomeUi.iconFillGradient,
-                    )
-                  : Icon(
-                      Icons.edit_note_rounded,
-                      size: 14,
-                      color: isDarkMode
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF6B7280),
-                    ),
-              const SizedBox(width: 6),
-              Text(
-                _isQueryBarOpen ? 'Hide query' : 'Query',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: active
-                      ? (isDarkMode
-                          ? const Color(0xFFF4F5F7)
-                          : const Color(0xFF111827))
-                      : (isDarkMode
-                          ? const Color(0xFFD1D5DB)
-                          : const Color(0xFF374151)),
-                ),
-              ),
-              if (count > 0) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    gradient: HomeUi.iconFillGradient,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  constraints:
-                      const BoxConstraints(minWidth: 18, minHeight: 16),
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+    return _QueryTriggerChip(
+      dark: isDarkMode,
+      open: open,
+      count: count,
+      emphasized: emphasized,
+      onTap: _toggleQueryBar,
     );
   }
 
@@ -1266,9 +1193,10 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   }
 
   Widget _buildResultsSection(bool isDarkMode, {Key? key}) {
+    // Match filter card inset (fromLTRB 16, 14, 16, 14) so tabs align visually.
     return Container(
       key: key,
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: HomeUi.cardDecoration(isDarkMode),
       clipBehavior: Clip.antiAlias,
       child: _buildResultsTable(isDarkMode),
@@ -1343,6 +1271,8 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             columns: _getColumnsForSelectedTab(),
             rows: rows,
             toolbar: _buildResultsTabs(isDarkMode),
+            // Card already applies filter-matching inset; avoid stacking top pad.
+            toolbarPadding: const EdgeInsets.fromLTRB(0, 0, 0, 14),
             showFixedColumn: true,
             considerPadding: false,
             showOuterShadow: false,
@@ -1355,7 +1285,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             showColumnResizeHandle: true,
             headerHeight: 44,
             rowHeight: 56,
-            columnSpacing: 40,
+            columnSpacing: 20,
             tableId: 'screener_results_table_${_selectedResultsTab}',
             sortState: _resultsSortState,
             onSortChange: (key, direction) {
@@ -1553,8 +1483,10 @@ class _ScreenerScreenState extends State<ScreenerScreen>
     );
 
     return selectedTab.columns.map((column) {
+      final fullLabel = column.label.trim();
       return SimpleColumn(
-        label: column.label.toUpperCase(),
+        label: fullLabel.toUpperCase(),
+        tooltipLabel: fullLabel.toUpperCase(),
         fieldName: column.id,
         isNumeric: column.type == 'number' ||
             column.type == 'currency' ||
@@ -1566,33 +1498,51 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   }
 
   double _screenerColumnWidth(String id, String type) {
-    if (id == 'sector') return 176;
-    if (id == 'recommendation') return 152;
-    if (type == 'percentage') return 136;
-    if (type == 'currency' || type == 'number') return 128;
-    return 148;
+    if (id == 'sector') return 168;
+    if (id == 'recommendation') return 140;
+    if (type == 'percentage') return 96;
+    if (type == 'currency' || type == 'number') return 100;
+    return 120;
   }
 
   List<SimpleColumn> _getDefaultColumns() {
     return const [
       SimpleColumn(
-          label: 'TICKER', fieldName: 'ticker', isNumeric: false, width: 148),
+          label: 'TICKER',
+          tooltipLabel: 'TICKER',
+          fieldName: 'ticker',
+          isNumeric: false,
+          width: 120),
       SimpleColumn(
-          label: 'PRICE', fieldName: 'price', isNumeric: true, width: 128),
+          label: 'PRICE',
+          tooltipLabel: 'PRICE',
+          fieldName: 'price',
+          isNumeric: true,
+          width: 100),
       SimpleColumn(
           label: 'CHANGE %',
+          tooltipLabel: 'CHANGE %',
           fieldName: 'change1D',
           isNumeric: true,
-          width: 136),
+          width: 96),
       SimpleColumn(
           label: 'MKT CAP',
+          tooltipLabel: 'MARKET CAP',
           fieldName: 'marketCap',
           isNumeric: true,
-          width: 128),
+          width: 108),
       SimpleColumn(
-          label: 'VOLUME', fieldName: 'volume', isNumeric: true, width: 128),
+          label: 'VOLUME',
+          tooltipLabel: 'VOLUME',
+          fieldName: 'volume',
+          isNumeric: true,
+          width: 100),
       SimpleColumn(
-          label: 'SECTOR', fieldName: 'sector', isNumeric: false, width: 176),
+          label: 'SECTOR',
+          tooltipLabel: 'SECTOR',
+          fieldName: 'sector',
+          isNumeric: false,
+          width: 168),
     ];
   }
 
@@ -2839,6 +2789,118 @@ class _PaginationPageButtonState extends State<_PaginationPageButton> {
               fontWeight: FontWeight.w600,
               color: selected ? Colors.white : HomeUi.title(dark),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Secondary screener control — outlined, not a grey “AI pill”.
+class _QueryTriggerChip extends StatefulWidget {
+  const _QueryTriggerChip({
+    required this.dark,
+    required this.open,
+    required this.count,
+    required this.emphasized,
+    required this.onTap,
+  });
+
+  final bool dark;
+  final bool open;
+  final int count;
+  final bool emphasized;
+  final VoidCallback onTap;
+
+  @override
+  State<_QueryTriggerChip> createState() => _QueryTriggerChipState();
+}
+
+class _QueryTriggerChipState extends State<_QueryTriggerChip> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final open = widget.open;
+    final emphasized = widget.emphasized;
+    final label = open ? 'Hide query' : 'Query';
+
+    final bg = open
+        ? (dark ? const Color(0xFF1A1D22) : const Color(0xFFF8F9FB))
+        : (_hover ? HomeUi.elevatedBg(dark) : HomeUi.cardBg(dark));
+
+    final borderColor = open
+        ? HomeUi.borderStrong(dark)
+        : (_hover || emphasized
+            ? HomeUi.borderStrong(dark)
+            : HomeUi.borderLight(dark));
+
+    final fg = emphasized ? HomeUi.title(dark) : HomeUi.body(dark);
+    final iconColor = emphasized ? HomeUi.title(dark) : HomeUi.muted(dark);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOut,
+          height: HomeUi.controlHeight,
+          padding: EdgeInsets.only(
+            left: 12,
+            right: widget.count > 0 ? 8 : 12,
+          ),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                open ? Icons.filter_list_off_rounded : Icons.filter_list_rounded,
+                size: 15,
+                color: iconColor,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: HomeUi.control(dark, active: emphasized).copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.1,
+                  color: fg,
+                ),
+              ),
+              if (widget.count > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  constraints:
+                      const BoxConstraints(minWidth: 18, minHeight: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: dark
+                        ? const Color(0xFF2A2E34)
+                        : const Color(0xFF1F2937),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text(
+                    '${widget.count}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

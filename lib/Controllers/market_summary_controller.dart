@@ -171,12 +171,12 @@ class MarketSummaryController extends GetxController {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    HomeUi.truncateTableText(sector),
+                    sector,
                     style: rowTextStyle,
                     textAlign: TextAlign.left,
                     maxLines: 1,
                     softWrap: false,
-                    overflow: TextOverflow.clip,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),

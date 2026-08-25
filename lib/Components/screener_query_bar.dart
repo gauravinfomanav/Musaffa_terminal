@@ -50,6 +50,9 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
   @override
   void initState() {
     super.initState();
+    // Attach to the TextField's own node so arrow/esc/tab don't wrap the field
+    // in a parent Focus that can swallow Backspace on desktop.
+    _focus.onKeyEvent = _onKey;
     _focus.addListener(_onFocus);
     _controller.addListener(_onText);
     if (widget.initialDraft != null && widget.initialDraft!.isNotEmpty) {
@@ -87,6 +90,7 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
 
   @override
   void dispose() {
+    _focus.onKeyEvent = null;
     _focus.removeListener(_onFocus);
     _controller.removeListener(_onText);
     if (_portal.isShowing) {
@@ -279,6 +283,20 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
       return KeyEventResult.ignored;
     }
     final key = event.logicalKey;
+
+    // Let TextField own all text-editing keys. Only steal Backspace when the
+    // draft is empty so we can pop the last clause chip.
+    if (key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.delete) {
+      if (key == LogicalKeyboardKey.backspace &&
+          _controller.text.isEmpty &&
+          widget.clauses.isNotEmpty) {
+        _removeAt(widget.clauses.length - 1);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
     if (key == LogicalKeyboardKey.arrowDown) {
       if (_suggestions.isEmpty) return KeyEventResult.ignored;
       setState(() => _highlight = (_highlight + 1) % _suggestions.length);
@@ -317,12 +335,6 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
         return KeyEventResult.handled;
       }
     }
-    if (key == LogicalKeyboardKey.backspace &&
-        _controller.text.isEmpty &&
-        widget.clauses.isNotEmpty) {
-      _removeAt(widget.clauses.length - 1);
-      return KeyEventResult.handled;
-    }
     return KeyEventResult.ignored;
   }
 
@@ -330,8 +342,8 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
     switch (_parsed.expect) {
       case ScreenerQueryExpect.field:
         return widget.clauses.isEmpty
-            ? 'e.g. currentPrice > 200'
-            : 'AND next field…';
+            ? 'e.g. Price > 200'
+            : 'Add another field…';
       case ScreenerQueryExpect.operator:
         return '>, >=, <, = …';
       case ScreenerQueryExpect.value:
@@ -364,111 +376,149 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
           overlayChildBuilder: (context) => _overlay(dark),
           child: CompositedTransformTarget(
             link: _link,
-            child: Focus(
-              onKeyEvent: _onKey,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                decoration: BoxDecoration(
-                  color: HomeUi.cardBg(dark),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: focused
-                        ? const Color(0xE3E4621E).withValues(alpha: 0.65)
-                        : HomeUi.border(dark),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black
-                          .withValues(alpha: dark ? 0.28 : 0.08),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+            child: Container(
+              decoration: BoxDecoration(
+                color: HomeUi.cardBg(dark),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: focused
+                      ? HomeUi.borderStrong(dark)
+                      : HomeUi.borderLight(dark),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _header(dark),
-                    if (widget.clauses.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            for (var i = 0; i < widget.clauses.length; i++)
-                              _ClauseChip(
-                                clause: widget.clauses[i],
-                                isDarkMode: dark,
-                                onEdit: () => _editAt(i),
-                                onRemove: () => _removeAt(i),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: dark ? 0.25 : 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _header(dark),
+                  if (widget.clauses.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: HomeUi.elevatedBg(dark),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: HomeUi.borderLight(dark)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.terminal_rounded,
-                              size: 15,
-                              color: HomeUi.muted(dark),
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (var i = 0; i < widget.clauses.length; i++)
+                            _ClauseChip(
+                              clause: widget.clauses[i],
+                              isDarkMode: dark,
+                              onEdit: () => _editAt(i),
+                              onRemove: () => _removeAt(i),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                controller: _controller,
-                                focusNode: _focus,
-                                cursorColor: HomeUi.title(dark),
-                                textInputAction: TextInputAction.search,
-                                onSubmitted: (_) =>
-                                    _commitDraft(forceValue: true),
-                                style: HomeUi.control(dark, active: true)
-                                    .copyWith(fontSize: 13, height: 1.25),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
-                                  hintText: _hint,
-                                  hintStyle: HomeUi.control(dark).copyWith(
-                                    fontSize: 13,
-                                    color: HomeUi.muted(dark),
-                                  ),
+                        ],
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOut,
+                      padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+                      decoration: BoxDecoration(
+                        color: dark
+                            ? const Color(0xFF181B20)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        // Hairline only — depth comes from shadow, not a heavy stroke.
+                        border: Border.all(
+                          color: dark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : const Color(0xFFEEF0F3),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: dark
+                                  ? (focused ? 0.45 : 0.32)
+                                  : (focused ? 0.10 : 0.06),
+                            ),
+                            blurRadius: focused ? 18 : 12,
+                            spreadRadius: focused ? 0 : -1,
+                            offset: Offset(0, focused ? 6 : 4),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: dark ? 0.18 : 0.03,
+                            ),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search_rounded,
+                            size: 16,
+                            color: focused
+                                ? HomeUi.body(dark)
+                                : HomeUi.muted(dark),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focus,
+                              cursorColor: HomeUi.title(dark),
+                              cursorWidth: 1.2,
+                              textInputAction: TextInputAction.search,
+                              keyboardType: TextInputType.text,
+                              onSubmitted: (_) =>
+                                  _commitDraft(forceValue: true),
+                              style: HomeUi.control(dark, active: true)
+                                  .copyWith(
+                                fontSize: 13,
+                                height: 1.3,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                filled: false,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 11,
+                                ),
+                                hintText: _hint,
+                                hintStyle: HomeUi.control(dark).copyWith(
+                                  fontSize: 13,
+                                  color: HomeUi.muted(dark),
                                 ),
                               ),
                             ),
-                            _StageBadge(
-                              label: _stageLabel,
-                              isDarkMode: dark,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _stageLabel,
+                            style: HomeUi.subtitle(dark).copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                      child: Text(
-                        'Tab to accept · Enter to apply · Esc to close',
-                        style: HomeUi.subtitle(dark).copyWith(fontSize: 10.5),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    child: Text(
+                      'Tab to accept  ·  Enter to apply  ·  Esc to close',
+                      style: HomeUi.subtitle(dark).copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -482,73 +532,51 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
       child: Row(
         children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              gradient: HomeUi.iconWellGradient,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: HomeUi.iconWellBorder),
-            ),
-            child: Center(
-              child: HomeUi.brandIcon(
-                icon: Icons.edit_note_rounded,
-                size: 14,
-                gradient: HomeUi.iconFillGradient,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Query filter',
-                  style: HomeUi.control(dark, active: true).copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                  style: HomeUi.sectionTitle(dark).copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  'Field → operator → value',
-                  style: HomeUi.subtitle(dark).copyWith(fontSize: 11),
+                  'Field, operator, then value',
+                  style: HomeUi.subtitle(dark).copyWith(fontSize: 11.5),
                 ),
               ],
             ),
           ),
           if (widget.clauses.isNotEmpty)
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: _clearAll,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text(
-                    'Clear',
-                    style: HomeUi.control(dark).copyWith(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: HomeUi.muted(dark),
-                    ),
-                  ),
+            TextButton(
+              onPressed: _clearAll,
+              style: TextButton.styleFrom(
+                foregroundColor: HomeUi.muted(dark),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Clear',
+                style: HomeUi.control(dark).copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           if (widget.onClose != null)
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: widget.onClose,
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: 16,
-                    color: HomeUi.muted(dark),
-                  ),
-                ),
-              ),
+            IconButton(
+              onPressed: widget.onClose,
+              tooltip: 'Close',
+              visualDensity: VisualDensity.compact,
+              iconSize: 18,
+              color: HomeUi.muted(dark),
+              icon: const Icon(Icons.close_rounded),
             ),
         ],
       ),
@@ -557,43 +585,46 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
 
   Widget _overlay(bool dark) {
     if (_suggestions.isEmpty) return const SizedBox.shrink();
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              _focus.unfocus();
-              _close();
-            },
-            child: const SizedBox.expand(),
+    final sectionTitle = _parsed.expect == ScreenerQueryExpect.field
+        ? 'Fields'
+        : _parsed.expect == ScreenerQueryExpect.operator
+            ? 'Operators'
+            : 'Values';
+
+    return ExcludeFocus(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                _focus.unfocus();
+                _close();
+              },
+              child: const SizedBox.expand(),
+            ),
           ),
-        ),
-        CompositedTransformFollower(
-          link: _link,
-          showWhenUnlinked: false,
-          targetAnchor: Alignment.bottomLeft,
-          followerAnchor: Alignment.topLeft,
-          offset: const Offset(0, 8),
-          child: Material(
-            color: Colors.transparent,
-            child: SizedBox(
+          CompositedTransformFollower(
+            link: _link,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            offset: const Offset(0, 6),
+            child: Material(
+              color: Colors.transparent,
+              child: SizedBox(
               width: _panelWidth,
               child: Container(
                 constraints: const BoxConstraints(maxHeight: 280),
                 decoration: BoxDecoration(
                   color: HomeUi.cardBg(dark),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color:
-                        dark ? const Color(0xFF1E2230) : const Color(0xFFE5E7EB),
-                  ),
+                  border: Border.all(color: HomeUi.borderLight(dark)),
                   boxShadow: [
                     BoxShadow(
-                      color:
-                          Colors.black.withValues(alpha: dark ? 0.40 : 0.12),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
+                      color: Colors.black.withValues(alpha: dark ? 0.35 : 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -603,17 +634,12 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
                       child: Text(
-                        _parsed.expect == ScreenerQueryExpect.field
-                            ? 'Fields'
-                            : _parsed.expect == ScreenerQueryExpect.operator
-                                ? 'Operators'
-                                : 'Values',
+                        sectionTitle,
                         style: HomeUi.subtitle(dark).copyWith(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.35,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -633,34 +659,38 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
                               onPointerDown: (_) => _acceptSuggestion(s),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 7,
+                                  horizontal: 14,
+                                  vertical: 9,
                                 ),
                                 color: selected
                                     ? (dark
-                                        ? const Color(0xFF1A1E2A)
-                                        : const Color(0xFFF3F4F6))
+                                        ? const Color(0xFF1A1D22)
+                                        : const Color(0xFFF5F6F8))
                                     : Colors.transparent,
                                 child: Row(
                                   children: [
-                                    SizedBox(
-                                      width: 140,
+                                    Expanded(
+                                      flex: 5,
                                       child: Text(
                                         s.title,
                                         style: HomeUi.control(dark, active: true)
                                             .copyWith(
-                                          fontSize: 12.5,
+                                          fontSize: 13,
                                           fontWeight: FontWeight.w600,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    const SizedBox(width: 12),
                                     Expanded(
+                                      flex: 5,
                                       child: Text(
                                         s.subtitle,
-                                        style: HomeUi.subtitle(dark)
-                                            .copyWith(fontSize: 11.5),
+                                        style: HomeUi.subtitle(dark).copyWith(
+                                          fontSize: 12,
+                                        ),
                                         overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.right,
                                       ),
                                     ),
                                   ],
@@ -678,31 +708,6 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StageBadge extends StatelessWidget {
-  final String label;
-  final bool isDarkMode;
-
-  const _StageBadge({required this.label, required this.isDarkMode});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        gradient: HomeUi.iconWellGradient,
-        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        border: Border.all(color: HomeUi.iconWellBorder),
-      ),
-      child: Text(
-        label,
-        style: HomeUi.control(isDarkMode, active: true).copyWith(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-        ),
       ),
     );
   }
@@ -723,40 +728,38 @@ class _ClauseChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = isDarkMode;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onEdit,
         child: Container(
-          padding: const EdgeInsets.only(left: 9, top: 4, bottom: 4, right: 3),
+          padding: const EdgeInsets.only(left: 10, top: 5, bottom: 5, right: 4),
           decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1A1E2A) : const Color(0xFFF0F1F4),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: HomeUi.border(isDarkMode)),
+            color: HomeUi.elevatedBg(dark),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: HomeUi.borderLight(dark)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.edit_outlined,
-                size: 12,
-                color: HomeUi.muted(isDarkMode),
-              ),
-              const SizedBox(width: 4),
               Text(
                 clause.display,
-                style: HomeUi.control(isDarkMode, active: true).copyWith(
-                  fontSize: 11.5,
+                style: HomeUi.control(dark, active: true).copyWith(
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(width: 2),
               GestureDetector(
                 onTap: onRemove,
-                child: Icon(
-                  Icons.close_rounded,
-                  size: 13,
-                  color: HomeUi.muted(isDarkMode),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 14,
+                    color: HomeUi.muted(dark),
+                  ),
                 ),
               ),
             ],
