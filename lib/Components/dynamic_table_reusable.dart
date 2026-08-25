@@ -40,6 +40,8 @@ class AmountWidgetObj {
 
 class SimpleColumn {
   final String label;
+  /// Full name for header tooltips when [label] is short / abbreviated.
+  final String? tooltipLabel;
   final String fieldName;
   final double? width;
   final bool isNumeric;
@@ -47,6 +49,7 @@ class SimpleColumn {
   const SimpleColumn({
     required this.label,
     required this.fieldName,
+    this.tooltipLabel,
     this.width,
     this.isNumeric = false,
   });
@@ -140,6 +143,7 @@ class DynamicTable extends StatefulWidget {
     this.tickerHeaderLabel = 'COMPANY',
     this.headerHeight,
     this.rowHeight,
+    this.toolbarPadding,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -175,6 +179,7 @@ class DynamicTable extends StatefulWidget {
   final String tickerHeaderLabel;
   final double? headerHeight;
   final double? rowHeight;
+  final EdgeInsets? toolbarPadding;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -675,7 +680,11 @@ class _DynamicTableState extends State<DynamicTable> {
         .map(
           (col) => DynamicTableColumn(
             key: col.fieldName,
-            label: col.label,
+            label: HomeUi.shortTableHeader(
+              label: col.label,
+              key: col.fieldName,
+            ),
+            tooltipLabel: col.tooltipLabel ?? col.label,
             headerWidget: null,
             width: col.width,
             sortable: true,
@@ -753,11 +762,13 @@ class _DynamicTableState extends State<DynamicTable> {
             resizeHandleIndicatorHeight: widget.resizeHandleIndicatorHeight,
             horizontalMargin: widget.horizontalMargin,
             columnSpacing: widget.columnSpacing,
-            showHeaderTooltip: false,
+            showHeaderTooltip: true,
+            showSortIndicators: true,
             headerHeight: widget.headerHeight ?? 42,
             rowHeight: widget.rowHeight ?? 52,
             dataRowMinHeight: widget.rowHeight ?? 52,
             dataRowMaxHeight: widget.rowHeight ?? 52,
+            toolbarPadding: widget.toolbarPadding,
             onTickerTap: widget.onTickerTap ?? (row) {
           final ticker = row.data['_ticker_symbol']?.toString() ?? '';
           if (ticker.isEmpty || ticker == '--') return;

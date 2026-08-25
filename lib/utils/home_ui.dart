@@ -407,6 +407,7 @@ class HomeUi {
   }
 
   static const int tableCellMaxChars = 25;
+  static const int tableHeaderMaxChars = 10;
 
   /// Shows up to [maxChars] characters; truncates with ellipsis from the 26th.
   static String truncateTableText(
@@ -415,6 +416,140 @@ class HomeUi {
   }) {
     if (text.length <= maxChars) return text;
     return '${text.substring(0, maxChars)}…';
+  }
+
+  /// Compact header label for dense tables. Full name belongs in a tooltip.
+  static String shortTableHeader({
+    required String label,
+    String? key,
+  }) {
+    final id = (key ?? '').toLowerCase().trim();
+    final byId = <String, String>{
+      'enterprisevalue': 'EV',
+      'recommendation': 'REC',
+      'sharesoutstanding': 'SHARES',
+      'marketcap': 'MKT CAP',
+      'dividendyield': 'DIV YLD',
+      'revenueannual': 'REV',
+      'netincome': 'NET INC',
+      'change1d': '1D',
+      'grossmargin': 'GROSS %',
+      'operatingmargin': 'OP MGN',
+      'netprofitmargin': 'NPM',
+      'currentratio': 'CUR R',
+      'quickratio': 'QUICK',
+      'assetturnover': 'AT',
+      'inventoryturnover': 'INV TO',
+      'receivablesturnover': 'AR TO',
+      'payoutratio': 'PAYOUT',
+      'bookvaluepershare': 'BV/SH',
+      'bvps': 'BV/SH',
+      'dividendpershare': 'DIV/SH',
+      'cashflowpershare': 'CF/SH',
+      'epsannual': 'EPS Y',
+      'epsttm': 'EPS',
+      'pettm': 'P/E',
+      'peannual': 'P/E Y',
+      'pbannual': 'P/B',
+      'psttm': 'P/S',
+      'psannual': 'P/S Y',
+      'evebit': 'EV/EBIT',
+      'evfcf': 'EV/FCF',
+      'pfcfttm': 'P/FCF',
+      'pcfttm': 'P/CF',
+      'ptbvannual': 'P/TBV',
+      'priceTangibleBook': 'P/TB',
+      'pricetangiblebook': 'P/TB',
+      'roaTtm': 'ROA',
+      'roattm': 'ROA',
+      'debtToEquity': 'D/E',
+      'debttoequity': 'D/E',
+      'debtEquity': 'D/E',
+      'avgvol10d': 'VOL 10D',
+      'avgvol30d': 'VOL 30D',
+      'mktcapchg3y': 'MC 3Y',
+      'previousclose': 'PREV',
+      'revgrowth3y': 'REV 3Y',
+      'revgrowth5y': 'REV 5Y',
+      'epsgrowth3y': 'EPS 3Y',
+      'epsgrowth5y': 'EPS 5Y',
+      'revgrowthqoq': 'REV QoQ',
+      'revgrowthttm': 'REV TTM',
+      'epsgrowthqoq': 'EPS QoQ',
+      'epsgrowthttm': 'EPS TTM',
+      'revsharegrowth5y': 'R/S 5Y',
+      'roe5y': 'ROE 5Y',
+      'roa5y': 'ROA 5Y',
+      'revenuegrowth1y': 'REV 1Y',
+      'revenueshare': 'REV/SH',
+      '52whigh': '52W H',
+      '52wlow': '52W L',
+      'analystrec': 'REC',
+    };
+    if (id.isNotEmpty && byId.containsKey(id)) {
+      return byId[id]!;
+    }
+
+    final normalized = label.toLowerCase().trim();
+    final byLabel = <String, String>{
+      'enterprise value': 'EV',
+      'analyst rec': 'REC',
+      'shares out': 'SHARES',
+      'market cap': 'MKT CAP',
+      'div yield': 'DIV YLD',
+      'revenue annual': 'REV',
+      'net income': 'NET INC',
+      'change %': '1D',
+      'chg %': '1D',
+      'gross margin': 'GROSS %',
+      'operating margin': 'OP MGN',
+      'net profit margin': 'NPM',
+      'current ratio': 'CUR R',
+      'quick ratio': 'QUICK',
+      'asset turnover': 'AT',
+      'inventory turnover': 'INV TO',
+      'receivables turnover': 'AR TO',
+      'payout ratio': 'PAYOUT',
+      'book value/share': 'BV/SH',
+      'dividend/share': 'DIV/SH',
+      'cash flow/share': 'CF/SH',
+      'eps annual': 'EPS Y',
+      'eps ttm': 'EPS',
+      'p/e ttm': 'P/E',
+      'p/e annual': 'P/E Y',
+      'p/b annual': 'P/B',
+      'p/s ttm': 'P/S',
+      'p/s annual': 'P/S Y',
+      'p/fcf ttm': 'P/FCF',
+      'p/cf ttm': 'P/CF',
+      'p/tbv annual': 'P/TBV',
+      'price/tangible book': 'P/TB',
+      'roa ttm': 'ROA',
+      'debt/equity': 'D/E',
+      'avg vol 10d': 'VOL 10D',
+      'avg vol 30d': 'VOL 30D',
+      'mkt cap chg 3y': 'MC 3Y',
+      'previous close': 'PREV',
+      'rev growth 3y': 'REV 3Y',
+      'rev growth 5y': 'REV 5Y',
+      'eps growth 3y': 'EPS 3Y',
+      'eps growth 5y': 'EPS 5Y',
+      'rev growth qoq': 'REV QoQ',
+      'rev growth ttm': 'REV TTM',
+      'eps growth qoq': 'EPS QoQ',
+      'eps growth ttm': 'EPS TTM',
+      'rev/share growth 5y': 'R/S 5Y',
+      'revenue growth 1y': 'REV 1Y',
+      'revenue/share': 'REV/SH',
+      '52w high': '52W H',
+      '52w low': '52W L',
+    };
+    if (byLabel.containsKey(normalized)) {
+      return byLabel[normalized]!;
+    }
+
+    if (label.length <= tableHeaderMaxChars) return label;
+    return truncateTableText(label, maxChars: tableHeaderMaxChars);
   }
 
   static TextOverflow tableCellOverflow(String text, {String? columnKey}) {
@@ -430,7 +565,7 @@ class HomeUi {
       display,
       maxLines: 1,
       softWrap: false,
-      overflow: TextOverflow.clip,
+      overflow: TextOverflow.visible,
       style: tableNumeric(dark, positiveValue: positive),
     );
     if (display == text) return child;
