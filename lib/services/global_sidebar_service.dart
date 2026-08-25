@@ -8,6 +8,7 @@ enum SidebarNavItem {
   ideas,
   portfolio,
   earnings,
+  economicCalendar,
   profile,
 }
 
