@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/Screens/earnings_calendar_screen.dart';
+import 'package:musaffa_terminal/Screens/economic_calendar_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
@@ -164,6 +165,17 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
     sidebar.setActive(SidebarNavItem.earnings);
     sidebar.close();
     Get.to(() => const EarningsCalendarScreen());
+  }
+
+  void _goEconomicCalendar() {
+    final sidebar = Get.find<GlobalSidebarService>();
+    if (sidebar.activeItem.value == SidebarNavItem.economicCalendar) {
+      sidebar.close();
+      return;
+    }
+    sidebar.setActive(SidebarNavItem.economicCalendar);
+    sidebar.close();
+    Get.to(() => const EconomicCalendarScreen());
   }
 
   void _showProfileSheet(bool isDark) {
@@ -447,6 +459,14 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                                     active == SidebarNavItem.earnings,
                                 isDark: isDark,
                                 onTap: _goEarnings,
+                              ),
+                              _NavTile(
+                                icon: CupertinoIcons.globe,
+                                label: 'Economic Calendar',
+                                selected: active ==
+                                    SidebarNavItem.economicCalendar,
+                                isDark: isDark,
+                                onTap: _goEconomicCalendar,
                               ),
                             ],
                           );
