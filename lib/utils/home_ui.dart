@@ -1195,7 +1195,8 @@ class HomeUi {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: elevatedBg(dark),
+        // Match modal / summary cards — avoid elevated grey wash.
+        color: cardBg(dark),
         borderRadius: BorderRadius.circular(radiusMd),
         border: Border.all(color: borderLight(dark)),
       ),

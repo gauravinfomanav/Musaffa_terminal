@@ -1056,7 +1056,7 @@ class _PortfolioDetailsDialog extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
+        color: HomeUi.cardBg(isDark),
         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
         border: Border.all(color: HomeUi.borderLight(isDark)),
       ),

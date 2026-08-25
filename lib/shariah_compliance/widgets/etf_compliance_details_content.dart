@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/etf_compliance_report.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_charts.dart';
+import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_ratio_bar.dart';
 import 'package:musaffa_terminal/shariah_compliance/widgets/compliance_shared_widgets.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
@@ -1789,154 +1790,14 @@ class _EtfComplianceDetailsContentState extends State<EtfComplianceDetailsConten
     required String denominatorValue,
     required String denominatorLabel,
   }) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color statusColor =
-        pass ? ComplianceFormatters.halalColor : ComplianceFormatters.notHalalColor;
-    final double fillFactor = (value.clamp(0.0, 100.0) / 100).clamp(0.0, 1.0);
-    final double thresholdFactor = (threshold / 100).clamp(0.0, 1.0);
-    final double thresholdX = -1.0 + (2.0 * thresholdFactor);
-    final String valueText = '${value.toStringAsFixed(2)}%';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: isDark ? 0.12 : 0.08),
-            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-            border: Border.all(color: statusColor.withValues(alpha: 0.18)),
-          ),
-          child: Row(
-            children: [
-              Text(
-                'Current ratio',
-                style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 13),
-              ),
-              const Spacer(),
-              Text(
-                valueText,
-                style: HomeUi.tableCellEmphasis(isDark).copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: statusColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 8,
-          child: Stack(
-            clipBehavior: Clip.none,
-            fit: StackFit.expand,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color:
-                      isDark ? const Color(0xFF24292F) : const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: fillFactor,
-                heightFactor: 1,
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment(thresholdX, 0),
-                child: Container(
-                  width: 2,
-                  height: 14,
-                  color: isDark
-                      ? const Color(0xFFD1D5DB)
-                      : const Color(0xFF374151),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          height: 16,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '0%',
-                  style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
-                ),
-              ),
-              Align(
-                alignment: Alignment(thresholdX, 0),
-                child: Text(
-                  '${threshold.toInt()}% limit',
-                  style: HomeUi.tableCellEmphasis(isDark).copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '100%',
-                  style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: HomeUi.elevatedBg(isDark),
-            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-            border: Border.all(color: HomeUi.borderLight(isDark)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$numeratorLabel ÷ $denominatorLabel',
-                style: HomeUi.tableCellSecondary(isDark).copyWith(fontSize: 13),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '$numeratorValue ÷ $denominatorValue = $valueText',
-                style: HomeUi.tableCellEmphasis(isDark).copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          pass
-              ? 'Pass — ratio is below the ${threshold.toInt()}% Shariah screening limit.'
-              : 'Fail — ratio exceeds the ${threshold.toInt()}% Shariah screening limit.',
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontSize: 13,
-            height: 1.35,
-            fontWeight: FontWeight.w600,
-            color: statusColor,
-          ),
-        ),
-      ],
+    return ComplianceRatioBar(
+      value: value,
+      threshold: threshold,
+      pass: pass,
+      numeratorLabel: numeratorLabel,
+      numeratorValue: numeratorValue,
+      denominatorValue: denominatorValue,
+      denominatorLabel: denominatorLabel,
     );
   }
 
