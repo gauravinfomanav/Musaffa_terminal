@@ -5,6 +5,7 @@ import 'package:syncfusion_flutter_core/theme.dart';
 import '../data sources/quarterly_financial_datasource.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 import '../controllers/statements_chart_quarterly.dart';
 
 
@@ -40,9 +41,12 @@ class _FinancialStatementsQuarterlyTableState extends State<FinancialStatementsQ
         return const Center(child: Text('No quarterly data available.'));
       }
 
+      final List<String> displayQuarters =
+          FinancialTableYears.descendingForDisplay(controller.quarters);
+
       final financialDataSource = FinancialQuarterlyDataSource(
         data: controller.financialData,
-        quarters: controller.quarters,
+        quarters: displayQuarters,
       );
 
       final screenHeight = MediaQuery.of(context).size.height;
@@ -78,7 +82,7 @@ class _FinancialStatementsQuarterlyTableState extends State<FinancialStatementsQ
             ),
             child: SfDataGrid(
               source: financialDataSource,
-              columns: _buildColumns(controller.quarters, widget.title),
+              columns: _buildColumns(displayQuarters, widget.title),
               columnWidthMode: ColumnWidthMode.auto,
               gridLinesVisibility: GridLinesVisibility.horizontal,
               headerGridLinesVisibility: GridLinesVisibility.none,

@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/per_share_data_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 
 class TerminalPerShareScreen extends StatefulWidget {
   final String symbol;
@@ -91,8 +92,8 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       allYears.addAll(financialData.epsData!.keys);
     }
 
-    List<String> sortedYears = allYears.toList()
-      ..sort((a, b) => a.compareTo(b));
+    List<String> sortedYears =
+        FinancialTableYears.descendingForDisplay(allYears);
 
     // Create columns for the dynamic table - include metric names as first column
     List<DynamicTableColumn> columns = [

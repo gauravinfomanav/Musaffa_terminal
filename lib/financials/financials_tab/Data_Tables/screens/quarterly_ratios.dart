@@ -6,6 +6,7 @@ import '../controllers/ratios_quarterly_controller.dart';
 import '../data sources/quarterly_ratio_data_source.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 
 class QuarterlyRatiosTable extends StatelessWidget {
   final String symbol;
@@ -31,7 +32,9 @@ class QuarterlyRatiosTable extends StatelessWidget {
       }
 
       final sortedData = _sortTableData(controller.tableData);
-      final allQuarters = _ensureAllQuarters(controller.quarters);
+      final allQuarters = FinancialTableYears.descendingForDisplay(
+        _ensureAllQuarters(controller.quarters),
+      );
 
       final dataSource = QuarterlyRatiosDataSource(
         tableData: sortedData,

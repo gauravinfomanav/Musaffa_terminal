@@ -7,6 +7,7 @@ import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_annual_controller.dart';
 import 'package:musaffa_terminal/financials/financials_tab/Data_Tables/controllers/ratios_quarterly_controller.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/utils/financial_table_years.dart';
 import 'package:musaffa_terminal/Controllers/peer_comparison_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_details_controller.dart';
 
@@ -255,7 +256,11 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       ),
     ];
 
-    columns.addAll(periods.map((period) {
+    // Newest → oldest for table headers only; YoY/CAGR keep ASC [periods].
+    final List<String> displayPeriods =
+        FinancialTableYears.descendingForDisplay(periods);
+
+    columns.addAll(displayPeriods.map((period) {
       return DynamicTableColumn(
         key: period,
         label: period,
