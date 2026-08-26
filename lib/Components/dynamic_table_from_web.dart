@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:musaffa_terminal/Components/table_pagination_bar.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
+
+/// Default gap between DataTable columns (was 40 — felt sparse).
+const double _kDefaultColumnSpacing = 16;
 
 // ============================================================================
 // DATA MODELS
@@ -275,6 +279,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   late Map<String, dynamic> _columnFilterValues;
   late Map<String, double> _columnWidths;
   late int _currentPage;
+  late int _pageSize;
   late SortState? _sortState;
   late final ScrollController _horizontalScrollController;
   late final ScrollController _verticalScrollController;
@@ -298,6 +303,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _columnFilterValues = <String, dynamic>{};
     _columnWidths = <String, double>{};
     _currentPage = widget.currentPage;
+    _pageSize = widget.pageSize;
     _sortState = widget.sortState;
     _horizontalScrollController = ScrollController();
     _verticalScrollController = ScrollController();
@@ -314,6 +320,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     }
     if (oldWidget.currentPage != widget.currentPage) {
       _currentPage = widget.currentPage;
+    }
+    if (oldWidget.pageSize != widget.pageSize) {
+      _pageSize = widget.pageSize;
     }
     if (oldWidget.columns != widget.columns ||
         oldWidget.showYoYGrowth != widget.showYoYGrowth ||
@@ -687,8 +696,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _stretchedColumnWidths = <String, double>{};
     if (!widget.enableColumnStretch || columns.isEmpty) return;
 
+    // Natural mins must be fresh before we share leftover width.
+    _refreshNaturalMinWidths(columns);
+
     // Account for ticker column, horizontal margins, and DataTable spacing.
-    final double spacing = widget.columnSpacing ?? 40;
+    final double spacing = widget.columnSpacing ?? _kDefaultColumnSpacing;
     double reserved = widget.horizontalMargin * 2;
     if (includeTicker) {
       reserved += (widget.tickerColumnWidth ?? 200) + 8;
@@ -1446,7 +1458,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         dataRowMinHeight: widget.rowHeight ?? widget.dataRowMinHeight,
         dataRowMaxHeight: _effectiveDataRowHeight,
         horizontalMargin: widget.horizontalMargin,
-        columnSpacing: widget.columnSpacing ?? 40,
+        columnSpacing: widget.columnSpacing ?? _kDefaultColumnSpacing,
         dividerThickness: widget.dividerThickness ?? 0.5,
         showBottomBorder: widget.showBottomBorder,
         border: widget.tableBorder ??
@@ -1673,7 +1685,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final flattenedRows = _flattenRows(sortedRows);
 
     final pages = widget.paginated
-        ? (flattenedRows.length / widget.pageSize)
+        ? (flattenedRows.length / _pageSize)
             .ceil()
             .clamp(1, double.infinity)
             .toInt()
@@ -1681,8 +1693,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final safePage = _currentPage.clamp(1, pages);
     final paginatedRows = widget.paginated
         ? flattenedRows
-            .skip((safePage - 1) * widget.pageSize)
-            .take(widget.pageSize)
+            .skip((safePage - 1) * _pageSize)
+            .take(_pageSize)
             .toList()
         : flattenedRows;
 
@@ -2000,51 +2012,22 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           ),
         // Pagination
         if (widget.paginated && paginatedRows.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: borderColor)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Showing ${(safePage - 1) * widget.pageSize + 1}–${(safePage * widget.pageSize).clamp(0, flattenedRows.length)} of ${flattenedRows.length}',
-                  style: TextStyle(fontSize: 13, color: mutedColor),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.chevron_left, color: mutedColor),
-                      onPressed: safePage > 1
-                          ? () {
-                              setState(() => _currentPage--);
-                              widget.onPageChange?.call(_currentPage);
-                            }
-                          : null,
-                    ),
-                    Text(
-                      '$safePage / $pages',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.chevron_right, color: mutedColor),
-                      onPressed: safePage < pages
-                          ? () {
-                              setState(() => _currentPage++);
-                              widget.onPageChange?.call(_currentPage);
-                            }
-                          : null,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          TablePaginationBar(
+            isDark: isDark,
+            currentPage: safePage,
+            totalPages: pages,
+            summaryText: '${flattenedRows.length} rows',
+            rowsPerPage: _pageSize,
+            onRowsPerPageChanged: (int size) {
+              setState(() {
+                _pageSize = size;
+                _currentPage = 1;
+              });
+            },
+            onPageChanged: (int page) {
+              setState(() => _currentPage = page);
+              widget.onPageChange?.call(page);
+            },
           ),
       ],
     );

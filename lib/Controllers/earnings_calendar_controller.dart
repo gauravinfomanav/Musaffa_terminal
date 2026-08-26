@@ -345,6 +345,13 @@ class EarningsCalendarController extends GetxController {
     _enrichCurrentPage();
   }
 
+  void setPageSize(int newPageSize) {
+    if (newPageSize < 1 || newPageSize == pageSize.value) return;
+    pageSize.value = newPageSize;
+    page.value = 1;
+    _enrichCurrentPage();
+  }
+
   void setSort(EarningsSortField field) {
     if (sortField.value == field) {
       sortAscending.value = !sortAscending.value;

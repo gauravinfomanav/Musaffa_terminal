@@ -11,6 +11,7 @@ import 'package:musaffa_terminal/Controllers/sector_stocks_controller.dart';
 import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
+import 'package:musaffa_terminal/Components/table_pagination_bar.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
@@ -663,127 +664,18 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       if (total <= 0 || pages <= 1) return const SizedBox.shrink();
 
       final current = sectorStocksController.currentPage + 1;
-      final items = _sectorPageItems(current, pages);
 
-      return Column(
-        children: [
-          Divider(
-            height: 1,
-            thickness: 0.5,
-            color: HomeUi.borderLight(isDarkMode),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      style:
-                          HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12.5),
-                      children: [
-                        const TextSpan(text: 'Page '),
-                        TextSpan(
-                          text: '$current',
-                          style:
-                              HomeUi.control(isDarkMode, active: true).copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                        const TextSpan(text: ' of '),
-                        TextSpan(
-                          text: _commaNumber(pages),
-                          style:
-                              HomeUi.control(isDarkMode, active: true).copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                        TextSpan(
-                          text: '  ·  ${_commaNumber(total)} stocks',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (pages > 1)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _SectorPaginationIconButton(
-                        icon: Icons.chevron_left_rounded,
-                        enabled: sectorStocksController.hasPreviousPage,
-                        isDarkMode: isDarkMode,
-                        onTap: () => sectorStocksController.goToPage(
-                          sectorStocksController.currentPage - 1,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      ...items.map((item) {
-                        if (item == null) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              '…',
-                              style: HomeUi.subtitle(isDarkMode).copyWith(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          );
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: _SectorPaginationPageButton(
-                            page: item,
-                            selected: item == current,
-                            isDarkMode: isDarkMode,
-                            onTap: () =>
-                                sectorStocksController.goToPage(item - 1),
-                          ),
-                        );
-                      }),
-                      const SizedBox(width: 6),
-                      _SectorPaginationIconButton(
-                        icon: Icons.chevron_right_rounded,
-                        enabled: sectorStocksController.hasNextPage,
-                        isDarkMode: isDarkMode,
-                        onTap: () => sectorStocksController.goToPage(
-                          sectorStocksController.currentPage + 1,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ],
+      return TablePaginationBar(
+        isDark: isDarkMode,
+        currentPage: current,
+        totalPages: pages,
+        summaryText: '${_commaNumber(total)} stocks',
+        rowsPerPage: sectorStocksController.pageSize,
+        onRowsPerPageChanged: sectorStocksController.setPageSize,
+        onPageChanged: (int page) =>
+            sectorStocksController.goToPage(page - 1),
       );
     });
-  }
-
-  List<int?> _sectorPageItems(int current, int total) {
-    if (total <= 7) {
-      return [for (var i = 1; i <= total; i++) i];
-    }
-    final set = <int>{1, total, current};
-    if (current - 1 > 1) set.add(current - 1);
-    if (current + 1 < total) set.add(current + 1);
-    if (current <= 3) set.addAll({2, 3, 4});
-    if (current >= total - 2) {
-      set.addAll({total - 3, total - 2, total - 1});
-    }
-    final sorted = set.toList()..sort();
-    final out = <int?>[];
-    int? prev;
-    for (final page in sorted) {
-      if (page < 1 || page > total) continue;
-      if (prev != null && page - prev > 1) out.add(null);
-      out.add(page);
-      prev = page;
-    }
-    return out;
   }
 
   String _commaNumber(int value) {
@@ -911,6 +803,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             stickyHeader: true,
             maxHeight: 560,
             useOuterContainer: false,
+            columnSpacing: 16,
+            enableColumnStretch: true,
             onTickerTap: (row) {
               final ticker = row.data['ticker']?.toString() ?? '';
               if (ticker.isEmpty || ticker == '--') return;
@@ -1297,136 +1191,6 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
               }),
               const GlobalFABOverlay(),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectorPaginationIconButton extends StatefulWidget {
-  final IconData icon;
-  final bool enabled;
-  final bool isDarkMode;
-  final VoidCallback onTap;
-
-  const _SectorPaginationIconButton({
-    required this.icon,
-    required this.enabled,
-    required this.isDarkMode,
-    required this.onTap,
-  });
-
-  @override
-  State<_SectorPaginationIconButton> createState() =>
-      _SectorPaginationIconButtonState();
-}
-
-class _SectorPaginationIconButtonState
-    extends State<_SectorPaginationIconButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = widget.isDarkMode;
-    final enabled = widget.enabled;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: enabled ? widget.onTap : null,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 140),
-          opacity: enabled ? 1 : 0.38,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            width: HomeUi.controlHeight,
-            height: HomeUi.controlHeight,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: enabled && _hover
-                  ? HomeUi.iconFillGradient
-                  : HomeUi.iconWellGradient,
-              border: Border.all(
-                color: enabled && _hover
-                    ? HomeUi.buttonBorder
-                    : HomeUi.iconWellBorder,
-                width: 0.856,
-              ),
-            ),
-            child: enabled && _hover
-                ? Icon(widget.icon, size: 18, color: Colors.white)
-                : HomeUi.brandIcon(icon: widget.icon, size: 18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectorPaginationPageButton extends StatefulWidget {
-  final int page;
-  final bool selected;
-  final bool isDarkMode;
-  final VoidCallback onTap;
-
-  const _SectorPaginationPageButton({
-    required this.page,
-    required this.selected,
-    required this.isDarkMode,
-    required this.onTap,
-  });
-
-  @override
-  State<_SectorPaginationPageButton> createState() =>
-      _SectorPaginationPageButtonState();
-}
-
-class _SectorPaginationPageButtonState
-    extends State<_SectorPaginationPageButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = widget.isDarkMode;
-    final selected = widget.selected;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: selected ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: selected ? null : widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          constraints: BoxConstraints(
-            minWidth: HomeUi.controlHeight,
-            minHeight: HomeUi.controlHeight,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: selected ? HomeUi.iconFillGradient : null,
-            color: selected
-                ? null
-                : (_hover ? HomeUi.elevatedBg(dark) : Colors.transparent),
-            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-            border: Border.all(
-              color: selected
-                  ? HomeUi.buttonBorder
-                  : (_hover ? HomeUi.borderStrong(dark) : Colors.transparent),
-              width: 0.856,
-            ),
-          ),
-          child: Text(
-            '${widget.page}',
-            style: HomeUi.control(dark, active: true).copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : HomeUi.title(dark),
-            ),
           ),
         ),
       ),

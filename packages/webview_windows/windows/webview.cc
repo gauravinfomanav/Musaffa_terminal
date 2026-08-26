@@ -587,8 +587,14 @@ void Webview::SetPointerButtonState(WebviewPointerButton button, bool is_down) {
 void Webview::SendScroll(double delta, bool horizontal) {
   // delta * 6 gives me a multiple of WHEEL_DELTA (120)
   constexpr auto kScrollMultiplier = 6;
+  constexpr short kWheelDelta = 120;
 
   auto offset = static_cast<short>(delta * kScrollMultiplier);
+  // Trackpads / high-precision mice often send tiny deltas that truncate to 0
+  // as short — scrollbar still works, but wheel appears "dead".
+  if (offset == 0 && delta != 0.0) {
+    offset = delta > 0.0 ? kWheelDelta : static_cast<short>(-kWheelDelta);
+  }
 
   if (horizontal) {
     composition_controller_->SendMouseInput(

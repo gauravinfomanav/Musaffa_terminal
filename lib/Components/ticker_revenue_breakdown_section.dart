@@ -93,32 +93,47 @@ class TickerRevenueBreakdownSection extends StatelessWidget {
             children: <Widget>[
               _header(),
               const SizedBox(height: 22),
-              // No LayoutBuilder / IntrinsicHeight here — both cause
-              // RenderBox-not-laid-out + mouse_tracker assert storms on hover.
+              // Full-height divider (header → legend). Avoid IntrinsicHeight /
+              // CrossAxisAlignment.stretch on the panels — those trip hover asserts.
               if (product != null && geography != null)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Stack(
                   children: <Widget>[
-                    Expanded(
-                      child: _RevenueSlicePanel(
-                        slice: product,
-                        isDarkMode: isDarkMode,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 28),
+                            child: _RevenueSlicePanel(
+                              slice: product,
+                              isDarkMode: isDarkMode,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 28),
+                            child: _RevenueSlicePanel(
+                              slice: geography,
+                              isDarkMode: isDarkMode,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    Container(
-                      width: 57,
-                      alignment: Alignment.topCenter,
-                      padding: const EdgeInsets.only(top: 72),
-                      child: Container(
-                        width: 1,
-                        height: 280,
-                        color: HomeUi.borderLight(isDarkMode),
-                      ),
-                    ),
-                    Expanded(
-                      child: _RevenueSlicePanel(
-                        slice: geography,
-                        isDarkMode: isDarkMode,
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const Spacer(),
+                            ColoredBox(
+                              color: HomeUi.borderLight(isDarkMode),
+                              child: const SizedBox(width: 1),
+                            ),
+                            const Spacer(),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -225,86 +240,148 @@ class _RevenueSlicePanel extends StatelessWidget {
 
   Widget _legend(RevenueBreakdownSlice slice) {
     final List<RevenueBreakdownItem> items = slice.items;
-    const int maxVisible = 8;
-    final bool overflow = items.length > maxVisible;
-    final List<RevenueBreakdownItem> visible =
-        overflow ? items.take(maxVisible).toList() : items;
+    if (items.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        for (int i = 0; i < visible.length; i++)
-          _legendRow(
-            color: TickerRevenueBreakdownSection
-                .palette[i % TickerRevenueBreakdownSection.palette.length],
-            item: visible[i],
-            isLast: i == visible.length - 1 && !overflow,
-          ),
-        if (overflow)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              '+${items.length - maxVisible} more segments',
-              style: HomeUi.subtitle(isDarkMode).copyWith(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w500,
-              ),
+    final bool dark = isDarkMode;
+    const int cols = 3;
+    final int rowCount = (items.length + cols - 1) ~/ cols;
+    final Color line = HomeUi.borderLight(dark);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: line, width: 0.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Table(
+        columnWidths: const <int, TableColumnWidth>{
+          0: FlexColumnWidth(),
+          1: FlexColumnWidth(),
+          2: FlexColumnWidth(),
+        },
+        border: TableBorder(
+          verticalInside: BorderSide(color: line, width: 0.5),
+          horizontalInside: BorderSide(color: line, width: 0.5),
+        ),
+        defaultVerticalAlignment: TableCellVerticalAlignment.top,
+        children: <TableRow>[
+          for (int r = 0; r < rowCount; r++)
+            TableRow(
+              children: <Widget>[
+                for (int c = 0; c < cols; c++)
+                  _legendCellAt(items, r * cols + c),
+              ],
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _legendRow({
+  Widget _legendCellAt(List<RevenueBreakdownItem> items, int index) {
+    if (index >= items.length) return const SizedBox.shrink();
+    return _legendCell(
+      color: TickerRevenueBreakdownSection
+          .palette[index % TickerRevenueBreakdownSection.palette.length],
+      item: items[index],
+    );
+  }
+
+  Widget _legendCell({
     required Color color,
     required RevenueBreakdownItem item,
-    required bool isLast,
   }) {
+    final bool dark = isDarkMode;
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Container(
             width: 8,
             height: 8,
             decoration: BoxDecoration(
               color: color,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(2),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: color.withValues(alpha: 0.28),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              _shortLabel(item.label),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: HomeUi.control(isDarkMode, active: true).copyWith(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            _fmtRevenue(item.revenue),
-            style: HomeUi.tableCellEmphasis(isDarkMode).copyWith(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 46,
-            child: Text(
-              _fmtPercent(item.percentage),
-              textAlign: TextAlign.right,
-              style: HomeUi.subtitle(isDarkMode).copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                fontFeatures: const <FontFeature>[
-                  FontFeature.tabularFigures(),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  _shortLabel(item.label),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.control(dark, active: true).copyWith(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    height: 1.15,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: <Widget>[
+                    Text(
+                      _fmtRevenue(item.revenue),
+                      style: HomeUi.tableCellEmphasis(dark).copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        height: 1.1,
+                        fontFeatures: const <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      child: Text(
+                        '·',
+                        style: HomeUi.subtitle(dark).copyWith(
+                          fontSize: 10.5,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+                        border: Border.all(
+                          color: HomeUi.borderLight(dark),
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        _fmtPercent(item.percentage),
+                        style: HomeUi.subtitle(dark).copyWith(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.1,
+                          fontFeatures: const <FontFeature>[
+                            FontFeature.tabularFigures(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -346,7 +423,7 @@ class _RevenueDonutState extends State<_RevenueDonut>
   static const double _outerFactor = 0.90;
   static const double _innerFactor = 0.76;
   static const double _hoverExpand = 6.0;
-  static const double _gapPx = 2.0;
+  static const double _gapPx = 0.55;
   static const double _chartHeight = 280;
   /// Higher = snappier; ~8–12 feels smooth without lag.
   static const double _smoothSpeed = 11.0;
@@ -731,9 +808,11 @@ class _RevenueDonutPainter extends CustomPainter {
       final double outerR = outerBase + hoverExpand * t;
       final double innerR = innerBase - hoverExpand * t;
 
-      final double drawStart = startAngle + (items.length > 1 ? gapAngle : 0);
+      // Small single-sided gap so adjacent slices stay close.
+      final double drawStart =
+          startAngle + (items.length > 1 ? gapAngle * 0.5 : 0);
       final double drawSweep =
-          sweep - (items.length > 1 ? gapAngle * 2 : 0);
+          sweep - (items.length > 1 ? gapAngle : 0);
       if (drawSweep <= 0) return;
 
       final Color base = palette[i % palette.length];

@@ -7,6 +7,7 @@ import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/app_sidebar.dart';
 import 'package:musaffa_terminal/Components/sliding_pill_tabs.dart';
+import 'package:musaffa_terminal/Components/table_pagination_bar.dart';
 import 'package:musaffa_terminal/Controllers/earnings_calendar_controller.dart';
 import 'package:musaffa_terminal/Controllers/earnings_detail_controller.dart';
 import 'package:musaffa_terminal/Screens/earnings_detail_screen.dart';
@@ -1224,7 +1225,6 @@ class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
     final int totalPages =
         eventCount == 0 ? 1 : ((eventCount - 1) ~/ pageSize) + 1;
     final int current = _controller.page.value;
-    final List<int?> pageItems = _pageItems(current, totalPages);
 
     String commaNumber(int value) {
       final String s = value.toString();
@@ -1236,134 +1236,17 @@ class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
       return buf.toString();
     }
 
-    final Widget statusText = Text.rich(
-      TextSpan(
-        style: HomeUi.subtitle(isDark).copyWith(fontSize: 12.5),
-        children: <InlineSpan>[
-          const TextSpan(text: 'Page '),
-          TextSpan(
-            text: '$current',
-            style: HomeUi.tableCell(isDark).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.5,
-            ),
-          ),
-          const TextSpan(text: ' of '),
-          TextSpan(
-            text: commaNumber(totalPages),
-            style: HomeUi.tableCell(isDark).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.5,
-            ),
-          ),
-          TextSpan(text: '  ·  ${commaNumber(eventCount)} events'),
-        ],
-      ),
-    );
-
-    final Widget pageControls = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _PageNavButton(
-          isDark: isDark,
-          icon: Icons.chevron_left_rounded,
-          enabled: current > 1,
-          onTap: () => _controller.goToPage(current - 1),
-        ),
-        const SizedBox(width: 6),
-        for (final int? item in pageItems)
-          if (item == null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                '…',
-                style: HomeUi.subtitle(isDark).copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: _PageNumberButton(
-                isDark: isDark,
-                page: item,
-                selected: item == current,
-                onTap: () => _controller.goToPage(item),
-              ),
-            ),
-        const SizedBox(width: 6),
-        _PageNavButton(
-          isDark: isDark,
-          icon: Icons.chevron_right_rounded,
-          enabled: current < totalPages,
-          onTap: () => _controller.goToPage(current + 1),
-        ),
-      ],
-    );
-
-    return Column(
+    return TablePaginationBar(
       key: ValueKey<String>('pagination-${keySeed ?? '$current-$eventCount'}'),
-      children: [
-        Divider(
-          height: 1,
-          thickness: 0.5,
-          color: HomeUi.borderLight(isDark),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            compact ? 14 : 16,
-            12,
-            compact ? 14 : 16,
-            12,
-          ),
-          child: compact
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    statusText,
-                    if (totalPages > 1) ...[
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: pageControls,
-                      ),
-                    ],
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(child: statusText),
-                    if (totalPages > 1) pageControls,
-                  ],
-                ),
-        ),
-      ],
+      isDark: isDark,
+      currentPage: current,
+      totalPages: totalPages,
+      summaryText: '${commaNumber(eventCount)} events',
+      compact: compact,
+      rowsPerPage: pageSize,
+      onRowsPerPageChanged: _controller.setPageSize,
+      onPageChanged: _controller.goToPage,
     );
-  }
-
-  List<int?> _pageItems(int current, int total) {
-    if (total <= 7) {
-      return <int?>[for (int i = 1; i <= total; i++) i];
-    }
-    final Set<int> set = <int>{1, total, current};
-    if (current - 1 > 1) set.add(current - 1);
-    if (current + 1 < total) set.add(current + 1);
-    if (current <= 3) set.addAll(<int>{2, 3, 4});
-    if (current >= total - 2) {
-      set.addAll(<int>{total - 3, total - 2, total - 1});
-    }
-    final List<int> sorted = set.toList()..sort();
-    final List<int?> out = <int?>[];
-    int? prev;
-    for (final int page in sorted) {
-      if (page < 1 || page > total) continue;
-      if (prev != null && page - prev > 1) out.add(null);
-      out.add(page);
-      prev = page;
-    }
-    return out;
   }
 }
 
@@ -1624,131 +1507,6 @@ class _PremiumMiniToggleState extends State<_PremiumMiniToggle> {
                   ],
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PageNavButton extends StatefulWidget {
-  const _PageNavButton({
-    required this.isDark,
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final bool isDark;
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  State<_PageNavButton> createState() => _PageNavButtonState();
-}
-
-class _PageNavButtonState extends State<_PageNavButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool enabled = widget.enabled;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: enabled ? widget.onTap : null,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 140),
-          opacity: enabled ? 1 : 0.38,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            width: HomeUi.controlHeight,
-            height: HomeUi.controlHeight,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: enabled && _hover
-                  ? HomeUi.iconFillGradient
-                  : HomeUi.iconWellGradient,
-              border: Border.all(
-                color: enabled && _hover
-                    ? HomeUi.buttonBorder
-                    : HomeUi.iconWellBorder,
-                width: 0.856,
-              ),
-            ),
-            child: enabled && _hover
-                ? Icon(widget.icon, size: 18, color: Colors.white)
-                : HomeUi.brandIcon(icon: widget.icon, size: 18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PageNumberButton extends StatefulWidget {
-  const _PageNumberButton({
-    required this.isDark,
-    required this.page,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final bool isDark;
-  final int page;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  State<_PageNumberButton> createState() => _PageNumberButtonState();
-}
-
-class _PageNumberButtonState extends State<_PageNumberButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool selected = widget.selected;
-    final bool dark = widget.isDark;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: selected ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: selected ? null : widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          constraints: const BoxConstraints(
-            minWidth: HomeUi.controlHeight,
-            minHeight: HomeUi.controlHeight,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: selected ? HomeUi.iconFillGradient : null,
-            color: selected
-                ? null
-                : (_hover ? HomeUi.elevatedBg(dark) : Colors.transparent),
-            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-            border: Border.all(
-              color: selected
-                  ? HomeUi.buttonBorder
-                  : (_hover ? HomeUi.borderStrong(dark) : Colors.transparent),
-              width: 0.856,
-            ),
-          ),
-          child: Text(
-            '${widget.page}',
-            style: HomeUi.control(dark, active: true).copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : HomeUi.title(dark),
             ),
           ),
         ),

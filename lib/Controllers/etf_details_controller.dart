@@ -228,6 +228,19 @@ class EtfDetailsController extends GetxController {
     }
   }
 
+  Future<void> setHoldingsPerPage(int newPerPage) async {
+    if (newPerPage < 1 || newPerPage == holdingsPerPage.value) return;
+    holdingsPerPage.value = newPerPage;
+    final allHoldings = holdingsData.value?.holdings;
+    if (allHoldings == null || allHoldings.isEmpty) {
+      totalHoldingsPages.value = 0;
+      return;
+    }
+    totalHoldingsPages.value =
+        (allHoldings.length / holdingsPerPage.value).ceil();
+    await loadHoldingsPage(0);
+  }
+
   bool get hasNextHoldingsPage => currentHoldingsPage.value < totalHoldingsPages.value - 1;
   bool get hasPreviousHoldingsPage => currentHoldingsPage.value > 0;
 

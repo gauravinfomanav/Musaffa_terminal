@@ -10,6 +10,7 @@ import 'package:musaffa_terminal/Components/trading_view_widget.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Components/research_notes_panel_content.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/table_pagination_bar.dart';
 import 'package:musaffa_terminal/Controllers/etf_details_controller.dart';
 import 'package:musaffa_terminal/Controllers/research_notes_controller.dart';
 import 'package:musaffa_terminal/Controllers/trading_view_controller.dart';
@@ -1236,108 +1237,21 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
       final int currentDisplayPage = currentPage + 1;
       final int totalHoldings =
           controller.holdingsData.value?.holdings.length ?? 0;
-      final List<int?> visiblePages =
-          _holdingsPageItems(currentDisplayPage, totalPages);
 
       return Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: RichText(
-                overflow: TextOverflow.ellipsis,
-                text: TextSpan(
-                  style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12.5),
-                  children: [
-                    const TextSpan(text: 'Page '),
-                    TextSpan(
-                      text: '$currentDisplayPage',
-                      style: HomeUi.tableCell(isDarkMode).copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                    const TextSpan(text: ' of '),
-                    TextSpan(
-                      text: '$totalPages',
-                      style: HomeUi.tableCell(isDarkMode).copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                    TextSpan(text: '  ·  $totalHoldings holdings'),
-                  ],
-                ),
-              ),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _EtfPaginationIconButton(
-                  icon: Icons.chevron_left_rounded,
-                  enabled: controller.hasPreviousHoldingsPage,
-                  isDarkMode: isDarkMode,
-                  onTap: () => controller.previousHoldingsPage(),
-                ),
-                const SizedBox(width: 6),
-                ...visiblePages.map((int? page) {
-                  if (page == null) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        '…',
-                        style: HomeUi.subtitle(isDarkMode).copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _EtfPaginationPageButton(
-                      page: page,
-                      selected: page == currentDisplayPage,
-                      isDarkMode: isDarkMode,
-                      onTap: () => controller.goToHoldingsPage(page - 1),
-                    ),
-                  );
-                }),
-                const SizedBox(width: 6),
-                _EtfPaginationIconButton(
-                  icon: Icons.chevron_right_rounded,
-                  enabled: controller.hasNextHoldingsPage,
-                  isDarkMode: isDarkMode,
-                  onTap: () => controller.nextHoldingsPage(),
-                ),
-              ],
-            ),
-          ],
+        child: TablePaginationBar(
+          isDark: isDarkMode,
+          currentPage: currentDisplayPage,
+          totalPages: totalPages,
+          summaryText: '$totalHoldings holdings',
+          showTopDivider: false,
+          rowsPerPage: controller.holdingsPerPage.value,
+          onRowsPerPageChanged: controller.setHoldingsPerPage,
+          onPageChanged: (int page) => controller.goToHoldingsPage(page - 1),
         ),
       );
     });
-  }
-
-  List<int?> _holdingsPageItems(int current, int total) {
-    if (total <= 7) {
-      return [for (var i = 1; i <= total; i++) i];
-    }
-    final set = <int>{1, total, current};
-    if (current - 1 > 1) set.add(current - 1);
-    if (current + 1 < total) set.add(current + 1);
-    if (current <= 3) set.addAll({2, 3, 4});
-    if (current >= total - 2) set.addAll({total - 3, total - 2, total - 1});
-    final sorted = set.toList()..sort();
-    final out = <int?>[];
-    int? prev;
-    for (final page in sorted) {
-      if (prev != null && page - prev > 1) out.add(null);
-      out.add(page);
-      prev = page;
-    }
-    return out;
   }
 
   List<Color> _getChartColors() => _etfChartPalette;
@@ -1597,133 +1511,6 @@ class PieChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class _EtfPaginationIconButton extends StatefulWidget {
-  final IconData icon;
-  final bool enabled;
-  final bool isDarkMode;
-  final VoidCallback onTap;
-
-  const _EtfPaginationIconButton({
-    required this.icon,
-    required this.enabled,
-    required this.isDarkMode,
-    required this.onTap,
-  });
-
-  @override
-  State<_EtfPaginationIconButton> createState() =>
-      _EtfPaginationIconButtonState();
-}
-
-class _EtfPaginationIconButtonState extends State<_EtfPaginationIconButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = widget.enabled;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: enabled ? widget.onTap : null,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 140),
-          opacity: enabled ? 1 : 0.38,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            width: HomeUi.controlHeight,
-            height: HomeUi.controlHeight,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: enabled && _hover
-                  ? HomeUi.iconFillGradient
-                  : HomeUi.iconWellGradient,
-              border: Border.all(
-                color: enabled && _hover
-                    ? HomeUi.buttonBorder
-                    : HomeUi.iconWellBorder,
-                width: 0.856,
-              ),
-            ),
-            child: enabled && _hover
-                ? Icon(widget.icon, size: 18, color: Colors.white)
-                : HomeUi.brandIcon(icon: widget.icon, size: 18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EtfPaginationPageButton extends StatefulWidget {
-  final int page;
-  final bool selected;
-  final bool isDarkMode;
-  final VoidCallback onTap;
-
-  const _EtfPaginationPageButton({
-    required this.page,
-    required this.selected,
-    required this.isDarkMode,
-    required this.onTap,
-  });
-
-  @override
-  State<_EtfPaginationPageButton> createState() =>
-      _EtfPaginationPageButtonState();
-}
-
-class _EtfPaginationPageButtonState extends State<_EtfPaginationPageButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = widget.isDarkMode;
-    final selected = widget.selected;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: selected ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: selected ? null : widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          constraints: BoxConstraints(
-            minWidth: HomeUi.controlHeight,
-            minHeight: HomeUi.controlHeight,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: selected ? HomeUi.iconFillGradient : null,
-            color: selected
-                ? null
-                : (_hover ? HomeUi.elevatedBg(dark) : Colors.transparent),
-            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-            border: Border.all(
-              color: selected
-                  ? HomeUi.buttonBorder
-                  : (_hover ? HomeUi.borderStrong(dark) : Colors.transparent),
-              width: 0.856,
-            ),
-          ),
-          child: Text(
-            '${widget.page}',
-            style: HomeUi.control(dark, active: true).copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : HomeUi.title(dark),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _EtfResearchNotesOverlayCard extends StatelessWidget {
