@@ -49,9 +49,9 @@ class PremiumFinanceExtraCharts {
 
   static Widget geographicRevenue(bool dark) => _ChartShell(
         dark: dark,
-        caption: 'REVENUE BY GEOGRAPHY',
+        caption: 'BULLET CHART · EVALUATION',
         height: 280,
-        child: _geoChart(dark),
+        child: _BulletChartPanel(dark: dark),
       );
 
   static Widget correlationMatrix(bool dark) => _ChartShell(
@@ -354,49 +354,6 @@ class PremiumFinanceExtraCharts {
           borderRadius: BorderRadius.circular(4),
           width: 0.38,
           spacing: 0.14,
-        ),
-      ],
-    );
-  }
-
-  static Widget _geoChart(bool dark) {
-    final UsPremiumChartColors c = chartColors(dark);
-    final List<StaticBarItem> items = StaticPremiumChartData.geographicRevenue;
-
-    return SfCartesianChart(
-      plotAreaBorderWidth: 0,
-      margin: EdgeInsets.zero,
-      isTransposed: true,
-      tooltipBehavior: TooltipBehavior(
-        enable: true,
-        color: Colors.transparent,
-        borderColor: Colors.transparent,
-        elevation: 0,
-        builder: (dynamic d, _, __, ___, ____) {
-          if (d is! StaticBarItem) return const SizedBox.shrink();
-          return _tip(dark, d.label, '${d.value.toStringAsFixed(1)}% of revenue');
-        },
-      ),
-      primaryXAxis: CategoryAxis(
-        axisLine: AxisLine(width: 0),
-        majorGridLines: const MajorGridLines(width: 0),
-        labelStyle: _axis(dark),
-      ),
-      primaryYAxis: NumericAxis(
-        axisLine: AxisLine(width: 0),
-        majorGridLines: MajorGridLines(width: 0.5, color: c.grid),
-        labelStyle: _axis(dark),
-        axisLabelFormatter: (AxisLabelRenderDetails details) =>
-            ChartAxisLabel('${details.value.toStringAsFixed(0)}%', details.textStyle),
-      ),
-      series: <CartesianSeries<StaticBarItem, String>>[
-        BarSeries<StaticBarItem, String>(
-          dataSource: items,
-          xValueMapper: (StaticBarItem i, _) => i.label,
-          yValueMapper: (StaticBarItem i, _) => i.value,
-          borderRadius: BorderRadius.circular(3),
-          pointColorMapper: (_, int i) => c.seriesAt(i),
-          width: 0.55,
         ),
       ],
     );
@@ -760,42 +717,6 @@ class PremiumFinanceExtraCharts {
         color: UsPremiumPalette.muted(dark),
       );
 
-  static Widget _tip(bool dark, String title, String body) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-        decoration: BoxDecoration(
-          color: UsPremiumPalette.surface(dark),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: UsPremiumPalette.border(dark)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: dark ? 0.35 : 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(title,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 10,
-                  color: UsPremiumPalette.muted(dark),
-                )),
-            const SizedBox(height: 4),
-            Text(body,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: UsPremiumPalette.text(dark),
-                )),
-          ],
-        ),
-      );
-
   static Widget _metricPill(
     bool dark, {
     required String label,
@@ -1062,5 +983,375 @@ class _Range52WeekBar extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// Two Evaluation bullet rows — gradient + discrete qualitative ranges.
+class _BulletChartPanel extends StatelessWidget {
+  const _BulletChartPanel({required this.dark});
+
+  final bool dark;
+
+  static const double _value = 65;
+  static const double _target = 83;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        children: <Widget>[
+          Expanded(
+            child: _BulletRow(
+              dark: dark,
+              label: 'Evaluation',
+              value: _value,
+              target: _target,
+              style: _BulletStyle.gradient,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Expanded(
+            child: _BulletRow(
+              dark: dark,
+              label: 'Evaluation',
+              value: _value,
+              target: _target,
+              style: _BulletStyle.bands,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _BulletStyle { gradient, bands }
+
+class _BulletRow extends StatefulWidget {
+  const _BulletRow({
+    required this.dark,
+    required this.label,
+    required this.value,
+    required this.target,
+    required this.style,
+  });
+
+  final bool dark;
+  final String label;
+  final double value;
+  final double target;
+  final _BulletStyle style;
+
+  @override
+  State<_BulletRow> createState() => _BulletRowState();
+}
+
+class _BulletRowState extends State<_BulletRow> {
+  static const Duration _animDuration = Duration(milliseconds: 180);
+  static const Curve _animCurve = Curves.easeOutCubic;
+
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        const double labelW = 78;
+        const double axisH = 18;
+        final double trackH =
+            math.max(28.0, (constraints.maxHeight - axisH) * 0.55);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(
+                    width: labelW,
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: UsPremiumPalette.text(widget.dark),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: SizedBox(
+                      height: trackH,
+                      child: LayoutBuilder(
+                        builder:
+                            (BuildContext context, BoxConstraints trackBox) {
+                          final double w = trackBox.maxWidth;
+                          final double h = trackBox.maxHeight;
+                          final double valueX =
+                              w * (widget.value.clamp(0, 100) / 100);
+                          final double targetX =
+                              w * (widget.target.clamp(0, 100) / 100);
+
+                          return MouseRegion(
+                            onEnter: (_) => setState(() => _hovering = true),
+                            onExit: (_) => setState(() => _hovering = false),
+                            cursor: SystemMouseCursors.basic,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: <Widget>[
+                                Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: _BulletPainter(
+                                      dark: widget.dark,
+                                      value: widget.value.clamp(0, 100),
+                                      target: widget.target.clamp(0, 100),
+                                      style: widget.style,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: valueX + 6,
+                                  top: (h - 22) / 2,
+                                  child: _AnimatedBulletCallout(
+                                    visible: _hovering,
+                                    text: '${widget.value.round()}%',
+                                    duration: _animDuration,
+                                    curve: _animCurve,
+                                  ),
+                                ),
+                                Positioned(
+                                  left: targetX + 6,
+                                  top: (h - 22) / 2,
+                                  child: _AnimatedBulletCallout(
+                                    visible: _hovering,
+                                    text: '${widget.target.round()}%',
+                                    duration: _animDuration,
+                                    curve: _animCurve,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: axisH,
+              child: Padding(
+                padding: const EdgeInsets.only(left: labelW),
+                child: Row(
+                  children: <Widget>[
+                    for (int i = 0; i <= 10; i++)
+                      Expanded(
+                        child: Align(
+                          alignment: i == 0
+                              ? Alignment.centerLeft
+                              : (i == 10
+                                  ? Alignment.centerRight
+                                  : Alignment.center),
+                          child: Text(
+                            '${i * 10}%',
+                            style: TextStyle(
+                              fontFamily: Constants.FONT_DEFAULT_NEW,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: UsPremiumPalette.muted(widget.dark),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedBulletCallout extends StatelessWidget {
+  const _AnimatedBulletCallout({
+    required this.visible,
+    required this.text,
+    required this.duration,
+    required this.curve,
+  });
+
+  final bool visible;
+  final String text;
+  final Duration duration;
+  final Curve curve;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: duration,
+        curve: curve,
+        child: AnimatedSlide(
+          offset: visible ? Offset.zero : const Offset(-0.12, 0),
+          duration: duration,
+          curve: curve,
+          child: _BulletCallout(text: text),
+        ),
+      ),
+    );
+  }
+}
+
+/// Black pill tooltip with a left-pointing caret — matches reference callouts.
+class _BulletCallout extends StatelessWidget {
+  const _BulletCallout({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        CustomPaint(
+          size: const Size(7, 10),
+          painter: const _CalloutCaretPainter(),
+        ),
+        Container(
+          height: 22,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFF111111),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: const Color(0x33FFFFFF),
+              width: 0.8,
+            ),
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              height: 1,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CalloutCaretPainter extends CustomPainter {
+  const _CalloutCaretPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Path path = Path()
+      ..moveTo(size.width, 0)
+      ..lineTo(0, size.height / 2)
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = const Color(0xFF111111));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _BulletPainter extends CustomPainter {
+  _BulletPainter({
+    required this.dark,
+    required this.value,
+    required this.target,
+    required this.style,
+  });
+
+  final bool dark;
+  final double value;
+  final double target;
+  final _BulletStyle style;
+
+  static const List<Color> _bandColors = <Color>[
+    Color(0xFF4CAF50),
+    Color(0xFF8BC34A),
+    Color(0xFFFFEB3B),
+    Color(0xFFFFC107),
+    Color(0xFFFF9800),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final RRect track = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(3),
+    );
+    canvas.save();
+    canvas.clipRRect(track);
+
+    if (style == _BulletStyle.gradient) {
+      final Paint fill = Paint()
+        ..shader = const LinearGradient(
+          colors: <Color>[
+            Color(0xFF4CAF50),
+            Color(0xFFCDDC39),
+            Color(0xFFFFEB3B),
+            Color(0xFFFF9800),
+            Color(0xFFF44336),
+          ],
+          stops: <double>[0, 0.28, 0.5, 0.75, 1],
+        ).createShader(Offset.zero & size);
+      canvas.drawRect(Offset.zero & size, fill);
+    } else {
+      final double bandW = size.width / _bandColors.length;
+      for (int i = 0; i < _bandColors.length; i++) {
+        canvas.drawRect(
+          Rect.fromLTWH(i * bandW, 0, bandW + 0.5, size.height),
+          Paint()..color = _bandColors[i],
+        );
+      }
+    }
+    canvas.restore();
+
+    final double barH = size.height * 0.42;
+    final double barTop = (size.height - barH) / 2;
+    final double barW = size.width * (value / 100);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, barTop, barW, barH),
+        const Radius.circular(1.5),
+      ),
+      Paint()..color = dark ? const Color(0xFF0F172A) : const Color(0xFF111827),
+    );
+
+    final double tx = size.width * (target / 100);
+    final Paint tick = Paint()
+      ..color = dark ? const Color(0xFF0F172A) : const Color(0xFF111827)
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(tx, size.height * 0.12),
+      Offset(tx, size.height * 0.88),
+      tick,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BulletPainter old) {
+    return old.dark != dark ||
+        old.value != value ||
+        old.target != target ||
+        old.style != style;
   }
 }

@@ -46,6 +46,7 @@ dependencies:
   webview_flutter_web: ^0.2.2+4
   syncfusion_flutter_datagrid: ^29.1.38
   syncfusion_flutter_charts: ^29.1.38
+  syncfusion_flutter_maps: ^29.1.38
   web_socket_channel: ^2.4.0
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.10
@@ -96,6 +97,8 @@ flutter:
     - lib/utils/sector_api_mapping.json
     - assets/screener_filters.json
     - assets/results_tabs_config.json
+    - assets/maps/world_countries.json
+    - assets/maps/country_data.json
   # - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
