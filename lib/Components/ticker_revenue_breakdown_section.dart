@@ -125,7 +125,7 @@ class TickerRevenueBreakdownSection extends StatelessWidget {
                       child: IgnorePointer(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
+                    children: <Widget>[
                             const Spacer(),
                             ColoredBox(
                               color: HomeUi.borderLight(isDarkMode),
@@ -147,7 +147,7 @@ class TickerRevenueBreakdownSection extends StatelessWidget {
                 _RevenueSlicePanel(
                   slice: geography,
                   isDarkMode: isDarkMode,
-                ),
+              ),
             ],
           ),
         );
@@ -196,10 +196,10 @@ class _RevenueSlicePanel extends StatelessWidget {
         SizedBox(
           height: 72,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                slice.title,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          slice.title,
                 style: HomeUi.sectionTitle(isDarkMode).copyWith(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
@@ -207,13 +207,13 @@ class _RevenueSlicePanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                slice.periodLabel,
-                style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 11.5),
-              ),
-              if (largest != null) ...<Widget>[
+        Text(
+          slice.periodLabel,
+          style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 11.5),
+        ),
+        if (largest != null) ...<Widget>[
                 const SizedBox(height: 6),
-                Text(
+          Text(
                   '${_shortLabel(largest.label)}  ·  ${_fmtPercent(largest.percentage)} of ${_fmtRevenue(slice.total)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -316,9 +316,9 @@ class _RevenueSlicePanel extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
                   _shortLabel(item.label),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -336,7 +336,7 @@ class _RevenueSlicePanel extends StatelessWidget {
                       _fmtRevenue(item.revenue),
                       style: HomeUi.tableCellEmphasis(dark).copyWith(
                         fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                         letterSpacing: -0.2,
                         height: 1.1,
                         fontFeatures: const <FontFeature>[
@@ -645,7 +645,7 @@ class _RevenueDonutState extends State<_RevenueDonut>
                           const SizedBox(height: 6),
                           Container(
                             constraints: const BoxConstraints(maxWidth: 110),
-                            padding: const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 4,
                             ),
@@ -654,15 +654,15 @@ class _RevenueDonutState extends State<_RevenueDonut>
                                   ? const Color(0xFF1A1D22)
                                   : const Color(0xFFF1F3F5),
                               borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
+                  ),
+                  child: Text(
                               _shortLabel(centerItem.label),
                               textAlign: TextAlign.center,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: HomeUi.control(dark, active: true)
                                   .copyWith(
-                                fontSize: 11,
+                      fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -676,9 +676,9 @@ class _RevenueDonutState extends State<_RevenueDonut>
                 _hoveredIndex!,
                 _currentSize() ?? const Size(_chartHeight, _chartHeight),
               ),
-          ],
+            ],
+          ),
         ),
-      ),
     );
   }
 
@@ -740,10 +740,10 @@ class _RevenueDonutState extends State<_RevenueDonut>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(
+                Text(
                       _shortLabel(item.label),
                       style: HomeUi.control(dark, active: true).copyWith(
-                        fontSize: 12.5,
+                    fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -931,18 +931,18 @@ String _shortLabel(String raw) {
   );
   label = label.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   return label.isEmpty ? raw : label;
-}
+  }
 
-String _fmtRevenue(num value) {
-  return valueWithCurrency(
-    price: value,
-    currency: 'USD',
-    showCurrencySymbol: true,
-    shorten: true,
-  );
-}
+  String _fmtRevenue(num value) {
+    return valueWithCurrency(
+      price: value,
+      currency: 'USD',
+      showCurrencySymbol: true,
+      shorten: true,
+    );
+  }
 
-String _fmtPercent(double? value) {
-  if (value == null) return '--';
-  return '${value.toStringAsFixed(1)}%';
+  String _fmtPercent(double? value) {
+    if (value == null) return '--';
+    return '${value.toStringAsFixed(1)}%';
 }

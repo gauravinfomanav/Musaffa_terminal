@@ -6,6 +6,9 @@ import 'package:musaffa_terminal/utils/home_ui.dart';
 ///
 /// [currentPage] / [onPageChanged] are **1-based**.
 /// Submit Go-to with Enter (no separate Go button).
+///
+/// Page nav matches a compact first / prev / `current / total` / next / last
+/// row with no pill or icon-well background.
 
 class TablePaginationBar extends StatefulWidget {
   const TablePaginationBar({
@@ -89,24 +92,6 @@ class _TablePaginationBarState extends State<TablePaginationBar> {
     _gotoFocus.unfocus();
   }
 
-  List<int?> _pageItems(int current, int total) {
-    if (total <= 7) {
-      return <int?>[for (int i = 1; i <= total; i++) i];
-    }
-    final Set<int> set = <int>{1, total, current};
-    if (current - 1 > 1) set.add(current - 1);
-    if (current + 1 < total) set.add(current + 1);
-    final List<int> sorted = set.toList()..sort();
-    final List<int?> out = <int?>[];
-    int? prev;
-    for (final int p in sorted) {
-      if (prev != null && p - prev > 1) out.add(null);
-      out.add(p);
-      prev = p;
-    }
-    return out;
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool dark = widget.isDark;
@@ -120,35 +105,17 @@ class _TablePaginationBarState extends State<TablePaginationBar> {
       widget.compact ? 8 : 10,
     );
 
-    final Widget status = Text.rich(
-      TextSpan(
-        style: HomeUi.subtitle(dark).copyWith(fontSize: 12.5),
-        children: <InlineSpan>[
-          const TextSpan(text: 'Page '),
-          TextSpan(
-            text: '$current',
-            style: HomeUi.tableCell(dark).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.5,
-            ),
-          ),
-          const TextSpan(text: ' of '),
-          TextSpan(
-            text: _comma(total),
-            style: HomeUi.tableCell(dark).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.5,
-            ),
-          ),
-          if (widget.summaryText != null && widget.summaryText!.isNotEmpty)
-            TextSpan(text: '  ·  ${widget.summaryText}'),
-        ],
-      ),
-      overflow: TextOverflow.ellipsis,
-    );
+    final Widget? summary = widget.summaryText != null &&
+            widget.summaryText!.isNotEmpty
+        ? Text(
+            widget.summaryText!,
+            style: HomeUi.subtitle(dark).copyWith(fontSize: 12.5),
+            overflow: TextOverflow.ellipsis,
+          )
+        : null;
 
-    final bool showRows = widget.rowsPerPage != null &&
-        widget.onRowsPerPageChanged != null;
+    final bool showRows =
+        widget.rowsPerPage != null && widget.onRowsPerPageChanged != null;
 
     final List<Widget> controlChildren = <Widget>[
       if (showRows) ...<Widget>[
@@ -169,46 +136,18 @@ class _TablePaginationBarState extends State<TablePaginationBar> {
       ),
       if (multi) ...<Widget>[
         const SizedBox(width: 28),
-        _NavIcon(
+        _PageNav(
           dark: dark,
-          icon: Icons.chevron_left_rounded,
-          enabled: current > 1,
-          onTap: () => _goTo(current - 1),
-        ),
-        if (widget.showPageButtons) ...<Widget>[
-          for (final int? item in _pageItems(current, total))
-            if (item == null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  '…',
-                  style: HomeUi.subtitle(dark).copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: _PageChip(
-                  dark: dark,
-                  page: item,
-                  selected: item == current,
-                  onTap: () => _goTo(item),
-                ),
-              ),
-        ],
-        _NavIcon(
-          dark: dark,
-          icon: Icons.chevron_right_rounded,
-          enabled: current < total,
-          onTap: () => _goTo(current + 1),
+          current: current,
+          total: total,
+          onFirst: () => _goTo(1),
+          onPrev: () => _goTo(current - 1),
+          onNext: () => _goTo(current + 1),
+          onLast: () => _goTo(total),
         ),
       ],
     ];
 
-    // Always one horizontal line — scroll if the strip is too wide.
     final Widget controls = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -233,19 +172,24 @@ class _TablePaginationBarState extends State<TablePaginationBar> {
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    status,
-                    const SizedBox(height: 10),
+                    if (summary != null) ...<Widget>[
+                      summary,
+                      const SizedBox(height: 10),
+                    ],
                     Align(alignment: Alignment.centerRight, child: controls),
                   ],
                 )
               : Row(
                   children: <Widget>[
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: status,
-                      ),
-                    ),
+                    if (summary != null)
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: summary,
+                        ),
+                      )
+                    else
+                      const Spacer(),
                     const SizedBox(width: 12),
                     Flexible(
                       child: Align(
@@ -259,15 +203,229 @@ class _TablePaginationBarState extends State<TablePaginationBar> {
       ],
     );
   }
+}
 
-  static String _comma(int value) {
-    final String s = value.toString();
-    final StringBuffer buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return buf.toString();
+/// Compact first / prev / `n / total` / next / last — no background pill.
+class _PageNav extends StatelessWidget {
+  const _PageNav({
+    required this.dark,
+    required this.current,
+    required this.total,
+    required this.onFirst,
+    required this.onPrev,
+    required this.onNext,
+    required this.onLast,
+  });
+
+  final bool dark;
+  final int current;
+  final int total;
+  final VoidCallback onFirst;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+  final VoidCallback onLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool canPrev = current > 1;
+    final bool canNext = current < total;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _FlatNavIcon(
+          dark: dark,
+          icon: Icons.first_page_rounded,
+          enabled: canPrev,
+          onTap: onFirst,
+        ),
+        const SizedBox(width: 2),
+        _FlatNavIcon(
+          dark: dark,
+          icon: Icons.chevron_left_rounded,
+          enabled: canPrev,
+          onTap: onPrev,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _SlidingPageNumber(dark: dark, page: current),
+              Text(
+                ' / ',
+                style: HomeUi.subtitle(dark).copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                ),
+              ),
+              Text(
+                '$total',
+                style: HomeUi.subtitle(dark).copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _FlatNavIcon(
+          dark: dark,
+          icon: Icons.chevron_right_rounded,
+          enabled: canNext,
+          onTap: onNext,
+        ),
+        const SizedBox(width: 2),
+        _FlatNavIcon(
+          dark: dark,
+          icon: Icons.last_page_rounded,
+          enabled: canNext,
+          onTap: onLast,
+        ),
+      ],
+    );
+  }
+}
+
+/// Current page digit with a vertical slide on next / prev.
+///
+/// Next → old slides up, new enters from below.
+/// Prev → old slides down, new enters from above.
+class _SlidingPageNumber extends StatefulWidget {
+  const _SlidingPageNumber({
+    required this.dark,
+    required this.page,
+  });
+
+  final bool dark;
+  final int page;
+
+  @override
+  State<_SlidingPageNumber> createState() => _SlidingPageNumberState();
+}
+
+class _SlidingPageNumberState extends State<_SlidingPageNumber> {
+  static const Duration _duration = Duration(milliseconds: 260);
+  static const Curve _curve = Curves.easeInOutCubic;
+
+  /// +1 = next (slide up), −1 = prev (slide down).
+  int _direction = 1;
+  late int _displayed;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayed = widget.page;
+  }
+
+  @override
+  void didUpdateWidget(covariant _SlidingPageNumber oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.page == widget.page) return;
+    _direction = widget.page > oldWidget.page ? 1 : -1;
+    _displayed = widget.page;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle style = HomeUi.tableCell(widget.dark).copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      height: 1,
+    );
+
+    return SizedBox(
+      height: 18,
+      child: ClipRect(
+        child: AnimatedSwitcher(
+          duration: _duration,
+          switchInCurve: _curve,
+          switchOutCurve: _curve,
+          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+            return Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            final bool isIncoming = child.key == ValueKey<int>(_displayed);
+            final Animation<Offset> offset = animation.drive(
+              Tween<Offset>(
+                begin: Offset(
+                  0,
+                  isIncoming ? _direction.toDouble() : -_direction.toDouble(),
+                ),
+                end: Offset.zero,
+              ),
+            );
+            return SlideTransition(
+              position: offset,
+              child: FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+            );
+          },
+          child: Text(
+            '$_displayed',
+            key: ValueKey<int>(_displayed),
+            style: style,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlatNavIcon extends StatefulWidget {
+  const _FlatNavIcon({
+    required this.dark,
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final bool dark;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  State<_FlatNavIcon> createState() => _FlatNavIconState();
+}
+
+class _FlatNavIconState extends State<_FlatNavIcon> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool enabled = widget.enabled;
+    final Color activeColor = HomeUi.title(widget.dark);
+    final Color mutedColor = HomeUi.muted(widget.dark);
+    // Enabled = dark (like the reference); disabled = soft grey. Hover darkens slightly.
+    final Color color = !enabled
+        ? mutedColor.withValues(alpha: 0.4)
+        : (_hover ? activeColor : activeColor.withValues(alpha: 0.82));
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: enabled ? widget.onTap : null,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: Icon(widget.icon, size: 20, color: color),
+        ),
+      ),
+    );
   }
 }
 
@@ -400,135 +558,6 @@ class _GotoField extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _NavIcon extends StatefulWidget {
-  const _NavIcon({
-    required this.dark,
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final bool dark;
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  State<_NavIcon> createState() => _NavIconState();
-}
-
-class _NavIconState extends State<_NavIcon> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool enabled = widget.enabled;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: enabled ? widget.onTap : null,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 140),
-          opacity: enabled ? 1 : 0.38,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            width: HomeUi.controlHeight,
-            height: HomeUi.controlHeight,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: enabled && _hover
-                  ? HomeUi.iconFillGradient
-                  : HomeUi.iconWellGradient,
-              border: Border.all(
-                color: enabled && _hover
-                    ? HomeUi.buttonBorder
-                    : HomeUi.iconWellBorder,
-                width: 0.856,
-              ),
-            ),
-            child: enabled && _hover
-                ? Icon(widget.icon, size: 18, color: Colors.white)
-                : HomeUi.brandIcon(icon: widget.icon, size: 18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PageChip extends StatefulWidget {
-  const _PageChip({
-    required this.dark,
-    required this.page,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final bool dark;
-  final int page;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  State<_PageChip> createState() => _PageChipState();
-}
-
-class _PageChipState extends State<_PageChip> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool selected = widget.selected;
-    final bool active = selected || _hover;
-    // Match Next/Prev circular hit target; slightly wider only for 3+ digits.
-    final double size =
-        widget.page >= 100 ? HomeUi.controlHeight + 4 : HomeUi.controlHeight;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: active ? HomeUi.iconFillGradient : HomeUi.iconWellGradient,
-            border: Border.all(
-              color: active ? HomeUi.buttonBorder : HomeUi.iconWellBorder,
-              width: 0.856,
-            ),
-          ),
-          child: Center(
-            child: active
-                ? Text(
-                    '${widget.page}',
-                    style: HomeUi.control(widget.dark, active: true).copyWith(
-                      fontSize: widget.page >= 100 ? 11 : 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    '${widget.page}',
-                    style: HomeUi.control(widget.dark, active: true).copyWith(
-                      fontSize: widget.page >= 100 ? 11 : 12.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-          ),
-        ),
-      ),
     );
   }
 }
