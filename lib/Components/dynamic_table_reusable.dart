@@ -122,7 +122,7 @@ class DynamicTable extends StatefulWidget {
     this.toolbar,
     this.showFixedColumn = true,
     this.considerPadding = true,
-    this.columnSpacing = 40,
+    this.columnSpacing = 8,
     this.horizontalMargin = 16,
     this.fixedColumnWidth,
     this.enableDragging = false,
@@ -589,10 +589,6 @@ class _DynamicTableState extends State<DynamicTable> {
     // Dynamic columns
     for (int index = 0; index < columnsToUse.length; index++) {
       final column = columnsToUse[index];
-      // Check if this is a price column that needs fixed width
-      final isPriceColumn = column.fieldName == 'price' || 
-                           column.fieldName == 'currentPrice' || 
-                           column.fieldName == 'addedPrice';
       
       // All headers centered
       final textAlign = TextAlign.center;
@@ -628,21 +624,11 @@ class _DynamicTableState extends State<DynamicTable> {
           child: headerLabel,
         );
       }
-      
-      if (isPriceColumn) {
-        headerLabel = SizedBox(
-          width: 65,
-          child: Align(
-            alignment: Alignment.center,
-            child: headerLabel,
-          ),
-        );
-      } else {
-        headerLabel = Align(
-          alignment: Alignment.center,
-          child: headerLabel,
-        );
-      }
+
+      headerLabel = Align(
+        alignment: Alignment.center,
+        child: headerLabel,
+      );
       
       // Make header draggable if customization is enabled
       if (widget.enableColumnCustomization) {
@@ -1106,26 +1092,12 @@ class _DynamicTableState extends State<DynamicTable> {
           
           DataCell cell;
           
-          // Check if this is a price column that needs fixed width
-          final isPriceColumn = column.fieldName == 'price' || 
-                               column.fieldName == 'currentPrice' || 
-                               
-                               column.fieldName == 'addedPrice';
-          
           // Check if the field value is a Widget (like TargetPriceCell)
           if (fieldValue is Widget) {
             Widget cellContent = Align(
               alignment: Alignment.centerLeft,
               child: fieldValue,
             );
-            
-            // Apply fixed width for price columns
-            if (isPriceColumn) {
-              cellContent = SizedBox(
-                width: 65, // Fixed width for price columns
-                child: cellContent,
-              );
-            }
             
             cell = DataCell(cellContent);
           } else {
@@ -1217,26 +1189,13 @@ class _DynamicTableState extends State<DynamicTable> {
                 child: cellContent,
               );
             }
-            
-            // Apply fixed width for price columns to prevent shifting
-            if (isPriceColumn) {
-              cellContent = SizedBox(
-                width: 65, // Fixed width for price columns
-                child: Align(
-                  alignment: widget.centerCellContent
-                      ? Alignment.center
-                      : Alignment.centerLeft,
-                  child: cellContent,
-                ),
-              );
-            } else {
-              cellContent = Align(
-                alignment: widget.centerCellContent
-                    ? Alignment.center
-                    : Alignment.centerLeft,
-                child: cellContent,
-              );
-            }
+
+            cellContent = Align(
+              alignment: widget.centerCellContent
+                  ? Alignment.center
+                  : Alignment.centerLeft,
+              child: cellContent,
+            );
             
             cell = DataCell(cellContent);
           }
