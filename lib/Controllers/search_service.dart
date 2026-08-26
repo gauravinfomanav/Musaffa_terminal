@@ -156,6 +156,29 @@ class SearchService {
           }
         }
 
+        // Exact / prefix ticker matches first (stock or ETF), so typing
+        // "URAA" surfaces URAA before fuzzy stock hits like MRAAF.
+        final String normalizedQuery = query.trim().toUpperCase();
+        allResults.sort((TickerModel a, TickerModel b) {
+          final String aSym = (a.symbol ?? '').toUpperCase();
+          final String bSym = (b.symbol ?? '').toUpperCase();
+
+          final bool aExact = aSym == normalizedQuery;
+          final bool bExact = bSym == normalizedQuery;
+          if (aExact != bExact) return aExact ? -1 : 1;
+
+          final bool aPrefix = aSym.startsWith(normalizedQuery);
+          final bool bPrefix = bSym.startsWith(normalizedQuery);
+          if (aPrefix != bPrefix) return aPrefix ? -1 : 1;
+
+          if (aPrefix && bPrefix) {
+            final int byLength = aSym.length.compareTo(bSym.length);
+            if (byLength != 0) return byLength;
+          }
+
+          return 0;
+        });
+
         return allResults;
       }
 
