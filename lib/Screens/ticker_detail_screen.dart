@@ -23,6 +23,7 @@ import 'package:musaffa_terminal/Controllers/ticker_news_sentiment_controller.da
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_price_target_controller.dart';
 import 'package:musaffa_terminal/Controllers/ticker_revenue_breakdown_controller.dart';
+import 'package:musaffa_terminal/Controllers/stock_twitter_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_youtube_videos_controller.dart';
 import 'package:musaffa_terminal/Controllers/stock_profile_controller.dart';
 import 'package:musaffa_terminal/Components/ticker_about_company_tab.dart';
@@ -77,6 +78,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   late TickerPriceTargetController tickerPriceTargetController;
   late TickerRevenueBreakdownController tickerRevenueBreakdownController;
   late StockYouTubeVideosController stockYouTubeVideosController;
+  late StockTwitterController stockTwitterController;
   late StockProfileController stockProfileController;
 
   late LivePriceService _livePriceService;
@@ -115,6 +117,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerPriceTargetController = TickerPriceTargetController();
     tickerRevenueBreakdownController = TickerRevenueBreakdownController();
     stockYouTubeVideosController = StockYouTubeVideosController();
+    stockTwitterController = StockTwitterController();
     stockProfileController = StockProfileController();
 
     _livePriceService = Get.find<LivePriceService>();
@@ -207,6 +210,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     tickerPriceTargetController.dispose();
     tickerRevenueBreakdownController.dispose();
     stockYouTubeVideosController.dispose();
+    stockTwitterController.dispose();
     stockProfileController.dispose();
     financialFundamentalsController.dispose();
     tradingViewController.dispose();
@@ -1247,6 +1251,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       ticker: widget.ticker,
       profileController: stockProfileController,
       youtubeController: stockYouTubeVideosController,
+      twitterController: stockTwitterController,
       revenueController: tickerRevenueBreakdownController,
       isDarkMode: isDarkMode,
     );

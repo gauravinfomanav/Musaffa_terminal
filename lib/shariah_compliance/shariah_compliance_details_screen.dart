@@ -3375,18 +3375,27 @@ class _CalculationDialog extends StatelessWidget {
 
   BoxDecoration _modalPanelDecoration() {
     return BoxDecoration(
-      color: isDark
-          ? Color.alphaBlend(
-              Colors.white.withValues(alpha: 0.03),
-              HomeUi.elevatedBg(isDark),
-            )
-          : const Color(0xFFF8FAFC),
-      borderRadius: BorderRadius.circular(HomeUi.radiusLg),
+      color: isDark ? HomeUi.elevatedBg(true) : Colors.white,
+      borderRadius: BorderRadius.circular(HomeUi.radiusCard),
       border: Border.all(
-        color: isDark
-            ? HomeUi.borderLight(isDark)
-            : const Color(0xFFE8ECF0),
+        color: HomeUi.borderLight(isDark).withValues(alpha: 0.9),
       ),
+      boxShadow: <BoxShadow>[
+        BoxShadow(
+          color: const Color(0xFF0F172A).withValues(
+            alpha: isDark ? 0.28 : 0.06,
+          ),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
+          spreadRadius: -4,
+        ),
+        if (!isDark)
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+      ],
     );
   }
 
@@ -3398,29 +3407,46 @@ class _CalculationDialog extends StatelessWidget {
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Text(
-              title.toUpperCase(),
-              style: HomeUi.overline(isDark).copyWith(
-                fontSize: 10,
-                letterSpacing: 1.05,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.layers_outlined,
+                  size: 14,
+                  color: HomeUi.muted(isDark),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  title.toUpperCase(),
+                  style: HomeUi.overline(isDark).copyWith(
+                    fontSize: 10,
+                    letterSpacing: 1.0,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           for (int index = 0; index < children.length; index++) ...<Widget>[
             if (index > 0)
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: HomeUi.borderLight(isDark).withValues(alpha: 0.75),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: HomeUi.borderLight(isDark).withValues(alpha: 0.7),
+                ),
               ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                index == 0 ? 2 : 11,
+                16,
+                index == children.length - 1 ? 14 : 11,
+              ),
               child: children[index],
             ),
           ],
-          const SizedBox(height: 4),
         ],
       ),
     );
@@ -3434,42 +3460,83 @@ class _CalculationDialog extends StatelessWidget {
     required String threshold,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: _modalPanelDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            formulaLabel,
-            style: HomeUi.control(isDark, active: true).copyWith(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              height: 1.35,
-            ),
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.functions_rounded,
+                size: 14,
+                color: HomeUi.muted(isDark),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  formulaLabel,
+                  style: HomeUi.control(isDark, active: true).copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.35,
+                    letterSpacing: -0.15,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
-              color: HomeUi.cardBg(isDark),
-              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-              border: Border.all(color: HomeUi.borderLight(isDark)),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: HomeUi.borderLight(isDark).withValues(alpha: 0.85),
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? <Color>[
+                        HomeUi.cardBg(true),
+                        Color.alphaBlend(
+                          Colors.white.withValues(alpha: 0.03),
+                          HomeUi.cardBg(true),
+                        ),
+                      ]
+                    : const <Color>[
+                        Color(0xFFFAFBFC),
+                        Color(0xFFFFFFFF),
+                      ],
+              ),
             ),
             child: _formulaFraction(
               numerator: numerator,
               denominator: denominator,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: HomeUi.cardBg(isDark),
-              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: HomeUi.accent(isDark).withValues(alpha: 0.16),
+                color: HomeUi.accent(isDark).withValues(
+                  alpha: isDark ? 0.28 : 0.18,
+                ),
+              ),
+              gradient: LinearGradient(
+                colors: <Color>[
+                  HomeUi.accent(isDark).withValues(
+                    alpha: isDark ? 0.12 : 0.06,
+                  ),
+                  HomeUi.accent(isDark).withValues(
+                    alpha: isDark ? 0.04 : 0.015,
+                  ),
+                ],
               ),
             ),
             child: Text(
@@ -3477,6 +3544,8 @@ class _CalculationDialog extends StatelessWidget {
               style: HomeUi.tableCellEmphasis(isDark).copyWith(
                 fontSize: 14,
                 height: 1.35,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.15,
               ),
             ),
           ),
@@ -3484,11 +3553,18 @@ class _CalculationDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: HomeUi.cardBg(isDark),
+              color: isDark ? HomeUi.cardBg(true) : Colors.white,
               borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-              border: Border.all(
-                color: HomeUi.borderLight(isDark),
-              ),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(
+                    alpha: isDark ? 0.2 : 0.04,
+                  ),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

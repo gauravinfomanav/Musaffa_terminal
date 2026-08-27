@@ -186,6 +186,8 @@ class _RevenueSlicePanel extends StatelessWidget {
   final RevenueBreakdownSlice slice;
   final bool isDarkMode;
 
+  static const double _chartSize = 210;
+
   @override
   Widget build(BuildContext context) {
     final RevenueBreakdownItem? largest = slice.largest;
@@ -196,10 +198,10 @@ class _RevenueSlicePanel extends StatelessWidget {
         SizedBox(
           height: 72,
           child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          slice.title,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                slice.title,
                 style: HomeUi.sectionTitle(isDarkMode).copyWith(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
@@ -207,13 +209,13 @@ class _RevenueSlicePanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-        Text(
-          slice.periodLabel,
-          style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 11.5),
-        ),
-        if (largest != null) ...<Widget>[
+              Text(
+                slice.periodLabel,
+                style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 11.5),
+              ),
+              if (largest != null) ...<Widget>[
                 const SizedBox(height: 6),
-          Text(
+                Text(
                   '${_shortLabel(largest.label)}  ·  ${_fmtPercent(largest.percentage)} of ${_fmtRevenue(slice.total)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -226,14 +228,26 @@ class _RevenueSlicePanel extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 4),
-        _RevenueDonut(
-          slice: slice,
-          isDarkMode: isDarkMode,
-          focusItem: largest,
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            SizedBox(
+              width: _chartSize,
+              height: _chartSize,
+              child: _RevenueDonut(
+                slice: slice,
+                isDarkMode: isDarkMode,
+                focusItem: largest,
+                height: _chartSize,
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: _legend(slice),
+            ),
+          ],
         ),
-        const SizedBox(height: 14),
-        _legend(slice),
       ],
     );
   }
@@ -242,145 +256,71 @@ class _RevenueSlicePanel extends StatelessWidget {
     final List<RevenueBreakdownItem> items = slice.items;
     if (items.isEmpty) return const SizedBox.shrink();
 
-    final bool dark = isDarkMode;
-    const int cols = 3;
-    final int rowCount = (items.length + cols - 1) ~/ cols;
-    final Color line = HomeUi.borderLight(dark);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        border: Border.all(color: line, width: 0.5),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Table(
-        columnWidths: const <int, TableColumnWidth>{
-          0: FlexColumnWidth(),
-          1: FlexColumnWidth(),
-          2: FlexColumnWidth(),
-        },
-        border: TableBorder(
-          verticalInside: BorderSide(color: line, width: 0.5),
-          horizontalInside: BorderSide(color: line, width: 0.5),
-        ),
-        defaultVerticalAlignment: TableCellVerticalAlignment.top,
-        children: <TableRow>[
-          for (int r = 0; r < rowCount; r++)
-            TableRow(
-              children: <Widget>[
-                for (int c = 0; c < cols; c++)
-                  _legendCellAt(items, r * cols + c),
-              ],
-            ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (int i = 0; i < items.length; i++)
+          _legendRow(
+            color: TickerRevenueBreakdownSection
+                .palette[i % TickerRevenueBreakdownSection.palette.length],
+            item: items[i],
+            isLast: i == items.length - 1,
+          ),
+      ],
     );
   }
 
-  Widget _legendCellAt(List<RevenueBreakdownItem> items, int index) {
-    if (index >= items.length) return const SizedBox.shrink();
-    return _legendCell(
-      color: TickerRevenueBreakdownSection
-          .palette[index % TickerRevenueBreakdownSection.palette.length],
-      item: items[index],
-    );
-  }
-
-  Widget _legendCell({
+  Widget _legendRow({
     required Color color,
     required RevenueBreakdownItem item,
+    required bool isLast,
   }) {
-    final bool dark = isDarkMode;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: color.withValues(alpha: 0.28),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                  _shortLabel(item.label),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: HomeUi.control(dark, active: true).copyWith(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    height: 1.15,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: <Widget>[
-                    Text(
-                      _fmtRevenue(item.revenue),
-                      style: HomeUi.tableCellEmphasis(dark).copyWith(
-                        fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                        height: 1.1,
-                        fontFeatures: const <FontFeature>[
-                          FontFeature.tabularFigures(),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      child: Text(
-                        '·',
-                        style: HomeUi.subtitle(dark).copyWith(
-                          fontSize: 10.5,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(HomeUi.radiusSm),
-                        border: Border.all(
-                          color: HomeUi.borderLight(dark),
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(
-                        _fmtPercent(item.percentage),
-                        style: HomeUi.subtitle(dark).copyWith(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.1,
-                          fontFeatures: const <FontFeature>[
-                            FontFeature.tabularFigures(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            child: Text(
+              _shortLabel(item.label),
+              style: HomeUi.control(isDarkMode, active: true).copyWith(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                height: 1.25,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            _fmtRevenue(item.revenue),
+            style: HomeUi.tableCellEmphasis(isDarkMode).copyWith(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            _fmtPercent(item.percentage),
+            textAlign: TextAlign.right,
+            softWrap: false,
+            maxLines: 1,
+            style: HomeUi.subtitle(isDarkMode).copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              fontFeatures: const <FontFeature>[
+                FontFeature.tabularFigures(),
               ],
             ),
           ),
@@ -396,11 +336,13 @@ class _RevenueDonut extends StatefulWidget {
     required this.slice,
     required this.isDarkMode,
     required this.focusItem,
+    this.height = _RevenueDonutState._defaultHeight,
   });
 
   final RevenueBreakdownSlice slice;
   final bool isDarkMode;
   final RevenueBreakdownItem? focusItem;
+  final double height;
 
   @override
   State<_RevenueDonut> createState() => _RevenueDonutState();
@@ -419,12 +361,12 @@ class _RevenueDonutState extends State<_RevenueDonut>
   Offset? _pendingMousePos;
   bool _hoverFrameScheduled = false;
 
-  /// Ring thickness ≈ 14% of radius (professional thin donut).
-  static const double _outerFactor = 0.90;
-  static const double _innerFactor = 0.76;
-  static const double _hoverExpand = 6.0;
-  static const double _gapPx = 0.55;
-  static const double _chartHeight = 280;
+  /// Thin ring — outer fills the box, hole stays open for center label.
+  static const double _outerFactor = 0.98;
+  static const double _innerFactor = 0.88;
+  static const double _hoverExpand = 5.0;
+  static const double _gapPx = 1.0;
+  static const double _defaultHeight = 280;
   /// Higher = snappier; ~8–12 feels smooth without lag.
   static const double _smoothSpeed = 11.0;
 
@@ -581,7 +523,7 @@ class _RevenueDonutState extends State<_RevenueDonut>
         : null;
 
     return SizedBox(
-      height: _chartHeight,
+      height: widget.height,
       width: double.infinity,
       child: MouseRegion(
         opaque: false,
@@ -644,7 +586,7 @@ class _RevenueDonutState extends State<_RevenueDonut>
                           ),
                           const SizedBox(height: 6),
                           Container(
-                            constraints: const BoxConstraints(maxWidth: 110),
+                            constraints: const BoxConstraints(maxWidth: 140),
                   padding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 4,
@@ -674,7 +616,7 @@ class _RevenueDonutState extends State<_RevenueDonut>
             if (_hoveredIndex != null && _mousePos != null)
               _floatingTooltip(
                 _hoveredIndex!,
-                _currentSize() ?? const Size(_chartHeight, _chartHeight),
+                _currentSize() ?? Size(widget.height, widget.height),
               ),
             ],
           ),
@@ -689,9 +631,22 @@ class _RevenueDonutState extends State<_RevenueDonut>
     final Offset pos = _mousePos!;
     final bool dark = widget.isDarkMode;
 
+    // Stay inside chart width so the legend is never covered; wrap full label.
+    final double tipMaxW = (size.width - 10).clamp(120.0, size.width);
+    const double offset = 10;
+    final bool placeLeft = pos.dx > size.width * 0.42;
+    final double left = placeLeft
+        ? (pos.dx - tipMaxW - offset)
+            .clamp(4.0, math.max(4.0, size.width - tipMaxW - 4))
+        : (pos.dx + offset)
+            .clamp(4.0, math.max(4.0, size.width - tipMaxW - 4));
+    final double top =
+        (pos.dy - 12).clamp(4.0, math.max(4.0, size.height * 0.52));
+
     return Positioned(
-      left: (pos.dx + 14).clamp(0.0, math.max(0.0, size.width - 180)),
-      top: (pos.dy - 52).clamp(0.0, math.max(0.0, size.height - 60)),
+      left: left,
+      top: top,
+      width: tipMaxW,
       child: IgnorePointer(
         child: TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0.92, end: 1),
@@ -707,10 +662,11 @@ class _RevenueDonutState extends State<_RevenueDonut>
             );
           },
           child: Container(
-            padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+            width: tipMaxW,
+            padding: const EdgeInsets.fromLTRB(9, 8, 10, 8),
             decoration: BoxDecoration(
               color: dark ? const Color(0xFF1A1D22) : Colors.white,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: dark
                     ? Colors.white.withValues(alpha: 0.06)
@@ -719,40 +675,48 @@ class _RevenueDonutState extends State<_RevenueDonut>
               boxShadow: <BoxShadow>[
                 BoxShadow(
                   color: Colors.black.withValues(alpha: dark ? 0.4 : 0.10),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                Text(
-                      _shortLabel(item.label),
-                      style: HomeUi.control(dark, active: true).copyWith(
-                    fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        _shortLabel(item.label),
+                        softWrap: true,
+                        style: HomeUi.control(dark, active: true).copyWith(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_fmtPercent(item.percentage)} allocation',
-                      style: HomeUi.subtitle(dark).copyWith(fontSize: 11.5),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        '${_fmtPercent(item.percentage)} allocation',
+                        softWrap: false,
+                        style: HomeUi.subtitle(dark).copyWith(fontSize: 10.5),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -798,7 +762,6 @@ class _RevenueDonutPainter extends CustomPainter {
     );
     if (total <= 0) return;
 
-    final double gapAngle = gapPx / outerBase;
     double start = -math.pi / 2; // 12 o'clock
 
     // Draw non-hovered first, then hovered on top for clean overlap.
@@ -807,29 +770,44 @@ class _RevenueDonutPainter extends CustomPainter {
           i < expandTs.length ? expandTs[i].clamp(0.0, 1.0) : 0.0;
       final double outerR = outerBase + hoverExpand * t;
       final double innerR = innerBase - hoverExpand * t;
+      final double midR = (innerR + outerR) / 2;
+      final double strokeW = outerR - innerR;
+      if (strokeW <= 0 || midR <= 0) return;
 
-      // Small single-sided gap so adjacent slices stay close.
-      final double drawStart =
-          startAngle + (items.length > 1 ? gapAngle * 0.5 : 0);
-      final double drawSweep =
-          sweep - (items.length > 1 ? gapAngle : 0);
+      // Exact 1px gap between adjacent slices (split evenly on both sides).
+      final double halfGap =
+          items.length > 1 ? (gapPx / 2) / midR : 0.0;
+      final double drawStart = startAngle + halfGap;
+      final double drawSweep = sweep - 2 * halfGap;
       if (drawSweep <= 0) return;
 
       final Color base = palette[i % palette.length];
-      final Path path =
-          _slicePath(center, innerR, outerR, drawStart, drawSweep);
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = base
-          ..style = PaintingStyle.fill
-          ..isAntiAlias = true,
+      final Paint paint = Paint()
+        ..color = base
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeW
+        ..strokeCap = StrokeCap.butt
+        ..isAntiAlias = true;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: midR),
+        drawStart,
+        drawSweep,
+        false,
+        paint,
       );
+
       if (t > 0.01) {
-        canvas.drawPath(
-          path,
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: midR),
+          drawStart,
+          drawSweep,
+          false,
           Paint()
             ..color = base.withValues(alpha: 0.12 * t)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeW
+            ..strokeCap = StrokeCap.butt
             ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 5),
         );
       }
@@ -875,34 +853,6 @@ class _RevenueDonutPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.8,
     );
-  }
-
-  Path _slicePath(
-    Offset center,
-    double innerR,
-    double outerR,
-    double start,
-    double sweep,
-  ) {
-    final Path path = Path()
-      ..arcTo(
-        Rect.fromCircle(center: center, radius: outerR),
-        start,
-        sweep,
-        true,
-      )
-      ..lineTo(
-        center.dx + math.cos(start + sweep) * innerR,
-        center.dy + math.sin(start + sweep) * innerR,
-      )
-      ..arcTo(
-        Rect.fromCircle(center: center, radius: innerR),
-        start + sweep,
-        -sweep,
-        false,
-      )
-      ..close();
-    return path;
   }
 
   @override
