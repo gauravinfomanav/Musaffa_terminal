@@ -383,6 +383,36 @@ class HomeUi {
     return keys.contains(key);
   }
 
+  /// Long text labels that need a wider floor (not short enums like REC).
+  static bool isWideLabelTableColumn(String key) {
+    const keys = {
+      'sector',
+      'industry',
+      'country',
+      'exchange',
+    };
+    return keys.contains(key);
+  }
+
+  /// Currency / price values — never character-truncate; keep a usable width floor.
+  static bool isPriceTableColumn(String key) {
+    final k = key.toLowerCase();
+    return k == 'price' ||
+        k == 'currentprice' ||
+        k == 'addedprice' ||
+        k == 'targetprice' ||
+        k == 'current';
+  }
+
+  /// Short status / enum columns — keep tight; do not absorb stretch space.
+  static bool isCompactTableColumn(String key) {
+    final String k = key.toLowerCase();
+    return k == 'recommendation' ||
+        k == 'rec' ||
+        k.endsWith('_rec') ||
+        k.contains('recommendation');
+  }
+
   /// Long prose (notes/comments) may ellipsize. Short labels/values must not.
   static bool isCommentLikeTableText(String text, {String? columnKey}) {
     final key = (columnKey ?? '').toLowerCase();
@@ -410,10 +440,17 @@ class HomeUi {
   static const int tableHeaderMaxChars = 10;
 
   /// Shows up to [maxChars] characters; truncates with ellipsis from the 26th.
+  /// Price / currency strings are never truncated.
   static String truncateTableText(
     String text, {
     int maxChars = tableCellMaxChars,
+    String? columnKey,
   }) {
+    if (columnKey != null && isPriceTableColumn(columnKey)) return text;
+    // Bare currency like $213.45 — keep intact even without a column key.
+    if (RegExp(r'^\$?\s*-?\d[\d,]*\.?\d*$').hasMatch(text.trim())) {
+      return text;
+    }
     if (text.length <= maxChars) return text;
     return '${text.substring(0, maxChars)}…';
   }
@@ -553,6 +590,9 @@ class HomeUi {
   }
 
   static TextOverflow tableCellOverflow(String text, {String? columnKey}) {
+    if (columnKey != null && isPriceTableColumn(columnKey)) {
+      return TextOverflow.visible;
+    }
     return isCommentLikeTableText(text, columnKey: columnKey)
         ? TextOverflow.ellipsis
         : TextOverflow.clip;
@@ -1011,6 +1051,7 @@ class HomeUi {
     String? subtitleText,
     Widget? subtitle,
     IconData? icon,
+    double titleFontSize = 16,
   }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1040,7 +1081,10 @@ class HomeUi {
           children: [
             Text(
               title,
-              style: cardTitle(dark).copyWith(fontSize: 16, height: 1.15),
+              style: cardTitle(dark).copyWith(
+                fontSize: titleFontSize,
+                height: 1.15,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

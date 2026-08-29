@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:musaffa_terminal/charts/models/ohlc_candle_point.dart';
 
 /// Curated static finance datasets for the premium Custom Charts showcase.
@@ -336,6 +338,126 @@ class StaticPremiumChartData {
   static double get sunburstTotal =>
       sunburstNodes.where((StaticSunburstNode n) => n.parentId == null).fold(0.0, (double s, StaticSunburstNode n) => s + n.value);
 
+  /// Weekly price + volume for line/volume range chart (Aug 2026 → Jun 2027).
+  /// Hand-shaped silhouette: grind up into early-2027 peak, then orderly pullback.
+  static List<StaticVolumePricePoint> get lineVolumeRangeSeries {
+    // Anchor prices (roughly monthly) — interpolated to weekly for a clean demo line.
+    const List<(int month, int year, double price)> anchors =
+        <(int, int, double)>[
+      (8, 2026, 1002),
+      (9, 2026, 1018),
+      (10, 2026, 1008),
+      (11, 2026, 1036),
+      (12, 2026, 1052),
+      (1, 2027, 1068),
+      (2, 2027, 1048),
+      (3, 2027, 1028),
+      (4, 2027, 1018),
+      (5, 2027, 1010),
+      (6, 2027, 1004),
+    ];
+
+    final List<DateTime> anchorDates = <DateTime>[
+      for (final (int m, int y, double _) in anchors) DateTime(y, m, 15),
+    ];
+    final List<double> anchorPrices = <double>[
+      for (final (int _, int _, double p) in anchors) p,
+    ];
+
+    final List<StaticVolumePricePoint> points = <StaticVolumePricePoint>[];
+    DateTime d = DateTime(2026, 8, 3); // Mondays
+    final DateTime end = DateTime(2027, 6, 28);
+    int i = 0;
+    while (!d.isAfter(end)) {
+      final double price = _lerpAnchors(d, anchorDates, anchorPrices) +
+          3.2 * math.sin(i * 0.55) +
+          1.6 * math.sin(i * 1.35 + 0.4);
+
+      // Volume has clear tall/short rhythm so bars read individually.
+      final double wave = 0.52 + 0.48 * ((math.sin(i * 0.72) + 1) / 2);
+      final double spike = (i % 5 == 0)
+          ? 1.35
+          : (i % 5 == 2)
+              ? 0.72
+              : 1.0;
+      final double volumeK =
+          (26 + 48 * wave * spike + (i % 3) * 2.5).clamp(18.0, 92.0);
+
+      points.add(
+        StaticVolumePricePoint(
+          date: d,
+          price: double.parse(price.clamp(990.0, 1075.0).toStringAsFixed(1)),
+          volumeK: double.parse(volumeK.toStringAsFixed(1)),
+        ),
+      );
+      d = d.add(const Duration(days: 7));
+      i++;
+    }
+    return points;
+  }
+
+  static double _lerpAnchors(
+    DateTime date,
+    List<DateTime> dates,
+    List<double> prices,
+  ) {
+    if (date.isBefore(dates.first)) return prices.first;
+    if (date.isAfter(dates.last)) return prices.last;
+    for (int i = 0; i < dates.length - 1; i++) {
+      final DateTime a = dates[i];
+      final DateTime b = dates[i + 1];
+      if (!date.isBefore(a) && !date.isAfter(b)) {
+        final int span = math.max(1, b.difference(a).inMilliseconds);
+        final double t = date.difference(a).inMilliseconds / span;
+        // Smoothstep for a calmer curve between anchors.
+        final double s = t * t * (3 - 2 * t);
+        return prices[i] + (prices[i + 1] - prices[i]) * s;
+      }
+    }
+    return prices.last;
+  }
+
+  /// Intraday 30-min index series for marker line + range slider chart.
+  static List<StaticRangeLinePoint> get intradayMarkerSeries {
+    const List<double> values = <double>[
+      99.71, 99.13, 100.5, 101.0, 99.95, 100.9, 100.39, 101.1,
+      101.45, 101.15, 100.5, 101.55, 101.7, 100.5, 100.92, 102.2,
+    ];
+    DateTime t = DateTime(2020, 1, 1, 22, 30);
+    final List<StaticRangeLinePoint> points = <StaticRangeLinePoint>[];
+    for (final double v in values) {
+      points.add(StaticRangeLinePoint(date: t, value: v));
+      t = t.add(const Duration(minutes: 30));
+    }
+    return points;
+  }
+
+  /// Multi-year series for Line Chart with Range Slider (actual vs forecast).
+  /// Spans mid-2026 → late-2029 with a mid-period split suitable for the demo.
+  static List<StaticRangeLinePoint> get rangeSliderSeries {
+    final List<StaticRangeLinePoint> points = <StaticRangeLinePoint>[];
+    DateTime date = DateTime(2026, 7, 1);
+    final DateTime end = DateTime(2029, 10, 1);
+    int i = 0;
+    while (!date.isAfter(end)) {
+      final double t = i / 40.0;
+      final double wave = 160 +
+          90 * (0.55 * math.sin(t * 2.1) + 0.35 * math.sin(t * 4.7 + 0.8)) +
+          40 * math.sin(t * 1.15 + 1.4) +
+          ((i % 11) - 5) * 3.2;
+      final double value = wave.clamp(55.0, 345.0);
+      points.add(
+        StaticRangeLinePoint(
+          date: date,
+          value: double.parse(value.toStringAsFixed(1)),
+        ),
+      );
+      date = date.add(const Duration(days: 14));
+      i++;
+    }
+    return points;
+  }
+
   /// Dense series for scrollable / pan chart demos.
   static List<StaticScrollPoint> get scrollableVolume {
     final List<StaticScrollPoint> points = <StaticScrollPoint>[];
@@ -344,6 +466,62 @@ class StaticPremiumChartData {
       value = (value + ((i % 5) - 2) * 1.8 + (i % 9 == 0 ? 6 : 0))
           .clamp(28.0, 92.0);
       points.add(StaticScrollPoint('M${i + 1}', value));
+    }
+    return points;
+  }
+
+  /// Daily OHLCV — MSFT-like May 2021 → Apr 2022 (grind up, Jan crash, base).
+  static List<OhlcCandlePoint> get stockRsiHistory {
+    final List<OhlcCandlePoint> points = <OhlcCandlePoint>[];
+    DateTime date = DateTime(2021, 5, 3);
+    final DateTime end = DateTime(2022, 4, 29);
+    double close = 249.5;
+    int i = 0;
+    while (!date.isAfter(end)) {
+      if (date.weekday != DateTime.saturday && date.weekday != DateTime.sunday) {
+        final bool crash = date.isAfter(DateTime(2022, 1, 3)) &&
+            date.isBefore(DateTime(2022, 1, 28));
+        final bool rally = date.isBefore(DateTime(2021, 11, 22));
+        final bool top = !rally && date.isBefore(DateTime(2022, 1, 4));
+
+        double drift;
+        if (crash) {
+          drift = -0.018 - (i % 5) * 0.002;
+        } else if (rally) {
+          drift = 0.0028 + 0.0012 * math.sin(i * 0.31);
+        } else if (top) {
+          drift = 0.0008 + 0.0015 * math.sin(i * 0.55);
+        } else {
+          drift = -0.0015 + 0.0022 * math.sin(i * 0.42);
+        }
+
+        final double open = close;
+        close = (close * (1 + drift) + 0.35 * math.sin(i * 0.19))
+            .clamp(228.0, 349.0);
+        final double spread = crash ? 0.014 : 0.007;
+        final double high =
+            math.max(open, close) * (1 + spread + (i % 4) * 0.001);
+        final double low =
+            math.min(open, close) * (1 - spread - (i % 3) * 0.0008);
+        final double volume = crash
+            ? 78000000 + (i % 4) * 14000000.0
+            : 24000000 +
+                18000000 * (0.5 + 0.5 * math.sin(i * 0.27)) +
+                ((i % 11 == 0) ? 26000000 : 0);
+
+        points.add(
+          OhlcCandlePoint(
+            date: date,
+            open: double.parse(open.toStringAsFixed(2)),
+            high: double.parse(high.toStringAsFixed(2)),
+            low: double.parse(low.toStringAsFixed(2)),
+            close: double.parse(close.toStringAsFixed(2)),
+            volume: volume,
+          ),
+        );
+        i++;
+      }
+      date = date.add(const Duration(days: 1));
     }
     return points;
   }
@@ -584,5 +762,11 @@ class StaticSunburstNode {
 class StaticScrollPoint {
   const StaticScrollPoint(this.label, this.value);
   final String label;
+  final double value;
+}
+
+class StaticRangeLinePoint {
+  const StaticRangeLinePoint({required this.date, required this.value});
+  final DateTime date;
   final double value;
 }

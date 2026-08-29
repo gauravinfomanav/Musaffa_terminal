@@ -115,11 +115,14 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        HomeUi.tableToolbarHeader(
-          widget.isDarkMode,
-          icon: Icons.newspaper_rounded,
-          title: 'Watchlist News',
-          subtitleText: 'Latest headlines for your holdings',
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: HomeUi.tableToolbarHeader(
+            widget.isDarkMode,
+            icon: Icons.newspaper_rounded,
+            title: 'Watchlist News',
+            subtitleText: 'Latest headlines for your holdings',
+          ),
         ),
         const SizedBox(height: 16),
         AnimatedSwitcher(
@@ -204,7 +207,6 @@ class _WatchlistNewsWidgetState extends State<WatchlistNewsWidget> {
       decoration: BoxDecoration(
         color: HomeUi.cardBg(dark),
         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        border: Border.all(color: HomeUi.borderLight(dark)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -281,7 +283,7 @@ class _NewsTileState extends State<_NewsTile> {
                 ? const Color(0xFF181B20)
                 : const Color(0xFFFAFBFC))
             : HomeUi.cardBg(dark),
-        padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+        padding: const EdgeInsets.fromLTRB(64, 13, 16, 13),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

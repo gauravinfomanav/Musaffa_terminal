@@ -313,6 +313,7 @@ class _YouTubeVideoCardState extends State<_YouTubeVideoCard> {
           clipBehavior: Clip.antiAlias,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               AspectRatio(
                 aspectRatio: 16 / 9,
@@ -323,91 +324,99 @@ class _YouTubeVideoCardState extends State<_YouTubeVideoCard> {
                   hovered: _hovered,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: isDark
-                              ? const [
-                                  Color(0xFF334155),
-                                  Color(0xFF1E293B),
-                                ]
-                              : const [
-                                  Color(0xFFE2E8F0),
-                                  Color(0xFFCBD5E1),
-                                ],
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        channelInitial,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? const Color(0xFFF8FAFC)
-                              : const Color(0xFF334155),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            video.title,
-                            style: HomeUi.bodyText(isDark).copyWith(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              height: 1.32,
-                              letterSpacing: -0.15,
-                              color: HomeUi.title(isDark),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+              // Fixed meta block → every card same total height
+              SizedBox(
+                height: 100,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: isDark
+                                ? const [
+                                    Color(0xFF3A4556),
+                                    Color(0xFF1E293B),
+                                  ]
+                                : const [
+                                    Color(0xFFE8EDF2),
+                                    Color(0xFFD0D8E2),
+                                  ],
                           ),
-                          const SizedBox(height: 5),
-                          if (channel != null && channel.isNotEmpty)
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          channelInitial,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? const Color(0xFFF8FAFC)
+                                : const Color(0xFF334155),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 36,
+                              child: Text(
+                                video.title,
+                                style: HomeUi.bodyText(isDark).copyWith(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.32,
+                                  letterSpacing: -0.15,
+                                  color: HomeUi.title(isDark),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
                             Text(
-                              channel,
+                              (channel != null && channel.isNotEmpty)
+                                  ? channel
+                                  : ' ',
                               style: HomeUi.subtitle(isDark).copyWith(
                                 fontSize: 12,
+                                height: 1.2,
                                 fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? HomeUi.muted(true)
-                                    : const Color(0xFF64748B),
+                                color: HomeUi.muted(isDark),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          const SizedBox(height: 3),
-                          Text(
-                            _metaLine(video),
-                            style: HomeUi.overline(isDark).copyWith(
-                              fontSize: 11,
-                              letterSpacing: 0.05,
-                              fontWeight: FontWeight.w500,
-                              color: isDark
-                                  ? HomeUi.muted(true).withValues(alpha: 0.85)
-                                  : const Color(0xFF94A3B8),
+                            const SizedBox(height: 2),
+                            Text(
+                              _metaLine(video),
+                              style: HomeUi.overline(isDark).copyWith(
+                                fontSize: 11,
+                                height: 1.2,
+                                letterSpacing: 0.05,
+                                fontWeight: FontWeight.w500,
+                                color: HomeUi.muted(isDark)
+                                    .withValues(alpha: 0.85),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

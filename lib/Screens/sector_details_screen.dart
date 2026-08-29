@@ -803,7 +803,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             stickyHeader: true,
             maxHeight: 560,
             useOuterContainer: false,
-            columnSpacing: 16,
+            columnSpacing: 8,
             enableColumnStretch: true,
             onTickerTap: (row) {
               final ticker = row.data['ticker']?.toString() ?? '';
@@ -957,7 +957,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       rows: rows,
       showFixedColumn: true,
       considerPadding: false,
-      columnSpacing: 40,
+      columnSpacing: 8,
       horizontalMargin: 12,
       fixedColumnWidth: 220,
       enableDragging: false,

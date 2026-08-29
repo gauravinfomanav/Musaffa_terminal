@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/charts/custom/widgets/premium_finance_extra_charts.dart';
 import 'package:musaffa_terminal/charts/custom/widgets/premium_allocation_donut.dart';
+import 'package:musaffa_terminal/charts/custom/widgets/premium_line_range_slider_chart.dart';
+import 'package:musaffa_terminal/charts/custom/widgets/premium_intraday_marker_line_chart.dart';
+import 'package:musaffa_terminal/charts/custom/widgets/premium_line_volume_range_chart.dart';
+import 'package:musaffa_terminal/charts/custom/widgets/premium_stock_rsi_chart.dart';
+import 'package:musaffa_terminal/charts/custom/widgets/premium_map_chart.dart';
 import 'package:musaffa_terminal/charts/custom/widgets/premium_timeline_process_charts.dart';
-import 'package:musaffa_terminal/charts/custom/widgets/premium_stock_gui_chart.dart';
 import 'package:musaffa_terminal/charts/custom/static_premium_chart_data.dart';
 import 'package:musaffa_terminal/charts/custom/us_premium_palette.dart';
 import 'package:musaffa_terminal/charts/models/ohlc_candle_point.dart';
@@ -225,7 +229,15 @@ class _PremiumFinanceChartShowcaseState extends State<PremiumFinanceChartShowcas
               PremiumTimelineProcessCharts.realTimeChart(dark),
             ],
             const SizedBox(height: 14),
-            PremiumStockGuiChart(dark: dark),
+            PremiumLineRangeSliderChart(dark: dark),
+            const SizedBox(height: 14),
+            PremiumIntradayMarkerLineChart(dark: dark),
+            const SizedBox(height: 14),
+            PremiumLineVolumeRangeChart(dark: dark),
+            const SizedBox(height: 14),
+            PremiumStockRsiChart(dark: dark),
+            const SizedBox(height: 14),
+            PremiumMapChart(dark: dark),
           ],
         );
       },

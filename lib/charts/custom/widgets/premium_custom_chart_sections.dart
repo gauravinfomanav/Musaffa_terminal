@@ -577,8 +577,8 @@ class PremiumSentimentDonutChart extends StatelessWidget {
                         yValueMapper: (_SentimentSlice slice, _) => slice.value,
                         pointColorMapper: (_SentimentSlice slice, _) =>
                             slice.color,
-                        innerRadius: '68%',
-                        radius: '88%',
+                        innerRadius: '88%',
+                        radius: '98%',
                         dataLabelSettings: const DataLabelSettings(isVisible: false),
                       ),
                     ],

@@ -623,7 +623,7 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
             ),
             const SizedBox(height: 14),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
               decoration: HomeUi.cardDecoration(isDarkMode),
               child: WatchlistNewsWidget(
                 stocks: controller.watchlistStocks,

@@ -505,11 +505,22 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                         controller: _scrollController,
                         physics: const ClampingScrollPhysics(),
                         child: Padding(
-                          padding: LayoutConstants.dashboardBodyPadding,
+                          // Full-bleed cards — no left/right page gutter on Screener.
+                          padding: const EdgeInsets.fromLTRB(
+                            0,
+                            LayoutConstants.SECTION_GAP,
+                            0,
+                            LayoutConstants.SCREEN_PADDING,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildHeader(isDarkMode),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: LayoutConstants.SCREEN_PADDING,
+                                ),
+                                child: _buildHeader(isDarkMode),
+                              ),
                               const SizedBox(
                                   height: LayoutConstants.SECTION_GAP),
                               _isLoadingFilters
@@ -518,7 +529,13 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                                       child: Center(
                                           child: CircularProgressIndicator()),
                                     )
-                                  : _buildFilterContent(isDarkMode),
+                                  : Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal:
+                                            LayoutConstants.SCREEN_PADDING,
+                                      ),
+                                      child: _buildFilterContent(isDarkMode),
+                                    ),
                               const SizedBox(
                                   height: LayoutConstants.SECTION_GAP),
                               _buildResultsSection(isDarkMode,
@@ -1194,11 +1211,14 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   }
 
   Widget _buildResultsSection(bool isDarkMode, {Key? key}) {
-    // Match filter card inset (fromLTRB 16, 14, 16, 14) so tabs align visually.
+    // Full-bleed results card — flush with page edges (no side gutters).
     return Container(
       key: key,
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: HomeUi.cardDecoration(isDarkMode),
+      decoration: HomeUi.cardDecoration(isDarkMode).copyWith(
+        borderRadius: BorderRadius.zero,
+      ),
       clipBehavior: Clip.antiAlias,
       child: _buildResultsTable(isDarkMode),
     );
@@ -1286,7 +1306,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             showColumnResizeHandle: true,
             headerHeight: 44,
             rowHeight: 56,
-            columnSpacing: 20,
+            columnSpacing: 8,
             tableId: 'screener_results_table_${_selectedResultsTab}',
             sortState: _resultsSortState,
             onSortChange: (key, direction) {
@@ -1399,8 +1419,8 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   }
 
   double _screenerColumnWidth(String id, String type) {
-    if (id == 'sector') return 168;
-    if (id == 'recommendation') return 140;
+    if (id == 'sector') return 220;
+    if (id == 'recommendation') return 72;
     if (type == 'percentage') return 96;
     if (type == 'currency' || type == 'number') return 100;
     return 120;
@@ -1443,7 +1463,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           tooltipLabel: 'SECTOR',
           fieldName: 'sector',
           isNumeric: false,
-          width: 168),
+          width: 220),
     ];
   }
 

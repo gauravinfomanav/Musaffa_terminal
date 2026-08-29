@@ -764,7 +764,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
           isDark,
           title: 'Client & Goal Context',
           subtitleText: 'Define the client profile, mandate, and benchmark.',
-          icon: Icons.person_outline_rounded,
+          titleFontSize: 14,
         ),
         const SizedBox(height: _kSectionGap),
         Row(

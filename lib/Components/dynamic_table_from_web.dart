@@ -6,7 +6,7 @@ import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
 /// Default gap between DataTable columns (was 40 — felt sparse).
-const double _kDefaultColumnSpacing = 16;
+const double _kDefaultColumnSpacing = 8;
 
 // ============================================================================
 // DATA MODELS
@@ -641,7 +641,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final cellStyle = HomeUi.tableCell(false).copyWith(
       fontWeight: FontWeight.w600,
     );
-    const double maxShortContentWidth = 300;
+    const double maxShortContentWidth = 160;
+    const double maxLabelContentWidth = 260;
 
     for (final col in columns) {
       final headerWidth = _measureTextWidth(
@@ -673,10 +674,29 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         final contentWidth =
             _measureTextWidth(text, cellStyle) + 8 + _cellRightPadding(col);
         if (contentWidth > minWidth) {
-          minWidth = contentWidth > maxShortContentWidth
-              ? maxShortContentWidth
-              : contentWidth;
+          minWidth =
+              contentWidth > contentCap ? contentCap : contentWidth;
         }
+      }
+      // Prefer explicit width as a floor for wide label columns (e.g. Sector).
+      if (col.width != null &&
+          HomeUi.isWideLabelTableColumn(col.key) &&
+          col.width! > minWidth) {
+        minWidth = col.width!;
+      }
+      // Price must show full values (e.g. $213.45) — never squeeze under content.
+      if (HomeUi.isPriceTableColumn(col.key)) {
+        const double priceFloor = 100;
+        if (minWidth < priceFloor) minWidth = priceFloor;
+        if (col.width != null && col.width! > minWidth) {
+          minWidth = col.width!;
+        }
+      }
+      // Compact enum cols (REC / Buy) stay content-tight — ignore large presets.
+      if (HomeUi.isCompactTableColumn(col.key)) {
+        final double headerOnly = headerWidth + 8 + _headerTrailing + 4;
+        final double contentOnly = minWidth;
+        minWidth = contentOnly < 88 ? contentOnly.clamp(headerOnly, 88) : 88;
       }
       _naturalMinWidths[col.key] = minWidth;
     }
@@ -690,8 +710,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final minWidth = _getNaturalMinWidth(col);
     final stretched = _stretchedColumnWidths[col.key];
     if (stretched != null) return stretched;
-    final resolved = _columnWidths[col.key] ?? col.width ?? minWidth;
-    return resolved < minWidth ? minWidth : resolved;
+    // Manual resize only — ignore static col.width so columns pack to content
+    // and stretch fills leftover table width when columns are few.
+    if (_columnWidths.containsKey(col.key)) {
+      final double w = _columnWidths[col.key]!;
+      return w < minWidth ? minWidth : w;
+    }
+    return minWidth;
   }
 
   /// Stretched widths computed per-frame so visible columns fill available space.
@@ -719,22 +744,28 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     if (usable <= 0) return;
 
     final baseWidths = <String, double>{};
-    double totalBase = 0;
+    double totalStretchBase = 0;
+    double compactReserved = 0;
     for (final col in columns) {
-      // Stretch from content/header natural width so short cols (Beta, P/E)
-      // stay narrower than text cols (Sector) instead of all matching col.width.
       final base = _getNaturalMinWidth(col);
       baseWidths[col.key] = base;
-      totalBase += base;
+      if (HomeUi.isCompactTableColumn(col.key)) {
+        compactReserved += base;
+        _stretchedColumnWidths[col.key] = base; // no stretch share
+      } else {
+        totalStretchBase += base;
+      }
     }
 
-    if (totalBase <= 0) return;
-    if (totalBase >= usable) return; // already fills / overflows — no stretch
+    if (totalStretchBase <= 0) return;
+    final usableForStretch = usable - compactReserved;
+    if (usableForStretch <= totalStretchBase) return;
 
-    final extra = usable - totalBase;
+    final extra = usableForStretch - totalStretchBase;
     for (final col in columns) {
+      if (HomeUi.isCompactTableColumn(col.key)) continue;
       final base = baseWidths[col.key]!;
-      final share = base / totalBase;
+      final share = base / totalStretchBase;
       _stretchedColumnWidths[col.key] = base + extra * share;
     }
   }
@@ -1351,12 +1382,17 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         } else {
           final commentLike =
               HomeUi.isCommentLikeTableText(cellText, columnKey: col.key);
-          final displayText = HomeUi.truncateTableText(cellText);
+          final isPrice = HomeUi.isPriceTableColumn(col.key);
+          // Keep sector / industry / labels intact — only truncate long prose.
+          // Never character-truncate prices.
+          final String displayText = (commentLike && !isPrice)
+              ? HomeUi.truncateTableText(cellText, columnKey: col.key)
+              : cellText;
           Widget text = Text(
             displayText,
             maxLines: 1,
             softWrap: false,
-            overflow: commentLike ? TextOverflow.ellipsis : TextOverflow.clip,
+            overflow: HomeUi.tableCellOverflow(cellText, columnKey: col.key),
             textAlign: col.align,
             style: style,
           );
@@ -1424,6 +1460,173 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 : null,
       );
     }).toList();
+  }
+
+  /// Horizontally scrollable center columns, width-clamped so [AnimatedSize]
+  /// cannot expand past the flex slot and trigger RIGHT OVERFLOWED.
+  Widget _buildScrollableCenterSection({
+    required List<DynamicTableColumn> centerColumns,
+    required List<DynamicTableRow> paginatedRows,
+    required Color textColor,
+    required Color mutedColor,
+    required String? expanderColumnKey,
+  }) {
+    if (centerColumns.isEmpty) return const SizedBox.shrink();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableW = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 0;
+        if (availableW <= 0) return const SizedBox.shrink();
+
+        _computeStretchedWidths(centerColumns, availableW);
+        return SizedBox(
+          width: availableW,
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeInOutCubicEmphasized,
+            alignment: Alignment.topLeft,
+            child: Scrollbar(
+              controller: _horizontalScrollController,
+              thumbVisibility: true,
+              trackVisibility: false,
+              scrollbarOrientation: ScrollbarOrientation.bottom,
+              child: SingleChildScrollView(
+                controller: _horizontalScrollController,
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: availableW),
+                  child: _buildAnimatedTableSection(
+                    key: ValueKey<String>(
+                      'center:${centerColumns.map((c) => c.key).join('|')}',
+                    ),
+                    child: _buildTableSection(
+                      context: context,
+                      columns: centerColumns,
+                      rows: paginatedRows,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      expanderColumnKey: expanderColumnKey,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPinnedScrollBody({
+    required BuildContext context,
+    required Color bgColor,
+    required Color borderColor,
+    required List<DynamicTableColumn> leftPinnedColumns,
+    required List<DynamicTableColumn> centerColumns,
+    required List<DynamicTableColumn> rightPinnedColumns,
+    required List<DynamicTableRow> paginatedRows,
+    required Color textColor,
+    required Color mutedColor,
+    required String? expanderColumnKey,
+  }) {
+    final row = Row(
+      mainAxisSize: widget.compactPinnedLayout
+          ? MainAxisSize.min
+          : MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPinnedSectionSlot(
+          slotKey: 'left',
+          visible: widget.selectable ||
+              widget.showTickerCell ||
+              leftPinnedColumns.isNotEmpty,
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              border: widget.showPinnedSectionDividers
+                  ? Border(right: BorderSide(color: borderColor))
+                  : null,
+            ),
+            child: _buildAnimatedTableSection(
+              key: ValueKey<String>(
+                'left:${leftPinnedColumns.map((c) => c.key).join('|')}:${widget.selectable}:${widget.showTickerCell}',
+              ),
+              child: _buildTableSection(
+                context: context,
+                columns: leftPinnedColumns,
+                rows: paginatedRows,
+                textColor: textColor,
+                mutedColor: mutedColor,
+                expanderColumnKey: expanderColumnKey,
+                includeSelectable: widget.selectable,
+                includeTicker: widget.showTickerCell,
+              ),
+            ),
+          ),
+        ),
+        if (widget.compactPinnedLayout)
+          Flexible(
+            fit: FlexFit.loose,
+            child: _buildScrollableCenterSection(
+              centerColumns: centerColumns,
+              paginatedRows: paginatedRows,
+              textColor: textColor,
+              mutedColor: mutedColor,
+              expanderColumnKey: expanderColumnKey,
+            ),
+          )
+        else
+          Expanded(
+            child: _buildScrollableCenterSection(
+              centerColumns: centerColumns,
+              paginatedRows: paginatedRows,
+              textColor: textColor,
+              mutedColor: mutedColor,
+              expanderColumnKey: expanderColumnKey,
+            ),
+          ),
+        _buildPinnedSectionSlot(
+          slotKey: 'right',
+          visible: rightPinnedColumns.isNotEmpty,
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              border: widget.showPinnedSectionDividers
+                  ? Border(left: BorderSide(color: borderColor))
+                  : null,
+            ),
+            child: _buildAnimatedTableSection(
+              key: ValueKey<String>(
+                'right:${rightPinnedColumns.map((c) => c.key).join('|')}',
+              ),
+              child: _buildTableSection(
+                context: context,
+                columns: rightPinnedColumns,
+                rows: paginatedRows,
+                textColor: textColor,
+                mutedColor: mutedColor,
+                expanderColumnKey: expanderColumnKey,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // Null maxHeight: no outer vertical scroll — keeps Row width bounded.
+    final maxH = widget.maxHeight;
+    if (maxH == null) return row;
+
+    return SizedBox(
+      height: maxH,
+      child: SingleChildScrollView(
+        controller: _verticalScrollController,
+        scrollDirection: Axis.vertical,
+        child: row,
+      ),
+    );
   }
 
   Widget _buildTableSection({
@@ -1856,169 +2059,17 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             ),
           )
         else
-          SizedBox(
-            height: widget.maxHeight,
-            child: SingleChildScrollView(
-              controller: _verticalScrollController,
-              scrollDirection: Axis.vertical,
-              child: Row(
-                mainAxisSize: widget.compactPinnedLayout
-                    ? MainAxisSize.min
-                    : MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPinnedSectionSlot(
-                    slotKey: 'left',
-                    visible: widget.selectable ||
-                        widget.showTickerCell ||
-                        leftPinnedColumns.isNotEmpty,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        border: widget.showPinnedSectionDividers
-                            ? Border(
-                                right: BorderSide(color: borderColor),
-                              )
-                            : null,
-                      ),
-                      child: _buildAnimatedTableSection(
-                        key: ValueKey<String>(
-                          'left:${leftPinnedColumns.map((c) => c.key).join('|')}:${widget.selectable}:${widget.showTickerCell}',
-                        ),
-                        child: _buildTableSection(
-                          context: context,
-                          columns: leftPinnedColumns,
-                          rows: paginatedRows,
-                          textColor: textColor,
-                          mutedColor: mutedColor,
-                          expanderColumnKey: expanderColumnKey,
-                          includeSelectable: widget.selectable,
-                          includeTicker: widget.showTickerCell,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (widget.compactPinnedLayout)
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: AnimatedSize(
-                        duration: const Duration(milliseconds: 320),
-                        curve: Curves.easeInOutCubicEmphasized,
-                        alignment: Alignment.topLeft,
-                        child: centerColumns.isNotEmpty
-                            ? LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final double availableW = constraints.maxWidth;
-                                  _computeStretchedWidths(centerColumns, availableW);
-                                  return Scrollbar(
-                                    controller: _horizontalScrollController,
-                                    thumbVisibility: true,
-                                    trackVisibility: false,
-                                    scrollbarOrientation:
-                                        ScrollbarOrientation.bottom,
-                                    child: SingleChildScrollView(
-                                      controller: _horizontalScrollController,
-                                      scrollDirection: Axis.horizontal,
-                                      child: ConstrainedBox(
-                                        constraints: BoxConstraints(
-                                          minWidth: availableW,
-                                        ),
-                                        child: _buildAnimatedTableSection(
-                                          key: ValueKey<String>(
-                                            'center:${centerColumns.map((c) => c.key).join('|')}',
-                                          ),
-                                          child: _buildTableSection(
-                                            context: context,
-                                            columns: centerColumns,
-                                            rows: paginatedRows,
-                                            textColor: textColor,
-                                            mutedColor: mutedColor,
-                                            expanderColumnKey: expanderColumnKey,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: AnimatedSize(
-                        duration: const Duration(milliseconds: 320),
-                        curve: Curves.easeInOutCubicEmphasized,
-                        alignment: Alignment.topLeft,
-                        child: centerColumns.isNotEmpty
-                            ? LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final double availableW = constraints.maxWidth;
-                                  _computeStretchedWidths(centerColumns, availableW);
-                                  return Scrollbar(
-                                    controller: _horizontalScrollController,
-                                    thumbVisibility: true,
-                                    trackVisibility: false,
-                                    scrollbarOrientation:
-                                        ScrollbarOrientation.bottom,
-                                    child: SingleChildScrollView(
-                                      controller: _horizontalScrollController,
-                                      scrollDirection: Axis.horizontal,
-                                      child: ConstrainedBox(
-                                        constraints: BoxConstraints(
-                                          minWidth: availableW,
-                                        ),
-                                        child: _buildAnimatedTableSection(
-                                          key: ValueKey<String>(
-                                            'center:${centerColumns.map((c) => c.key).join('|')}',
-                                          ),
-                                          child: _buildTableSection(
-                                            context: context,
-                                            columns: centerColumns,
-                                            rows: paginatedRows,
-                                            textColor: textColor,
-                                            mutedColor: mutedColor,
-                                            expanderColumnKey: expanderColumnKey,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ),
-                  _buildPinnedSectionSlot(
-                    slotKey: 'right',
-                    visible: rightPinnedColumns.isNotEmpty,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        border: widget.showPinnedSectionDividers
-                            ? Border(
-                                left: BorderSide(color: borderColor),
-                              )
-                            : null,
-                      ),
-                      child: _buildAnimatedTableSection(
-                        key: ValueKey<String>(
-                          'right:${rightPinnedColumns.map((c) => c.key).join('|')}',
-                        ),
-                        child: _buildTableSection(
-                          context: context,
-                          columns: rightPinnedColumns,
-                          rows: paginatedRows,
-                          textColor: textColor,
-                          mutedColor: mutedColor,
-                          expanderColumnKey: expanderColumnKey,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          _buildPinnedScrollBody(
+            context: context,
+            bgColor: bgColor,
+            borderColor: borderColor,
+            leftPinnedColumns: leftPinnedColumns,
+            centerColumns: centerColumns,
+            rightPinnedColumns: rightPinnedColumns,
+            paginatedRows: paginatedRows,
+            textColor: textColor,
+            mutedColor: mutedColor,
+            expanderColumnKey: expanderColumnKey,
           ),
         // Pagination
         if (widget.paginated && paginatedRows.isNotEmpty)

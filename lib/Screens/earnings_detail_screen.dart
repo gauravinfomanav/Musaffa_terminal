@@ -234,23 +234,11 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: HomeUi.elevatedBg(isDark),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: HomeUi.borderLight(isDark),
-                                    ),
-                                  ),
-                                  child: showLogo(
-                                    widget.args.symbol,
-                                    logo,
-                                    sideWidth: 34,
-                                    name: name,
-                                  ),
+                                showLogo(
+                                  widget.args.symbol,
+                                  logo,
+                                  sideWidth: 48,
+                                  name: name,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -268,7 +256,12 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                                         Text(
                                           name,
                                           style: HomeUi.sectionTitle(isDark)
-                                              .copyWith(fontSize: 17),
+                                              .copyWith(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.3,
+                                            height: 1.2,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
