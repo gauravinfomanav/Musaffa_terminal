@@ -9,6 +9,7 @@ import 'package:musaffa_terminal/Screens/economic_calendar_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
+import 'package:musaffa_terminal/Screens/watchlist_screen.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
@@ -153,6 +154,20 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
     FeatureNavigation.toIfAllowed(
       FeatureKeys.portfolios,
       () => const PortfolioIdeaScreen(),
+    );
+  }
+
+  void _goWatchlist() {
+    final sidebar = Get.find<GlobalSidebarService>();
+    if (sidebar.activeItem.value == SidebarNavItem.watchlist) {
+      sidebar.close();
+      return;
+    }
+    sidebar.setActive(SidebarNavItem.watchlist);
+    sidebar.close();
+    FeatureNavigation.toIfAllowed(
+      FeatureKeys.watchlists,
+      () => const WatchlistScreen(),
     );
   }
 
@@ -415,6 +430,9 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                           final canPortfolios = FeatureNavigation.isEnabled(
                             FeatureKeys.portfolios,
                           );
+                          final canWatchlists = FeatureNavigation.isEnabled(
+                            FeatureKeys.watchlists,
+                          );
                           return ListView(
                             padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
                             children: [
@@ -451,6 +469,15 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                                       active == SidebarNavItem.portfolio,
                                   isDark: isDark,
                                   onTap: _goPortfolio,
+                                ),
+                              if (canWatchlists)
+                                _NavTile(
+                                  icon: CupertinoIcons.bookmark,
+                                  label: 'Watchlist',
+                                  selected:
+                                      active == SidebarNavItem.watchlist,
+                                  isDark: isDark,
+                                  onTap: _goWatchlist,
                                 ),
                               _NavTile(
                                 icon: CupertinoIcons.calendar,

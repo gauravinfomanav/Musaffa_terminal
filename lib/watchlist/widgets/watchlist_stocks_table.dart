@@ -1,12 +1,29 @@
+import 'dart:convert';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
+import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
+import 'package:musaffa_terminal/Controllers/notes_controller.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
-import 'package:musaffa_terminal/web_service.dart';
+import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/models/watchlist_stock_model.dart';
-import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
+import 'package:musaffa_terminal/watchlist/widgets/add_stocks_modal.dart';
 import 'package:musaffa_terminal/watchlist/widgets/target_price_cell.dart';
-import 'dart:convert';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_table_cells.dart';
+import 'package:musaffa_terminal/web_service.dart';
+
+enum _WatchlistSortBy {
+  changePercent,
+  name,
+  price,
+  marketCap,
+  volume,
+  gainLoss,
+}
 
 class WatchlistStocksTable extends StatefulWidget {
   final List<WatchlistStock> stocks;
@@ -16,6 +33,8 @@ class WatchlistStocksTable extends StatefulWidget {
   final String? title;
   final String? subtitle;
   final Function(List<SimpleRowModel>)? onDataReady;
+  final String? selectedSymbol;
+  final ValueChanged<SimpleRowModel>? onStockSelected;
 
   const WatchlistStocksTable({
     Key? key,
@@ -26,6 +45,8 @@ class WatchlistStocksTable extends StatefulWidget {
     this.title,
     this.subtitle,
     this.onDataReady,
+    this.selectedSymbol,
+    this.onStockSelected,
   }) : super(key: key);
 
   @override
@@ -33,8 +54,15 @@ class WatchlistStocksTable extends StatefulWidget {
 }
 
 class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
-  List<SimpleRowModel> _tableData = [];
+  List<SimpleRowModel> _tableData = <SimpleRowModel>[];
   bool _isEnrichingData = false;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  _WatchlistSortBy _sortBy = _WatchlistSortBy.changePercent;
+  bool _sortAsc = false;
+  int _page = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -45,23 +73,29 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(WatchlistStocksTable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
-    // Only clear data if stocks list actually changed (different watchlist)
-    if (oldWidget.stocks.length != widget.stocks.length || 
-        (oldWidget.stocks.isNotEmpty && widget.stocks.isNotEmpty && 
-         oldWidget.stocks.first.ticker != widget.stocks.first.ticker) ||
+
+    if (oldWidget.stocks.length != widget.stocks.length ||
+        (oldWidget.stocks.isNotEmpty &&
+            widget.stocks.isNotEmpty &&
+            oldWidget.stocks.first.ticker != widget.stocks.first.ticker) ||
         (oldWidget.stocks.isEmpty && widget.stocks.isNotEmpty) ||
         (oldWidget.stocks.isNotEmpty && widget.stocks.isEmpty)) {
-      
-      // Clear previous data when watchlist changes
       setState(() {
-        _tableData = [];
+        _tableData = <SimpleRowModel>[];
         _isEnrichingData = false;
+        _page = 1;
+        _searchQuery = '';
+        _searchController.clear();
       });
-      
-      // If new watchlist has stocks, enrich the data
+
       if (widget.stocks.isNotEmpty) {
         _enrichStocksData();
       }
@@ -72,183 +106,428 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
     if (widget.stocks.isEmpty || _isEnrichingData) return;
 
     if (mounted) {
-      setState(() {
-        _isEnrichingData = true;
-      });
+      setState(() => _isEnrichingData = true);
     }
 
     try {
-      // Extract ticker IDs for Typesense query
-      final tickerIds = widget.stocks.map((stock) => stock.ticker).toList();
-      
-      // First call: Get stock data from stocks_data collection
-      final stockParams = {
+      final List<String> tickerIds =
+          widget.stocks.map((WatchlistStock s) => s.ticker).toList();
+
+      final Map<String, String> stockParams = <String, String>{
         'q': '*',
-        'filter_by': 'id:=[${tickerIds.map((id) => '`$id`').join(',')}]',
-        'include_fields': r'$stocks_data(id,currentPrice,usdMarketCap,volume,currency)',
-        'per_page': '50'
+        'filter_by':
+            'id:=[${tickerIds.map((String id) => '`$id`').join(',')}]',
+        'include_fields':
+            'id,currentPrice,usdMarketCap,volume,currency,priceChange1DPercent,change1DPercent,change1D,priceChange1D,52WeekHigh,52WeekLow,previous_close,open,high,low,peTTM,avgVolume10days,currentDividendYieldTTM,beta,exchange',
+        'per_page': '100',
       };
 
-      final stockResponse = await WebService.getTypesense(['collections', 'stocks_data', 'documents', 'search'], stockParams);
-      
-      // Second call: Get logos and names from company_profile_collection_new
-      final logoParams = {
+      final stockResponse = await WebService.getTypesense(
+        <String>['collections', 'stocks_data', 'documents', 'search'],
+        stockParams,
+      );
+
+      final Map<String, String> logoParams = <String, String>{
         'q': '*',
-        'filter_by': '\$company_profile_collection_new(id:*)&&id:=[${tickerIds.map((id) => '`$id`').join(',')}]',
-        'include_fields': r'$stocks_data(name,logo,cp_country,city)',
-        'per_page': '50'
+        'filter_by':
+            '\$company_profile_collection_new(id:*)&&id:=[${tickerIds.map((String id) => '`$id`').join(',')}]',
+        'include_fields':
+            r'id,name,logo,$company_profile_collection_new(name,logo),$stocks_data(name,logo,cp_country,city)',
+        'per_page': '100',
       };
 
-      final logoResponse = await WebService.getTypesense(['collections', 'stocks_data', 'documents', 'search'], logoParams);
-      
+      final logoResponse = await WebService.getTypesense(
+        <String>['collections', 'stocks_data', 'documents', 'search'],
+        logoParams,
+      );
+
       if (stockResponse.statusCode == 200 && logoResponse.statusCode == 200) {
-        final stockData = jsonDecode(stockResponse.body);
-        final logoData = jsonDecode(logoResponse.body);
-        final stocksHits = stockData['hits'] as List<dynamic>;
-        final logoHits = logoData['hits'] as List<dynamic>;
-        
-        
-        // Create a map for stock data
-        final stocksMap = <String, dynamic>{};
-        for (final stock in stocksHits) {
-          final stockDoc = stock['document'];
-          stocksMap[stockDoc['id']] = stockDoc;
+        final Map<String, dynamic> stockData =
+            jsonDecode(stockResponse.body) as Map<String, dynamic>;
+        final Map<String, dynamic> logoData =
+            jsonDecode(logoResponse.body) as Map<String, dynamic>;
+        final List<dynamic> stocksHits =
+            stockData['hits'] as List<dynamic>? ?? <dynamic>[];
+        final List<dynamic> logoHits =
+            logoData['hits'] as List<dynamic>? ?? <dynamic>[];
+
+        final Map<String, dynamic> stocksMap = <String, dynamic>{};
+        for (final dynamic stock in stocksHits) {
+          final dynamic stockDoc = stock['document'];
+          if (stockDoc is Map && stockDoc['id'] != null) {
+            stocksMap[stockDoc['id'].toString()] = stockDoc;
+          }
         }
-        
-        // Create a map for logo and name data
-        final logoMap = <String, Map<String, String>>{};
-        for (final logo in logoHits) {
-          final doc = logo['document'];
-          final companyProfile = doc['company_profile_collection_new'] as Map<String, dynamic>?;
+
+        final Map<String, Map<String, String>> logoMap =
+            <String, Map<String, String>>{};
+        for (final dynamic logo in logoHits) {
+          final Map<String, dynamic> doc =
+              (logo['document'] as Map?)?.cast<String, dynamic>() ??
+                  <String, dynamic>{};
+          final String id = (doc['id'] ?? '').toString();
+          if (id.isEmpty) continue;
+
+          String? name;
+          String? logoUrl;
+
+          final Map<String, dynamic>? companyProfile =
+              doc['company_profile_collection_new'] as Map<String, dynamic>?;
           if (companyProfile != null) {
-            final id = doc['id'] as String;
-            logoMap[id] = {
-              'name': companyProfile['name']?.toString() ?? '',
-              'logo': companyProfile['logo']?.toString() ?? '',
+            name = companyProfile['name']?.toString();
+            logoUrl = companyProfile['logo']?.toString();
+          }
+
+          if (name == null ||
+              name.isEmpty ||
+              logoUrl == null ||
+              logoUrl.isEmpty) {
+            Map<String, dynamic>? sd;
+            final dynamic v = doc['\$stocks_data'] ?? doc['stocks_data'];
+            if (v is Map) {
+              sd = v.cast<String, dynamic>();
+            } else if (v is List && v.isNotEmpty && v.first is Map) {
+              sd = (v.first as Map).cast<String, dynamic>();
+            }
+            if (sd != null) {
+              name ??= sd['name']?.toString();
+              logoUrl ??= sd['logo']?.toString();
+            }
+          }
+
+          name ??= doc['name']?.toString();
+          logoUrl ??= doc['logo']?.toString();
+
+          if ((name != null && name.isNotEmpty) ||
+              (logoUrl != null && logoUrl.isNotEmpty)) {
+            logoMap[id] = <String, String>{
+              'name': name ?? '',
+              'logo': logoUrl ?? '',
             };
           }
         }
 
-        // Build table data using SimpleRowModel
-        final tableData = <SimpleRowModel>[];
-        
-        for (final watchlistStock in widget.stocks) {
-          final realTimeData = stocksMap[watchlistStock.ticker];
-          final logoData = logoMap[watchlistStock.ticker];
-          
+        final List<SimpleRowModel> tableData = <SimpleRowModel>[];
+        final bool isDark = widget.isDarkMode;
+
+        for (final WatchlistStock watchlistStock in widget.stocks) {
+          final dynamic realTimeData = stocksMap[watchlistStock.ticker];
+          final Map<String, String>? logoInfo =
+              logoMap[watchlistStock.ticker];
+
           if (realTimeData != null) {
-            final addedPrice = watchlistStock.currentPrice;
-            final currentPrice = realTimeData['currentPrice']?.toDouble() ?? 0.0;
-            final marketCap = realTimeData['usdMarketCap']?.toDouble() ?? 0.0;
-            final volume = realTimeData['volume']?.toDouble() ?? 0.0;
-            
-            // Get logo and name from logoData
-            final logo = logoData?['logo'] ?? '';
-            final name = logoData?['name'] ?? watchlistStock.ticker;
-            
-            
-            // Calculate gain/loss
-            final priceDiff = currentPrice - addedPrice;
-            final gainLossPercent = addedPrice > 0 ? (priceDiff / addedPrice) * 100 : 0.0;
-            final isGain = priceDiff >= 0;
-            
-            // Format gain/loss to 1 decimal place
-            final formattedGainLoss = double.parse(priceDiff.toStringAsFixed(1));
-            
-            // Format market cap (stocks_data.usdMarketCap is in millions)
-            final marketCapFormatted =
-                Constants.formatMarketCapFromMillions(marketCap);
-            
-            tableData.add(SimpleRowModel(
-              symbol: watchlistStock.ticker,
-              name: name,
-              logo: logo.isEmpty ? null : logo,
-              price: currentPrice,
-              changePercent: gainLossPercent,
-              currency: 'USD', // Default currency for watchlist
-              isPositive: isGain,
-              changeColor: isGain ? Colors.green.shade600 : Colors.red.shade600,
-              fields: {
-                'addedPrice': addedPrice, // Store as number for live price calculations
-                'currentPrice': '\$${currentPrice.toStringAsFixed(2)}',
-                'gainLoss': formattedGainLoss,
-                'targetPrice': _buildTargetPriceWidget(watchlistStock.ticker),
-                'marketCap': marketCapFormatted,
-                'volume': volume, // Store as number for calculations
-              },
-            ));
+            final double addedPrice = watchlistStock.currentPrice;
+            final double currentPrice =
+                _toDouble(realTimeData['currentPrice']) ?? 0.0;
+            final double marketCap =
+                _toDouble(realTimeData['usdMarketCap']) ?? 0.0;
+            final double volume = _toDouble(realTimeData['volume']) ?? 0.0;
+            final double? dayChangePercent = _toDouble(
+                  realTimeData['priceChange1DPercent'],
+                ) ??
+                _toDouble(realTimeData['change1DPercent']);
+            final double? dayChangeAbs = _toDouble(realTimeData['change1D']) ??
+                _toDouble(realTimeData['priceChange1D']) ??
+                (dayChangePercent != null && currentPrice > 0
+                    ? currentPrice *
+                        (dayChangePercent / (100 + dayChangePercent))
+                    : null);
+            final double? weekHigh = _toDouble(realTimeData['52WeekHigh']);
+            final double? weekLow = _toDouble(realTimeData['52WeekLow']);
+            final double? open = _toDouble(realTimeData['open']);
+            final double? previousClose =
+                _toDouble(realTimeData['previous_close']);
+            final double? high = _toDouble(realTimeData['high']);
+            final double? low = _toDouble(realTimeData['low']);
+            final double? peTTM = _toDouble(realTimeData['peTTM']);
+            final double? avgVolume =
+                _toDouble(realTimeData['avgVolume10days']);
+            final double? dividendYield =
+                _toDouble(realTimeData['currentDividendYieldTTM']);
+            final double? beta = _toDouble(realTimeData['beta']);
+            final String exchange =
+                realTimeData['exchange']?.toString() ?? '';
+
+            final String logo = logoInfo?['logo'] ?? '';
+            final String name = logoInfo?['name'] ?? watchlistStock.ticker;
+
+            final double priceDiff = currentPrice - addedPrice;
+            final double gainLossPercent =
+                addedPrice > 0 ? (priceDiff / addedPrice) * 100 : 0.0;
+            final double displayChange =
+                dayChangePercent ?? gainLossPercent;
+            final bool isGain = displayChange >= 0;
+
+            tableData.add(
+              SimpleRowModel(
+                symbol: watchlistStock.ticker,
+                name: name,
+                logo: logo.isEmpty ? null : logo,
+                price: currentPrice,
+                changePercent: displayChange,
+                currency: 'USD',
+                isPositive: isGain,
+                changeColor: isGain
+                    ? Colors.green.shade600
+                    : Colors.red.shade600,
+                fields: <String, dynamic>{
+                  'addedPrice': addedPrice,
+                  'currentPrice': currentPrice,
+                  'priceDisplay': '\$${currentPrice.toStringAsFixed(2)}',
+                  'gainLoss': double.parse(priceDiff.toStringAsFixed(1)),
+                  'gainLossPercent': gainLossPercent,
+                  'change1DPercent': dayChangePercent,
+                  'change1DAbs': dayChangeAbs,
+                  'changeCell': WatchlistChangeCell(
+                    percent: dayChangePercent ?? displayChange,
+                    absolute: dayChangeAbs,
+                    isDark: isDark,
+                  ),
+                  'sparkline': WatchlistSparklineCell(
+                    key: ValueKey<String>('spark_${watchlistStock.ticker}'),
+                    symbol: watchlistStock.ticker,
+                    isDark: isDark,
+                    positive: isGain,
+                  ),
+                  'range52': WatchlistRange52Cell(
+                    key: ValueKey<String>('range_${watchlistStock.ticker}'),
+                    low: weekLow,
+                    high: weekHigh,
+                    current: currentPrice,
+                    isDark: isDark,
+                  ),
+                  'weekHigh': weekHigh,
+                  'weekLow': weekLow,
+                  'open': open,
+                  'previousClose': previousClose,
+                  'high': high,
+                  'low': low,
+                  'peTTM': peTTM,
+                  'avgVolume': avgVolume,
+                  'dividendYield': dividendYield,
+                  'beta': beta,
+                  'exchange': exchange,
+                  'targetPrice': TargetPriceCell(
+                    ticker: watchlistStock.ticker,
+                    bellStyle: true,
+                  ),
+                  'notes': _NotesCell(
+                    ticker: watchlistStock.ticker,
+                    name: name,
+                    isDark: isDark,
+                  ),
+                  'marketCap':
+                      Constants.formatMarketCapFromMillions(marketCap),
+                  'marketCapRaw': marketCap,
+                  'volumeRaw': volume,
+                  'volume': _formatVolumeShort(volume),
+                },
+              ),
+            );
           } else {
-            // Fallback if no real-time data available
-            tableData.add(SimpleRowModel(
-              symbol: watchlistStock.ticker,
-              name: watchlistStock.ticker,
-              logo: null,
-              price: watchlistStock.currentPrice,
-              changePercent: 0.0,
-              currency: 'USD', // Default currency for watchlist
-              isPositive: true,
-              changeColor: Colors.grey,
-              fields: {
-                'addedPrice': watchlistStock.currentPrice, // Store as number for live price calculations
-                'currentPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
-                'gainLoss': 0.0,
-                'marketCap': '--',
-                'volume': 0.0,
-              },
-            ));
+            tableData.add(
+              SimpleRowModel(
+                symbol: watchlistStock.ticker,
+                name: watchlistStock.ticker,
+                logo: null,
+                price: watchlistStock.currentPrice,
+                changePercent: 0.0,
+                currency: 'USD',
+                isPositive: true,
+                changeColor: Colors.grey,
+                fields: <String, dynamic>{
+                  'addedPrice': watchlistStock.currentPrice,
+                  'currentPrice': watchlistStock.currentPrice,
+                  'priceDisplay':
+                      '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
+                  'gainLoss': 0.0,
+                  'gainLossPercent': 0.0,
+                  'change1DPercent': null,
+                  'changeCell': WatchlistChangeCell(
+                    percent: 0,
+                    absolute: 0,
+                    isDark: isDark,
+                  ),
+                  'sparkline': WatchlistSparklineCell(
+                    symbol: watchlistStock.ticker,
+                    isDark: isDark,
+                    positive: true,
+                  ),
+                  'range52': WatchlistRange52Cell(
+                    low: null,
+                    high: null,
+                    current: watchlistStock.currentPrice,
+                    isDark: isDark,
+                  ),
+                  'targetPrice': TargetPriceCell(
+                    ticker: watchlistStock.ticker,
+                    bellStyle: true,
+                  ),
+                  'notes': _NotesCell(
+                    ticker: watchlistStock.ticker,
+                    name: watchlistStock.ticker,
+                    isDark: isDark,
+                  ),
+                  'marketCap': '--',
+                  'marketCapRaw': 0.0,
+                  'volumeRaw': 0.0,
+                  'volume': '—',
+                },
+              ),
+            );
           }
         }
-        
+
         if (mounted) {
           setState(() {
             _tableData = tableData;
             _isEnrichingData = false;
+            _page = 1;
           });
-          
-          // Notify parent widget that data is ready
           widget.onDataReady?.call(_tableData);
         }
       } else {
         _buildFallbackTableData();
       }
-    } catch (e) {
+    } catch (_) {
       _buildFallbackTableData();
     }
   }
 
   void _buildFallbackTableData() {
-    // Build table data with basic information when Typesense fails
-    final tableData = <SimpleRowModel>[];
-    
-    for (final watchlistStock in widget.stocks) {
-      tableData.add(SimpleRowModel(
-        symbol: watchlistStock.ticker,
-        name: watchlistStock.ticker,
-        logo: null,
-        price: watchlistStock.currentPrice,
-        changePercent: 0.0,
-        currency: 'USD', // Default currency for watchlist
-        isPositive: true,
-        changeColor: Colors.grey,
-        fields: {
-          'addedPrice': watchlistStock.currentPrice, // Store as number for live price calculations
-          'currentPrice': '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
-          'gainLoss': 0.0,
-          'marketCap': '--',
-          'volume': 0.0,
-        },
-      ));
+    final bool isDark = widget.isDarkMode;
+    final List<SimpleRowModel> tableData = <SimpleRowModel>[];
+
+    for (final WatchlistStock watchlistStock in widget.stocks) {
+      tableData.add(
+        SimpleRowModel(
+          symbol: watchlistStock.ticker,
+          name: watchlistStock.ticker,
+          logo: null,
+          price: watchlistStock.currentPrice,
+          changePercent: 0.0,
+          currency: 'USD',
+          isPositive: true,
+          changeColor: Colors.grey,
+          fields: <String, dynamic>{
+            'addedPrice': watchlistStock.currentPrice,
+            'currentPrice': watchlistStock.currentPrice,
+            'priceDisplay':
+                '\$${watchlistStock.currentPrice.toStringAsFixed(2)}',
+            'gainLoss': 0.0,
+            'gainLossPercent': 0.0,
+            'changeCell': WatchlistChangeCell(
+              percent: 0,
+              absolute: 0,
+              isDark: isDark,
+            ),
+            'sparkline': WatchlistSparklineCell(
+              symbol: watchlistStock.ticker,
+              isDark: isDark,
+              positive: true,
+            ),
+            'range52': WatchlistRange52Cell(
+              low: null,
+              high: null,
+              current: watchlistStock.currentPrice,
+              isDark: isDark,
+            ),
+            'targetPrice': TargetPriceCell(
+                    ticker: watchlistStock.ticker,
+                    bellStyle: true,
+                  ),
+            'notes': _NotesCell(
+              ticker: watchlistStock.ticker,
+              name: watchlistStock.ticker,
+              isDark: isDark,
+            ),
+            'marketCap': '--',
+            'marketCapRaw': 0.0,
+            'volumeRaw': 0.0,
+            'volume': '—',
+          },
+        ),
+      );
     }
-    
+
     if (mounted) {
       setState(() {
         _tableData = tableData;
         _isEnrichingData = false;
+        _page = 1;
       });
-      
-      // Notify parent widget that data is ready
       widget.onDataReady?.call(_tableData);
     }
+  }
+
+  List<SimpleRowModel> get _filteredSorted {
+    Iterable<SimpleRowModel> rows = _tableData;
+    final String q = _searchQuery.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      rows = rows.where((SimpleRowModel r) {
+        return r.symbol.toLowerCase().contains(q) ||
+            r.name.toLowerCase().contains(q);
+      });
+    }
+
+    final List<SimpleRowModel> list = rows.toList();
+    list.sort((SimpleRowModel a, SimpleRowModel b) {
+      int cmp;
+      switch (_sortBy) {
+        case _WatchlistSortBy.name:
+          cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          break;
+        case _WatchlistSortBy.price:
+          cmp = (a.price ?? 0).compareTo(b.price ?? 0);
+          break;
+        case _WatchlistSortBy.marketCap:
+          cmp = ((_toDouble(a.fields['marketCapRaw']) ?? 0)
+              .compareTo(_toDouble(b.fields['marketCapRaw']) ?? 0));
+          break;
+        case _WatchlistSortBy.volume:
+          cmp = ((_toDouble(a.fields['volumeRaw']) ??
+                  _toDouble(a.fields['volume']) ??
+                  0)
+              .compareTo(_toDouble(b.fields['volumeRaw']) ??
+                  _toDouble(b.fields['volume']) ??
+                  0));
+          break;
+        case _WatchlistSortBy.gainLoss:
+          cmp = ((_toDouble(a.fields['gainLossPercent']) ?? 0)
+              .compareTo(_toDouble(b.fields['gainLossPercent']) ?? 0));
+          break;
+        case _WatchlistSortBy.changePercent:
+          cmp = (a.changePercent ?? 0).compareTo(b.changePercent ?? 0);
+          break;
+      }
+      return _sortAsc ? cmp : -cmp;
+    });
+    return list;
+  }
+
+  List<SimpleRowModel> get _pageRows {
+    final List<SimpleRowModel> all = _filteredSorted;
+    if (all.isEmpty) return all;
+    final int start = ((_page - 1) * _pageSize).clamp(0, all.length);
+    final int end = (start + _pageSize).clamp(0, all.length);
+    return all.sublist(start, end);
+  }
+
+  int get _totalPages {
+    final int n = _filteredSorted.length;
+    if (n <= 0) return 1;
+    return ((n - 1) ~/ _pageSize) + 1;
+  }
+
+  void _openAddStocks() {
+    final WatchlistController controller = Get.find<WatchlistController>();
+    final selected = controller.selectedWatchlist.value;
+    if (selected == null) return;
+    AddStocksModal.show(
+      context: context,
+      watchlistName: selected.name,
+      watchlistId: selected.id,
+    );
   }
 
   @override
@@ -261,12 +540,10 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       return _buildErrorState();
     }
 
-    // Show empty state if no stocks in current watchlist
     if (widget.stocks.isEmpty) {
       return _buildEmptyState();
     }
 
-    // Show loading state if we have stocks but no table data yet (data enrichment in progress)
     if (_tableData.isEmpty && widget.stocks.isNotEmpty) {
       return _buildLoadingState();
     }
@@ -276,11 +553,11 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
 
   Widget _buildLoadingState() {
     return Column(
-      children: [
+      children: <Widget>[
         WatchlistShimmer.listItem(isDarkMode: widget.isDarkMode),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         WatchlistShimmer.listItem(isDarkMode: widget.isDarkMode),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         WatchlistShimmer.listItem(isDarkMode: widget.isDarkMode),
       ],
     );
@@ -290,27 +567,17 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 24,
-          ),
-          SizedBox(height: 8),
-          Text(
+        children: <Widget>[
+          const Icon(Icons.error_outline, color: Colors.red, size: 24),
+          const SizedBox(height: 8),
+          const Text(
             'Failed to load stocks',
-            style: TextStyle(
-              color: Colors.red,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.red, fontSize: 12),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             widget.errorMessage ?? 'Unknown error',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 10,
-            ),
+            style: const TextStyle(color: Colors.grey, fontSize: 10),
             textAlign: TextAlign.center,
           ),
         ],
@@ -324,7 +591,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: <Widget>[
             Icon(
               Icons.inbox_outlined,
               color: HomeUi.muted(widget.isDarkMode),
@@ -340,49 +607,460 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
               'Add stocks to get started',
               style: HomeUi.subtitle(widget.isDarkMode),
             ),
+            const SizedBox(height: 16),
+            HomeUi.primaryAction(
+              label: 'Add stocks',
+              icon: Icons.add_rounded,
+              onTap: _openAddStocks,
+            ),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildToolbarActions(bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SizedBox(
+          width: 260,
+          height: HomeUi.controlHeight,
+          child: TextField(
+            controller: _searchController,
+            onChanged: (String v) {
+              setState(() {
+                _searchQuery = v;
+                _page = 1;
+              });
+            },
+            style: HomeUi.control(isDark, active: true),
+            decoration: InputDecoration(
+              hintText: 'Search stocks & ETFs in watchlist',
+              hintStyle: HomeUi.control(isDark).copyWith(fontSize: 12),
+              isDense: true,
+              prefixIcon: Icon(
+                CupertinoIcons.search,
+                size: 15,
+                color: HomeUi.muted(isDark),
+              ),
+              suffixIcon: _searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 15,
+                        color: HomeUi.muted(isDark),
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                          _page = 1;
+                        });
+                      },
+                    ),
+              filled: true,
+              fillColor: HomeUi.elevatedBg(isDark),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                borderSide: BorderSide(color: HomeUi.borderLight(isDark)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                borderSide: BorderSide(color: HomeUi.borderLight(isDark)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                borderSide: const BorderSide(color: HomeUi.buttonBorder),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 148,
+          height: HomeUi.controlHeight,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: HomeUi.elevatedBg(isDark),
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<_WatchlistSortBy>(
+                isExpanded: true,
+                value: _sortBy,
+                dropdownColor: HomeUi.cardBg(isDark),
+                borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: HomeUi.muted(isDark),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                style: HomeUi.control(isDark, active: true).copyWith(
+                  fontSize: 12.5,
+                ),
+                items: const <DropdownMenuItem<_WatchlistSortBy>>[
+                  DropdownMenuItem(
+                    value: _WatchlistSortBy.changePercent,
+                    child: Text('Sort: % Change'),
+                  ),
+                  DropdownMenuItem(
+                    value: _WatchlistSortBy.name,
+                    child: Text('Sort: Name'),
+                  ),
+                  DropdownMenuItem(
+                    value: _WatchlistSortBy.price,
+                    child: Text('Sort: Price'),
+                  ),
+                  DropdownMenuItem(
+                    value: _WatchlistSortBy.marketCap,
+                    child: Text('Sort: Market Cap'),
+                  ),
+                  DropdownMenuItem(
+                    value: _WatchlistSortBy.volume,
+                    child: Text('Sort: Volume'),
+                  ),
+                  DropdownMenuItem(
+                    value: _WatchlistSortBy.gainLoss,
+                    child: Text('Sort: Gain / Loss'),
+                  ),
+                ],
+                onChanged: (_WatchlistSortBy? v) {
+                  if (v == null) return;
+                  setState(() {
+                    if (_sortBy == v) {
+                      _sortAsc = !_sortAsc;
+                    } else {
+                      _sortBy = v;
+                      _sortAsc = v == _WatchlistSortBy.name;
+                    }
+                    _page = 1;
+                  });
+                },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          tooltip: _sortAsc ? 'Ascending' : 'Descending',
+          onPressed: () => setState(() => _sortAsc = !_sortAsc),
+          icon: Icon(
+            _sortAsc
+                ? Icons.arrow_upward_rounded
+                : Icons.arrow_downward_rounded,
+            size: 18,
+            color: HomeUi.muted(isDark),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooter(bool isDark) {
+    final List<SimpleRowModel> filtered = _filteredSorted;
+    final int total = filtered.length;
+    final int start = total == 0 ? 0 : ((_page - 1) * _pageSize) + 1;
+    final int end = total == 0 ? 0 : (start + _pageRows.length - 1);
+    final int pages = _totalPages;
+    final int page = _page.clamp(1, pages);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      child: Row(
+        children: <Widget>[
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: _openAddStocks,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.add_rounded,
+                    size: 16,
+                    color: HomeUi.buttonBorder,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Add Stock',
+                    style: HomeUi.control(isDark, active: true).copyWith(
+                      color: HomeUi.buttonBorder,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            total == 0
+                ? 'Showing 0 stocks'
+                : 'Showing $start to $end of $total',
+            style: HomeUi.subtitle(isDark).copyWith(fontSize: 11.5),
+          ),
+          if (pages > 1) ...<Widget>[
+            const SizedBox(width: 10),
+            _PageIconButton(
+              isDark: isDark,
+              icon: Icons.chevron_left_rounded,
+              enabled: page > 1,
+              onTap: () => setState(() => _page = page - 1),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                '$page / $pages',
+                style: HomeUi.control(isDark, active: true).copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            _PageIconButton(
+              isDark: isDark,
+              icon: Icons.chevron_right_rounded,
+              enabled: page < pages,
+              onTap: () => setState(() => _page = page + 1),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildTable() {
-    final columns = [
-      SimpleColumn(label: 'ADDED', fieldName: 'addedPrice', isNumeric: true, width: 108),
-      SimpleColumn(label: 'CURRENT', fieldName: 'currentPrice', isNumeric: true, width: 118),
-      SimpleColumn(label: 'GAIN/LOSS', fieldName: 'gainLoss', isNumeric: true, width: 132),
-      SimpleColumn(label: 'TARGET', fieldName: 'targetPrice', isNumeric: true, width: 148),
-      SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true, width: 112),
-      SimpleColumn(label: 'Volume', fieldName: 'volume', isNumeric: true, width: 96),
+    final bool isDark = widget.isDarkMode;
+    final List<SimpleColumn> columns = <SimpleColumn>[
+      const SimpleColumn(
+        label: 'PRICE',
+        fieldName: 'priceDisplay',
+        isNumeric: true,
+        width: 100,
+      ),
+      const SimpleColumn(
+        label: 'CHANGE %',
+        fieldName: 'changeCell',
+        isNumeric: true,
+        width: 110,
+      ),
+      const SimpleColumn(
+        label: '1D CHART',
+        fieldName: 'sparkline',
+        isNumeric: false,
+        width: 104,
+      ),
+      const SimpleColumn(
+        label: 'MKT CAP',
+        fieldName: 'marketCap',
+        isNumeric: true,
+        width: 100,
+      ),
+      const SimpleColumn(
+        label: 'VOLUME',
+        fieldName: 'volume',
+        isNumeric: true,
+        width: 96,
+      ),
+      const SimpleColumn(
+        label: '52W RANGE',
+        fieldName: 'range52',
+        isNumeric: false,
+        width: 180,
+      ),
+      const SimpleColumn(
+        label: 'ALERTS',
+        fieldName: 'targetPrice',
+        isNumeric: false,
+        width: 120,
+      ),
+      const SimpleColumn(
+        label: 'NOTES',
+        fieldName: 'notes',
+        isNumeric: false,
+        width: 72,
+      ),
     ];
 
-    return DynamicTable(
-      columns: columns,
-      rows: _tableData,
-      title: widget.title,
-      subtitle: widget.subtitle,
-      toolbarLeadingIcon:
-          widget.title != null ? Icons.table_rows_rounded : null,
-      considerPadding: false,
-      showFixedColumn: true,
-      showOuterShadow: false,
-      fixedColumnWidth: 220,
-      headerHeight: 44,
-      rowHeight: 56,
-      columnSpacing: 40,
-      zebraStripes: true,
-      enableLivePrices: true,
-      enableColumnCustomization: true,
-      tableId: 'watchlist_stocks_table',
-      showColumnActionMenu: true,
-      showColumnResizeHandle: true,
+    // Ensure page is valid after filter/sort.
+    if (_page > _totalPages) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _page = _totalPages);
+      });
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        DynamicTable(
+          columns: columns,
+          rows: _pageRows,
+          title: widget.title ?? 'Stocks',
+          subtitle: widget.subtitle ??
+              '${_filteredSorted.length} holdings in this watchlist',
+          toolbarLeadingIcon: Icons.table_rows_rounded,
+          toolbar: _buildToolbarActions(isDark),
+          considerPadding: false,
+          showFixedColumn: true,
+          showOuterShadow: false,
+          fixedColumnWidth: 220,
+          headerHeight: 44,
+          rowHeight: 56,
+          columnSpacing: 28,
+          zebraStripes: true,
+          enableLivePrices: true,
+          enableColumnCustomization: true,
+          tableId: 'watchlist_stocks_table_v2',
+          showColumnActionMenu: true,
+          showColumnResizeHandle: true,
+          onTickerTap: widget.onStockSelected == null
+              ? null
+              : (DynamicTableRow row) {
+                  final String ticker =
+                      row.data['_ticker_symbol']?.toString() ?? '';
+                  if (ticker.isEmpty) return;
+                  for (final SimpleRowModel r in _tableData) {
+                    if (r.symbol == ticker) {
+                      widget.onStockSelected!(r);
+                      return;
+                    }
+                  }
+                  for (final SimpleRowModel r in _pageRows) {
+                    if (r.symbol == ticker) {
+                      widget.onStockSelected!(r);
+                      return;
+                    }
+                  }
+                },
+        ),
+        _buildFooter(isDark),
+      ],
     );
   }
 
-  Widget _buildTargetPriceWidget(String ticker) {
-    return TargetPriceCell(
-      ticker: ticker,
-    );
+  double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value.replaceAll('%', '').trim());
+    }
+    return null;
   }
 
+  /// Compact volume: 23.4K · 25.9M · 1.2B · 3.1T
+  String _formatVolumeShort(double volume) {
+    if (volume <= 0) return '—';
+    if (volume >= 1e12) return '${(volume / 1e12).toStringAsFixed(2)}T';
+    if (volume >= 1e9) return '${(volume / 1e9).toStringAsFixed(2)}B';
+    if (volume >= 1e6) return '${(volume / 1e6).toStringAsFixed(2)}M';
+    if (volume >= 1e3) return '${(volume / 1e3).toStringAsFixed(2)}K';
+    return volume.toStringAsFixed(0);
+  }
+}
+
+class _PageIconButton extends StatelessWidget {
+  const _PageIconButton({
+    required this.isDark,
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final bool isDark;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = enabled
+        ? HomeUi.title(isDark)
+        : HomeUi.muted(isDark).withValues(alpha: 0.4);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon, size: 18, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotesCell extends StatelessWidget {
+  const _NotesCell({
+    required this.ticker,
+    required this.name,
+    required this.isDark,
+  });
+
+  final String ticker;
+  final String name;
+  final bool isDark;
+
+  void _openNotes() {
+    if (!Get.isRegistered<NotesController>()) return;
+    final NotesController notes = Get.find<NotesController>();
+    notes.setCustomPanel(
+      title: 'Notes · $ticker',
+      subtitle: name,
+      builder: (BuildContext context, VoidCallback onClose) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Quick notes for $ticker',
+                style: HomeUi.sectionTitle(
+                  Theme.of(context).brightness == Brightness.dark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Use the global memo pad for private research on this name.',
+                style: HomeUi.subtitle(
+                  Theme.of(context).brightness == Brightness.dark,
+                ),
+              ),
+              const SizedBox(height: 16),
+              HomeUi.primaryAction(
+                label: 'Open memo pad',
+                icon: Icons.sticky_note_2_outlined,
+                onTap: () {
+                  notes.clearCustomPanel();
+                  notes.openNotesPanel();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    notes.openNotesPanel();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: IconButton(
+        tooltip: 'Notes',
+        onPressed: _openNotes,
+        icon: Icon(
+          Icons.description_outlined,
+          size: 18,
+          color: HomeUi.muted(isDark),
+        ),
+      ),
+    );
+  }
 }

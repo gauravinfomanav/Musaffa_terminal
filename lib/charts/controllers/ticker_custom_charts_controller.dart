@@ -46,7 +46,23 @@ class TickerCustomChartsController extends GetxController {
   List<OhlcCandlePoint> get visibleCandles {
     final List<OhlcCandlePoint> source = _sourceCandles;
     if (source.isEmpty) return <OhlcCandlePoint>[];
-    if (isIntraday) return source.toList();
+
+    if (isIntraday) {
+      if (intradayCandles.isNotEmpty) {
+        return _latestTradingSession(intradayCandles);
+      }
+      // Intraday unavailable — show only recent daily bars, not full history.
+      final DateTime? cutoff = _cutoffForRange(PremiumPriceRange.oneDay);
+      if (cutoff != null) {
+        final List<OhlcCandlePoint> recent = source
+            .where((OhlcCandlePoint c) => !c.date.isBefore(cutoff))
+            .toList();
+        if (recent.isNotEmpty) return recent;
+      }
+      if (source.length <= 2) return source.toList();
+      return source.sublist(source.length - 2);
+    }
+
     final DateTime? cutoff = _cutoffForRange(selectedRange.value);
     if (cutoff == null) return source.toList();
     return source
@@ -89,6 +105,9 @@ class TickerCustomChartsController extends GetxController {
     _loadedSymbol = normalized;
     isLoadingPrice.value = true;
     priceError.value = '';
+    candles.clear();
+    intradayCandles.clear();
+    livePrice.value = null;
 
     try {
       final DateTime now = DateTime.now();
@@ -101,6 +120,8 @@ class TickerCustomChartsController extends GetxController {
         forceRefresh: forceRefresh,
       );
 
+      if (_loadedSymbol != normalized) return;
+
       if (loaded.isEmpty) {
         candles.clear();
         priceError.value = 'No price history available';
@@ -112,10 +133,14 @@ class TickerCustomChartsController extends GetxController {
         await _loadIntraday(normalized);
       }
     } catch (error) {
+      if (_loadedSymbol != normalized) return;
       candles.clear();
+      intradayCandles.clear();
       priceError.value = error.toString();
     } finally {
-      isLoadingPrice.value = false;
+      if (_loadedSymbol == normalized) {
+        isLoadingPrice.value = false;
+      }
     }
   }
 
@@ -127,35 +152,38 @@ class TickerCustomChartsController extends GetxController {
   }
 
   Future<void> _loadIntraday(String symbol) async {
+    final String normalized = symbol.trim().toUpperCase();
+    if (normalized.isEmpty || _loadedSymbol != normalized) return;
+
     isLoadingPrice.value = true;
     priceError.value = '';
+    intradayCandles.clear();
 
     try {
       final DateTime now = DateTime.now();
       final DateTime from = now.subtract(const Duration(days: 3));
       final List<OhlcCandlePoint> intraday = await _candleService.fetchOhlc(
-        symbol,
+        normalized,
         from: from,
         to: now,
         resolution: '15',
         forceRefresh: true,
       );
 
+      if (_loadedSymbol != normalized) return;
+
       if (intraday.isNotEmpty) {
-        final DateTime cutoff = DateTime(now.year, now.month, now.day);
-        final List<OhlcCandlePoint> todaySession = intraday
-            .where((OhlcCandlePoint c) => !c.date.isBefore(cutoff))
-            .toList();
-        intradayCandles.assignAll(
-          todaySession.isNotEmpty ? todaySession : intraday,
-        );
+        intradayCandles.assignAll(_latestTradingSession(intraday));
       } else {
         intradayCandles.clear();
       }
     } catch (_) {
+      if (_loadedSymbol != normalized) return;
       // Keep daily candles as fallback via visibleCandles.
     } finally {
-      isLoadingPrice.value = false;
+      if (_loadedSymbol == normalized) {
+        isLoadingPrice.value = false;
+      }
     }
   }
 
@@ -202,5 +230,27 @@ class TickerCustomChartsController extends GetxController {
       case PremiumPriceRange.all:
         return null;
     }
+  }
+
+  /// Keeps only the most recent continuous intraday session.
+  /// Prevents overnight/weekend gaps from drawing vertical connector lines.
+  static List<OhlcCandlePoint> _latestTradingSession(
+    List<OhlcCandlePoint> candles, {
+    Duration gapThreshold = const Duration(minutes: 60),
+  }) {
+    if (candles.length <= 1) return candles.toList();
+
+    final List<OhlcCandlePoint> sorted = candles.toList()
+      ..sort((OhlcCandlePoint a, OhlcCandlePoint b) => a.date.compareTo(b.date));
+
+    int sessionStart = 0;
+    for (int i = 1; i < sorted.length; i++) {
+      final Duration gap = sorted[i].date.difference(sorted[i - 1].date);
+      if (gap > gapThreshold) {
+        sessionStart = i;
+      }
+    }
+
+    return sorted.sublist(sessionStart);
   }
 }

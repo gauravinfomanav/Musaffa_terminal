@@ -7,6 +7,7 @@ enum SidebarNavItem {
   screener,
   ideas,
   portfolio,
+  watchlist,
   earnings,
   economicCalendar,
   profile,

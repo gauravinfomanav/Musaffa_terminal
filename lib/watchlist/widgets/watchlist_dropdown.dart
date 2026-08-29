@@ -3,12 +3,14 @@ import 'package:get/get.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
+import 'package:musaffa_terminal/watchlist/models/watchlist_model.dart';
 import 'package:musaffa_terminal/watchlist/widgets/create_watchlist_dialog.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_stocks_table.dart';
 import 'package:musaffa_terminal/watchlist/widgets/add_stocks_modal.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_news_widget.dart';
-import 'package:musaffa_terminal/watchlist/widgets/watchlist_performance_summary.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_overview_row.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_stock_detail_panel.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 
 class WatchlistDropdown extends StatefulWidget {
@@ -24,24 +26,40 @@ class WatchlistDropdown extends StatefulWidget {
 }
 
 class _WatchlistDropdownState extends State<WatchlistDropdown> {
-  final GlobalKey _dropdownButtonKey = GlobalKey();
-  final LayerLink _layerLink = LayerLink();
-  bool _isDropdownOpen = false;
-  double? _dropdownWidth;
   List<SimpleRowModel> _tableData = [];
-
-  @override
-  void didUpdateWidget(WatchlistDropdown oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    
-    // Clear table data when watchlist changes (different dark mode doesn't matter)
-    // This will be handled by the controller's watchlist selection
-  }
+  String? _selectedSymbol;
 
   void _clearTableData() {
     setState(() {
       _tableData = [];
+      _selectedSymbol = null;
     });
+  }
+
+  SimpleRowModel? get _selectedStock {
+    if (_tableData.isEmpty) return null;
+    if (_selectedSymbol != null) {
+      for (final SimpleRowModel row in _tableData) {
+        if (row.symbol == _selectedSymbol) return row;
+      }
+    }
+    return _tableData.first;
+  }
+
+  void _onTableDataReady(List<SimpleRowModel> data) {
+    setState(() {
+      _tableData = data;
+      if (data.isEmpty) {
+        _selectedSymbol = null;
+      } else if (_selectedSymbol == null ||
+          !data.any((SimpleRowModel r) => r.symbol == _selectedSymbol)) {
+        _selectedSymbol = data.first.symbol;
+      }
+    });
+  }
+
+  void _onStockSelected(SimpleRowModel row) {
+    setState(() => _selectedSymbol = row.symbol);
   }
 
   @override
@@ -203,246 +221,229 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
   }
 
   Widget _buildDropdownState(WatchlistController controller, bool isDarkMode) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Column(
-          children: [
+    // One page scroll: tabs, toolbar, table, and detail all move together.
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildWatchlistTabBar(controller, isDarkMode),
+          _buildActionsToolbar(controller, isDarkMode),
+          _buildStocksList(controller, isDarkMode),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionsToolbar(
+    WatchlistController controller,
+    bool isDarkMode,
+  ) {
+    final WatchlistModel? selected = controller.selectedWatchlist.value;
+    final int count = selected?.stockCount ?? controller.watchlistStocks.length;
+    final bool isDefault = selected != null &&
+        controller.isDefaultWatchlist(selected.id);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 10),
+      child: Row(
+        children: [
+          if (selected != null)
+            Text(
+              count == 1 ? '1 stock' : '$count stocks',
+              style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12.5),
+            ),
+          const Spacer(),
+          if (isDefault)
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              padding: const EdgeInsets.all(14),
-              decoration: HomeUi.cardDecoration(isDarkMode),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              height: HomeUi.controlHeight,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: HomeUi.elevatedBg(isDarkMode),
+                borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                border: Border.all(color: HomeUi.borderLight(isDarkMode)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  CompositedTransformTarget(
-                    link: _layerLink,
-                    child: _WatchlistSelectorTile(
-                      key: _dropdownButtonKey,
-                      isDarkMode: isDarkMode,
-                      isOpen: _isDropdownOpen,
-                      name: controller.selectedWatchlist.value?.name ??
-                          'Select Watchlist',
-                      stockCount:
-                          controller.selectedWatchlist.value?.stockCount,
-                      isDefault: controller.selectedWatchlist.value != null &&
-                          controller.isDefaultWatchlist(
-                            controller.selectedWatchlist.value!.id,
-                          ),
-                      onTap: _toggleDropdown,
-                    ),
+                  Icon(
+                    Icons.star_rounded,
+                    size: 14,
+                    color: HomeUi.buttonBorder,
                   ),
-                  const SizedBox(height: 12),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        UnconstrainedBox(
-                          child: _buildAddStocksButton(controller, isDarkMode),
-                        ),
-                        const SizedBox(width: 8),
-                        UnconstrainedBox(
-                          child: HomeUi.ghostAction(
-                            label: 'New Watchlist',
-                            icon: Icons.add_rounded,
-                            dark: isDarkMode,
-                            onTap: () =>
-                                _showCreateWatchlistDialog(isDarkMode),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        UnconstrainedBox(
-                          child: _buildSetDefaultButton(controller, isDarkMode),
-                        ),
-                      ],
+                  const SizedBox(width: 6),
+                  Text(
+                    'Default',
+                    style: HomeUi.control(isDarkMode, active: true).copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
+            )
+          else if (selected != null) ...[
+            HomeUi.ghostAction(
+              label: 'Set as default',
+              icon: Icons.star_outline_rounded,
+              dark: isDarkMode,
+              onTap: () async {
+                final bool success =
+                    await controller.setDefaultWatchlist(selected.id);
+                if (!success || !mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Set "${selected.name}" as default watchlist',
+                      style: HomeUi.control(isDarkMode, active: true).copyWith(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                    backgroundColor: HomeUi.title(isDarkMode),
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                    ),
+                  ),
+                );
+              },
             ),
-            Expanded(
-              child: _buildStocksList(controller, isDarkMode),
-            ),
+            const SizedBox(width: 8),
           ],
-        ),
-        if (_isDropdownOpen)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => setState(() => _isDropdownOpen = false),
-              child: Container(color: Colors.transparent),
+          if (selected != null)
+            HomeUi.primaryAction(
+              label: 'Add stocks',
+              icon: Icons.add_rounded,
+              onTap: () {
+                AddStocksModal.show(
+                  context: context,
+                  watchlistName: selected.name,
+                  watchlistId: selected.id,
+                );
+              },
             ),
-          ),
-        if (_isDropdownOpen)
-          _buildCustomDropdown(controller, isDarkMode),
-      ],
+        ],
+      ),
     );
   }
 
-  void _toggleDropdown() {
-    if (_isDropdownOpen) {
-      setState(() => _isDropdownOpen = false);
-      return;
-    }
+  Widget _buildWatchlistTabBar(
+    WatchlistController controller,
+    bool isDarkMode,
+  ) {
+    final List<WatchlistModel> lists = controller.watchlists.toList();
+    final String? selectedId = controller.selectedWatchlist.value?.id;
+    final Color muted = HomeUi.muted(isDarkMode);
+    final Color border = HomeUi.borderLight(isDarkMode);
+    // Match Add Stocks (primary action) label / brand accent.
+    final Color selectedColor = HomeUi.buttonBorder;
 
-    final renderBox =
-        _dropdownButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    setState(() {
-      _dropdownWidth = renderBox?.size.width;
-      _isDropdownOpen = true;
-    });
-  }
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: border)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List<Widget>.generate(lists.length, (int index) {
+                  final WatchlistModel watchlist = lists[index];
+                  final bool selected = watchlist.id == selectedId;
+                  final Color color = selected ? selectedColor : muted;
 
-  Widget _buildCustomDropdown(WatchlistController controller, bool isDarkMode) {
-    const double itemHeight = 60.0;
-    const double padding = 8.0;
-    const double maxHeight = 400.0;
-    const double minHeight = 100.0;
-
-    final itemCount = controller.watchlists.length;
-    final calculatedHeight =
-        (itemCount * itemHeight + padding).clamp(minHeight, maxHeight);
-
-    final measuredWidth =
-        _dropdownWidth ??
-        (_dropdownButtonKey.currentContext?.findRenderObject() as RenderBox?)
-            ?.size
-            .width;
-
-    return CompositedTransformFollower(
-      link: _layerLink,
-      showWhenUnlinked: false,
-      targetAnchor: Alignment.bottomLeft,
-      followerAnchor: Alignment.topLeft,
-      offset: const Offset(0, 4),
-      child: GestureDetector(
-          onTap: () {},
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Transform.translate(
-                offset: Offset(0, (1 - value) * -4),
-                child: Opacity(
-                  opacity: value,
-                  child: child,
-                ),
-              );
-            },
-            child: SizedBox(
-              width: measuredWidth,
-              child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: calculatedHeight,
-                ),
-                decoration: BoxDecoration(
-                  color: HomeUi.cardBg(isDarkMode),
-                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-                  border: Border.all(color: HomeUi.borderLight(isDarkMode)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDarkMode ? 0.4 : 0.1,
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        controller.selectWatchlist(watchlist);
+                        _clearTableData();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color:
+                                  selected ? selectedColor : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              watchlist.name,
+                              style: HomeUi.control(
+                                isDarkMode,
+                                active: selected,
+                              ).copyWith(
+                                fontSize: 13,
+                                fontWeight: selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: color,
+                              ),
+                            ),
+                            if (watchlist.stockCount > 0) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '${watchlist.stockCount}',
+                                style: HomeUi.label(isDarkMode).copyWith(
+                                  fontSize: 11,
+                                  color: selected
+                                      ? selectedColor.withValues(alpha: 0.75)
+                                      : muted,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    itemCount: controller.watchlists.length,
-                    itemBuilder: (context, index) {
-                      final watchlist = controller.watchlists[index];
-                      final isDefault =
-                          controller.isDefaultWatchlist(watchlist.id);
-                      final isSelected =
-                          controller.selectedWatchlist.value?.id ==
-                              watchlist.id;
-
-                      return _WatchlistDropdownItem(
-                        isDarkMode: isDarkMode,
-                        watchlistName: watchlist.name,
-                        stockCount: watchlist.stockCount,
-                        isDefault: isDefault,
-                        isSelected: isSelected,
-                        onTap: () {
-                          controller.selectWatchlist(watchlist);
-                          setState(() => _isDropdownOpen = false);
-                        },
-                      );
-                    },
+                  );
+                }),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8, right: 2),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showCreateWatchlistDialog(isDarkMode),
+                borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_rounded, size: 16, color: muted),
+                      const SizedBox(width: 4),
+                      Text(
+                        'New Watchlist',
+                        style: HomeUi.control(isDarkMode).copyWith(
+                          fontSize: 13,
+                          color: muted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-        ),
-    );
-  }
-
-  Widget _buildAddStocksButton(WatchlistController controller, bool isDarkMode) {
-    final selectedWatchlist = controller.selectedWatchlist.value;
-
-    if (selectedWatchlist == null) {
-      return Opacity(
-        opacity: 0.45,
-        child: HomeUi.primaryAction(
-          label: 'Add Stocks',
-          icon: Icons.add_rounded,
-          onTap: () {},
-        ),
-      );
-    }
-
-    return HomeUi.primaryAction(
-      label: 'Add Stocks',
-      icon: Icons.add_rounded,
-      onTap: () {
-        AddStocksModal.show(
-          context: Get.context!,
-          watchlistName: selectedWatchlist.name,
-          watchlistId: selectedWatchlist.id,
-        );
-      },
-    );
-  }
-
-  Widget _buildSetDefaultButton(WatchlistController controller, bool isDarkMode) {
-    final selectedWatchlist = controller.selectedWatchlist.value;
-    final isDefault = selectedWatchlist != null && controller.isDefaultWatchlist(selectedWatchlist.id);
-    
-    return _DefaultButton(
-      isDarkMode: isDarkMode,
-      isDefault: isDefault,
-      onTap: selectedWatchlist != null && !isDefault ? () async {
-        final success = await controller.setDefaultWatchlist(selectedWatchlist.id);
-        if (success) {
-          // Show success message
-          ScaffoldMessenger.of(Get.context!).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Set "${selectedWatchlist.name}" as default watchlist',
-                style: DashboardTextStyles.tickerSymbol.copyWith(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-              backgroundColor: isDarkMode ? const Color(0xFF374151) : const Color(0xFF6B7280),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-          );
-        }
-      } : null,
+        ],
+      ),
     );
   }
 
@@ -588,24 +589,25 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
         _clearTableData();
       });
     }
-    
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: SingleChildScrollView(
-        child: Column(
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool showDetail = constraints.maxWidth >= 1080;
+        final Widget mainColumn = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_tableData.isNotEmpty)
+            if (!controller.isStocksEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 14),
-                child: WatchlistPerformanceSummary(
+                child: WatchlistOverviewRow(
                   tableData: _tableData,
                   isDarkMode: isDarkMode,
+                  isTableLoading: _tableData.isEmpty,
                 ),
               ),
             Container(
               decoration: HomeUi.cardDecoration(isDarkMode),
-              clipBehavior: Clip.antiAlias,
+              clipBehavior: Clip.none,
               child: WatchlistStocksTable(
                 stocks: controller.watchlistStocks,
                 isLoading: false,
@@ -614,9 +616,9 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
                 title: 'Stocks',
                 subtitle:
                     '${controller.stocksCount} holdings in this watchlist',
-                onDataReady: (data) {
-                  setState(() => _tableData = data);
-                },
+                onDataReady: _onTableDataReady,
+                selectedSymbol: _selectedSymbol,
+                onStockSelected: _onStockSelected,
               ),
             ),
             const SizedBox(height: 14),
@@ -629,8 +631,33 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
               ),
             ),
           ],
-        ),
-      ),
+        );
+
+        if (!showDetail) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: mainColumn,
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: mainColumn),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 360,
+                child: WatchlistStockDetailPanel(
+                  stock: _selectedStock,
+                  isDarkMode: isDarkMode,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -639,256 +666,6 @@ class _WatchlistDropdownState extends State<WatchlistDropdown> {
     CreateWatchlistDialog.show(
       context: Get.context!,
       isDarkMode: isDarkMode,
-    );
-  }
-}
-
-class _DefaultButton extends StatefulWidget {
-  final bool isDarkMode;
-  final bool isDefault;
-  final VoidCallback? onTap;
-
-  const _DefaultButton({
-    required this.isDarkMode,
-    required this.isDefault,
-    required this.onTap,
-  });
-
-  @override
-  State<_DefaultButton> createState() => _DefaultButtonState();
-}
-
-class _DefaultButtonState extends State<_DefaultButton> {
-  @override
-  Widget build(BuildContext context) {
-    final label = widget.isDefault ? 'Default' : 'Set Default';
-    final icon = widget.isDefault ? Icons.star_rounded : Icons.star_outline_rounded;
-
-    if (widget.onTap == null) {
-      return Opacity(
-        opacity: widget.isDefault ? 0.7 : 0.45,
-        child: HomeUi.ghostAction(
-          label: label,
-          icon: icon,
-          dark: widget.isDarkMode,
-          onTap: () {},
-        ),
-      );
-    }
-
-    return HomeUi.ghostAction(
-      label: label,
-      icon: icon,
-      dark: widget.isDarkMode,
-      onTap: widget.onTap!,
-    );
-  }
-}
-
-class _WatchlistSelectorTile extends StatefulWidget {
-  final bool isDarkMode;
-  final bool isOpen;
-  final String name;
-  final int? stockCount;
-  final bool isDefault;
-  final VoidCallback onTap;
-
-  const _WatchlistSelectorTile({
-    super.key,
-    required this.isDarkMode,
-    required this.isOpen,
-    required this.name,
-    required this.stockCount,
-    required this.isDefault,
-    required this.onTap,
-  });
-
-  @override
-  State<_WatchlistSelectorTile> createState() => _WatchlistSelectorTileState();
-}
-
-class _WatchlistSelectorTileState extends State<_WatchlistSelectorTile> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: HomeUi.filterFieldShell(
-          dark: widget.isDarkMode,
-          hover: _hover || widget.isOpen,
-          accent: widget.isOpen,
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  gradient: HomeUi.iconWellGradient,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: HomeUi.iconWellBorder),
-                ),
-                child: HomeUi.brandIcon(
-                  icon: Icons.bookmark_rounded,
-                  size: HomeUi.iconSm,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            widget.name,
-                            style: HomeUi.tableCellEmphasis(widget.isDarkMode),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        if (widget.isDefault) ...[
-                          const SizedBox(width: 6),
-                          HomeUi.brandIcon(
-                            icon: Icons.star_rounded,
-                            size: HomeUi.iconXs,
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (widget.stockCount != null)
-                      Text(
-                        '${widget.stockCount} stocks',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: HomeUi.subtitle(widget.isDarkMode).copyWith(
-                          fontSize: 11,
-                          height: 1.2,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              AnimatedRotation(
-                turns: widget.isOpen ? 0.5 : 0,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                child: HomeUi.filterChevron(widget.isDarkMode),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WatchlistDropdownItem extends StatefulWidget {
-  final bool isDarkMode;
-  final String watchlistName;
-  final int stockCount;
-  final bool isDefault;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _WatchlistDropdownItem({
-    required this.isDarkMode,
-    required this.watchlistName,
-    required this.stockCount,
-    required this.isDefault,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  State<_WatchlistDropdownItem> createState() => _WatchlistDropdownItemState();
-}
-
-class _WatchlistDropdownItemState extends State<_WatchlistDropdownItem> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: widget.isSelected
-                ? HomeUi.elevatedBg(widget.isDarkMode)
-                : _hover
-                    ? HomeUi.elevatedBg(widget.isDarkMode)
-                        .withValues(alpha: 0.65)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(HomeUi.radiusSm),
-            border: widget.isSelected
-                ? Border.all(color: HomeUi.borderStrong(widget.isDarkMode))
-                : null,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            widget.watchlistName,
-                            style: HomeUi.tableCellEmphasis(widget.isDarkMode)
-                                .copyWith(
-                              fontWeight: widget.isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (widget.isDefault) ...[
-                          const SizedBox(width: 6),
-                          HomeUi.brandIcon(
-                            icon: Icons.star_rounded,
-                            size: HomeUi.iconXs,
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${widget.stockCount} stocks',
-                      style: HomeUi.subtitle(widget.isDarkMode).copyWith(
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (widget.isSelected)
-                HomeUi.brandIcon(
-                  icon: Icons.check_rounded,
-                  size: HomeUi.iconSm,
-                ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

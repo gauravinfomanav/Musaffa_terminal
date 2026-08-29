@@ -164,16 +164,23 @@ class StockCandleService {
           timestampRaw is! num) {
         continue;
       }
+      final double open = openRaw.toDouble();
+      final double high = highRaw.toDouble();
+      final double low = lowRaw.toDouble();
+      final double close = closeRaw.toDouble();
+      if (!_isValidOhlc(open: open, high: high, low: low, close: close)) {
+        continue;
+      }
       points.add(
         OhlcCandlePoint(
           date: DateTime.fromMillisecondsSinceEpoch(
             timestampRaw.toInt() * 1000,
             isUtc: true,
           ).toLocal(),
-          open: openRaw.toDouble(),
-          high: highRaw.toDouble(),
-          low: lowRaw.toDouble(),
-          close: closeRaw.toDouble(),
+          open: open,
+          high: high,
+          low: low,
+          close: close,
           volume: volumeRaw.toDouble(),
         ),
       );
@@ -183,5 +190,18 @@ class StockCandleService {
       (OhlcCandlePoint a, OhlcCandlePoint b) => a.date.compareTo(b.date),
     );
     return points;
+  }
+
+  static bool _isValidOhlc({
+    required double open,
+    required double high,
+    required double low,
+    required double close,
+  }) {
+    if (open <= 0 || high <= 0 || low <= 0 || close <= 0) return false;
+    if (high < low) return false;
+    if (close > high * 1.05 || close < low * 0.95) return false;
+    if (open > high * 1.05 || open < low * 0.95) return false;
+    return true;
   }
 }

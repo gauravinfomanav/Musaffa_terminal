@@ -654,6 +654,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       // Content/header driven — do not floor at col.width or every numeric
       // column inherits the same large preferred width and looks identical.
       var minWidth = headerWidth + 8 + _headerTrailing + 4;
+      // Widget cells (custom renderers) skip text measure — honor declared width.
+      if (col.width != null && col.width! > minWidth) {
+        final bool hasWidgetCell = widget.rows.any(
+          (DynamicTableRow row) => row.data[col.key] is Widget,
+        );
+        if (hasWidgetCell) {
+          minWidth = col.width!;
+        }
+      }
 
       for (final row in widget.rows) {
         final value = row.data[col.key];
@@ -1517,6 +1526,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         rows: rows.asMap().entries.map((entry) {
           final row = entry.value;
           return DataRow(
+            key: ValueKey<String>('row_${row.id}'),
             color: WidgetStateProperty.all(
               _hoveredRowId == row.id
                   ? HomeUi.tableRowHover(isDark)

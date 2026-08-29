@@ -8,9 +8,13 @@ import 'package:musaffa_terminal/watchlist/widgets/target_price_dialog.dart';
 class TargetPriceCell extends StatefulWidget {
   final String ticker;
 
+  /// When true, renders a bell icon (red dot if an alert/target is set).
+  final bool bellStyle;
+
   const TargetPriceCell({
     super.key,
     required this.ticker,
+    this.bellStyle = false,
   });
 
   @override
@@ -30,6 +34,10 @@ class _TargetPriceCellState extends State<TargetPriceCell> {
       final isLoading =
           _controller.loadingTargetPricesByTicker[widget.ticker] == true;
 
+      if (widget.bellStyle) {
+        return _buildBell(isDark, targetPrice, isLoading);
+      }
+
       return MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
@@ -46,6 +54,71 @@ class _TargetPriceCellState extends State<TargetPriceCell> {
         ),
       );
     });
+  }
+
+  Widget _buildBell(bool isDark, dynamic targetPrice, bool isLoading) {
+    final bool hasAlert = targetPrice != null;
+
+    return Center(
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: isLoading
+              ? null
+              : () => _showTargetPriceDialog(targetPrice),
+          onLongPress: hasAlert && !isLoading
+              ? () => _confirmDelete(targetPrice.targetId)
+              : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _isHovered
+                  ? HomeUi.elevatedBg(isDark)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: isLoading
+                ? _buildLoading(isDark)
+                : Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        hasAlert
+                            ? Icons.notifications_rounded
+                            : Icons.notifications_none_rounded,
+                        size: 20,
+                        color: hasAlert
+                            ? HomeUi.title(isDark)
+                            : HomeUi.muted(isDark),
+                      ),
+                      if (hasAlert)
+                        Positioned(
+                          right: -1,
+                          top: -1,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: HomeUi.negative(isDark),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: HomeUi.cardBg(isDark),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildLoading(bool isDark) {

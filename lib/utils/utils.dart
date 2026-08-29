@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
@@ -381,18 +383,13 @@ Widget showLogo(
       final size = sideWidth ?? 25;
       final cachePx = (size * (dpr < 2 ? 2 : dpr) * 2).round();
       if (isSvg) {
-        return SvgPicture.network(
-          url,
-          width: size,
-          height: size,
-          fit: BoxFit.contain,
-          placeholderBuilder: (BuildContext context) {
-            return _buildShimmerPlaceholder(size);
-          },
-          errorBuilder:
-              (BuildContext context, Object exception, StackTrace? stackTrace) {
-            return placeholder;
-          },
+        // Finnhub SVGs often use rgb(255,255,256) for white. Flutter's SVG
+        // parser masks channels with & 0xFF, so 256 → 0 and white becomes yellow.
+        return _SanitizedNetworkSvg(
+          url: url,
+          size: size,
+          placeholder: _buildShimmerPlaceholder(size),
+          errorWidget: placeholder,
         );
       }
       return Image.network(
@@ -418,17 +415,23 @@ Widget showLogo(
   );
 
   // Apply circular clipping if requested
+  final Widget clipped;
   if (circular) {
-    return ClipRRect(
+    clipped = ClipRRect(
       borderRadius: BorderRadius.circular(sideWidth! / 2),
       child: childWidget,
     );
   } else {
-    return ClipRRect(
+    clipped = ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: childWidget,
     );
   }
+  // Key by URL so pagination remounts logos when the row symbol changes.
+  return KeyedSubtree(
+    key: ValueKey<String>('logo_$url'),
+    child: clipped,
+  );
 }
 
 Widget _buildShimmerPlaceholder(double size) {
@@ -439,6 +442,113 @@ Widget _buildShimmerPlaceholder(double size) {
     baseColor: Colors.grey.shade200,
     highlightColor: Colors.grey.shade50,
   );
+}
+
+/// Loads network SVGs and clamps out-of-range `rgb()` channels before parse.
+///
+/// Finnhub logo SVGs use values like `rgb(255, 255, 256)` for white. The SVG
+/// compiler applies `& 0xFF` per channel, so `256` becomes `0` → bright yellow.
+class _SanitizedNetworkSvg extends StatefulWidget {
+  const _SanitizedNetworkSvg({
+    required this.url,
+    required this.size,
+    required this.placeholder,
+    required this.errorWidget,
+  });
+
+  final String url;
+  final double size;
+  final Widget placeholder;
+  final Widget errorWidget;
+
+  static final Map<String, Future<String?>> _cache = <String, Future<String?>>{};
+
+  static final RegExp _rgbPattern = RegExp(
+    r'rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)',
+    caseSensitive: false,
+  );
+
+  static String sanitizeSvg(String raw) {
+    return raw.replaceAllMapped(_rgbPattern, (Match m) {
+      final int r = _clampChannel(m.group(1));
+      final int g = _clampChannel(m.group(2));
+      final int b = _clampChannel(m.group(3));
+      final String? alpha = m.group(4);
+      if (alpha != null) {
+        final double a = double.tryParse(alpha) ?? 1.0;
+        return 'rgba($r, $g, $b, ${a.clamp(0.0, 1.0)})';
+      }
+      return 'rgb($r, $g, $b)';
+    });
+  }
+
+  static int _clampChannel(String? raw) {
+    final double? value = double.tryParse(raw ?? '');
+    if (value == null) return 0;
+    return value.round().clamp(0, 255);
+  }
+
+  static Future<String?> _load(String url) {
+    return _cache.putIfAbsent(url, () async {
+      try {
+        final http.Response response = await http
+            .get(Uri.parse(url))
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          return null;
+        }
+        return sanitizeSvg(response.body);
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  @override
+  State<_SanitizedNetworkSvg> createState() => _SanitizedNetworkSvgState();
+}
+
+class _SanitizedNetworkSvgState extends State<_SanitizedNetworkSvg> {
+  late Future<String?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _SanitizedNetworkSvg._load(widget.url);
+  }
+
+  @override
+  void didUpdateWidget(covariant _SanitizedNetworkSvg oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Pagination reuses the same Element slot — reload when the logo URL changes.
+    if (oldWidget.url != widget.url) {
+      _future = _SanitizedNetworkSvg._load(widget.url);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _future,
+      builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return widget.placeholder;
+        }
+        final String? svg = snapshot.data;
+        if (svg == null || svg.isEmpty) {
+          return widget.errorWidget;
+        }
+        return SvgPicture.string(
+          svg,
+          width: widget.size,
+          height: widget.size,
+          fit: BoxFit.contain,
+          placeholderBuilder: (_) => widget.placeholder,
+          errorBuilder: (_, __, ___) => widget.errorWidget,
+        );
+      },
+    );
+  }
 }
 
 num? parseVariableAsNum(dynamic data) {
