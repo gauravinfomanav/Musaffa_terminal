@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
@@ -13,6 +12,7 @@ import 'package:musaffa_terminal/Screens/watchlist_screen.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:musaffa_terminal/Components/sidebar_nav_icons.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
@@ -437,7 +437,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                             padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
                             children: [
                               _NavTile(
-                                icon: CupertinoIcons.square_grid_2x2,
+                                glyph: SidebarGlyph.dashboard,
                                 label: 'Dashboard',
                                 selected:
                                     active == SidebarNavItem.dashboard,
@@ -446,7 +446,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                               ),
                               if (canScreener)
                                 _NavTile(
-                                  icon: CupertinoIcons.slider_horizontal_3,
+                                  glyph: SidebarGlyph.screener,
                                   label: 'Stock Screener',
                                   selected:
                                       active == SidebarNavItem.screener,
@@ -455,7 +455,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                                 ),
                               if (canIdeas)
                                 _NavTile(
-                                  icon: CupertinoIcons.lightbulb,
+                                  glyph: SidebarGlyph.ideas,
                                   label: 'Trading Ideas',
                                   selected: active == SidebarNavItem.ideas,
                                   isDark: isDark,
@@ -463,7 +463,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                                 ),
                               if (canPortfolios)
                                 _NavTile(
-                                  icon: CupertinoIcons.chart_pie,
+                                  glyph: SidebarGlyph.portfolio,
                                   label: 'Portfolios',
                                   selected:
                                       active == SidebarNavItem.portfolio,
@@ -472,7 +472,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                                 ),
                               if (canWatchlists)
                                 _NavTile(
-                                  icon: CupertinoIcons.bookmark,
+                                  glyph: SidebarGlyph.watchlist,
                                   label: 'Watchlist',
                                   selected:
                                       active == SidebarNavItem.watchlist,
@@ -480,7 +480,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                                   onTap: _goWatchlist,
                                 ),
                               _NavTile(
-                                icon: CupertinoIcons.calendar,
+                                glyph: SidebarGlyph.earnings,
                                 label: 'Earnings Calendar',
                                 selected:
                                     active == SidebarNavItem.earnings,
@@ -488,7 +488,7 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                                 onTap: _goEarnings,
                               ),
                               _NavTile(
-                                icon: CupertinoIcons.globe,
+                                glyph: SidebarGlyph.economic,
                                 label: 'Economic Calendar',
                                 selected: active ==
                                     SidebarNavItem.economicCalendar,
@@ -857,14 +857,14 @@ class _Avatar extends StatelessWidget {
 }
 
 class _NavTile extends StatefulWidget {
-  final IconData icon;
+  final SidebarGlyph glyph;
   final String label;
   final bool selected;
   final bool isDark;
   final VoidCallback onTap;
 
   const _NavTile({
-    required this.icon,
+    required this.glyph,
     required this.label,
     required this.selected,
     required this.isDark,
@@ -894,7 +894,7 @@ class _NavTileState extends State<_NavTile> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             decoration: BoxDecoration(
               color: selected
                   ? HomeUi.elevatedBg(widget.isDark)
@@ -903,7 +903,7 @@ class _NavTileState extends State<_NavTile> {
                           alpha: widget.isDark ? 0.55 : 0.7,
                         )
                       : Colors.transparent),
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: selected
                     ? HomeUi.borderStrong(widget.isDark)
@@ -927,35 +927,45 @@ class _NavTileState extends State<_NavTile> {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  width: 3,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    gradient: selected ? HomeUi.iconFillGradient : null,
-                    color: selected ? null : Colors.transparent,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  width: 28,
-                  height: 28,
+                  width: 36,
+                  height: 36,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: HomeUi.iconWellGradient,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: HomeUi.iconWellBorder),
-                  ),
-                  child: HomeUi.brandIcon(
-                    icon: widget.icon,
-                    size: 14,
                     gradient: selected
-                        ? const LinearGradient(
+                        ? HomeUi.softBrandWellGradient
+                        : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                             colors: [
-                              Color(0xFFE4621E),
-                              Color(0xFFD2364C),
+                              const Color(0x0FE4621E),
+                              const Color(0x146B7280),
                             ],
-                          )
-                        : HomeUi.quietIconGradient,
+                          ),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected
+                          ? HomeUi.buttonBorder.withValues(alpha: 0.48)
+                          : HomeUi.iconWellBorder.withValues(
+                              alpha: widget.isDark ? 0.22 : 0.32,
+                            ),
+                      width: selected ? 1.0 : 0.75,
+                    ),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFFE4621E).withValues(
+                                alpha: widget.isDark ? 0.18 : 0.12,
+                              ),
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: SidebarNavIcon(
+                    glyph: widget.glyph,
+                    selected: selected,
+                    size: 17,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1023,17 +1033,24 @@ class _LogoutTileState extends State<_LogoutTile> {
           child: Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: HomeUi.negativeSoft(widget.isDark),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(9),
                   border: Border.all(
                     color: danger.withValues(alpha: 0.22),
                   ),
                 ),
-                child: Icon(Icons.logout_rounded, size: 15, color: danger),
+                child: SidebarNavIcon(
+                  glyph: SidebarGlyph.logout,
+                  selected: true,
+                  size: 16,
+                  gradient: LinearGradient(
+                    colors: [danger, danger.withValues(alpha: 0.82)],
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -1150,9 +1167,6 @@ class _SidebarMenuButtonState extends State<SidebarMenuButton>
 
     return Obx(() {
       final isOpen = open.value;
-      final idle = widget.isDarkMode
-          ? const Color(0xFFE0E0E0)
-          : const Color(0xFF374151);
 
       return ScaleTransition(
         scale: _pulse,
@@ -1196,13 +1210,14 @@ class _SidebarMenuButtonState extends State<SidebarMenuButton>
                 ),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),
-                  child: Icon(
-                    isOpen
-                        ? CupertinoIcons.xmark
-                        : CupertinoIcons.line_horizontal_3,
+                  child: SidebarMenuGlyph(
                     key: ValueKey(isOpen),
+                    open: isOpen,
+                    active: isOpen || _hovering,
                     size: 17,
-                    color: isOpen || _hovering ? Colors.white : idle,
+                    mutedColor: widget.isDarkMode
+                        ? const Color(0xFFE0E0E0)
+                        : const Color(0xFF374151),
                   ),
                 ),
               ),

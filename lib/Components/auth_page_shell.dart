@@ -17,6 +17,7 @@ class AuthPageShell extends StatefulWidget {
     required this.footer,
     this.footnote,
     this.maxWidth = 440,
+    this.skipEntranceAnimation = false,
   });
 
   final String title;
@@ -25,6 +26,7 @@ class AuthPageShell extends StatefulWidget {
   final Widget footer;
   final String? footnote;
   final double maxWidth;
+  final bool skipEntranceAnimation;
 
   @override
   State<AuthPageShell> createState() => _AuthPageShellState();
@@ -85,7 +87,11 @@ class _AuthPageShellState extends State<AuthPageShell>
       ),
     ]).animate(enterCurve);
 
-    _enter.forward();
+    if (widget.skipEntranceAnimation) {
+      _enter.value = 1.0;
+    } else {
+      _enter.forward();
+    }
   }
 
   @override

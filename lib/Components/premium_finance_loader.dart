@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/flower_logo_cache.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
 /// Premium loader — Logo Flower SVG with sequential petal fill reveal.
@@ -136,8 +136,8 @@ class _PremiumFinanceLoaderState extends State<PremiumFinanceLoader>
 
   Future<void> _bootstrapAnimations() async {
     if (!mounted) return;
-    final hi = _FlowerImageCache.hiSizeFor(context);
-    await _FlowerImageCache.warmUp(hi);
+    final hi = FlowerLogoImageCache.hiSizeFor(context, 56);
+    await FlowerLogoImageCache.warmUp(hi);
     if (!mounted) return;
     _enter.forward(from: 0);
     _waves.repeat();
@@ -357,11 +357,11 @@ class _AnimatedFlowerLogoState extends State<_AnimatedFlowerLogo> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final hi = _FlowerImageCache.hiSizeFor(context);
+    final hi = FlowerLogoImageCache.hiSizeFor(context, _flowerSize);
     if (_loadedHi == hi && _flowerImage != null) return;
     _loadedHi = hi;
-    _flowerImage = _FlowerImageCache.imageFor(hi);
-    _FlowerImageCache.warmUp(hi).then((image) {
+    _flowerImage = FlowerLogoImageCache.imageFor(hi);
+    FlowerLogoImageCache.warmUp(hi).then((image) {
       if (!mounted || image == null || _loadedHi != hi) return;
       setState(() => _flowerImage = image);
     });
@@ -476,58 +476,6 @@ class _AnimatedFlowerLogoState extends State<_AnimatedFlowerLogo> {
         ],
       ),
     );
-  }
-}
-
-/// Rasterizes the flower SVG once — avoids re-parsing masks every frame.
-class _FlowerImageCache {
-  static const String asset = 'resources/Logo Flower.svg';
-  static const double _flowerSize = 56;
-  static const double _oversample = 3.0;
-
-  static ui.Image? _image;
-  static double? _hi;
-  static Future<ui.Image?>? _loading;
-
-  static double hiSizeFor(BuildContext context) {
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    return (_flowerSize * _oversample * dpr).clamp(_flowerSize * 2.5, 280);
-  }
-
-  static ui.Image? imageFor(double hi) {
-    if (_image != null && _hi == hi) return _image;
-    return null;
-  }
-
-  static Future<ui.Image?> warmUp(double hi) {
-    if (_image != null && _hi == hi) return Future.value(_image);
-    return _loading ??= _load(hi);
-  }
-
-  static Future<ui.Image?> _load(double hi) async {
-    try {
-      final pictureInfo = await vg.loadPicture(SvgAssetLoader(asset), null);
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      final iw = pictureInfo.size.width;
-      final ih = pictureInfo.size.height;
-      final scale = math.min(hi / iw, hi / ih);
-      canvas.translate((hi - iw * scale) / 2, (hi - ih * scale) / 2);
-      canvas.scale(scale);
-      canvas.drawPicture(pictureInfo.picture);
-      pictureInfo.picture.dispose();
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(hi.toInt(), hi.toInt());
-      _image?.dispose();
-      _image = image;
-      _hi = hi;
-      return image;
-    } catch (_) {
-      return null;
-    } finally {
-      _loading = null;
-    }
   }
 }
 

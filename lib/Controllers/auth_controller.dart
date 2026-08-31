@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 import 'package:musaffa_terminal/Screens/login_screen.dart';
-import 'package:musaffa_terminal/Screens/main_screen.dart';
 import 'package:musaffa_terminal/models/auth_models.dart';
 import 'package:musaffa_terminal/services/auth_service.dart';
 import 'package:musaffa_terminal/services/auth_token_store.dart';
@@ -184,7 +183,6 @@ class AuthController extends GetxController {
     required String email,
     required String password,
   }) async {
-    isLoading.value = true;
     clearMessages();
 
     try {
@@ -209,7 +207,6 @@ class AuthController extends GetxController {
         await Get.find<WatchlistController>().reloadForCurrentUser();
       }
 
-      Get.offAll(() => const MainScreen());
       return true;
     } on AuthException catch (e) {
       errorMessage.value = e.message;
@@ -221,8 +218,6 @@ class AuthController extends GetxController {
           ? 'Login failed: $e'
           : 'Something went wrong. Please try again.';
       return false;
-    } finally {
-      isLoading.value = false;
     }
   }
 
