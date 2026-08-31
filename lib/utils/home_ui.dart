@@ -401,6 +401,7 @@ class HomeUi {
         k == 'currentprice' ||
         k == 'addedprice' ||
         k == 'targetprice' ||
+        k == 'marketcap' ||
         k == 'current';
   }
 
@@ -470,6 +471,7 @@ class HomeUi {
       'revenueannual': 'REV',
       'netincome': 'NET INC',
       'change1d': '1D',
+      'sparkline': '1D',
       'grossmargin': 'GROSS %',
       'operatingmargin': 'OP MGN',
       'netprofitmargin': 'NPM',

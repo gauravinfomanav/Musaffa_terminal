@@ -505,22 +505,11 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                         controller: _scrollController,
                         physics: const ClampingScrollPhysics(),
                         child: Padding(
-                          // Full-bleed cards — no left/right page gutter on Screener.
-                          padding: const EdgeInsets.fromLTRB(
-                            0,
-                            LayoutConstants.SECTION_GAP,
-                            0,
-                            LayoutConstants.SCREEN_PADDING,
-                          ),
+                          padding: LayoutConstants.dashboardBodyPadding,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: LayoutConstants.SCREEN_PADDING,
-                                ),
-                                child: _buildHeader(isDarkMode),
-                              ),
+                              _buildHeader(isDarkMode),
                               const SizedBox(
                                   height: LayoutConstants.SECTION_GAP),
                               _isLoadingFilters
@@ -529,13 +518,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                                       child: Center(
                                           child: CircularProgressIndicator()),
                                     )
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal:
-                                            LayoutConstants.SCREEN_PADDING,
-                                      ),
-                                      child: _buildFilterContent(isDarkMode),
-                                    ),
+                                  : _buildFilterContent(isDarkMode),
                               const SizedBox(
                                   height: LayoutConstants.SECTION_GAP),
                               _buildResultsSection(isDarkMode,
@@ -613,7 +596,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             if (_getAppliedFiltersCount(category) > 0) ...[
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withValues(alpha: 0.95)
@@ -621,7 +604,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                   gradient: isSelected ? null : HomeUi.iconFillGradient,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                 child: Text(
                   '${_getAppliedFiltersCount(category)}',
                   style: TextStyle(
@@ -652,30 +635,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDarkMode
-              ? [const Color(0xFF13161C), const Color(0xFF0F1218)]
-              : [Colors.white, const Color(0xFFFAFBFC)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode
-              ? const Color(0xFF1E2230).withValues(alpha: 0.9)
-              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDarkMode
-                ? Colors.black.withValues(alpha: 0.18)
-                : const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: _screenerCardDecoration(isDarkMode),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -1210,17 +1170,44 @@ class _ScreenerScreenState extends State<ScreenerScreen>
     );
   }
 
+  BoxDecoration _screenerCardDecoration(bool isDarkMode) {
+    return BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDarkMode
+            ? [const Color(0xFF13161C), const Color(0xFF0F1218)]
+            : [Colors.white, const Color(0xFFFAFBFC)],
+      ),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: isDarkMode
+            ? const Color(0xFF1E2230).withValues(alpha: 0.9)
+            : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: isDarkMode
+              ? Colors.black.withValues(alpha: 0.18)
+              : const Color(0xFF0F172A).withValues(alpha: 0.04),
+          blurRadius: 20,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    );
+  }
+
   Widget _buildResultsSection(bool isDarkMode, {Key? key}) {
-    // Full-bleed results card — flush with page edges (no side gutters).
     return Container(
       key: key,
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: HomeUi.cardDecoration(isDarkMode).copyWith(
-        borderRadius: BorderRadius.zero,
+      decoration: _screenerCardDecoration(isDarkMode),
+      // Keep pill-tab shadows visible (filter card does not clip).
+      clipBehavior: Clip.none,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: _buildResultsTable(isDarkMode),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: _buildResultsTable(isDarkMode),
     );
   }
 
@@ -1292,8 +1279,9 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             columns: _getColumnsForSelectedTab(),
             rows: rows,
             toolbar: _buildResultsTabs(isDarkMode),
-            // Card already applies filter-matching inset; avoid stacking top pad.
-            toolbarPadding: const EdgeInsets.fromLTRB(0, 0, 0, 14),
+            // Toolbar inset matches filter card; th/td get the same edge inset.
+            toolbarPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            tableEdgeInset: const EdgeInsets.symmetric(horizontal: 16),
             showFixedColumn: true,
             considerPadding: false,
             showOuterShadow: false,
@@ -1307,6 +1295,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             headerHeight: 44,
             rowHeight: 56,
             columnSpacing: 8,
+            horizontalMargin: 0,
             tableId: 'screener_results_table_${_selectedResultsTab}',
             sortState: _resultsSortState,
             onSortChange: (key, direction) {
@@ -1317,7 +1306,10 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           ),
 
           const SizedBox(height: 4),
-          _buildPaginationControls(isDarkMode),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildPaginationControls(isDarkMode),
+          ),
         ],
       );
     });
@@ -1921,20 +1913,21 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             ? (availableWidth / 83).floor().clamp(4, 16)
             : 4;
 
-        return Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16),
-          child: Column(
+        return Column(
             children: List.generate(
               10,
               (index) => Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
                   children: [
-                    ShimmerWidgets.box(
-                      height: 36,
-                      width: fixedColumnWidth,
-                      baseColor: baseColor,
-                      highlightColor: highlightColor,
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: ShimmerWidgets.box(
+                        height: 36,
+                        width: fixedColumnWidth,
+                        baseColor: baseColor,
+                        highlightColor: highlightColor,
+                      ),
                     ),
                     const SizedBox(width: spacing),
                     Expanded(
@@ -1961,7 +1954,6 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                 ),
               ),
             ),
-          ),
         );
       },
     );

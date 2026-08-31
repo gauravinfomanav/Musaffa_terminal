@@ -19,6 +19,8 @@ class SlidingPillTabs extends StatefulWidget {
   final TabController? controller;
   final bool isDarkMode;
   final SlidingPillStyle style;
+  final double? height;
+  final bool showTrackShadow;
 
   const SlidingPillTabs({
     super.key,
@@ -29,6 +31,8 @@ class SlidingPillTabs extends StatefulWidget {
     required this.isDarkMode,
     this.controller,
     this.style = SlidingPillStyle.pill,
+    this.height,
+    this.showTrackShadow = true,
   });
 
   @override
@@ -266,9 +270,14 @@ class _SlidingPillTabsState extends State<SlidingPillTabs>
     double left,
     double width,
   ) {
+    final double trackHeight = widget.height ?? HomeUi.controlHeight;
+    const double horizontalPad = 12;
+    final double innerHeight = trackHeight - 4;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.all(3),
+      height: trackHeight,
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -283,74 +292,72 @@ class _SlidingPillTabsState extends State<SlidingPillTabs>
               ? const Color(0xFF1E2230)
               : const Color(0xFFE5E7EB),
         ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: dark
-                ? Colors.black.withValues(alpha: 0.22)
-                : const Color(0xFF0F172A).withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          if (n > 0 && width > 0)
-            Positioned(
-              left: left,
-              top: 0,
-              bottom: 0,
-              width: width,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: HomeUi.primaryButton(radius: HomeUi.radiusPill).copyWith(
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: const Color(0xFFE4621E).withValues(alpha: 0.22),
-                        blurRadius: 16,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 4),
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFF88123E).withValues(alpha: 0.12),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
+        boxShadow: widget.showTrackShadow
+            ? <BoxShadow>[
+                BoxShadow(
+                  color: dark
+                      ? Colors.black.withValues(alpha: 0.18)
+                      : const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-            ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(n, (index) {
-              return KeyedSubtree(
-                key: _keys[index],
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      _animateTo(index);
-                      widget.onSelect(index);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 14,
-                      ),
-                      child: widget.itemBuilder(
-                        context,
-                        index,
-                        index == selected,
-                      ),
+              ]
+            : null,
+      ),
+      child: IntrinsicWidth(
+        child: SizedBox(
+          height: innerHeight,
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: <Widget>[
+              if (n > 0 && width > 0)
+                Positioned(
+                  left: left,
+                  top: 0,
+                  bottom: 0,
+                  width: width,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration:
+                          HomeUi.primaryButton(radius: HomeUi.radiusPill),
                     ),
                   ),
                 ),
-              );
-            }),
+              Align(
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: List.generate(n, (index) {
+                    return KeyedSubtree(
+                      key: _keys[index],
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            _animateTo(index);
+                            widget.onSelect(index);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: horizontalPad,
+                            ),
+                            child: widget.itemBuilder(
+                              context,
+                              index,
+                              index == selected,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

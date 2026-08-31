@@ -76,8 +76,9 @@ class AuthController extends GetxController {
   }
 
   Future<void> _syncFeatures({Map<String, dynamic>? seed}) async {
-    if (seed != null) {
+    if (seed != null && seed.isNotEmpty) {
       _features.seedFromLogin(seed);
+      return;
     }
     await _features.fetchFeatures();
   }

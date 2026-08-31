@@ -41,7 +41,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    watchlistController = Get.put(WatchlistController());
+    watchlistController = WatchlistController.ensureRegistered();
     sectorStocksController = Get.put(SectorStocksController());
     _initializeSectorMapping();
   }

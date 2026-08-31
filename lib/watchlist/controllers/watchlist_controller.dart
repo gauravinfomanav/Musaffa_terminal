@@ -7,6 +7,14 @@ import 'package:musaffa_terminal/watchlist/models/user_preferences_model.dart';
 import 'package:musaffa_terminal/watchlist/models/target_price_model.dart';
 
 class WatchlistController extends GetxController {
+  /// Single app-wide instance — avoids duplicate API calls from multiple `Get.put`s.
+  static WatchlistController ensureRegistered() {
+    if (!Get.isRegistered<WatchlistController>()) {
+      Get.put(WatchlistController(), permanent: true);
+    }
+    return Get.find<WatchlistController>();
+  }
+
   // Observable variables
   final RxList<WatchlistModel> watchlists = <WatchlistModel>[].obs;
   final RxBool isLoading = false.obs;
@@ -28,6 +36,10 @@ class WatchlistController extends GetxController {
   final RxMap<String, bool> loadingTargetPricesByTicker = <String, bool>{}.obs; // Per-ticker loading
   final RxString targetPricesErrorMessage = ''.obs;
 
+  Future<void>? _preferencesLoadFuture;
+  Future<void>? _watchlistsLoadFuture;
+  final Map<String, Future<void>> _stocksLoadFutures = <String, Future<void>>{};
+
   @override
   void onInit() {
     super.onInit();
@@ -36,6 +48,18 @@ class WatchlistController extends GetxController {
 
   /// Fetch user preferences
   Future<void> fetchUserPreferences() async {
+    if (_preferencesLoadFuture != null) {
+      return _preferencesLoadFuture!;
+    }
+    _preferencesLoadFuture = _fetchUserPreferences();
+    try {
+      await _preferencesLoadFuture;
+    } finally {
+      _preferencesLoadFuture = null;
+    }
+  }
+
+  Future<void> _fetchUserPreferences() async {
     try {
       isLoadingPreferences.value = true;
 
@@ -87,6 +111,18 @@ class WatchlistController extends GetxController {
   /// Fetch all watchlists from API
   /// skipAutoSelect: if true, won't auto-select a watchlist (used when creating new watchlist)
   Future<void> fetchWatchlists({bool skipAutoSelect = false}) async {
+    if (_watchlistsLoadFuture != null) {
+      return _watchlistsLoadFuture!;
+    }
+    _watchlistsLoadFuture = _fetchWatchlists(skipAutoSelect: skipAutoSelect);
+    try {
+      await _watchlistsLoadFuture;
+    } finally {
+      _watchlistsLoadFuture = null;
+    }
+  }
+
+  Future<void> _fetchWatchlists({bool skipAutoSelect = false}) async {
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -140,8 +176,11 @@ class WatchlistController extends GetxController {
 
   /// Select a watchlist and fetch its stocks
   void selectWatchlist(WatchlistModel watchlist) {
+    final bool sameSelection = selectedWatchlist.value?.id == watchlist.id;
     selectedWatchlist.value = watchlist;
-    fetchWatchlistStocks(watchlist.id);
+    if (!sameSelection) {
+      fetchWatchlistStocks(watchlist.id);
+    }
   }
 
   /// Reset to default watchlist (called when opening watchlist sidebar)
@@ -267,6 +306,21 @@ class WatchlistController extends GetxController {
   Future<void> fetchWatchlistStocks(String watchlistId) async {
     if (watchlistId.isEmpty) return;
 
+    final Future<void>? inFlight = _stocksLoadFutures[watchlistId];
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final Future<void> future = _fetchWatchlistStocks(watchlistId);
+    _stocksLoadFutures[watchlistId] = future;
+    try {
+      await future;
+    } finally {
+      _stocksLoadFutures.remove(watchlistId);
+    }
+  }
+
+  Future<void> _fetchWatchlistStocks(String watchlistId) async {
     try {
       isLoadingStocks.value = true;
       stocksErrorMessage.value = '';
@@ -337,6 +391,9 @@ class WatchlistController extends GetxController {
     isLoadingPreferences.value = false;
     isLoadingStocks.value = false;
     isLoadingTargetPrices.value = false;
+    _preferencesLoadFuture = null;
+    _watchlistsLoadFuture = null;
+    _stocksLoadFutures.clear();
   }
 
   /// Clear old user data and reload for the current authenticated user.

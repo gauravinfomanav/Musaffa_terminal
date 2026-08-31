@@ -1604,8 +1604,12 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
         });
       },
       builder: (context, candidateData, rejectedData) {
-        // Watchlist button is NOT draggable - it stays in tabbar
-        return _buildButtonContent();
+        return Obx(() {
+          if (Get.isRegistered<GlobalSidebarService>()) {
+            Get.find<GlobalSidebarService>().activeItem.value;
+          }
+          return _buildButtonContent();
+        });
       },
     );
   }
@@ -1613,8 +1617,19 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
   Widget _buildButtonContent() {
     final idle =
         widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final active =
-        widget.isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF111827);
+    final activeColor =
+        widget.isDarkMode ? const Color(0xFFF3F4F6) : const Color(0xFF111827);
+    final hoverBg = widget.isDarkMode
+        ? Colors.white.withOpacity(0.1)
+        : const Color(0xFFF8FAFC);
+
+    final sidebarActive = Get.isRegistered<GlobalSidebarService>()
+        ? Get.find<GlobalSidebarService>().activeItem.value
+        : null;
+    final bool isActive =
+        widget.isOpen || sidebarActive == SidebarNavItem.watchlist;
+    final bool highlighted = _isHovered || isActive || _isDragOver;
+    final color = highlighted ? activeColor : idle;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -1627,28 +1642,44 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
           onTap: _onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
             height: HomeUi.controlHeight,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(
+                color: HomeUi.borderLight(widget.isDarkMode),
+                width: 0.9,
+              ),
               color: _isDragOver
                   ? const Color(0xFFC42329)
                       .withOpacity(widget.isDarkMode ? 0.16 : 0.08)
-                  : widget.isOpen
-                      ? (widget.isDarkMode
-                          ? const Color(0xFF1C2430)
-                          : const Color(0xFFEFF6FF))
-                      : (_isHovered
-                          ? HomeUi.cardBg(widget.isDarkMode)
-                          : HomeUi.elevatedBg(widget.isDarkMode)),
-              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-              border: Border.all(
-                color: _isDragOver || widget.isOpen
-                    ? const Color(0xFFC42329).withOpacity(0.55)
-                    : (_isHovered
-                        ? HomeUi.borderStrong(widget.isDarkMode)
-                        : HomeUi.borderLight(widget.isDarkMode)),
-                width: 1,
-              ),
+                  : highlighted
+                      ? hoverBg
+                      : null,
+              gradient: (!_isDragOver && !highlighted)
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        widget.isDarkMode
+                            ? const Color(0xFF1A1D22)
+                            : Colors.white,
+                        widget.isDarkMode
+                            ? const Color(0xFF13161A)
+                            : const Color(0xFFF6F7F9),
+                      ],
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(
+                    widget.isDarkMode ? 0.16 : 0.05,
+                  ),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1658,9 +1689,7 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
                       ? CupertinoIcons.plus_circle_fill
                       : CupertinoIcons.bookmark_fill,
                   size: HomeUi.iconSm,
-                  gradient: (widget.isOpen || _isHovered || _isDragOver)
-                      ? HomeUi.brandGradient
-                      : null,
+                  gradient: highlighted ? HomeUi.brandGradient : null,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -1671,9 +1700,7 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 1,
-                    color: widget.isOpen || _isDragOver || _isHovered
-                        ? active
-                        : idle,
+                    color: color,
                   ),
                 ),
               ],

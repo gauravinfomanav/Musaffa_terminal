@@ -14,6 +14,7 @@ import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/watchlist/models/target_price_model.dart';
+import 'package:musaffa_terminal/watchlist/widgets/research_note_dialog.dart';
 import 'package:musaffa_terminal/watchlist/widgets/target_price_dialog.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -197,21 +198,50 @@ class _Header extends StatelessWidget {
   final bool isDark;
   final VoidCallback onOpenFull;
 
+  static String _shortCompanyName(String name) {
+    String trimmed = name.trim();
+    const List<String> suffixes = <String>[
+      ', Inc.',
+      ' Inc.',
+      ', Inc',
+      ' Inc',
+      ', Corp.',
+      ' Corp.',
+      ' Corporation',
+      ', Ltd.',
+      ' Ltd.',
+      ' Limited',
+      ' PLC',
+      ' plc',
+    ];
+    for (final String suffix in suffixes) {
+      if (trimmed.endsWith(suffix)) {
+        trimmed = trimmed.substring(0, trimmed.length - suffix.length).trim();
+        break;
+      }
+    }
+    if (trimmed.endsWith('.com')) {
+      trimmed = trimmed.substring(0, trimmed.length - 4).trim();
+    }
+    return trimmed;
+  }
+
   @override
   Widget build(BuildContext context) {
     final String exchange =
         (stock.fields['exchange'] as String?)?.trim().isNotEmpty == true
             ? stock.fields['exchange'] as String
             : '—';
+    final String displayName = _shortCompanyName(stock.name);
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         showLogo(
           stock.symbol,
           stock.logo ?? '',
-          sideWidth: 40,
-          circular: false,
+          sideWidth: 48,
+          circular: true,
           name: stock.name,
         ),
         const SizedBox(width: 12),
@@ -220,43 +250,24 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                stock.name,
-                maxLines: 2,
+                displayName,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 15),
+                style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 17),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 '${stock.symbol} · $exchange',
-                style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
+                style: HomeUi.subtitle(isDark).copyWith(fontSize: 12.5),
               ),
             ],
           ),
         ),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: onOpenFull,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  Icons.open_in_new_rounded,
-                  size: 16,
-                  color: HomeUi.buttonBorder,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Full Ticker Detail',
-                  style: HomeUi.control(isDark, active: true).copyWith(
-                    color: HomeUi.buttonBorder,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        const SizedBox(width: 12),
+        HomeUi.ghostAction(
+          label: 'Full Ticker',
+          dark: isDark,
+          onTap: onOpenFull,
         ),
       ],
     );
@@ -712,131 +723,104 @@ class _MyNoteSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            Text('My Note', style: HomeUi.sectionTitle(isDark)),
-            const Spacer(),
-            TextButton.icon(
-              onPressed: () => _editNote(context),
-              icon: Icon(
-                Icons.edit_outlined,
-                size: 14,
-                color: HomeUi.buttonBorder,
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: HomeUi.softBrandWellGradient,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: HomeUi.iconWellBorder),
               ),
-              label: Text(
-                'Edit',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: HomeUi.buttonBorder,
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                ),
+              child: Icon(
+                Icons.sticky_note_2_outlined,
+                size: 16,
+                color: HomeUi.muted(isDark),
               ),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('My Note', style: HomeUi.sectionTitle(isDark)),
+                  Text(
+                    'Private research for ${stock.symbol}',
+                    style: HomeUi.subtitle(isDark).copyWith(fontSize: 11.5),
+                  ),
+                ],
               ),
+            ),
+            HomeUi.ghostAction(
+              label: 'Edit',
+              icon: Icons.edit_outlined,
+              dark: isDark,
+              onTap: () => _editNote(context),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Obx(() {
           final String noteText = notesController.notes.isEmpty
               ? ''
               : notesController.notes.first.text;
           final TargetPriceModel? target =
               watchlist.getTargetPriceForTicker(stock.symbol);
+          final bool hasNote = noteText.trim().isNotEmpty;
 
           return Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-              border: Border.all(color: HomeUi.borderLight(isDark)),
-              color: HomeUi.elevatedBg(isDark).withValues(alpha: 0.45),
-            ),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            decoration: HomeUi.cardDecoration(isDark),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 if (notesController.isLoading.value)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          HomeUi.accent(isDark),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            HomeUi.accent(isDark),
+                          ),
                         ),
                       ),
                     ),
                   )
+                else if (!hasNote)
+                  _NoteEmptyState(
+                    isDark: isDark,
+                    symbol: stock.symbol,
+                    onEdit: () => _editNote(context),
+                  )
                 else
                   Text(
-                    noteText.isEmpty
-                        ? 'No note yet. Tap Edit to add research for ${stock.symbol}.'
-                        : noteText,
+                    noteText,
                     style: HomeUi.bodyText(isDark).copyWith(
-                      height: 1.45,
-                      fontSize: 13,
-                      color: noteText.isEmpty
-                          ? HomeUi.muted(isDark)
-                          : HomeUi.title(isDark),
+                      height: 1.55,
+                      fontSize: 13.5,
+                      color: HomeUi.title(isDark),
                     ),
                   ),
-                if (target != null) ...<Widget>[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: <Widget>[
-                      Text(
-                        'Target Price:',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: HomeUi.positive(isDark),
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '\$${target.targetPrice.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: HomeUi.title(isDark),
-                          fontFamily: Constants.FONT_DEFAULT_NEW,
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: () => _editTarget(context, watchlist, target),
-                        child: Text(
-                          'Set',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: HomeUi.buttonBorder,
-                            fontFamily: Constants.FONT_DEFAULT_NEW,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...<Widget>[
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: () => _editTarget(context, watchlist, null),
-                    child: Text(
-                      'Set target price',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: HomeUi.buttonBorder,
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                      ),
+                if (!notesController.isLoading.value) ...<Widget>[
+                  const SizedBox(height: 14),
+                  if (target != null)
+                    _TargetPriceRow(
+                      isDark: isDark,
+                      target: target,
+                      onEdit: () => _editTarget(context, watchlist, target),
+                    )
+                  else
+                    _SetTargetAction(
+                      isDark: isDark,
+                      onTap: () => _editTarget(context, watchlist, null),
                     ),
-                  ),
                 ],
               ],
             ),
@@ -847,53 +831,12 @@ class _MyNoteSection extends StatelessWidget {
   }
 
   Future<void> _editNote(BuildContext context) async {
-    final TextEditingController textCtrl = TextEditingController(
-      text: notesController.notes.isNotEmpty
+    final String? result = await ResearchNoteDialog.show(
+      context: context,
+      symbol: stock.symbol,
+      initialText: notesController.notes.isNotEmpty
           ? notesController.notes.first.text
           : '',
-    );
-
-    final String? result = await showDialog<String>(
-      context: context,
-      builder: (BuildContext ctx) {
-        final bool dark = Theme.of(ctx).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: HomeUi.cardBg(dark),
-          title: Text(
-            'My Note · ${stock.symbol}',
-            style: HomeUi.sectionTitle(dark),
-          ),
-          content: TextField(
-            controller: textCtrl,
-            maxLines: 5,
-            autofocus: true,
-            style: HomeUi.bodyText(dark),
-            decoration: InputDecoration(
-              hintText: 'Add a private research note…',
-              hintStyle: HomeUi.subtitle(dark),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-              ),
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: HomeUi.control(dark)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, textCtrl.text.trim()),
-              child: Text(
-                'Save',
-                style: HomeUi.control(dark, active: true).copyWith(
-                  color: HomeUi.buttonBorder,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
 
     if (result == null || result.isEmpty) return;
@@ -920,6 +863,141 @@ class _MyNoteSection extends StatelessWidget {
           await watchlist.createTargetPrice(stock.symbol, price, alertType);
         }
       },
+    );
+  }
+}
+
+class _NoteEmptyState extends StatelessWidget {
+  const _NoteEmptyState({
+    required this.isDark,
+    required this.symbol,
+    required this.onEdit,
+  });
+
+  final bool isDark;
+  final String symbol;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onEdit,
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'No note yet',
+                      style: HomeUi.control(isDark, active: true).copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Capture your thesis for $symbol',
+                      style: HomeUi.subtitle(isDark).copyWith(fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: HomeUi.muted(isDark),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TargetPriceRow extends StatelessWidget {
+  const _TargetPriceRow({
+    required this.isDark,
+    required this.target,
+    required this.onEdit,
+  });
+
+  final bool isDark;
+  final TargetPriceModel target;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color green = HomeUi.positive(isDark);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: HomeUi.cardBg(isDark),
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(color: green.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.flag_rounded, size: 14, color: green),
+          const SizedBox(width: 8),
+          Text(
+            'Target',
+            style: HomeUi.control(isDark).copyWith(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: green,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '\$${target.targetPrice.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: HomeUi.title(isDark),
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+            ),
+          ),
+          const Spacer(),
+          HomeUi.ghostAction(
+            label: 'Update',
+            dark: isDark,
+            onTap: onEdit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SetTargetAction extends StatelessWidget {
+  const _SetTargetAction({
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: HomeUi.ghostAction(
+        label: 'Set target price',
+        icon: Icons.track_changes_rounded,
+        dark: isDark,
+        onTap: onTap,
+      ),
     );
   }
 }

@@ -14,6 +14,8 @@ class FeatureAccessService extends GetxController with WidgetsBindingObserver {
   final RxBool isRefreshing = false.obs;
 
   bool _handlingFeatureDisabled = false;
+  DateTime? _lastFetchAt;
+  static const Duration _minFetchInterval = Duration(seconds: 30);
 
   static Map<String, bool> defaultAllTrue() => {
         for (final key in FeatureKeys.all) key: true,
@@ -76,8 +78,13 @@ class FeatureAccessService extends GetxController with WidgetsBindingObserver {
   }
 
   /// Dedicated source of truth: `GET /auth/features` → `data.features`.
-  Future<bool> fetchFeatures() async {
+  Future<bool> fetchFeatures({bool force = false}) async {
     if (isRefreshing.value) return isLoaded.value;
+    if (!force &&
+        _lastFetchAt != null &&
+        DateTime.now().difference(_lastFetchAt!) < _minFetchInterval) {
+      return isLoaded.value;
+    }
     isRefreshing.value = true;
 
     try {
@@ -112,6 +119,7 @@ class FeatureAccessService extends GetxController with WidgetsBindingObserver {
       }
       return false;
     } finally {
+      _lastFetchAt = DateTime.now();
       isRefreshing.value = false;
     }
   }

@@ -188,6 +188,8 @@ class DynamicTableFromWeb extends StatefulWidget {
   final EdgeInsets? columnCellPadding;
   /// Optional override for the title/toolbar row insets.
   final EdgeInsets? toolbarPadding;
+  /// Extra inset on the first/last th/td (table stays full card width).
+  final EdgeInsets? tableEdgeInset;
 
   const DynamicTableFromWeb({
     Key? key,
@@ -266,6 +268,7 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.enableColumnStretch = true,
     this.columnCellPadding,
     this.toolbarPadding,
+    this.tableEdgeInset,
   }) : super(key: key);
 
   @override
@@ -432,8 +435,31 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
   double get _headerActionReserve => widget.showColumnActionMenu ? 20 : 0;
   double get _headerResizeReserve => widget.showColumnResizeHandle ? 8 : 0;
-  double get _headerTrailing => 8 + _headerActionReserve + _headerResizeReserve;
+  double get _headerChromeTrailing =>
+      8 + _headerActionReserve + _headerResizeReserve;
   static const double _headerLeading = 8;
+  static const double _cellTrailing = 10;
+
+  EdgeInsets _columnCellInsetsFor({
+    bool leadingEdge = false,
+    bool trailingEdge = false,
+  }) {
+    final base = widget.columnCellPadding ??
+        EdgeInsets.only(left: _headerLeading, right: _cellTrailing);
+    final edge = widget.tableEdgeInset ?? EdgeInsets.zero;
+    return EdgeInsets.only(
+      left: base.left + (leadingEdge ? edge.left : 0),
+      right: base.right + (trailingEdge ? edge.right : 0),
+    );
+  }
+
+  EdgeInsets _tickerCellInsets({bool leadingEdge = false}) {
+    final edge = widget.tableEdgeInset ?? EdgeInsets.zero;
+    return EdgeInsets.only(
+      left: leadingEdge ? edge.left : 0,
+      right: 8,
+    );
+  }
 
   bool _isEndAlign(TextAlign align) =>
       align == TextAlign.right || align == TextAlign.end;
@@ -446,15 +472,39 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     return Alignment.centerLeft;
   }
 
-  MainAxisAlignment _headingAlignmentFor(TextAlign align) {
-    if (_isEndAlign(align)) return MainAxisAlignment.end;
-    if (_isCenterAlign(align)) return MainAxisAlignment.center;
-    return MainAxisAlignment.start;
-  }
-
-  EdgeInsets _columnInsets() {
-    return widget.columnCellPadding ??
-        EdgeInsets.only(left: _headerLeading, right: _headerTrailing);
+  /// Header ⋮ menu and cell values share this trailing slot so labels and
+  /// td text occupy the same horizontal box.
+  Widget _alignedColumnBody({
+    required DynamicTableColumn col,
+    required Widget child,
+    Widget? trailing,
+    double? trailingHeight,
+    bool leadingEdge = false,
+    bool trailingEdge = false,
+  }) {
+    return Padding(
+      padding: _columnCellInsetsFor(
+        leadingEdge: leadingEdge,
+        trailingEdge: trailingEdge,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Expanded(
+            child: Align(
+              alignment: _alignmentFor(col.align),
+              child: child,
+            ),
+          ),
+          if (widget.showColumnActionMenu)
+            SizedBox(
+              width: _headerActionReserve,
+              height: trailingHeight,
+              child: trailing == null ? null : Center(child: trailing),
+            ),
+        ],
+      ),
+    );
   }
 
   double get _effectiveHeadingRowHeight =>
@@ -633,7 +683,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   }
 
   double _cellRightPadding(DynamicTableColumn col) {
-    return _headerTrailing;
+    return _headerLeading + _cellTrailing + _headerActionReserve;
   }
 
   void _refreshNaturalMinWidths(List<DynamicTableColumn> columns) {
@@ -654,7 +704,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       );
       // Content/header driven — do not floor at col.width or every numeric
       // column inherits the same large preferred width and looks identical.
-      var minWidth = headerWidth + 8 + _headerTrailing + 4;
+      var minWidth = headerWidth + 8 + _headerChromeTrailing + 4;
+      final double contentCap = HomeUi.isWideLabelTableColumn(col.key)
+          ? maxLabelContentWidth
+          : maxShortContentWidth;
       // Widget cells (custom renderers) skip text measure — honor declared width.
       if (col.width != null && col.width! > minWidth) {
         final bool hasWidgetCell = widget.rows.any(
@@ -694,7 +747,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       }
       // Compact enum cols (REC / Buy) stay content-tight — ignore large presets.
       if (HomeUi.isCompactTableColumn(col.key)) {
-        final double headerOnly = headerWidth + 8 + _headerTrailing + 4;
+        final double headerOnly = headerWidth + 8 + _headerChromeTrailing + 4;
         final double contentOnly = minWidth;
         minWidth = contentOnly < 88 ? contentOnly.clamp(headerOnly, 88) : 88;
       }
@@ -1027,22 +1080,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           overflow: TextOverflow.ellipsis,
         );
 
-    if (sorted && widget.showSortIndicators) {
-      final icon = Icon(
-        _sortState!.direction == 'asc'
-            ? Icons.arrow_upward_rounded
-            : Icons.arrow_downward_rounded,
-        size: 11,
-        color: headerStyle.color,
-      );
-      label = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: _isEndAlign(col.align)
-            ? [icon, const SizedBox(width: 4), label]
-            : [label, const SizedBox(width: 4), icon],
-      );
-    }
-
     // Short / sorted headers: hover shows the full original name.
     if (col.headerWidget == null &&
         (sorted ||
@@ -1056,8 +1093,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   DataColumn _buildHeaderColumn(
     BuildContext context,
     DynamicTableColumn col,
-    Color mutedColor,
-  ) {
+    Color mutedColor, {
+    bool leadingEdge = false,
+    bool trailingEdge = false,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final headerStyle = HomeUi.tableHeader(isDark);
     final headerTextColor = headerStyle.color ?? mutedColor;
@@ -1065,8 +1104,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
 
     return DataColumn(
-      numeric: _isEndAlign(col.align),
-      headingRowAlignment: _headingAlignmentFor(col.align),
+      // Always LTR/start: DataTable.numeric uses RTL on headers and
+      // centerRight on cells, which desyncs th/td. We align both ourselves.
+      numeric: false,
+      headingRowAlignment: MainAxisAlignment.start,
       label: _maybeHeaderTooltip(
         col.fullLabel.toUpperCase(),
         DragTarget<String>(
@@ -1195,7 +1236,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                         }
                       : null,
                   child: Align(
-                    alignment: _alignmentFor(col.align),
+                    alignment: Alignment.centerLeft,
                     child: SizedBox(
                     width: resolvedWidth,
                     child: Stack(
@@ -1209,34 +1250,20 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                                   borderRadius: BorderRadius.circular(4),
                                 )
                               : null,
-                          child: Stack(
-                            children: [
-                              Align(
-                                alignment: _alignmentFor(col.align),
-                                child: Padding(
-                                  padding: _columnInsets(),
-                                  child: _headerLabel(
-                                    col: col,
-                                    headerStyle: headerStyle,
-                                  ),
-                                ),
-                              ),
-                              if (widget.showColumnActionMenu)
-                                Positioned(
-                                  right: _headerResizeReserve,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 24,
-                                    child: _buildColumnActionMenu(
-                                      context,
-                                      col,
-                                      headerTextColor,
-                                    ),
-                                  ),
-                                ),
-                            ],
+                          child: _alignedColumnBody(
+                            col: col,
+                            leadingEdge: leadingEdge,
+                            trailingEdge: trailingEdge,
+                            trailingHeight: _effectiveHeadingRowHeight,
+                            trailing: _buildColumnActionMenu(
+                              context,
+                              col,
+                              headerTextColor,
+                            ),
+                            child: _headerLabel(
+                              col: col,
+                              headerStyle: headerStyle,
+                            ),
                           ),
                         ),
                         if (widget.showColumnResizeHandle &&
@@ -1317,9 +1344,16 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     DynamicTableRow row,
     List<DynamicTableColumn> columns,
     Color textColor,
-    String? expanderColumnKey,
-  ) {
-    return columns.map((col) {
+    String? expanderColumnKey, {
+    bool applyLeadingEdgeInset = false,
+    bool applyTrailingEdgeInset = false,
+  }) {
+    return columns.asMap().entries.map((entry) {
+      final colIndex = entry.key;
+      final col = entry.value;
+      final leadingEdge = applyLeadingEdgeInset && colIndex == 0;
+      final trailingEdge =
+          applyTrailingEdgeInset && colIndex == columns.length - 1;
       final value = row.data[col.key];
       final resolvedWidth =
           widget.enforceColumnWidths ? _resolveColumnWidth(col) : null;
@@ -1439,12 +1473,14 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         _wrapRowHover(
           row.id,
           Align(
-            alignment: _alignmentFor(col.align),
+            alignment: Alignment.centerLeft,
             child: SizedBox(
               width: resolvedWidth,
               height: _effectiveDataRowHeight,
-              child: Padding(
-                padding: _columnInsets(),
+              child: _alignedColumnBody(
+                col: col,
+                leadingEdge: leadingEdge,
+                trailingEdge: trailingEdge,
                 child: MouseRegion(
                   cursor: SystemMouseCursors.basic,
                   child: content,
@@ -1470,6 +1506,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required Color textColor,
     required Color mutedColor,
     required String? expanderColumnKey,
+    bool applyLeadingEdgeInset = false,
+    bool applyTrailingEdgeInset = false,
   }) {
     if (centerColumns.isEmpty) return const SizedBox.shrink();
 
@@ -1508,6 +1546,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                       textColor: textColor,
                       mutedColor: mutedColor,
                       expanderColumnKey: expanderColumnKey,
+                      applyLeadingEdgeInset: applyLeadingEdgeInset,
+                      applyTrailingEdgeInset: applyTrailingEdgeInset,
                     ),
                   ),
                 ),
@@ -1531,6 +1571,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required Color mutedColor,
     required String? expanderColumnKey,
   }) {
+    final hasLeftChrome = widget.selectable ||
+        widget.showTickerCell ||
+        leftPinnedColumns.isNotEmpty;
+    final hasRightChrome = rightPinnedColumns.isNotEmpty;
+
     final row = Row(
       mainAxisSize: widget.compactPinnedLayout
           ? MainAxisSize.min
@@ -1562,6 +1607,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 expanderColumnKey: expanderColumnKey,
                 includeSelectable: widget.selectable,
                 includeTicker: widget.showTickerCell,
+                applyLeadingEdgeInset: true,
               ),
             ),
           ),
@@ -1575,6 +1621,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
+              applyLeadingEdgeInset: !hasLeftChrome,
+              applyTrailingEdgeInset: !hasRightChrome,
             ),
           )
         else
@@ -1585,6 +1633,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
+              applyLeadingEdgeInset: !hasLeftChrome,
+              applyTrailingEdgeInset: !hasRightChrome,
             ),
           ),
         _buildPinnedSectionSlot(
@@ -1608,6 +1658,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 textColor: textColor,
                 mutedColor: mutedColor,
                 expanderColumnKey: expanderColumnKey,
+                applyTrailingEdgeInset: true,
               ),
             ),
           ),
@@ -1638,6 +1689,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required String? expanderColumnKey,
     bool includeSelectable = false,
     bool includeTicker = false,
+    bool applyLeadingEdgeInset = false,
+    bool applyTrailingEdgeInset = false,
   }) {
     final hasContent = includeSelectable || includeTicker || columns.isNotEmpty;
     if (!hasContent) {
@@ -1669,7 +1722,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         headingRowHeight: _effectiveHeadingRowHeight,
         dataRowMinHeight: widget.rowHeight ?? widget.dataRowMinHeight,
         dataRowMaxHeight: _effectiveDataRowHeight,
-        horizontalMargin: widget.horizontalMargin,
+        horizontalMargin: widget.tableEdgeInset == null
+            ? widget.horizontalMargin
+            : 0,
         columnSpacing: widget.columnSpacing ?? _kDefaultColumnSpacing,
         dividerThickness: widget.dividerThickness ?? 0.5,
         showBottomBorder: widget.showBottomBorder,
@@ -1712,8 +1767,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               label: SizedBox(
                 width: widget.tickerColumnWidth,
                 child: Padding(
-                  // Match card toolbar inset via DataTable.horizontalMargin only.
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: _tickerCellInsets(
+                    leadingEdge: applyLeadingEdgeInset,
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -1724,12 +1780,23 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 ),
               ),
             ),
-          ...columns.map((col) => _buildHeaderColumn(context, col, mutedColor)),
+          ...columns.asMap().entries.map(
+                (entry) => _buildHeaderColumn(
+                  context,
+                  entry.value,
+                  mutedColor,
+                  leadingEdge:
+                      applyLeadingEdgeInset && !includeTicker && entry.key == 0,
+                  trailingEdge: applyTrailingEdgeInset &&
+                      entry.key == columns.length - 1,
+                ),
+              ),
         ],
         rows: rows.asMap().entries.map((entry) {
+          final int rowIndex = entry.key;
           final row = entry.value;
           return DataRow(
-            key: ValueKey<String>('row_${row.id}'),
+            key: ValueKey<String>('row_${row.id}_$rowIndex'),
             color: WidgetStateProperty.all(
               _hoveredRowId == row.id
                   ? HomeUi.tableRowHover(isDark)
@@ -1767,8 +1834,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                       width: widget.tickerColumnWidth,
                       height: _effectiveDataRowHeight,
                       child: Padding(
-                        // Match card toolbar inset via DataTable.horizontalMargin only.
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: _tickerCellInsets(
+                          leadingEdge: applyLeadingEdgeInset,
+                        ),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: _buildTickerCell(row, textColor, mutedColor),
@@ -1787,6 +1855,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 columns,
                 textColor,
                 expanderColumnKey,
+                applyLeadingEdgeInset:
+                    applyLeadingEdgeInset && !includeTicker,
+                applyTrailingEdgeInset: applyTrailingEdgeInset,
               ),
             ],
           );
@@ -1958,6 +2029,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             widget.enableColumnVisibilityToggle ||
             widget.toolbar != null)
           Container(
+            clipBehavior: Clip.none,
             padding: widget.toolbarPadding ??
                 const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Row(
@@ -1982,6 +2054,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                       child: widget.toolbar!,
                     ),
                   ),
+                if ((widget.title != null || widget.subtitle != null) &&
+                    widget.toolbar != null) ...[
+                  const SizedBox(width: 12),
+                  widget.toolbar!,
+                ],
                 if (widget.enableColumnVisibilityToggle) ...[
                   const SizedBox(width: 12),
                   ColumnVisibilityButton(
@@ -1998,11 +2075,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                     },
                     isDark: isDark,
                   ),
-                ],
-                if ((widget.title != null || widget.subtitle != null) &&
-                    widget.toolbar != null) ...[
-                  const SizedBox(width: 12),
-                  widget.toolbar!,
                 ],
               ],
             ),
