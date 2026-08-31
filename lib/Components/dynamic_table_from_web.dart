@@ -718,9 +718,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         }
       }
 
-      final double contentCap2 = HomeUi.isWideLabelTableColumn(col.key)
-          ? maxLabelContentWidth
-          : maxShortContentWidth;
+      
 
       for (final row in widget.rows) {
         final value = row.data[col.key];
