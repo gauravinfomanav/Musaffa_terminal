@@ -1,8 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:lottie/lottie.dart';
 import 'package:musaffa_terminal/Components/market_indices.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/market_summary.dart';
@@ -30,7 +28,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
   final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
-  bool _showSplash = true;
   late AnimationController _watchlistAnimationController;
   late Animation<Offset> _watchlistSlideAnimation;
   
@@ -46,7 +43,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     if (Get.isRegistered<GlobalSidebarService>()) {
       Get.find<GlobalSidebarService>().setActive(SidebarNavItem.dashboard);
     }
-    _hideSplash();
     
     // Initialize watchlist slide animation
     _watchlistAnimationController = AnimationController(
@@ -88,15 +84,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         }
       }
     });
-  }
-
-  void _hideSplash() async {
-    await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
-      setState(() {
-        _showSplash = false;
-      });
-    }
   }
 
   @override
@@ -207,30 +194,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                     ),
                   );
                 }),
-              // Splash overlay
-              if (_showSplash)
-                Positioned.fill(
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
-                      child: Container(
-                        color: (Theme.of(context).brightness == Brightness.dark
-                                ? Colors.black
-                                : Colors.black)
-                            .withOpacity(0.4),
-                        child: Center(
-                          child: Lottie.asset(
-                            'resources/Sandy Loading.json',
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.contain,
-                            repeat: true,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               // Global FAB Overlay
               const GlobalFABOverlay(),
             ],

@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/auth_page_shell.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
+import 'package:musaffa_terminal/Screens/login_success_splash.dart';
 import 'package:musaffa_terminal/Screens/register_screen.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? initialEmail;
+  final bool skipEntranceAnimation;
 
-  const LoginScreen({Key? key, this.initialEmail}) : super(key: key);
+  const LoginScreen({
+    Key? key,
+    this.initialEmail,
+    this.skipEntranceAnimation = false,
+  }) : super(key: key);
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -43,10 +49,11 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
-    final auth = Get.find<AuthController>();
-    await auth.login(
-      email: _emailController.text,
-      password: _passwordController.text,
+    Get.off(
+      () => LoginSuccessSplash(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      ),
     );
   }
 
@@ -62,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     return AuthPageShell(
+      skipEntranceAnimation: widget.skipEntranceAnimation,
       title: 'Welcome back',
       subtitle: 'Sign in to ${Constants.appName}',
       footnote: 'Use your ${Constants.appName} account credentials',
@@ -149,14 +157,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: AuthInfoBanner(message: error, isError: true),
               );
             }),
-            Obx(() {
-              final loading = auth.isLoading.value;
-              return AuthPrimaryButton(
-                label: 'Sign in',
-                loading: loading,
-                onPressed: loading ? null : _submit,
-              );
-            }),
+            const SizedBox(height: 22),
+            AuthPrimaryButton(
+              label: 'Sign in',
+              onPressed: _submit,
+            ),
           ],
         ),
       ),
