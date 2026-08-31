@@ -42,7 +42,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    Get.put(WatchlistController());
+    WatchlistController.ensureRegistered();
     if (Get.isRegistered<GlobalSidebarService>()) {
       Get.find<GlobalSidebarService>().setActive(SidebarNavItem.dashboard);
     }

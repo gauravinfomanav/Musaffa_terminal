@@ -51,7 +51,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    watchlistController = Get.put(WatchlistController());
+    watchlistController = WatchlistController.ensureRegistered();
     controller = Get.put(EtfDetailsController());
     tradingViewController = TradingViewController();
     researchNotesController = Get.put(ResearchNotesController());

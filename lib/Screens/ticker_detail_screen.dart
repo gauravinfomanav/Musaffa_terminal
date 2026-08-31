@@ -106,7 +106,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
     recommendationController = RecommendationController();
     financialFundamentalsController = FinancialFundamentalsController();
     tradingViewController = TradingViewController();
-    watchlistController = Get.put(WatchlistController());
+    watchlistController = WatchlistController.ensureRegistered();
     researchNotesController = Get.put(ResearchNotesController());
     tickerEarningsController = TickerEarningsController();
     tickerDividendController = TickerDividendController();

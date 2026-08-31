@@ -44,7 +44,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
     _controller = Get.isRegistered<TradingIdeasController>()
         ? Get.find<TradingIdeasController>()
         : Get.put(TradingIdeasController());
-    _watchlistController = Get.put(WatchlistController());
+    _watchlistController = WatchlistController.ensureRegistered();
     _controller.fetchTradingIdeas(force: true);
   }
 

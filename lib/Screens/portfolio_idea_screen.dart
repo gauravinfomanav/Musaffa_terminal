@@ -43,7 +43,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
     if (Get.isRegistered<GlobalSidebarService>()) {
       Get.find<GlobalSidebarService>().setActive(SidebarNavItem.portfolio);
     }
-    _watchlistController = Get.put(WatchlistController());
+    _watchlistController = WatchlistController.ensureRegistered();
     _portfolioController = Get.put(PortfolioController());
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {

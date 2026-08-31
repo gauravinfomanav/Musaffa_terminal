@@ -45,6 +45,7 @@ class SimpleColumn {
   final String fieldName;
   final double? width;
   final bool isNumeric;
+  final TextAlign? align;
 
   const SimpleColumn({
     required this.label,
@@ -52,6 +53,7 @@ class SimpleColumn {
     this.tooltipLabel,
     this.width,
     this.isNumeric = false,
+    this.align,
   });
 }
 
@@ -144,6 +146,7 @@ class DynamicTable extends StatefulWidget {
     this.headerHeight,
     this.rowHeight,
     this.toolbarPadding,
+    this.tableEdgeInset,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -180,6 +183,7 @@ class DynamicTable extends StatefulWidget {
   final double? headerHeight;
   final double? rowHeight;
   final EdgeInsets? toolbarPadding;
+  final EdgeInsets? tableEdgeInset;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -674,7 +678,8 @@ class _DynamicTableState extends State<DynamicTable> {
             headerWidget: null,
             width: col.width,
             sortable: true,
-            align: col.isNumeric ? TextAlign.right : TextAlign.left,
+            align: col.align ??
+                (col.isNumeric ? TextAlign.right : TextAlign.left),
           ),
         )
         .toList();
@@ -696,6 +701,99 @@ class _DynamicTableState extends State<DynamicTable> {
         data: data,
       );
     }).toList();
+
+    final table = DynamicTableFromWeb(
+      title: widget.title,
+      subtitle: widget.subtitle,
+      toolbarLeadingIcon: widget.toolbarLeadingIcon,
+      useOuterContainer: false,
+      columns: mappedColumns,
+      rows: mappedRows,
+      sortState: widget.sortState,
+      onSortChange: widget.onSortChange,
+      toolbar: widget.toolbar,
+      paginated: false,
+      selectable: false,
+      showTickerCell: widget.showFixedColumn,
+      tickerKey: '_ticker_symbol',
+      companyKey: '_company_name',
+      logoKey: '_logo_url',
+      tickerHeaderLabel: widget.tickerHeaderLabel,
+      tickerColumnWidth: widget.fixedColumnWidth,
+      enableColumnVisibilityToggle: widget.enableColumnCustomization,
+      enableColumnReorder: widget.enableColumnCustomization,
+      enableColumnPinning: true,
+      stickyHeader: true,
+      showColumnActionMenu: widget.showColumnActionMenu,
+      showColumnResizeHandle: widget.showColumnResizeHandle,
+      resizeHandleIndicatorHeight: widget.resizeHandleIndicatorHeight,
+      horizontalMargin: widget.horizontalMargin,
+      columnSpacing: widget.columnSpacing,
+      showHeaderTooltip: true,
+      showSortIndicators: false,
+      headerHeight: widget.headerHeight ?? 42,
+      rowHeight: widget.rowHeight ?? 52,
+      dataRowMinHeight: widget.rowHeight ?? 52,
+      dataRowMaxHeight: widget.rowHeight ?? 52,
+      toolbarPadding: widget.toolbarPadding,
+      tableEdgeInset: widget.tableEdgeInset,
+      onTickerTap: widget.onTickerTap ??
+          (row) {
+            final ticker = row.data['_ticker_symbol']?.toString() ?? '';
+            if (ticker.isEmpty || ticker == '--') return;
+
+            final companyName =
+                row.data['_company_name']?.toString() ?? ticker;
+            final logo = row.data['_logo_url']?.toString();
+            final isStock =
+                row.data['_is_stock'] == false ? false : true;
+            final priceValue = row.data['price'];
+            final currentPrice = priceValue is num
+                ? priceValue
+                : double.tryParse(
+                    priceValue
+                            ?.toString()
+                            .replaceAll(RegExp(r'[^\d.-]'), '') ??
+                        '',
+                  );
+            final changeValue = row.data['changePercent'];
+            final percentChange = changeValue is num
+                ? changeValue
+                : double.tryParse(
+                    changeValue
+                            ?.toString()
+                            .replaceAll(RegExp(r'[^\d.-]'), '') ??
+                        '',
+                  );
+
+            final tickerModel = TickerModel(
+              symbol: ticker,
+              ticker: ticker,
+              mainTicker: ticker,
+              name: companyName,
+              companyName: companyName,
+              logo: (logo != null && logo.isNotEmpty) ? logo : null,
+              currentPrice: currentPrice,
+              percentChange: percentChange,
+              currency: row.data['currency']?.toString() ?? 'USD',
+              isStock: isStock,
+            );
+
+            FeatureNavigation.pushIfAllowed(
+              context,
+              isStock ? FeatureKeys.tickerDetails : FeatureKeys.etfDetails,
+              isStock
+                  ? TickerDetailScreen(ticker: tickerModel)
+                  : EtfDetailsScreen(ticker: tickerModel),
+            );
+          },
+    );
+
+    // Embedded inside a parent card (e.g. Screener results) — no nested box
+    // or clip so the table can run full-bleed and tab shadows stay visible.
+    if (!widget.showOuterShadow && !widget.considerPadding) {
+      return table;
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -721,82 +819,7 @@ class _DynamicTableState extends State<DynamicTable> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(HomeUi.radiusCard),
-          child: DynamicTableFromWeb(
-            title: widget.title,
-            subtitle: widget.subtitle,
-            toolbarLeadingIcon: widget.toolbarLeadingIcon,
-            useOuterContainer: false,
-            columns: mappedColumns,
-            rows: mappedRows,
-            sortState: widget.sortState,
-            onSortChange: widget.onSortChange,
-            toolbar: widget.toolbar,
-            paginated: false,
-            selectable: false,
-            showTickerCell: widget.showFixedColumn,
-            tickerKey: '_ticker_symbol',
-            companyKey: '_company_name',
-            logoKey: '_logo_url',
-            tickerHeaderLabel: widget.tickerHeaderLabel,
-            tickerColumnWidth: widget.fixedColumnWidth,
-            enableColumnVisibilityToggle: widget.enableColumnCustomization,
-            enableColumnReorder: widget.enableColumnCustomization,
-            enableColumnPinning: true,
-            stickyHeader: true,
-            showColumnActionMenu: widget.showColumnActionMenu,
-            showColumnResizeHandle: widget.showColumnResizeHandle,
-            resizeHandleIndicatorHeight: widget.resizeHandleIndicatorHeight,
-            horizontalMargin: widget.horizontalMargin,
-            columnSpacing: widget.columnSpacing,
-            showHeaderTooltip: true,
-            showSortIndicators: true,
-            headerHeight: widget.headerHeight ?? 42,
-            rowHeight: widget.rowHeight ?? 52,
-            dataRowMinHeight: widget.rowHeight ?? 52,
-            dataRowMaxHeight: widget.rowHeight ?? 52,
-            toolbarPadding: widget.toolbarPadding,
-            onTickerTap: widget.onTickerTap ?? (row) {
-          final ticker = row.data['_ticker_symbol']?.toString() ?? '';
-          if (ticker.isEmpty || ticker == '--') return;
-
-          final companyName = row.data['_company_name']?.toString() ?? ticker;
-          final logo = row.data['_logo_url']?.toString();
-          final isStock = row.data['_is_stock'] == false ? false : true;
-          final priceValue = row.data['price'];
-          final currentPrice = priceValue is num
-              ? priceValue
-              : double.tryParse(
-                  priceValue?.toString().replaceAll(RegExp(r'[^\d.-]'), '') ?? '',
-                );
-          final changeValue = row.data['changePercent'];
-          final percentChange = changeValue is num
-              ? changeValue
-              : double.tryParse(
-                  changeValue?.toString().replaceAll(RegExp(r'[^\d.-]'), '') ?? '',
-                );
-
-          final tickerModel = TickerModel(
-            symbol: ticker,
-            ticker: ticker,
-            mainTicker: ticker,
-            name: companyName,
-            companyName: companyName,
-            logo: (logo != null && logo.isNotEmpty) ? logo : null,
-            currentPrice: currentPrice,
-            percentChange: percentChange,
-            currency: row.data['currency']?.toString() ?? 'USD',
-            isStock: isStock,
-          );
-
-          FeatureNavigation.pushIfAllowed(
-            context,
-            isStock ? FeatureKeys.tickerDetails : FeatureKeys.etfDetails,
-            isStock
-                ? TickerDetailScreen(ticker: tickerModel)
-                : EtfDetailsScreen(ticker: tickerModel),
-          );
-            },
-          ),
+          child: table,
         ),
       ),
     );

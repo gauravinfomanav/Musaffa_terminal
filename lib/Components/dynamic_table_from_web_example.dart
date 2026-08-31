@@ -249,7 +249,7 @@ class _DynamicTableFromWebExampleState
           enableRowReorder: true,
           enableColumnFilters: true,
           stickyHeader: true,
-          showSortIndicators: true,
+          showSortIndicators: false,
           pageSize: 10,
           maxHeight: 600,
           // Callbacks

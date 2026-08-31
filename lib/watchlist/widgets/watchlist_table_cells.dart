@@ -64,7 +64,7 @@ class WatchlistChangeCell extends StatelessWidget {
   }
 }
 
-/// 52-week range: low — track+thumb — high (single compact row).
+/// 52-week range: low — clean track + marker — high.
 class WatchlistRange52Cell extends StatelessWidget {
   const WatchlistRange52Cell({
     super.key,
@@ -89,103 +89,140 @@ class WatchlistRange52Cell extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool hasRange =
         low != null && high != null && high! > low! && current != null;
-    final double t = hasRange
-        ? ((current! - low!) / (high! - low!)).clamp(0.0, 1.0)
-        : 0.0;
-
-    final TextStyle labelStyle = HomeUi.tableCellSecondary(isDark).copyWith(
-      fontSize: 10.5,
-      fontWeight: FontWeight.w500,
-      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-    );
-
     if (!hasRange) {
       return Text('—', style: HomeUi.tableCellSecondary(isDark));
     }
 
-    final Color trackBg = isDark
-        ? const Color(0xFF2A2E34)
-        : const Color(0xFFE8EAED);
-    final Color fillColor = isDark
-        ? const Color(0xFF34D399).withValues(alpha: 0.55)
-        : const Color(0xFF86EFAC);
-    final Color thumbFill = isDark ? const Color(0xFFE5E7EB) : Colors.white;
-    final Color thumbBorder = isDark
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF4B5563);
+    final double t = ((current! - low!) / (high! - low!)).clamp(0.0, 1.0);
+    final TextStyle labelStyle = HomeUi.tableCellSecondary(isDark).copyWith(
+      fontSize: 10,
+      fontWeight: FontWeight.w500,
+      letterSpacing: -0.15,
+      height: 1,
+      color: HomeUi.muted(isDark),
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    );
 
     return SizedBox(
-      width: 168,
+      width: 172,
       child: Row(
         children: [
-          Text(_fmt(low!), style: labelStyle),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SizedBox(
-              height: 14,
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  final double w = constraints.maxWidth;
-                  final double fillW = (t * w).clamp(0.0, w);
-                  final double thumbX = (t * w).clamp(5.0, w - 5.0);
-
-                  return Stack(
-                    alignment: Alignment.centerLeft,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Track
-                      Container(
-                        height: 5,
-                        width: w,
-                        decoration: BoxDecoration(
-                          color: trackBg,
-                          borderRadius:
-                              BorderRadius.circular(HomeUi.radiusPill),
-                        ),
-                      ),
-                      // Progress from low → current
-                      Container(
-                        height: 5,
-                        width: fillW,
-                        decoration: BoxDecoration(
-                          color: fillColor,
-                          borderRadius:
-                              BorderRadius.circular(HomeUi.radiusPill),
-                        ),
-                      ),
-                      // Current-price thumb
-                      Positioned(
-                        left: thumbX - 5,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: thumbFill,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: thumbBorder, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: isDark ? 0.35 : 0.12,
-                                ),
-                                blurRadius: 3,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+          SizedBox(
+            width: 32,
+            child: Text(
+              _fmt(low!),
+              maxLines: 1,
+              overflow: TextOverflow.fade,
+              softWrap: false,
+              textAlign: TextAlign.right,
+              style: labelStyle,
             ),
           ),
-          const SizedBox(width: 8),
-          Text(_fmt(high!), style: labelStyle),
+          const SizedBox(width: 10),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                return CustomPaint(
+                  size: Size(constraints.maxWidth, 14),
+                  painter: _Range52TrackPainter(
+                    progress: t,
+                    isDark: isDark,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 32,
+            child: Text(
+              _fmt(high!),
+              maxLines: 1,
+              overflow: TextOverflow.fade,
+              softWrap: false,
+              textAlign: TextAlign.left,
+              style: labelStyle,
+            ),
+          ),
         ],
       ),
     );
+  }
+}
+
+class _Range52TrackPainter extends CustomPainter {
+  const _Range52TrackPainter({
+    required this.progress,
+    required this.isDark,
+  });
+
+  final double progress;
+  final bool isDark;
+
+  static const double _trackHeight = 3;
+  static const double _thumbRadius = 4.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cy = size.height / 2;
+    final double w = size.width;
+    final double thumbX =
+        (progress * w).clamp(_thumbRadius, w - _thumbRadius);
+    final Color green = HomeUi.positive(isDark);
+    final Color trackColor = isDark
+        ? const Color(0xFF2E3440)
+        : const Color(0xFFE2E5EA);
+    final Color thumbFill = isDark ? const Color(0xFFF1F5F9) : Colors.white;
+
+    final RRect track = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(w / 2, cy),
+        width: w,
+        height: _trackHeight,
+      ),
+      Radius.circular(_trackHeight / 2),
+    );
+    canvas.drawRRect(track, Paint()..color = trackColor);
+
+    if (thumbX > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, cy - _trackHeight / 2, thumbX, _trackHeight),
+          Radius.circular(_trackHeight / 2),
+        ),
+        Paint()..color = green,
+      );
+    }
+
+    final Offset thumbCenter = Offset(thumbX, cy);
+
+    canvas.drawCircle(
+      thumbCenter + const Offset(0, 0.75),
+      _thumbRadius,
+      Paint()
+        ..color = Colors.black.withValues(alpha: isDark ? 0.22 : 0.07)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+    );
+
+    canvas.drawCircle(
+      thumbCenter,
+      _thumbRadius,
+      Paint()..color = thumbFill,
+    );
+
+    canvas.drawCircle(
+      thumbCenter,
+      _thumbRadius,
+      Paint()
+        ..color = green
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.75,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _Range52TrackPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.isDark != isDark;
   }
 }
 
