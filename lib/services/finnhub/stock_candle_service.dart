@@ -21,8 +21,10 @@ class StockCandleService {
       return <PriceDataPoint>[];
     }
 
-    final int fromEpoch = from.toUtc().millisecondsSinceEpoch ~/ 1000;
-    final int toEpoch = to.toUtc().millisecondsSinceEpoch ~/ 1000;
+    final int fromEpoch =
+        (from.toUtc().millisecondsSinceEpoch ~/ 1000 ~/ 3600) * 3600;
+    final int toEpoch =
+        (to.toUtc().millisecondsSinceEpoch ~/ 1000 ~/ 3600) * 3600;
     final String cacheKey = 'stock/candle:$normalized:D:$fromEpoch:$toEpoch';
 
     final dynamic decoded = await _client.get(
@@ -103,8 +105,16 @@ class StockCandleService {
       return <OhlcCandlePoint>[];
     }
 
-    final int fromEpoch = from.toUtc().millisecondsSinceEpoch ~/ 1000;
-    final int toEpoch = to.toUtc().millisecondsSinceEpoch ~/ 1000;
+    int fromEpoch = from.toUtc().millisecondsSinceEpoch ~/ 1000;
+    int toEpoch = to.toUtc().millisecondsSinceEpoch ~/ 1000;
+    // Bucket so sparkline / 1D / summary widgets share cache.
+    if (resolution != 'D' && resolution != 'W' && resolution != 'M') {
+      fromEpoch = (fromEpoch ~/ 3600) * 3600;
+      toEpoch = (toEpoch ~/ 60) * 60;
+    } else {
+      fromEpoch = (fromEpoch ~/ 3600) * 3600;
+      toEpoch = (toEpoch ~/ 3600) * 3600;
+    }
     final String cacheKey =
         'stock/candle:$normalized:$resolution:$fromEpoch:$toEpoch';
 
@@ -144,7 +154,6 @@ class StockCandleService {
       highs.length,
       lows.length,
       closes.length,
-      volumes.length,
       timestamps.length,
     ].reduce((int a, int b) => a < b ? a : b);
 
@@ -154,13 +163,13 @@ class StockCandleService {
       final dynamic highRaw = highs[index];
       final dynamic lowRaw = lows[index];
       final dynamic closeRaw = closes[index];
-      final dynamic volumeRaw = volumes[index];
+      final dynamic volumeRaw =
+          index < volumes.length ? volumes[index] : 0;
       final dynamic timestampRaw = timestamps[index];
       if (openRaw is! num ||
           highRaw is! num ||
           lowRaw is! num ||
           closeRaw is! num ||
-          volumeRaw is! num ||
           timestampRaw is! num) {
         continue;
       }
@@ -181,7 +190,7 @@ class StockCandleService {
           high: high,
           low: low,
           close: close,
-          volume: volumeRaw.toDouble(),
+          volume: volumeRaw is num ? volumeRaw.toDouble() : 0,
         ),
       );
     }

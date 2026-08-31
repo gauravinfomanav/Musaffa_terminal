@@ -437,7 +437,7 @@ class _DetailChartState extends State<_DetailChart> {
         final dynamic x = details.point?.x;
         final dynamic y = details.point?.y;
         if (x is! DateTime || y is! num) return const SizedBox.shrink();
-        final bool intraday = widget.controller.isIntraday;
+        final bool intraday = widget.controller.isShowingIntradayData;
         return _ChartHoverTooltip(
           isDark: widget.isDark,
           dateLabel: DateFormat(
@@ -464,18 +464,16 @@ class _DetailChartState extends State<_DetailChart> {
         return WatchlistShimmer.detailChart(isDarkMode: widget.isDark);
       }
 
-      if (data.isEmpty) {
+      if (data.length < 3) {
         return Center(
           child: Text(
-            widget.controller.priceError.value.isNotEmpty
-                ? widget.controller.priceError.value
-                : 'No chart data',
+            'No chart data',
             style: HomeUi.subtitle(widget.isDark),
           ),
         );
       }
 
-      final bool intraday = widget.controller.isIntraday;
+      final bool intraday = widget.controller.isShowingIntradayData;
       return SfCartesianChart(
         plotAreaBorderWidth: 0,
         margin: EdgeInsets.zero,
@@ -639,7 +637,7 @@ class _KeyStatsGrid extends StatelessWidget {
         ('P/E Ratio', _num(f['peTTM'])),
       ],
       <(String, String)>[
-        ('Volume', _vol(f['volume'])),
+        ('Volume', _vol(f['volumeRaw'] ?? f['volume'])),
         ('Avg Volume', _vol(f['avgVolume'])),
       ],
       <(String, String)>[

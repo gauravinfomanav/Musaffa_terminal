@@ -33,7 +33,6 @@ class PremiumPricePerformanceChart extends StatelessWidget {
     return Obx(() {
       final List<OhlcCandlePoint> data = controller.visibleCandles;
       final bool loading = controller.isLoadingPrice.value;
-      final String error = controller.priceError.value;
       final PremiumPriceChartMode mode = controller.chartMode.value;
 
       return PremiumChartCard(
@@ -62,16 +61,6 @@ class PremiumPricePerformanceChart extends StatelessWidget {
               SizedBox(
                 height: 360,
                 child: Center(child: _buildLoader(theme)),
-              )
-            else if (error.isNotEmpty && data.isEmpty)
-              SizedBox(
-                height: 200,
-                child: Center(
-                  child: Text(
-                    error,
-                    style: HomeUi.bodyText(isDark).copyWith(color: theme.negative),
-                  ),
-                ),
               )
             else if (data.isEmpty)
               SizedBox(

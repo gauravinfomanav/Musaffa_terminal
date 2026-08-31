@@ -25,10 +25,13 @@ class WatchlistPerformanceCard extends StatefulWidget {
 class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
   final WatchlistPerformanceService _service = WatchlistPerformanceService();
 
+  static const int _maxRetries = 2;
+
   WatchlistPeriodPerformance? _data;
   bool _loading = true;
   String? _symbolsKey;
   int _requestId = 0;
+  int _retryCount = 0;
 
   @override
   void initState() {
@@ -93,7 +96,8 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
     return map;
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool isRetry = false}) async {
+    if (!isRetry) _retryCount = 0;
     final List<SimpleRowModel> rows = widget.tableData;
     final String key = _keyFor(rows);
     _symbolsKey = key;
@@ -108,10 +112,14 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
     }
 
     final int id = ++_requestId;
-    setState(() {
-      _loading = true;
-      _data = null;
-    });
+    // Shimmer only on the first attempt. Retries stay in the background so
+    // the card doesn't flip numbers → shimmer → dashes.
+    if (!isRetry) {
+      setState(() {
+        _loading = true;
+        _data = null;
+      });
+    }
 
     final Map<String, double> todayMap = _todayMap(rows);
 
@@ -122,13 +130,57 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
       );
       if (!mounted || id != _requestId) return;
       setState(() {
-        _data = result;
+        _data = _mergePerformance(_data, result);
         _loading = false;
       });
+      // "Today" comes from the table and does not mean the 12-month fetch
+      // succeeded. Retry only when week/month/year/sparkline are still empty.
+      if (_longTermMissing(_data) && _retryCount < _maxRetries) {
+        _retryCount++;
+        final int attempt = _retryCount;
+        Future<void>.delayed(Duration(seconds: 3 * attempt), () {
+          if (mounted && id == _requestId) _load(isRetry: true);
+        });
+      }
     } catch (_) {
       if (!mounted || id != _requestId) return;
-      setState(() => _loading = false);
+      if (!isRetry) setState(() => _loading = false);
+      if (_retryCount < _maxRetries) {
+        _retryCount++;
+        final int attempt = _retryCount;
+        Future<void>.delayed(Duration(seconds: 3 * attempt), () {
+          if (mounted && id == _requestId) _load(isRetry: true);
+        });
+      }
     }
+  }
+
+  static bool _longTermMissing(WatchlistPeriodPerformance? data) {
+    if (data == null) return true;
+    return data.sparkline.length < 2 &&
+        data.weekPercent == null &&
+        data.monthPercent == null &&
+        data.yearPercent == null;
+  }
+
+  /// Keep whatever is already on screen; fill in missing long-term fields
+  /// from a later retry instead of replacing a partial result with a worse one.
+  static WatchlistPeriodPerformance _mergePerformance(
+    WatchlistPeriodPerformance? current,
+    WatchlistPeriodPerformance next,
+  ) {
+    if (current == null) return next;
+    final bool nextSpark = next.sparkline.length >= 2;
+    final bool currentSpark = current.sparkline.length >= 2;
+    return WatchlistPeriodPerformance(
+      todayPercent: next.todayPercent ?? current.todayPercent,
+      weekPercent: next.weekPercent ?? current.weekPercent,
+      monthPercent: next.monthPercent ?? current.monthPercent,
+      yearPercent: next.yearPercent ?? current.yearPercent,
+      sparkline: nextSpark || !currentSpark ? next.sparkline : current.sparkline,
+      sparklineDates:
+          nextSpark || !currentSpark ? next.sparklineDates : current.sparklineDates,
+    );
   }
 
   @override

@@ -82,7 +82,6 @@ class _PremiumLiveChartState extends State<PremiumLiveChart>
     return Obx(() {
       final List<OhlcCandlePoint> data = widget.controller.visibleCandles;
       final bool loading = widget.controller.isLoadingPrice.value;
-      final String error = widget.controller.priceError.value;
       final double? price = widget.controller.displayPrice ?? widget.fallbackPrice;
       final double? changePct =
           widget.controller.rangeChangePercent ?? widget.dayChangePercent;
@@ -117,20 +116,18 @@ class _PremiumLiveChartState extends State<PremiumLiveChart>
                 switchOutCurve: Curves.easeInCubic,
                 child: loading
                     ? _buildLoader(dark, key: const ValueKey('loading'))
-                    : error.isNotEmpty && data.isEmpty
-                        ? _buildEmpty(dark, error, key: const ValueKey('error'))
-                        : data.isEmpty
-                            ? _buildEmpty(
-                                dark,
-                                'No chart data available',
-                                key: const ValueKey('empty'),
-                              )
-                            : KeyedSubtree(
-                                key: ValueKey<String>(
-                                  '${widget.controller.selectedRange.value.label}-${data.length}',
-                                ),
-                                child: _buildAreaChart(dark, c, data, up),
-                              ),
+                    : data.isEmpty
+                        ? _buildEmpty(
+                            dark,
+                            'No chart data available',
+                            key: const ValueKey('empty'),
+                          )
+                        : KeyedSubtree(
+                            key: ValueKey<String>(
+                              '${widget.controller.selectedRange.value.label}-${data.length}',
+                            ),
+                            child: _buildAreaChart(dark, c, data, up),
+                          ),
               ),
             ),
           ],
@@ -302,7 +299,7 @@ class _PremiumLiveChartState extends State<PremiumLiveChart>
     List<OhlcCandlePoint> data,
     bool up,
   ) {
-    final bool intraday = widget.controller.isIntraday;
+    final bool intraday = widget.controller.isShowingIntradayData;
     final Color line = up ? c.priceLine : UsPremiumPalette.lossSoft;
 
     return SfCartesianChart(

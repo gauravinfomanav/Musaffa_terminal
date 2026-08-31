@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/charts/models/ohlc_candle_point.dart';
+import 'package:musaffa_terminal/services/finnhub/finnhub_api_client.dart';
 import 'package:musaffa_terminal/services/finnhub/stock_candle_service.dart';
 
 enum PremiumPriceRange {
@@ -37,8 +40,17 @@ class TickerCustomChartsController extends GetxController {
   final RxnDouble livePrice = RxnDouble();
 
   String? _loadedSymbol;
+  int _autoRetryCount = 0;
+  static const int _maxAutoRetries = 2;
 
   bool get isIntraday => selectedRange.value == PremiumPriceRange.oneDay;
+
+  /// True only when we're actually rendering true intraday-granularity bars
+  /// (as opposed to a daily-candle fallback shown under the 1D tab because
+  /// intraday data is momentarily unavailable). Chart axis/tooltip
+  /// formatting should key off this, not [isIntraday], so a daily fallback
+  /// doesn't get mislabeled with hour-of-day ticks.
+  bool get isShowingIntradayData => isIntraday && intradayCandles.isNotEmpty;
 
   List<OhlcCandlePoint> get _sourceCandles =>
       isIntraday && intradayCandles.isNotEmpty ? intradayCandles : candles;
@@ -49,18 +61,19 @@ class TickerCustomChartsController extends GetxController {
 
     if (isIntraday) {
       if (intradayCandles.isNotEmpty) {
-        return _latestTradingSession(intradayCandles);
+        return _sessionForOneDay(intradayCandles);
       }
-      // Intraday unavailable — show only recent daily bars, not full history.
-      final DateTime? cutoff = _cutoffForRange(PremiumPriceRange.oneDay);
-      if (cutoff != null) {
-        final List<OhlcCandlePoint> recent = source
-            .where((OhlcCandlePoint c) => !c.date.isBefore(cutoff))
-            .toList();
-        if (recent.isNotEmpty) return recent;
-      }
-      if (source.length <= 2) return source.toList();
-      return source.sublist(source.length - 2);
+      // Intraday data is momentarily unavailable (proxy hiccup / no data
+      // published yet). Rather than leaving the chart blank, show a short
+      // recent trend from daily candles. Never just 1-2 points, since that
+      // draws a fake straight diagonal line.
+      final DateTime cutoff =
+          source.last.date.subtract(const Duration(days: 6));
+      final List<OhlcCandlePoint> recent =
+          source.where((OhlcCandlePoint c) => !c.date.isBefore(cutoff)).toList();
+      if (recent.length >= 3) return recent;
+      if (source.length >= 5) return source.sublist(source.length - 5);
+      return <OhlcCandlePoint>[];
     }
 
     final DateTime? cutoff = _cutoffForRange(selectedRange.value);
@@ -92,26 +105,101 @@ class TickerCustomChartsController extends GetxController {
     return last - visible.first.close;
   }
 
-  Future<void> loadPriceHistory(String symbol, {bool forceRefresh = false}) async {
+  Future<void> loadPriceHistory(
+    String symbol, {
+    bool forceRefresh = false,
+    bool isAutoRetry = false,
+  }) async {
     final String normalized = symbol.trim().toUpperCase();
     if (normalized.isEmpty) return;
 
     if (!forceRefresh &&
         _loadedSymbol == normalized &&
-        candles.isNotEmpty) {
+        (candles.isNotEmpty ||
+            (isIntraday && intradayCandles.isNotEmpty))) {
       return;
     }
 
+    if (!isAutoRetry) _autoRetryCount = 0;
     _loadedSymbol = normalized;
-    isLoadingPrice.value = true;
-    priceError.value = '';
-    candles.clear();
-    intradayCandles.clear();
-    livePrice.value = null;
+    // Keep the current chart on screen during a background retry — flipping
+    // to a spinner / "No chart data" is what made first-load look broken.
+    if (!isAutoRetry) {
+      isLoadingPrice.value = true;
+      priceError.value = '';
+      candles.clear();
+      intradayCandles.clear();
+      livePrice.value = null;
+    }
+
+    try {
+      if (selectedRange.value == PremiumPriceRange.oneDay) {
+        // Load intraday and daily together (not intraday-then-daily) so
+        // that if intraday comes back empty, the daily fallback data is
+        // already there the instant the chart renders — no need for the
+        // user to toggle away and back to 1D to "wake it up".
+        await Future.wait<void>(<Future<void>>[
+          _loadIntraday(normalized, manageLoading: false),
+          _loadDaily(normalized, forceRefresh: forceRefresh),
+        ]);
+      } else {
+        await _loadDaily(normalized, forceRefresh: forceRefresh);
+      }
+    } catch (error) {
+      if (_loadedSymbol != normalized) return;
+      if (!isAutoRetry) {
+        candles.clear();
+        intradayCandles.clear();
+      }
+      priceError.value = _userFacingChartError(error);
+    } finally {
+      if (_loadedSymbol == normalized) {
+        isLoadingPrice.value = false;
+      }
+    }
+
+    // The upstream proxy can be briefly overloaded right when a page first
+    // loads (many widgets requesting data at once). Rather than leaving the
+    // chart stuck on "No chart data" until the user does something, quietly
+    // retry a couple of times in the background — this is what was actually
+    // happening before when navigating away and back "fixed" it.
+    if (_loadedSymbol == normalized &&
+        visibleCandles.isEmpty &&
+        _autoRetryCount < _maxAutoRetries) {
+      _autoRetryCount++;
+      final int attempt = _autoRetryCount;
+      Future<void>.delayed(Duration(seconds: 3 * attempt), () {
+        if (_loadedSymbol == normalized && visibleCandles.isEmpty) {
+          loadPriceHistory(normalized, forceRefresh: true, isAutoRetry: true);
+        }
+      });
+    }
+  }
+
+  Future<void> selectRange(PremiumPriceRange range) async {
+    selectedRange.value = range;
+    if (_loadedSymbol == null) return;
+    if (range == PremiumPriceRange.oneDay) {
+      if (intradayCandles.isEmpty) {
+        await _loadIntraday(_loadedSymbol!);
+      }
+      return;
+    }
+    if (candles.isEmpty) {
+      await _loadDaily(_loadedSymbol!);
+    }
+  }
+
+  Future<void> _loadDaily(
+    String symbol, {
+    bool forceRefresh = false,
+  }) async {
+    final String normalized = symbol.trim().toUpperCase();
+    if (normalized.isEmpty || _loadedSymbol != normalized) return;
 
     try {
       final DateTime now = DateTime.now();
-      final DateTime from = DateTime(now.year - 10, now.month, now.day);
+      final DateTime from = DateTime(now.year - 5, now.month, now.day);
       final List<OhlcCandlePoint> loaded = await _candleService.fetchOhlc(
         normalized,
         from: from,
@@ -123,41 +211,32 @@ class TickerCustomChartsController extends GetxController {
       if (_loadedSymbol != normalized) return;
 
       if (loaded.isEmpty) {
-        candles.clear();
-        priceError.value = 'No price history available';
+        if (intradayCandles.isEmpty) {
+          priceError.value = 'No chart data';
+        }
       } else {
         candles.assignAll(loaded);
-      }
-
-      if (selectedRange.value == PremiumPriceRange.oneDay) {
-        await _loadIntraday(normalized);
+        if (intradayCandles.isNotEmpty) {
+          priceError.value = '';
+        }
       }
     } catch (error) {
       if (_loadedSymbol != normalized) return;
-      candles.clear();
-      intradayCandles.clear();
-      priceError.value = error.toString();
-    } finally {
-      if (_loadedSymbol == normalized) {
-        isLoadingPrice.value = false;
+      if (intradayCandles.isEmpty) {
+        priceError.value = _userFacingChartError(error);
       }
     }
   }
 
-  Future<void> selectRange(PremiumPriceRange range) async {
-    selectedRange.value = range;
-    if (range == PremiumPriceRange.oneDay && _loadedSymbol != null) {
-      await _loadIntraday(_loadedSymbol!);
-    }
-  }
-
-  Future<void> _loadIntraday(String symbol) async {
+  Future<void> _loadIntraday(
+    String symbol, {
+    bool manageLoading = true,
+  }) async {
     final String normalized = symbol.trim().toUpperCase();
     if (normalized.isEmpty || _loadedSymbol != normalized) return;
 
-    isLoadingPrice.value = true;
+    if (manageLoading) isLoadingPrice.value = true;
     priceError.value = '';
-    intradayCandles.clear();
 
     try {
       final DateTime now = DateTime.now();
@@ -166,22 +245,19 @@ class TickerCustomChartsController extends GetxController {
         normalized,
         from: from,
         to: now,
-        resolution: '15',
-        forceRefresh: true,
+        resolution: '5',
       );
 
       if (_loadedSymbol != normalized) return;
 
       if (intraday.isNotEmpty) {
-        intradayCandles.assignAll(_latestTradingSession(intraday));
-      } else {
-        intradayCandles.clear();
+        intradayCandles.assignAll(intraday);
+        priceError.value = '';
       }
     } catch (_) {
       if (_loadedSymbol != normalized) return;
-      // Keep daily candles as fallback via visibleCandles.
     } finally {
-      if (_loadedSymbol == normalized) {
+      if (manageLoading && _loadedSymbol == normalized) {
         isLoadingPrice.value = false;
       }
     }
@@ -232,25 +308,70 @@ class TickerCustomChartsController extends GetxController {
     }
   }
 
-  /// Keeps only the most recent continuous intraday session.
-  /// Prevents overnight/weekend gaps from drawing vertical connector lines.
-  static List<OhlcCandlePoint> _latestTradingSession(
-    List<OhlcCandlePoint> candles, {
-    Duration gapThreshold = const Duration(minutes: 60),
-  }) {
-    if (candles.length <= 1) return candles.toList();
+  /// Picks the latest session with enough bars for a real 1D shape.
+  /// Thin pre-market clusters are skipped so we don't draw a 2-point diagonal.
+  static List<OhlcCandlePoint> _sessionForOneDay(List<OhlcCandlePoint> candles) {
+    final List<List<OhlcCandlePoint>> sessions =
+        _splitSessions(candles, const Duration(hours: 2));
+    if (sessions.isEmpty) return <OhlcCandlePoint>[];
+
+    const int minBars = 4;
+    for (int i = sessions.length - 1; i >= 0; i--) {
+      if (sessions[i].length >= minBars) {
+        return sessions[i];
+      }
+    }
+
+    List<OhlcCandlePoint> best = sessions.last;
+    for (final List<OhlcCandlePoint> session in sessions) {
+      if (session.length > best.length) best = session;
+    }
+    if (best.length >= 4) return best;
+
+    final DateTime latest = sessions.last.last.date;
+    final DateTime cutoff = latest.subtract(const Duration(hours: 24));
+    final List<OhlcCandlePoint> recent = <OhlcCandlePoint>[];
+    for (final List<OhlcCandlePoint> session in sessions) {
+      for (final OhlcCandlePoint c in session) {
+        if (!c.date.isBefore(cutoff)) recent.add(c);
+      }
+    }
+    if (recent.length >= 4) return recent;
+    return best.length >= 3 ? best : <OhlcCandlePoint>[];
+  }
+
+  static List<List<OhlcCandlePoint>> _splitSessions(
+    List<OhlcCandlePoint> candles,
+    Duration gapThreshold,
+  ) {
+    if (candles.isEmpty) return <List<OhlcCandlePoint>>[];
 
     final List<OhlcCandlePoint> sorted = candles.toList()
       ..sort((OhlcCandlePoint a, OhlcCandlePoint b) => a.date.compareTo(b.date));
 
-    int sessionStart = 0;
+    final List<List<OhlcCandlePoint>> sessions = <List<OhlcCandlePoint>>[
+      <OhlcCandlePoint>[sorted.first],
+    ];
     for (int i = 1; i < sorted.length; i++) {
       final Duration gap = sorted[i].date.difference(sorted[i - 1].date);
       if (gap > gapThreshold) {
-        sessionStart = i;
+        sessions.add(<OhlcCandlePoint>[sorted[i]]);
+      } else {
+        sessions.last.add(sorted[i]);
       }
     }
+    return sessions;
+  }
 
-    return sorted.sublist(sessionStart);
+  static String _userFacingChartError(Object error) {
+    if (error is FinnhubApiException) {
+      final String lower = error.message.toLowerCase();
+      if (lower.contains('internet') ||
+          lower.contains('network') ||
+          lower.contains('timed out')) {
+        return error.message;
+      }
+    }
+    return 'No chart data';
   }
 }

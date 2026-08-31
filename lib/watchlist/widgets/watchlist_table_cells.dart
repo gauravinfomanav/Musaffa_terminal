@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:musaffa_terminal/charts/models/ohlc_candle_point.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/services/finnhub/stock_candle_service.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
@@ -247,8 +246,11 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
   static final StockCandleService _candles = StockCandleService();
   static final Map<String, List<double>> _cache = <String, List<double>>{};
 
+  static const int _maxRetries = 2;
+
   List<double>? _values;
   bool _loading = true;
+  int _retryCount = 0;
 
   @override
   void initState() {
@@ -264,7 +266,8 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool isRetry = false}) async {
+    if (!isRetry) _retryCount = 0;
     final String symbol = widget.symbol.trim().toUpperCase();
     if (symbol.isEmpty) {
       setState(() {
@@ -283,28 +286,25 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
       return;
     }
 
-    setState(() => _loading = true);
+    // Spinner only on the first attempt. Retries stay in the background so
+    // the cell doesn't flip loader → "—" → loader.
+    if (!isRetry && mounted) {
+      setState(() => _loading = true);
+    }
 
     try {
       final DateTime to = DateTime.now();
-      // Prefer intraday 5-min for a true 1D feel; fall back to recent daily.
-      List<OhlcCandlePoint> ohlc = await _candles.fetchOhlc(
+      // A short daily-close window (roughly the last trading week) instead
+      // of 5-min intraday candles. Intraday data is the flakiest thing the
+      // proxy serves and buys us nothing visible at this size (88x32px),
+      // so a single reliable daily-candle call replaces what used to be a
+      // two-call cascade — half the network load per row, no fallback dance.
+      final List<PriceDataPoint> daily = await _candles.fetchDailyCloses(
         symbol,
-        from: to.subtract(const Duration(hours: 30)),
+        from: to.subtract(const Duration(days: 10)),
         to: to,
-        resolution: '5',
       );
-      List<double> series =
-          ohlc.map((OhlcCandlePoint p) => p.close).toList();
-
-      if (series.length < 4) {
-        final List<PriceDataPoint> daily = await _candles.fetchDailyCloses(
-          symbol,
-          from: to.subtract(const Duration(days: 45)),
-          to: to,
-        );
-        series = daily.map((PriceDataPoint p) => p.value).toList();
-      }
+      List<double> series = daily.map((PriceDataPoint p) => p.value).toList();
 
       if (series.length > 48) {
         final int step = (series.length / 48).ceil().clamp(1, series.length);
@@ -318,19 +318,31 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
         series = sampled;
       }
 
-      _cache[symbol] = series;
+      if (series.length >= 2) {
+        _cache[symbol] = series;
+      }
       if (!mounted) return;
       setState(() {
-        _values = series;
+        if (series.length >= 2) _values = series;
         _loading = false;
       });
+      if (series.length < 2) _scheduleRetry();
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _values = null;
-        _loading = false;
-      });
+      setState(() => _loading = false);
+      _scheduleRetry();
     }
+  }
+
+  void _scheduleRetry() {
+    if (_retryCount >= _maxRetries) return;
+    _retryCount++;
+    final int attempt = _retryCount;
+    Future<void>.delayed(Duration(seconds: 2 * attempt), () {
+      if (!mounted) return;
+      if (_values != null && _values!.length >= 2) return;
+      _load(isRetry: true);
+    });
   }
 
   @override
