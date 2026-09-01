@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/auth_page_shell.dart';
 import 'package:musaffa_terminal/Controllers/auth_controller.dart';
-import 'package:musaffa_terminal/Screens/login_success_splash.dart';
+import 'package:musaffa_terminal/Screens/main_screen.dart';
 import 'package:musaffa_terminal/Screens/register_screen.dart';
+import 'package:musaffa_terminal/Screens/splash_screen.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
   bool _obscurePassword = true;
+  bool _showSplash = false;
+  bool _loginComplete = false;
 
   @override
   void initState() {
@@ -48,13 +51,33 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    if (_showSplash) return;
 
-    Get.off(
-      () => LoginSuccessSplash(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      ),
+    setState(() {
+      _showSplash = true;
+      _loginComplete = false;
+    });
+
+    final auth = Get.find<AuthController>();
+    final ok = await auth.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
     );
+    if (!mounted) return;
+
+    if (!ok) {
+      setState(() {
+        _showSplash = false;
+        _loginComplete = false;
+      });
+      return;
+    }
+
+    setState(() => _loginComplete = true);
+  }
+
+  void _onSplashComplete() {
+    Get.offAll(() => const MainScreen());
   }
 
   @override
@@ -68,115 +91,126 @@ class _LoginScreenState extends State<LoginScreen> {
       fontFamily: Constants.FONT_DEFAULT_NEW,
     );
 
-    return AuthPageShell(
-      skipEntranceAnimation: widget.skipEntranceAnimation,
-      title: 'Welcome back',
-      subtitle: 'Sign in to ${Constants.appName}',
-      footnote: 'Use your ${Constants.appName} account credentials',
-      form: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AuthLabeledField(
-              label: 'Email',
-              child: TextFormField(
-                controller: _emailController,
-                focusNode: _emailFocus,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.email],
-                onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
-                style: titleStyle,
-                decoration: authInputDecoration(
-                  hint: 'you@company.com',
-                  palette: palette,
-                  prefixIcon: Icons.mail_outline_rounded,
-                ),
-                validator: (value) {
-                  final email = value?.trim() ?? '';
-                  if (email.isEmpty) return 'Email is required';
-                  if (!email.contains('@')) return 'Enter a valid email';
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            AuthLabeledField(
-              label: 'Password',
-              child: TextFormField(
-                controller: _passwordController,
-                focusNode: _passwordFocus,
-                obscureText: _obscurePassword,
-                textInputAction: TextInputAction.done,
-                autofillHints: const [AutofillHints.password],
-                onFieldSubmitted: (_) => _submit(),
-                style: titleStyle,
-                decoration: authInputDecoration(
-                  hint: 'Enter your password',
-                  palette: palette,
-                  prefixIcon: Icons.lock_outline_rounded,
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
-                    },
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      size: 18,
-                      color: palette.muted,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        AuthPageShell(
+          skipEntranceAnimation: widget.skipEntranceAnimation,
+          title: 'Welcome back',
+          subtitle: 'Sign in to ${Constants.appName}',
+          footnote: 'Use your ${Constants.appName} account credentials',
+          form: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AuthLabeledField(
+                  label: 'Email',
+                  child: TextFormField(
+                    controller: _emailController,
+                    focusNode: _emailFocus,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
+                    style: titleStyle,
+                    decoration: authInputDecoration(
+                      hint: 'you@company.com',
+                      palette: palette,
+                      prefixIcon: Icons.mail_outline_rounded,
                     ),
+                    validator: (value) {
+                      final email = value?.trim() ?? '';
+                      if (email.isEmpty) return 'Email is required';
+                      if (!email.contains('@')) return 'Enter a valid email';
+                      return null;
+                    },
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Password is required';
+                const SizedBox(height: 16),
+                AuthLabeledField(
+                  label: 'Password',
+                  child: TextFormField(
+                    controller: _passwordController,
+                    focusNode: _passwordFocus,
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const [AutofillHints.password],
+                    onFieldSubmitted: (_) => _submit(),
+                    style: titleStyle,
+                    decoration: authInputDecoration(
+                      hint: 'Enter your password',
+                      palette: palette,
+                      prefixIcon: Icons.lock_outline_rounded,
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          size: 18,
+                          color: palette.muted,
+                        ),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password is required';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                Obx(() {
+                  final success = auth.successMessage.value;
+                  if (success == null || success.isEmpty) {
+                    return const SizedBox.shrink();
                   }
-                  return null;
-                },
-              ),
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: AuthInfoBanner(message: success, isError: false),
+                  );
+                }),
+                Obx(() {
+                  final error = auth.errorMessage.value;
+                  if (error == null || error.isEmpty) {
+                    return const SizedBox(height: 22);
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 14, bottom: 10),
+                    child: AuthInfoBanner(message: error, isError: true),
+                  );
+                }),
+                const SizedBox(height: 22),
+                AuthPrimaryButton(
+                  label: 'Sign in',
+                  onPressed: _showSplash ? null : _submit,
+                ),
+              ],
             ),
-            Obx(() {
-              final success = auth.successMessage.value;
-              if (success == null || success.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Padding(
-                padding: const EdgeInsets.only(top: 14),
-                child: AuthInfoBanner(message: success, isError: false),
+          ),
+          footer: AuthTextLink(
+            prefix: "Don't have a password yet? ",
+            linkLabel: 'Register',
+            onTap: () {
+              auth.clearMessages();
+              Get.to(
+                () => RegisterScreen(
+                  initialEmail: _emailController.text.trim(),
+                ),
               );
-            }),
-            Obx(() {
-              final error = auth.errorMessage.value;
-              if (error == null || error.isEmpty) {
-                return const SizedBox(height: 22);
-              }
-              return Padding(
-                padding: const EdgeInsets.only(top: 14, bottom: 10),
-                child: AuthInfoBanner(message: error, isError: true),
-              );
-            }),
-            const SizedBox(height: 22),
-            AuthPrimaryButton(
-              label: 'Sign in',
-              onPressed: _submit,
-            ),
-          ],
+            },
+          ),
         ),
-      ),
-      footer: AuthTextLink(
-        prefix: "Don't have a password yet? ",
-        linkLabel: 'Register',
-        onTap: () {
-          auth.clearMessages();
-          Get.to(
-            () => RegisterScreen(
-              initialEmail: _emailController.text.trim(),
-            ),
-          );
-        },
-      ),
+        if (_showSplash)
+          PremiumSplashScreen(
+            active: true,
+            isWaiting: !_loginComplete,
+            onComplete: _onSplashComplete,
+          ),
+      ],
     );
   }
 }
