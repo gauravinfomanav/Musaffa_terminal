@@ -34,21 +34,8 @@ class _CacheEntry {
   bool isExpired(Duration ttl) => DateTime.now().difference(timestamp) > ttl;
 }
 
-/// Single centralized gateway for every Finnhub call in the app (quotes,
-/// candles, financials, profile, dividends, news, etc — all ~20 services
-/// route through this one client).
-///
-/// The upstream Infomanav proxy is flaky by nature (observed: bursts of
-/// concurrent requests fail with 503 ~90% of the time, and cold requests can
-/// hang up to ~8s before the proxy itself times out reaching Finnhub). This
-/// client is built around that reality:
-///  - In-flight de-duplication: N widgets asking for the same symbol at the
-///    same time share one network call instead of piling on the proxy.
-///  - Short-TTL fresh cache so re-renders don't refetch needlessly.
-///  - Stale-while-error: if a refetch fails for any reason, we serve the
-///    last known-good value instead of surfacing an error / blank UI.
-///  - Bounded retries that don't hold a concurrency slot while backing off,
-///    and a hard wall-clock cap per call so no request can hang forever.
+/// Single gateway for Finnhub calls. Cache + in-flight sharing so the
+/// watchlist does not fire the same request twice; one retry on 503/timeout.
 class FinnhubApiClient {
   const FinnhubApiClient();
 
@@ -58,16 +45,9 @@ class FinnhubApiClient {
   static int _active = 0;
   static final Random _random = Random();
 
-  // A single page (watchlist + detail panel) can fire a dozen-plus distinct
-  // requests at once on first load. Too few slots means most of them just
-  // sit in queue behind each other's retries — which looked like "broken"
-  // widgets that mysteriously fixed themselves once the page was revisited
-  // and everything was warm in cache. More slots + slightly less aggressive
-  // per-request retrying drains that initial burst much faster.
   static const int _maxConcurrent = 12;
-  static const Duration _perAttemptTimeout = Duration(seconds: 7);
-  static const int _maxAttempts = 3;
-  static const Duration _overallTimeout = Duration(seconds: 10);
+  static const Duration _timeout = Duration(seconds: 8);
+  static const int _maxAttempts = 2;
 
   Future<dynamic> get(
     String apiPath, {
@@ -89,29 +69,19 @@ class FinnhubApiClient {
         forceRefresh ? null : _inflight[inflightKey];
     final bool owns = pending == null;
     final Future<dynamic> request = pending ??
-        _fetchFresh(apiPath, queryParameters: queryParameters).timeout(
-          _overallTimeout,
-          onTimeout: () => throw FinnhubApiException(
-            'Request timed out. Please try again.',
-          ),
-        );
+        _fetchOnce(apiPath, queryParameters: queryParameters);
+
     if (owns) {
       _inflight[inflightKey] = request;
     }
 
     try {
       final dynamic fresh = await request;
-      // Finnhub's "no data yet" candle payload (`{"s":"no_data"}`) is a
-      // perfectly valid HTTP 200, so it would otherwise get cached as if it
-      // were good data for up to 30 minutes — permanently blocking a UI
-      // that only needed a moment to retry. Don't let that stick around.
       if (cacheKey != null && !_isEmptyCandleResult(apiPath, fresh)) {
         _cache[cacheKey] = _CacheEntry(fresh);
       }
       return fresh;
     } catch (e) {
-      // Stale-while-error: never show a blank chart/quote if we have
-      // something to show, even if it's a little old.
       if (entry != null) return entry.value;
       rethrow;
     } finally {
@@ -119,26 +89,6 @@ class FinnhubApiClient {
         _inflight.remove(inflightKey);
       }
     }
-  }
-
-  /// Finnhub candles can legitimately come back as `{"s":"no_data"}` — a
-  /// successful HTTP response that just means "nothing published yet" (very
-  /// common right after a symbol's data lags on the upstream proxy). A
-  /// couple of short retries here clear up the vast majority of these
-  /// without the caller ever seeing a blank chart.
-  static const int _maxNoDataRetries = 1;
-
-  Future<dynamic> _fetchFresh(
-    String apiPath, {
-    Map<String, String>? queryParameters,
-  }) async {
-    dynamic decoded;
-    for (int i = 0; i <= _maxNoDataRetries; i++) {
-      decoded = await _fetchOnce(apiPath, queryParameters: queryParameters);
-      if (!_isEmptyCandleResult(apiPath, decoded)) return decoded;
-      if (i < _maxNoDataRetries) await _backoff(i);
-    }
-    return decoded;
   }
 
   Future<dynamic> _fetchOnce(
@@ -167,7 +117,7 @@ class FinnhubApiClient {
                   HttpHeaders.acceptHeader: 'application/json',
                 },
               )
-              .timeout(_perAttemptTimeout),
+              .timeout(_timeout),
         );
       } on SocketException {
         if (!lastAttempt) {

@@ -213,6 +213,27 @@ class WatchlistShimmer {
     );
   }
 
+  /// Compact value placeholder (period %, price).
+  static Widget metricValue({
+    required bool isDarkMode,
+    bool compact = false,
+  }) {
+    return _box(
+      isDarkMode,
+      width: compact ? 52 : 64,
+      height: compact ? 14 : 16,
+    );
+  }
+
+  /// Mini sparkline / chart placeholder.
+  static Widget sparkline({
+    required bool isDarkMode,
+    double width = 88,
+    double height = 28,
+  }) {
+    return _box(isDarkMode, width: width, height: height, radius: 6);
+  }
+
   /// Shimmer placeholder for the stock detail panel chart area.
   static Widget detailChart({required bool isDarkMode}) {
     return LayoutBuilder(

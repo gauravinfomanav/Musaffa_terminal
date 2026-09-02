@@ -460,17 +460,8 @@ class _DetailChartState extends State<_DetailChart> {
       final Color line =
           up ? HomeUi.positive(widget.isDark) : HomeUi.negative(widget.isDark);
 
-      if (loading) {
+      if (loading || data.length < 3) {
         return WatchlistShimmer.detailChart(isDarkMode: widget.isDark);
-      }
-
-      if (data.length < 3) {
-        return Center(
-          child: Text(
-            'No chart data',
-            style: HomeUi.subtitle(widget.isDark),
-          ),
-        );
       }
 
       final bool intraday = widget.controller.isShowingIntradayData;

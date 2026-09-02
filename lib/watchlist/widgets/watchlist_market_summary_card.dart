@@ -22,26 +22,16 @@ class WatchlistMarketSummaryCard extends StatefulWidget {
 }
 
 class _WatchlistMarketSummaryCardState extends State<WatchlistMarketSummaryCard> {
-  // Tried in order until one returns both a quote and a sparkline.
   static const List<_IndexSpec> _indices = <_IndexSpec>[
-    _IndexSpec(
-      symbols: <String>['QQQ', 'ONEQ', 'QQQM', '^IXIC'],
-      label: 'NASDAQ',
-    ),
-    _IndexSpec(
-      symbols: <String>['SPY', 'VOO', 'IVV', '^GSPC'],
-      label: 'S&P 500',
-    ),
+    _IndexSpec(symbol: 'QQQ', label: 'NASDAQ'),
+    _IndexSpec(symbol: 'SPY', label: 'S&P 500'),
   ];
 
   final QuoteService _quotes = QuoteService();
   final StockCandleService _candles = StockCandleService();
 
-  static const int _maxRetries = 2;
-
   List<_IndexSnapshot?> _rows = const <_IndexSnapshot?>[null, null];
   bool _loading = true;
-  int _retryCount = 0;
 
   @override
   void initState() {
@@ -55,55 +45,36 @@ class _WatchlistMarketSummaryCardState extends State<WatchlistMarketSummaryCard>
 
     QuoteModel? quote;
     List<double> spark = const <double>[];
-    String? usedSymbol;
-    double? fallbackPrice;
-    double? fallbackChangePercent;
+    double? lastClose;
+    double? prevClose;
 
-    // Walk the fallback chain (QQQ -> ONEQ -> QQQM -> ^IXIC, etc.) until
-    // both a price and a sparkline are found. Each symbol is tried on its
-    // own merits — if one symbol has a price but no candles, we keep that
-    // price and let a later symbol fill in the sparkline.
-    for (final String symbol in spec.symbols) {
-      if (quote != null && spark.length >= 2) break;
-      try {
-        final List<Object?> loaded = await Future.wait<Object?>(<Future<Object?>>[
-          quote == null ? _tryQuote(symbol) : Future<QuoteModel?>.value(quote),
-          spark.length < 2
-              ? _trySpark(symbol, from, to)
-              : Future<_SparkFetch>.value(const _SparkFetch()),
-        ]);
-        final QuoteModel? loadedQuote = loaded[0] as QuoteModel?;
-        if (quote == null && loadedQuote != null) {
-          quote = loadedQuote;
-          usedSymbol = symbol;
-        }
-        if (spark.length < 2) {
-          final _SparkFetch sf = loaded[1] as _SparkFetch;
-          if (sf.sampled.length >= 2) {
-            spark = sf.sampled;
-            // The quote endpoint can fail even when the candle endpoint
-            // works — never show a chart with a blank price next to it.
-            // Derive price/day-change from the same candles we just used
-            // to draw the sparkline.
-            fallbackPrice = sf.lastClose;
-            fallbackChangePercent =
-                (sf.lastClose != null &&
-                        sf.prevClose != null &&
-                        sf.prevClose != 0)
-                    ? ((sf.lastClose! - sf.prevClose!) / sf.prevClose!) * 100
-                    : null;
-            usedSymbol ??= symbol;
-          }
-        }
-      } catch (_) {}
+    try {
+      final List<Object?> loaded = await Future.wait<Object?>(<Future<Object?>>[
+        _tryQuote(spec.symbol),
+        _trySpark(spec.symbol, from, to),
+      ]);
+      quote = loaded[0] as QuoteModel?;
+      final _SparkFetch sf = loaded[1] as _SparkFetch;
+      spark = sf.sampled;
+      lastClose = sf.lastClose;
+      prevClose = sf.prevClose;
+    } catch (_) {}
+
+    final double? price = quote?.currentPrice ?? lastClose;
+    double? change = quote?.percentChange;
+    if (change == null &&
+        lastClose != null &&
+        prevClose != null &&
+        prevClose != 0) {
+      change = ((lastClose - prevClose) / prevClose) * 100;
     }
 
     return _IndexSnapshot(
       label: spec.label,
-      price: quote?.currentPrice ?? fallbackPrice,
-      changePercent: quote?.percentChange ?? fallbackChangePercent,
+      symbol: spec.symbol,
+      price: price,
+      changePercent: change,
       sparkline: spark,
-      symbol: usedSymbol,
     );
   }
 
@@ -156,11 +127,8 @@ class _WatchlistMarketSummaryCardState extends State<WatchlistMarketSummaryCard>
     return sampled;
   }
 
-  Future<void> _load({bool isRetry = false}) async {
-    if (!isRetry) {
-      _retryCount = 0;
-      setState(() => _loading = true);
-    }
+  Future<void> _load() async {
+    setState(() => _loading = true);
 
     final List<_IndexSnapshot> next = await Future.wait(
       _indices.map(_loadOne),
@@ -168,50 +136,9 @@ class _WatchlistMarketSummaryCardState extends State<WatchlistMarketSummaryCard>
 
     if (!mounted) return;
     setState(() {
-      _rows = isRetry ? _mergeRows(_rows, next) : next;
+      _rows = next;
       _loading = false;
     });
-
-    // A page-load burst can leave both panes empty at once if the proxy was
-    // briefly overloaded. Retry quietly in the background (no shimmer flash
-    // over data we already have) instead of leaving the card stuck on "—"
-    // until the user revisits the page.
-    final bool anyMissing = next.any((_IndexSnapshot s) => s.price == null);
-    if (anyMissing && _retryCount < _maxRetries) {
-      _retryCount++;
-      final int attempt = _retryCount;
-      Future<void>.delayed(Duration(seconds: 3 * attempt), () {
-        if (mounted) _load(isRetry: true);
-      });
-    }
-  }
-
-  /// Keep a pane's existing price/sparkline if a retry comes back emptier.
-  static List<_IndexSnapshot> _mergeRows(
-    List<_IndexSnapshot?> current,
-    List<_IndexSnapshot> next,
-  ) {
-    if (current.length != next.length) return next;
-    return <_IndexSnapshot>[
-      for (int i = 0; i < next.length; i++)
-        _mergeSnapshot(current[i], next[i]),
-    ];
-  }
-
-  static _IndexSnapshot _mergeSnapshot(
-    _IndexSnapshot? current,
-    _IndexSnapshot next,
-  ) {
-    if (current == null) return next;
-    final bool nextSpark = next.sparkline.length >= 2;
-    final bool currentSpark = current.sparkline.length >= 2;
-    return _IndexSnapshot(
-      label: next.label,
-      price: next.price ?? current.price,
-      changePercent: next.changePercent ?? current.changePercent,
-      sparkline: nextSpark || !currentSpark ? next.sparkline : current.sparkline,
-      symbol: next.symbol ?? current.symbol,
-    );
   }
 
   @override
@@ -302,22 +229,26 @@ class _WatchlistMarketSummaryCardState extends State<WatchlistMarketSummaryCard>
           ],
         ),
         const SizedBox(height: 4),
-        Text(
-          price == null ? '—' : priceFmt.format(price),
-          style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 14),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          change == null
-              ? '—'
-              : '${positive ? '▲' : '▼'} ${change.abs().toStringAsFixed(2)}%',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: tone,
-            height: 1.1,
+        if (price == null)
+          WatchlistShimmer.metricValue(isDarkMode: isDark)
+        else
+          Text(
+            priceFmt.format(price),
+            style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 14),
           ),
-        ),
+        const SizedBox(height: 2),
+        if (change == null)
+          WatchlistShimmer.metricValue(isDarkMode: isDark, compact: true)
+        else
+          Text(
+            '${positive ? '▲' : '▼'} ${change.abs().toStringAsFixed(2)}%',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: tone,
+              height: 1.1,
+            ),
+          ),
         const SizedBox(height: 6),
         Expanded(
           child: Align(
@@ -338,7 +269,16 @@ class _WatchlistMarketSummaryCardState extends State<WatchlistMarketSummaryCard>
                             .withValues(alpha: isDark ? 0.16 : 0.12),
                       ),
                     )
-                  : const SizedBox.shrink(),
+                  : LayoutBuilder(
+                      builder:
+                          (BuildContext context, BoxConstraints constraints) {
+                        return WatchlistShimmer.sparkline(
+                          isDarkMode: isDark,
+                          width: constraints.maxWidth,
+                          height: 32,
+                        );
+                      },
+                    ),
             ),
           ),
         ),
@@ -364,10 +304,10 @@ class _SparkFetch {
 
 class _IndexSpec {
   const _IndexSpec({
-    required this.symbols,
+    required this.symbol,
     required this.label,
   });
-  final List<String> symbols;
+  final String symbol;
   final String label;
 }
 

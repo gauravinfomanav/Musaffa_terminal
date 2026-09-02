@@ -40,16 +40,9 @@ class TickerCustomChartsController extends GetxController {
   final RxnDouble livePrice = RxnDouble();
 
   String? _loadedSymbol;
-  int _autoRetryCount = 0;
-  static const int _maxAutoRetries = 2;
 
   bool get isIntraday => selectedRange.value == PremiumPriceRange.oneDay;
 
-  /// True only when we're actually rendering true intraday-granularity bars
-  /// (as opposed to a daily-candle fallback shown under the 1D tab because
-  /// intraday data is momentarily unavailable). Chart axis/tooltip
-  /// formatting should key off this, not [isIntraday], so a daily fallback
-  /// doesn't get mislabeled with hour-of-day ticks.
   bool get isShowingIntradayData => isIntraday && intradayCandles.isNotEmpty;
 
   List<OhlcCandlePoint> get _sourceCandles =>
@@ -60,19 +53,13 @@ class TickerCustomChartsController extends GetxController {
     if (source.isEmpty) return <OhlcCandlePoint>[];
 
     if (isIntraday) {
-      if (intradayCandles.isNotEmpty) {
-        return _sessionForOneDay(intradayCandles);
+      if (intradayCandles.length >= 3) {
+        return _lastCalendarDay(intradayCandles);
       }
-      // Intraday data is momentarily unavailable (proxy hiccup / no data
-      // published yet). Rather than leaving the chart blank, show a short
-      // recent trend from daily candles. Never just 1-2 points, since that
-      // draws a fake straight diagonal line.
-      final DateTime cutoff =
-          source.last.date.subtract(const Duration(days: 6));
-      final List<OhlcCandlePoint> recent =
-          source.where((OhlcCandlePoint c) => !c.date.isBefore(cutoff)).toList();
-      if (recent.length >= 3) return recent;
-      if (source.length >= 5) return source.sublist(source.length - 5);
+      if (candles.length >= 3) {
+        final int start = candles.length > 7 ? candles.length - 7 : 0;
+        return candles.sublist(start);
+      }
       return <OhlcCandlePoint>[];
     }
 
@@ -105,39 +92,25 @@ class TickerCustomChartsController extends GetxController {
     return last - visible.first.close;
   }
 
-  Future<void> loadPriceHistory(
-    String symbol, {
-    bool forceRefresh = false,
-    bool isAutoRetry = false,
-  }) async {
+  Future<void> loadPriceHistory(String symbol, {bool forceRefresh = false}) async {
     final String normalized = symbol.trim().toUpperCase();
     if (normalized.isEmpty) return;
 
     if (!forceRefresh &&
         _loadedSymbol == normalized &&
-        (candles.isNotEmpty ||
-            (isIntraday && intradayCandles.isNotEmpty))) {
+        candles.isNotEmpty) {
       return;
     }
 
-    if (!isAutoRetry) _autoRetryCount = 0;
     _loadedSymbol = normalized;
-    // Keep the current chart on screen during a background retry — flipping
-    // to a spinner / "No chart data" is what made first-load look broken.
-    if (!isAutoRetry) {
-      isLoadingPrice.value = true;
-      priceError.value = '';
-      candles.clear();
-      intradayCandles.clear();
-      livePrice.value = null;
-    }
+    isLoadingPrice.value = true;
+    priceError.value = '';
+    candles.clear();
+    intradayCandles.clear();
+    livePrice.value = null;
 
     try {
       if (selectedRange.value == PremiumPriceRange.oneDay) {
-        // Load intraday and daily together (not intraday-then-daily) so
-        // that if intraday comes back empty, the daily fallback data is
-        // already there the instant the chart renders — no need for the
-        // user to toggle away and back to 1D to "wake it up".
         await Future.wait<void>(<Future<void>>[
           _loadIntraday(normalized, manageLoading: false),
           _loadDaily(normalized, forceRefresh: forceRefresh),
@@ -145,34 +118,19 @@ class TickerCustomChartsController extends GetxController {
       } else {
         await _loadDaily(normalized, forceRefresh: forceRefresh);
       }
+      if (_loadedSymbol != normalized) return;
+      if (visibleCandles.length < 3) {
+        priceError.value = 'No chart data';
+      }
     } catch (error) {
       if (_loadedSymbol != normalized) return;
-      if (!isAutoRetry) {
-        candles.clear();
-        intradayCandles.clear();
-      }
+      candles.clear();
+      intradayCandles.clear();
       priceError.value = _userFacingChartError(error);
     } finally {
       if (_loadedSymbol == normalized) {
         isLoadingPrice.value = false;
       }
-    }
-
-    // The upstream proxy can be briefly overloaded right when a page first
-    // loads (many widgets requesting data at once). Rather than leaving the
-    // chart stuck on "No chart data" until the user does something, quietly
-    // retry a couple of times in the background — this is what was actually
-    // happening before when navigating away and back "fixed" it.
-    if (_loadedSymbol == normalized &&
-        visibleCandles.isEmpty &&
-        _autoRetryCount < _maxAutoRetries) {
-      _autoRetryCount++;
-      final int attempt = _autoRetryCount;
-      Future<void>.delayed(Duration(seconds: 3 * attempt), () {
-        if (_loadedSymbol == normalized && visibleCandles.isEmpty) {
-          loadPriceHistory(normalized, forceRefresh: true, isAutoRetry: true);
-        }
-      });
     }
   }
 
@@ -240,7 +198,7 @@ class TickerCustomChartsController extends GetxController {
 
     try {
       final DateTime now = DateTime.now();
-      final DateTime from = now.subtract(const Duration(days: 3));
+      final DateTime from = now.subtract(const Duration(days: 7));
       final List<OhlcCandlePoint> intraday = await _candleService.fetchOhlc(
         normalized,
         from: from,
@@ -308,59 +266,21 @@ class TickerCustomChartsController extends GetxController {
     }
   }
 
-  /// Picks the latest session with enough bars for a real 1D shape.
-  /// Thin pre-market clusters are skipped so we don't draw a 2-point diagonal.
-  static List<OhlcCandlePoint> _sessionForOneDay(List<OhlcCandlePoint> candles) {
-    final List<List<OhlcCandlePoint>> sessions =
-        _splitSessions(candles, const Duration(hours: 2));
-    if (sessions.isEmpty) return <OhlcCandlePoint>[];
-
-    const int minBars = 4;
-    for (int i = sessions.length - 1; i >= 0; i--) {
-      if (sessions[i].length >= minBars) {
-        return sessions[i];
-      }
-    }
-
-    List<OhlcCandlePoint> best = sessions.last;
-    for (final List<OhlcCandlePoint> session in sessions) {
-      if (session.length > best.length) best = session;
-    }
-    if (best.length >= 4) return best;
-
-    final DateTime latest = sessions.last.last.date;
-    final DateTime cutoff = latest.subtract(const Duration(hours: 24));
-    final List<OhlcCandlePoint> recent = <OhlcCandlePoint>[];
-    for (final List<OhlcCandlePoint> session in sessions) {
-      for (final OhlcCandlePoint c in session) {
-        if (!c.date.isBefore(cutoff)) recent.add(c);
-      }
-    }
-    if (recent.length >= 4) return recent;
-    return best.length >= 3 ? best : <OhlcCandlePoint>[];
-  }
-
-  static List<List<OhlcCandlePoint>> _splitSessions(
-    List<OhlcCandlePoint> candles,
-    Duration gapThreshold,
-  ) {
-    if (candles.isEmpty) return <List<OhlcCandlePoint>>[];
-
-    final List<OhlcCandlePoint> sorted = candles.toList()
-      ..sort((OhlcCandlePoint a, OhlcCandlePoint b) => a.date.compareTo(b.date));
-
-    final List<List<OhlcCandlePoint>> sessions = <List<OhlcCandlePoint>>[
-      <OhlcCandlePoint>[sorted.first],
-    ];
-    for (int i = 1; i < sorted.length; i++) {
-      final Duration gap = sorted[i].date.difference(sorted[i - 1].date);
-      if (gap > gapThreshold) {
-        sessions.add(<OhlcCandlePoint>[sorted[i]]);
-      } else {
-        sessions.last.add(sorted[i]);
-      }
-    }
-    return sessions;
+  /// Bars from the last candle's calendar day. If that day is too thin,
+  /// fall back to the last 24 hours of points.
+  static List<OhlcCandlePoint> _lastCalendarDay(List<OhlcCandlePoint> candles) {
+    final DateTime last = candles.last.date;
+    final List<OhlcCandlePoint> sameDay = candles
+        .where(
+          (OhlcCandlePoint c) =>
+              c.date.year == last.year &&
+              c.date.month == last.month &&
+              c.date.day == last.day,
+        )
+        .toList();
+    if (sameDay.length >= 3) return sameDay;
+    final DateTime cutoff = last.subtract(const Duration(hours: 24));
+    return candles.where((OhlcCandlePoint c) => !c.date.isBefore(cutoff)).toList();
   }
 
   static String _userFacingChartError(Object error) {

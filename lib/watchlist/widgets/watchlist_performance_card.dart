@@ -25,13 +25,10 @@ class WatchlistPerformanceCard extends StatefulWidget {
 class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
   final WatchlistPerformanceService _service = WatchlistPerformanceService();
 
-  static const int _maxRetries = 2;
-
   WatchlistPeriodPerformance? _data;
   bool _loading = true;
   String? _symbolsKey;
   int _requestId = 0;
-  int _retryCount = 0;
 
   @override
   void initState() {
@@ -48,22 +45,18 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
     } else if (_data != null &&
         widget.tableData.isNotEmpty &&
         oldWidget.tableData != widget.tableData) {
-      final Map<String, double> todayMap = _todayMap(widget.tableData);
-      if (todayMap.isNotEmpty) {
-        final List<double> vals = todayMap.values.toList();
-        final double avg =
-            vals.reduce((double a, double b) => a + b) / vals.length;
-        setState(() {
-          _data = WatchlistPeriodPerformance(
-            todayPercent: avg,
-            weekPercent: _data!.weekPercent,
-            monthPercent: _data!.monthPercent,
-            yearPercent: _data!.yearPercent,
-            sparkline: _data!.sparkline,
-            sparklineDates: _data!.sparklineDates,
-          );
-        });
-      }
+      setState(() {
+        final WatchlistPeriodPerformance instant =
+            _instantFromTable(widget.tableData);
+        _data = WatchlistPeriodPerformance(
+          todayPercent: instant.todayPercent,
+          weekPercent: _data!.weekPercent,
+          monthPercent: _data!.monthPercent,
+          yearPercent: instant.yearPercent,
+          sparkline: _data!.sparkline,
+          sparklineDates: _data!.sparklineDates,
+        );
+      });
     }
   }
 
@@ -82,22 +75,43 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
     for (final SimpleRowModel row in rows) {
       final String s = row.symbol.trim().toUpperCase();
       if (s.isEmpty) continue;
-      final dynamic dayField = row.fields['change1DPercent'];
-      double? cp;
-      if (dayField is num) {
-        cp = dayField.toDouble();
-      } else if (dayField is String) {
-        cp = double.tryParse(dayField.replaceAll('%', '').trim());
-      }
-      cp ??= row.changePercent?.toDouble();
+      final double? cp = _asDouble(row.fields['change1DPercent']) ??
+          row.changePercent?.toDouble();
       if (cp == null) continue;
       map[s] = cp;
     }
     return map;
   }
 
-  Future<void> _load({bool isRetry = false}) async {
-    if (!isRetry) _retryCount = 0;
+  List<double> _sinceAddedPercents(List<SimpleRowModel> rows) {
+    final List<double> out = <double>[];
+    for (final SimpleRowModel row in rows) {
+      final double? added = _asDouble(row.fields['addedPrice']);
+      final double? current = _asDouble(row.fields['currentPrice']) ??
+          row.price?.toDouble();
+      if (added == null || added <= 0 || current == null) continue;
+      final double? stored = _asDouble(row.fields['gainLossPercent']);
+      out.add(stored ?? ((current - added) / added) * 100);
+    }
+    return out;
+  }
+
+  static double? _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value.replaceAll('%', '').replaceAll('\$', '').trim());
+    }
+    return null;
+  }
+
+  WatchlistPeriodPerformance _instantFromTable(List<SimpleRowModel> rows) {
+    return _service.fromTable(
+      todayPercents: _todayMap(rows).values.toList(),
+      sinceAddedPercents: _sinceAddedPercents(rows),
+    );
+  }
+
+  Future<void> _load() async {
     final List<SimpleRowModel> rows = widget.tableData;
     final String key = _keyFor(rows);
     _symbolsKey = key;
@@ -112,75 +126,29 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
     }
 
     final int id = ++_requestId;
-    // Shimmer only on the first attempt. Retries stay in the background so
-    // the card doesn't flip numbers → shimmer → dashes.
-    if (!isRetry) {
-      setState(() {
-        _loading = true;
-        _data = null;
-      });
-    }
-
-    final Map<String, double> todayMap = _todayMap(rows);
+    final WatchlistPeriodPerformance instant = _instantFromTable(rows);
+    setState(() {
+      _data = instant;
+      _loading = false;
+    });
 
     try {
-      final WatchlistPeriodPerformance result = await _service.compute(
-        symbols: rows.map((SimpleRowModel r) => r.symbol).toList(),
-        fallbackTodayPercents: todayMap,
+      final WatchlistPeriodPerformance history =
+          await _service.fromRecentCloses(
+        rows.map((SimpleRowModel r) => r.symbol).toList(),
       );
       if (!mounted || id != _requestId) return;
       setState(() {
-        _data = _mergePerformance(_data, result);
-        _loading = false;
+        _data = WatchlistPeriodPerformance(
+          todayPercent: instant.todayPercent,
+          weekPercent: history.weekPercent,
+          monthPercent: history.monthPercent,
+          yearPercent: instant.yearPercent,
+          sparkline: history.sparkline,
+          sparklineDates: history.sparklineDates,
+        );
       });
-      // "Today" comes from the table and does not mean the 12-month fetch
-      // succeeded. Retry only when week/month/year/sparkline are still empty.
-      if (_longTermMissing(_data) && _retryCount < _maxRetries) {
-        _retryCount++;
-        final int attempt = _retryCount;
-        Future<void>.delayed(Duration(seconds: 3 * attempt), () {
-          if (mounted && id == _requestId) _load(isRetry: true);
-        });
-      }
-    } catch (_) {
-      if (!mounted || id != _requestId) return;
-      if (!isRetry) setState(() => _loading = false);
-      if (_retryCount < _maxRetries) {
-        _retryCount++;
-        final int attempt = _retryCount;
-        Future<void>.delayed(Duration(seconds: 3 * attempt), () {
-          if (mounted && id == _requestId) _load(isRetry: true);
-        });
-      }
-    }
-  }
-
-  static bool _longTermMissing(WatchlistPeriodPerformance? data) {
-    if (data == null) return true;
-    return data.sparkline.length < 2 &&
-        data.weekPercent == null &&
-        data.monthPercent == null &&
-        data.yearPercent == null;
-  }
-
-  /// Keep whatever is already on screen; fill in missing long-term fields
-  /// from a later retry instead of replacing a partial result with a worse one.
-  static WatchlistPeriodPerformance _mergePerformance(
-    WatchlistPeriodPerformance? current,
-    WatchlistPeriodPerformance next,
-  ) {
-    if (current == null) return next;
-    final bool nextSpark = next.sparkline.length >= 2;
-    final bool currentSpark = current.sparkline.length >= 2;
-    return WatchlistPeriodPerformance(
-      todayPercent: next.todayPercent ?? current.todayPercent,
-      weekPercent: next.weekPercent ?? current.weekPercent,
-      monthPercent: next.monthPercent ?? current.monthPercent,
-      yearPercent: next.yearPercent ?? current.yearPercent,
-      sparkline: nextSpark || !currentSpark ? next.sparkline : current.sparkline,
-      sparklineDates:
-          nextSpark || !currentSpark ? next.sparklineDates : current.sparklineDates,
-    );
+    } catch (_) {}
   }
 
   @override
@@ -219,6 +187,7 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
                 value: data?.weekPercent,
                 isDark: isDark,
                 compact: compact,
+                loading: data?.weekPercent == null,
               ),
             ),
           ],
@@ -232,6 +201,7 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
                 value: data?.monthPercent,
                 isDark: isDark,
                 compact: compact,
+                loading: data?.monthPercent == null,
               ),
             ),
             Expanded(
@@ -291,6 +261,7 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
                       label: 'This Week',
                       value: data?.weekPercent,
                       isDark: isDark,
+                      loading: data?.weekPercent == null,
                     ),
                   ),
                 ],
@@ -303,6 +274,7 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
                       label: 'This Month',
                       value: data?.monthPercent,
                       isDark: isDark,
+                      loading: data?.monthPercent == null,
                     ),
                   ),
                   Expanded(
@@ -326,15 +298,18 @@ class _WatchlistPerformanceCardState extends State<WatchlistPerformanceCard> {
             ),
             child: const SizedBox.expand(),
           )
-        : Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 2,
-              decoration: BoxDecoration(
-                color: HomeUi.borderLight(isDark),
-                borderRadius: BorderRadius.circular(1),
-              ),
-            ),
+        : LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              return WatchlistShimmer.sparkline(
+                isDarkMode: isDark,
+                width: constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : 200,
+                height: constraints.maxHeight.isFinite
+                    ? constraints.maxHeight
+                    : 64,
+              );
+            },
           );
 
     return Container(
@@ -384,12 +359,14 @@ class _PeriodMetric extends StatelessWidget {
     required this.value,
     required this.isDark,
     this.compact = false,
+    this.loading = false,
   });
 
   final String label;
   final double? value;
   final bool isDark;
   final bool compact;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -398,10 +375,6 @@ class _PeriodMetric extends StatelessWidget {
     final Color color = !hasValue
         ? HomeUi.muted(isDark)
         : (positive ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
-
-    final String text = !hasValue
-        ? '—'
-        : '${positive ? '▲' : '▼'} ${value!.abs().toStringAsFixed(2)}%';
 
     return Padding(
       padding: EdgeInsets.only(right: compact ? 6 : 8),
@@ -417,16 +390,21 @@ class _PeriodMetric extends StatelessWidget {
             ),
           ),
           SizedBox(height: compact ? 4 : 6),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: compact ? 13.5 : 14.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
-              color: color,
-              height: 1.1,
+          if (loading)
+            WatchlistShimmer.metricValue(isDarkMode: isDark, compact: compact)
+          else
+            Text(
+              !hasValue
+                  ? '—'
+                  : '${positive ? '▲' : '▼'} ${value!.abs().toStringAsFixed(2)}%',
+              style: TextStyle(
+                fontSize: compact ? 13.5 : 14.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+                color: color,
+                height: 1.1,
+              ),
             ),
-          ),
         ],
       ),
     );

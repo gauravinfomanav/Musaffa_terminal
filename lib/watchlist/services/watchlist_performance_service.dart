@@ -39,15 +39,27 @@ class WatchlistPerformanceService {
   final StockCandleService _candles;
 
   static const int _maxSymbols = 40;
-  static const int _batchSize = 5;
   static const int _sparklinePoints = 72;
+  static const Duration _historyWindow = Duration(days: 30);
 
-  /// [fallbackTodayPercents] keyed by uppercased symbol — used for Today when
-  /// live table % change is already available.
-  Future<WatchlistPeriodPerformance> compute({
-    required List<String> symbols,
-    Map<String, double>? fallbackTodayPercents,
-  }) async {
+  /// Instant — no network. Today from live 1D %, "This Year" from
+  /// current vs added price already on the watchlist row.
+  WatchlistPeriodPerformance fromTable({
+    required List<double> todayPercents,
+    required List<double> sinceAddedPercents,
+  }) {
+    return WatchlistPeriodPerformance(
+      todayPercent: _avg(todayPercents),
+      yearPercent: _avg(sinceAddedPercents),
+    );
+  }
+
+  /// Short recent history for week / month / sparkline. One 30-day
+  /// daily-close call per symbol, all at once (shares Finnhub cache with
+  /// table sparklines when they use the same window).
+  Future<WatchlistPeriodPerformance> fromRecentCloses(
+    List<String> symbols,
+  ) async {
     final List<String> unique = <String>[];
     final Set<String> seen = <String>{};
     for (final String raw in symbols) {
@@ -61,80 +73,44 @@ class WatchlistPerformanceService {
       return const WatchlistPeriodPerformance();
     }
 
-    final List<List<PriceDataPoint>> series =
-        await _fetchAllDailyCloses(unique);
+    final DateTime to = DateTime.now();
+    final DateTime from = to.subtract(_historyWindow);
 
-    final List<double> todayVals = <double>[];
+    final List<List<PriceDataPoint>> series = await Future.wait(
+      unique.map((String symbol) => _closes(symbol, from, to)),
+    );
+
     final List<double> weekVals = <double>[];
     final List<double> monthVals = <double>[];
-    final List<double> yearVals = <double>[];
 
-    for (int i = 0; i < unique.length; i++) {
-      final String symbol = unique[i];
-      final List<PriceDataPoint> closes = series[i];
-      final double? fromTable = fallbackTodayPercents?[symbol];
-      if (fromTable != null) {
-        todayVals.add(fromTable);
-      } else {
-        final double? day = _returnOverTradingDays(closes, 1);
-        if (day != null) todayVals.add(day);
-      }
-
+    for (final List<PriceDataPoint> closes in series) {
       final double? week = _returnOverCalendar(closes, const Duration(days: 7));
       if (week != null) weekVals.add(week);
-
       final double? month =
           _returnOverCalendar(closes, const Duration(days: 30));
       if (month != null) monthVals.add(month);
-
-      final double? year =
-          _returnOverCalendar(closes, const Duration(days: 365));
-      if (year != null) yearVals.add(year);
     }
 
     final SparklineSeries spark = _buildEqualWeightSparkline(series);
 
     return WatchlistPeriodPerformance(
-      todayPercent: _avg(todayVals),
       weekPercent: _avg(weekVals),
       monthPercent: _avg(monthVals),
-      yearPercent: _avg(yearVals),
       sparkline: spark.values,
       sparklineDates: spark.dates,
     );
   }
 
-  Future<List<List<PriceDataPoint>>> _fetchAllDailyCloses(
-    List<String> symbols,
+  Future<List<PriceDataPoint>> _closes(
+    String symbol,
+    DateTime from,
+    DateTime to,
   ) async {
-    final List<List<PriceDataPoint>> out =
-        List<List<PriceDataPoint>>.filled(symbols.length, const <PriceDataPoint>[]);
-
-    for (int start = 0; start < symbols.length; start += _batchSize) {
-      final int end = (start + _batchSize).clamp(0, symbols.length);
-      final List<Future<List<PriceDataPoint>>> batch = <Future<List<PriceDataPoint>>>[];
-      for (int i = start; i < end; i++) {
-        batch.add(
-          _candles.fetchLastTwelveMonths(symbols[i]).catchError(
-            (_) => <PriceDataPoint>[],
-          ),
-        );
-      }
-      final List<List<PriceDataPoint>> results = await Future.wait(batch);
-      for (int j = 0; j < results.length; j++) {
-        out[start + j] = results[j];
-      }
+    try {
+      return await _candles.fetchDailyCloses(symbol, from: from, to: to);
+    } catch (_) {
+      return <PriceDataPoint>[];
     }
-    return out;
-  }
-
-  /// Percent return from ~[tradingDays] bars ago to latest close.
-  double? _returnOverTradingDays(List<PriceDataPoint> closes, int tradingDays) {
-    if (closes.length < tradingDays + 1) return null;
-    final PriceDataPoint last = closes.last;
-    final PriceDataPoint base = closes[closes.length - 1 - tradingDays];
-    if (base.value <= 0) return null;
-    return (last.value - base.value) / base.value * 100.0;
   }
 
   /// Percent return from the close on/before [now - lookback] to latest.

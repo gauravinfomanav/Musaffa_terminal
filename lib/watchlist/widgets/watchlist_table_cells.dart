@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/services/finnhub/stock_candle_service.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 
 /// Compact dual change cell: percent + absolute $ move.
 class WatchlistChangeCell extends StatelessWidget {
@@ -246,11 +247,8 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
   static final StockCandleService _candles = StockCandleService();
   static final Map<String, List<double>> _cache = <String, List<double>>{};
 
-  static const int _maxRetries = 2;
-
   List<double>? _values;
   bool _loading = true;
-  int _retryCount = 0;
 
   @override
   void initState() {
@@ -266,8 +264,7 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
     }
   }
 
-  Future<void> _load({bool isRetry = false}) async {
-    if (!isRetry) _retryCount = 0;
+  Future<void> _load() async {
     final String symbol = widget.symbol.trim().toUpperCase();
     if (symbol.isEmpty) {
       setState(() {
@@ -286,63 +283,32 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
       return;
     }
 
-    // Spinner only on the first attempt. Retries stay in the background so
-    // the cell doesn't flip loader → "—" → loader.
-    if (!isRetry && mounted) {
-      setState(() => _loading = true);
-    }
+    setState(() => _loading = true);
 
     try {
       final DateTime to = DateTime.now();
-      // A short daily-close window (roughly the last trading week) instead
-      // of 5-min intraday candles. Intraday data is the flakiest thing the
-      // proxy serves and buys us nothing visible at this size (88x32px),
-      // so a single reliable daily-candle call replaces what used to be a
-      // two-call cascade — half the network load per row, no fallback dance.
       final List<PriceDataPoint> daily = await _candles.fetchDailyCloses(
         symbol,
-        from: to.subtract(const Duration(days: 10)),
+        from: to.subtract(const Duration(days: 30)),
         to: to,
       );
-      List<double> series = daily.map((PriceDataPoint p) => p.value).toList();
-
-      if (series.length > 48) {
-        final int step = (series.length / 48).ceil().clamp(1, series.length);
-        final List<double> sampled = <double>[];
-        for (int i = 0; i < series.length; i += step) {
-          sampled.add(series[i]);
-        }
-        if (sampled.isEmpty || sampled.last != series.last) {
-          sampled.add(series.last);
-        }
-        series = sampled;
-      }
-
+      final List<double> series =
+          daily.map((PriceDataPoint p) => p.value).toList();
       if (series.length >= 2) {
         _cache[symbol] = series;
       }
       if (!mounted) return;
       setState(() {
-        if (series.length >= 2) _values = series;
+        _values = series.length >= 2 ? series : null;
         _loading = false;
       });
-      if (series.length < 2) _scheduleRetry();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
-      _scheduleRetry();
+      setState(() {
+        _values = null;
+        _loading = false;
+      });
     }
-  }
-
-  void _scheduleRetry() {
-    if (_retryCount >= _maxRetries) return;
-    _retryCount++;
-    final int attempt = _retryCount;
-    Future<void>.delayed(Duration(seconds: 2 * attempt), () {
-      if (!mounted) return;
-      if (_values != null && _values!.length >= 2) return;
-      _load(isRetry: true);
-    });
   }
 
   @override
@@ -351,28 +317,8 @@ class _WatchlistSparklineCellState extends State<WatchlistSparklineCell> {
         ? HomeUi.positive(widget.isDark)
         : HomeUi.negative(widget.isDark);
 
-    if (_loading) {
-      return SizedBox(
-        width: 88,
-        height: 28,
-        child: Center(
-          child: SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(
-              strokeWidth: 1.4,
-              color: HomeUi.muted(widget.isDark),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_values == null || _values!.length < 2) {
-      return SizedBox(
-        width: 88,
-        child: Text('—', style: HomeUi.tableCellSecondary(widget.isDark)),
-      );
+    if (_loading || _values == null || _values!.length < 2) {
+      return WatchlistShimmer.sparkline(isDarkMode: widget.isDark);
     }
 
     return SizedBox(
