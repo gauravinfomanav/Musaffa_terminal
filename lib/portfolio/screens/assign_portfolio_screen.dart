@@ -365,7 +365,6 @@ class _AssignPortfolioScreenState extends State<AssignPortfolioScreen> {
                                   customerResults: _customerResults,
                                   selectedCustomer: _selectedCustomer,
                                   selectedModelId: _selectedModelId,
-                                  models: _modelController.publishedModels,
                                   saving: _saving,
                                   onCustomerQueryChanged: _onCustomerQueryChanged,
                                   onSelectCustomer: (c) {
@@ -429,23 +428,13 @@ class _AssignPortfolioScreenState extends State<AssignPortfolioScreen> {
   }
 
   Widget _buildPageHeader(bool isDark) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Assign Portfolio', style: HomeUi.heading(isDark)),
-              const SizedBox(height: 4),
-              Text(
-                'Mandate intake with live capital briefing — show the client exactly how funds are deployed.',
-                style: HomeUi.subtitle(isDark),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return HomeUi.tableToolbarHeader(
+      isDark,
+      title: 'Assign Portfolio',
+      subtitleText:
+          'Mandate intake with live capital briefing — show the client exactly how funds are deployed.',
+      icon: Icons.assignment_ind_outlined,
+      titleFontSize: 20,
     );
   }
 }
@@ -459,7 +448,6 @@ class _MandatePanel extends StatelessWidget {
     required this.customerResults,
     required this.selectedCustomer,
     required this.selectedModelId,
-    required this.models,
     required this.saving,
     required this.onCustomerQueryChanged,
     required this.onSelectCustomer,
@@ -477,7 +465,6 @@ class _MandatePanel extends StatelessWidget {
   final List<Customer> customerResults;
   final Customer? selectedCustomer;
   final String? selectedModelId;
-  final List models;
   final bool saving;
   final ValueChanged<String> onCustomerQueryChanged;
   final ValueChanged<Customer> onSelectCustomer;
@@ -489,57 +476,96 @@ class _MandatePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: HomeUi.cardDecoration(isDark),
+    return Material(
+      color: HomeUi.cardBg(isDark),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+        side: BorderSide(color: HomeUi.borderLight(isDark)),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('CLIENT MANDATE', style: _overline(isDark)),
-                const SizedBox(height: 6),
-                Text(
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF1C1F2A), HomeUi.cardBg(isDark)]
+                    : [
+                        const Color(0xFFFFF8F4),
+                        const Color(0xFFFCFCFD),
+                        Colors.white,
+                      ],
+              ),
+              border: Border(
+                bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+              ),
+            ),
+            child: HomeUi.tableToolbarHeader(
+              isDark,
+              title: 'Client mandate',
+              subtitleText:
                   'Capture investor identity and capital before confirming allocation.',
-                  style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
-                ),
-              ],
+              icon: Icons.person_search_rounded,
+              titleFontSize: 15,
             ),
           ),
-          Divider(height: 1, color: HomeUi.borderLight(isDark)),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
+                  FilterTextField(
+                    dark: isDark,
+                    label: 'Customer name',
                     controller: customerNameController,
+                    hintText: 'Search or create walk-in',
                     onChanged: onCustomerQueryChanged,
-                    decoration: HomeUi.filterFieldDecoration(
-                      isDark,
-                      labelText: 'Customer name',
-                      hintText: 'Search or create walk-in',
+                    prefix: Icon(
+                      Icons.person_outline_rounded,
+                      size: 16,
+                      color: HomeUi.muted(isDark),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
+                  const SizedBox(height: 12),
+                  FilterTextField(
+                    dark: isDark,
+                    label: 'Email (optional)',
                     controller: customerEmailController,
-                    decoration: HomeUi.filterFieldDecoration(
-                      isDark,
-                      labelText: 'Email (optional)',
+                    hintText: 'client@firm.com',
+                    keyboardType: TextInputType.emailAddress,
+                    prefix: Icon(
+                      Icons.mail_outline_rounded,
+                      size: 16,
+                      color: HomeUi.muted(isDark),
                     ),
                   ),
                   if (customerResults.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Container(
-                      constraints: const BoxConstraints(maxHeight: 150),
+                      constraints: const BoxConstraints(maxHeight: 156),
                       decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF151822)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
                         border: Border.all(color: HomeUi.borderLight(isDark)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black
+                                .withValues(alpha: isDark ? 0.18 : 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
+                      clipBehavior: Clip.antiAlias,
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: math.min(customerResults.length, 6),
@@ -550,21 +576,76 @@ class _MandatePanel extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final c = customerResults[index];
                           final selected = selectedCustomer?.id == c.id;
-                          return ListTile(
-                            dense: true,
-                            selected: selected,
-                            selectedTileColor:
-                                HomeUi.accent(isDark).withValues(alpha: 0.08),
-                            title: Text(
-                              c.fullName,
-                              style: HomeUi.control(isDark)
-                                  .copyWith(fontWeight: FontWeight.w600),
+                          return Material(
+                            color: selected
+                                ? HomeUi.accent(isDark)
+                                    .withValues(alpha: isDark ? 0.14 : 0.08)
+                                : Colors.transparent,
+                            child: InkWell(
+                              onTap: () => onSelectCustomer(c),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: HomeUi.accent(isDark).withValues(
+                                          alpha: isDark ? 0.18 : 0.1,
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        c.fullName.isNotEmpty
+                                            ? c.fullName[0].toUpperCase()
+                                            : '?',
+                                        style: HomeUi.control(isDark).copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 12,
+                                          color: HomeUi.accent(isDark),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            c.fullName,
+                                            style: HomeUi.control(isDark)
+                                                .copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12.5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 1),
+                                          Text(
+                                            c.email ??
+                                                c.customerCode ??
+                                                c.id,
+                                            style: HomeUi.subtitle(isDark)
+                                                .copyWith(fontSize: 11),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (selected)
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        size: 16,
+                                        color: HomeUi.accent(isDark),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            subtitle: Text(
-                              c.email ?? c.customerCode ?? c.id,
-                              style: HomeUi.subtitle(isDark).copyWith(fontSize: 11),
-                            ),
-                            onTap: () => onSelectCustomer(c),
                           );
                         },
                       ),
@@ -576,61 +657,98 @@ class _MandatePanel extends StatelessWidget {
                         .portfolioController
                         .activePortfolios
                         .length;
-                    return DropdownButtonFormField<String>(
-                      value: selectedModelId,
-                      decoration: HomeUi.filterFieldDecoration(
-                        isDark,
-                        labelText: 'Model portfolio',
-                      ),
-                      dropdownColor: HomeUi.cardBg(isDark),
-                      hint: Text(
-                        'Select published model…',
-                        style: HomeUi.subtitle(isDark),
-                      ),
-                      items: Get.find<ModelPortfolioController>()
-                          .publishedModels
-                          .map(
-                            (m) => DropdownMenuItem(
-                              value: m.id,
-                              child: Text(
-                                m.portfolioName,
-                                style: HomeUi.control(isDark),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                    final published =
+                        Get.find<ModelPortfolioController>().publishedModels;
+                    final ids = published.map((m) => m.id).toSet();
+                    final raw = selectedModelId ?? '';
+                    final modelValue =
+                        raw.isEmpty || ids.contains(raw) ? raw : '';
+                    return FilterDropdown<String>(
+                      dark: isDark,
+                      label: 'Model portfolio',
+                      value: modelValue,
+                      items: [
+                        DropdownMenuItem(
+                          value: '',
+                          child: Text(
+                            'Select published model…',
+                            style: HomeUi.subtitle(isDark).copyWith(
+                              fontSize: 13,
                             ),
-                          )
-                          .toList(),
-                      onChanged: onModelChanged,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ...published.map(
+                          (m) => DropdownMenuItem(
+                            value: m.id,
+                            child: Text(
+                              m.portfolioName,
+                              style: HomeUi.control(isDark).copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (v) =>
+                          onModelChanged((v == null || v.isEmpty) ? null : v),
                     );
                   }),
                   const SizedBox(height: 14),
-                  TextField(
+                  FilterTextField(
+                    dark: isDark,
+                    label: 'Investment amount (USD)',
                     controller: amountController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    hintText: '2,000',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
                         RegExp(r'^\d*\.?\d{0,2}'),
                       ),
                     ],
                     onChanged: onAmountChanged,
-                    decoration: HomeUi.filterFieldDecoration(
-                      isDark,
-                      labelText: 'Investment amount (USD)',
-                      hintText: '2000',
+                    prefix: Icon(
+                      Icons.attach_money_rounded,
+                      size: 16,
+                      color: HomeUi.muted(isDark),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
                     decoration: BoxDecoration(
-                      color: HomeUi.elevatedBg(isDark),
+                      color: HomeUi.accent(isDark)
+                          .withValues(alpha: isDark ? 0.06 : 0.025),
                       borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-                      border: Border.all(color: HomeUi.borderLight(isDark)),
+                      border: Border.all(
+                        color: HomeUi.accent(isDark)
+                            .withValues(alpha: isDark ? 0.12 : 0.08),
+                      ),
                     ),
-                    child: Text(
-                      'Model weights stay percentage-based. This screen converts them into dollar tickets for the client mandate.',
-                      style: HomeUi.subtitle(isDark).copyWith(fontSize: 11),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 15,
+                          color: HomeUi.accent(isDark)
+                              .withValues(alpha: isDark ? 0.75 : 0.55),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Model weights stay percentage-based. This screen converts them into dollar tickets for the client mandate.',
+                            style: HomeUi.subtitle(isDark).copyWith(
+                              fontSize: 11.5,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -677,14 +795,6 @@ class _MandatePanel extends StatelessWidget {
       ),
     );
   }
-
-  TextStyle _overline(bool isDark) => TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.1,
-        color: HomeUi.muted(isDark),
-      );
 }
 
 class _BriefingPanel extends StatelessWidget {
@@ -715,8 +825,15 @@ class _BriefingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: HomeUi.cardDecoration(isDark),
+    return Material(
+      color: HomeUi.cardBg(isDark),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+        side: BorderSide(color: HomeUi.borderLight(isDark)),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: previewLoading
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : preview == null
@@ -728,25 +845,38 @@ class _BriefingPanel extends StatelessWidget {
   Widget _emptyState(bool isDark) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.account_balance_rounded,
-              size: 36,
-              color: HomeUi.muted(isDark),
+            Container(
+              width: 64,
+              height: 64,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: HomeUi.accent(isDark)
+                    .withValues(alpha: isDark ? 0.16 : 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.account_balance_rounded,
+                size: 28,
+                color: HomeUi.accent(isDark),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               'Capital briefing',
-              style: HomeUi.sectionTitle(isDark),
+              style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 17),
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Select a model and enter investment amount to preview sector mix, asset classes, and per-holding dollar tickets.',
-              textAlign: TextAlign.center,
-              style: HomeUi.subtitle(isDark),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Text(
+                'Select a model and enter investment amount to preview sector mix, asset classes, and per-holding dollar tickets.',
+                textAlign: TextAlign.center,
+                style: HomeUi.subtitle(isDark).copyWith(height: 1.4),
+              ),
             ),
           ],
         ),
@@ -759,43 +889,80 @@ class _BriefingPanel extends StatelessWidget {
     final sorted = [...p.holdings]
       ..sort((a, b) => b.allocationPercent.compareTo(a.allocationPercent));
     final top1 = sorted.isNotEmpty ? sorted.first.allocationPercent : 0.0;
-    final top3 = sorted.take(3).fold<double>(0, (s, h) => s + h.allocationPercent);
+    final top3 =
+        sorted.take(3).fold<double>(0, (s, h) => s + h.allocationPercent);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [const Color(0xFF1C1F2A), HomeUi.cardBg(isDark)]
+                  : [
+                      const Color(0xFFFFF8F4),
+                      const Color(0xFFFCFCFD),
+                      Colors.white,
+                    ],
+            ),
+            border: Border(
+              bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+            ),
+          ),
           child: Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('INVESTMENT BRIEFING', style: _overline(isDark)),
-                    const SizedBox(height: 4),
-                    Text(
-                      p.modelPortfolioName,
-                      style: HomeUi.sectionTitle(isDark),
-                    ),
-                  ],
+                child: HomeUi.tableToolbarHeader(
+                  isDark,
+                  title: p.modelPortfolioName,
+                  subtitleText: 'Investment briefing · live capital map',
+                  icon: Icons.insights_rounded,
+                  titleFontSize: 16,
                 ),
               ),
-              Text(
-                money.format(p.investmentAmount),
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
-                  color: HomeUi.title(isDark),
+              const SizedBox(width: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF151822) : Colors.white,
+                  borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                  border: Border.all(color: HomeUi.borderLight(isDark)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'MANDATE',
+                      style: HomeUi.subtitle(isDark).copyWith(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      money.format(p.investmentAmount),
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: HomeUi.title(isDark),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
           child: Row(
             children: [
               Expanded(
@@ -803,6 +970,7 @@ class _BriefingPanel extends StatelessWidget {
                   isDark: isDark,
                   label: 'Holdings',
                   value: '${p.holdings.length}',
+                  icon: Icons.layers_outlined,
                 ),
               ),
               const SizedBox(width: 8),
@@ -811,6 +979,7 @@ class _BriefingPanel extends StatelessWidget {
                   isDark: isDark,
                   label: 'Top position',
                   value: formatAllocationPercent(top1),
+                  icon: Icons.trending_up_rounded,
                 ),
               ),
               const SizedBox(width: 8),
@@ -819,6 +988,7 @@ class _BriefingPanel extends StatelessWidget {
                   isDark: isDark,
                   label: 'Top 3 weight',
                   value: formatAllocationPercent(top3),
+                  icon: Icons.pie_chart_outline_rounded,
                 ),
               ),
               const SizedBox(width: 8),
@@ -827,6 +997,7 @@ class _BriefingPanel extends StatelessWidget {
                   isDark: isDark,
                   label: 'Allocated',
                   value: formatAllocationPercent(p.totalAllocationPercent),
+                  icon: Icons.check_circle_outline_rounded,
                 ),
               ),
             ],
@@ -867,7 +1038,8 @@ class _BriefingPanel extends StatelessWidget {
                                           enable: true,
                                           format: 'point.x : point.y%',
                                         ),
-                                        series: <CircularSeries<_ChartSlice, String>>[
+                                        series: <CircularSeries<_ChartSlice,
+                                            String>>[
                                           DoughnutSeries<_ChartSlice, String>(
                                             dataSource: sectorSlices
                                                 .map(
@@ -942,8 +1114,8 @@ class _BriefingPanel extends StatelessWidget {
                                                     child: Text(
                                                       s.label,
                                                       maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
+                                                      overflow: TextOverflow
+                                                          .ellipsis,
                                                       style: HomeUi.control(
                                                         isDark,
                                                       ).copyWith(fontSize: 11),
@@ -953,9 +1125,11 @@ class _BriefingPanel extends StatelessWidget {
                                                     formatAllocationPercent(
                                                       s.percent,
                                                     ),
-                                                    style: HomeUi.control(isDark)
+                                                    style: HomeUi.control(
+                                                            isDark)
                                                         .copyWith(
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                       fontSize: 11,
                                                     ),
                                                   ),
@@ -994,7 +1168,8 @@ class _BriefingPanel extends StatelessWidget {
                                           enable: true,
                                           format: 'point.x : point.y%',
                                         ),
-                                        series: <CircularSeries<_ChartSlice, String>>[
+                                        series: <CircularSeries<_ChartSlice,
+                                            String>>[
                                           DoughnutSeries<_ChartSlice, String>(
                                             dataSource: assetSlices
                                                 .map(
@@ -1017,7 +1192,8 @@ class _BriefingPanel extends StatelessWidget {
                                                 const DataLabelSettings(
                                               isVisible: true,
                                               labelPosition:
-                                                  ChartDataLabelPosition.outside,
+                                                  ChartDataLabelPosition
+                                                      .outside,
                                               connectorLineSettings:
                                                   ConnectorLineSettings(
                                                 type: ConnectorType.curve,
@@ -1031,7 +1207,8 @@ class _BriefingPanel extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     for (final s in assetSlices)
                                       Padding(
-                                        padding: const EdgeInsets.only(bottom: 6),
+                                        padding:
+                                            const EdgeInsets.only(bottom: 6),
                                         child: Row(
                                           children: [
                                             Container(
@@ -1052,7 +1229,8 @@ class _BriefingPanel extends StatelessWidget {
                                               ),
                                             ),
                                             Text(
-                                              formatAllocationPercent(s.percent),
+                                              formatAllocationPercent(
+                                                  s.percent),
                                               style: HomeUi.control(isDark)
                                                   .copyWith(
                                                 fontWeight: FontWeight.w700,
@@ -1108,7 +1286,8 @@ class _BriefingPanel extends StatelessWidget {
                           BarSeries<_ChartSlice, String>(
                             dataSource: sectorSlices
                                 .map(
-                                  (s) => _ChartSlice(s.label, s.percent, s.color),
+                                  (s) =>
+                                      _ChartSlice(s.label, s.percent, s.color),
                                 )
                                 .toList(),
                             xValueMapper: (s, _) => s.label.length > 18
@@ -1167,14 +1346,6 @@ class _BriefingPanel extends StatelessWidget {
       ],
     );
   }
-
-  TextStyle _overline(bool isDark) => TextStyle(
-        fontFamily: Constants.FONT_DEFAULT_NEW,
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.1,
-        color: HomeUi.muted(isDark),
-      );
 }
 
 class _KpiTile extends StatelessWidget {
@@ -1182,40 +1353,72 @@ class _KpiTile extends StatelessWidget {
     required this.isDark,
     required this.label,
     required this.value,
+    this.icon,
   });
 
   final bool isDark;
   final String label;
   final String value;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
+        color: isDark ? const Color(0xFF151822) : Colors.white,
         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
         border: Border.all(color: HomeUi.borderLight(isDark)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: HomeUi.muted(isDark),
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: HomeUi.control(isDark).copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 15,
+        ],
+      ),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: HomeUi.accent(isDark)
+                    .withValues(alpha: isDark ? 0.16 : 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 14, color: HomeUi.accent(isDark)),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: HomeUi.muted(isDark),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.control(isDark).copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1242,14 +1445,24 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
+        color: isDark ? const Color(0xFF151822) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: HomeUi.borderLight(isDark)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 14)),
+          Text(
+            title,
+            style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 14),
+          ),
           const SizedBox(height: 2),
           Text(subtitle, style: HomeUi.subtitle(isDark).copyWith(fontSize: 11)),
           const SizedBox(height: 14),

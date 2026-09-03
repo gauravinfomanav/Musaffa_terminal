@@ -42,47 +42,58 @@ class ModelAllocationPanel extends StatelessWidget {
         ? 1.0
         : (totalPercent / 100).clamp(0.0, 1.05);
 
-    return DecoratedBox(
+    return Container(
       decoration: HomeUi.cardDecoration(isDark),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final stackBadge = constraints.maxWidth < 280;
+                final header = HomeUi.tableToolbarHeader(
+                  isDark,
+                  title: 'Allocation Summary',
+                  subtitleText: 'Progress toward 100% strategy weight',
+                  icon: Icons.pie_chart_rounded,
+                  titleFontSize: 15,
+                );
+                if (stackBadge) {
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Allocation Summary',
-                        style: HomeUi.sectionTitle(isDark),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Progress toward 100% strategy weight',
-                        style: HomeUi.subtitle(isDark).copyWith(fontSize: 11),
-                      ),
+                      header,
+                      const SizedBox(height: 10),
+                      _statusBadge(isDark, status),
                     ],
-                  ),
-                ),
-                _statusBadge(isDark, status),
-              ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: header),
+                    const SizedBox(width: 8),
+                    _statusBadge(isDark, status),
+                  ],
+                );
+              },
             ),
           ),
+          Divider(height: 1, color: HomeUi.borderLight(isDark)),
           Expanded(
             child: holdings.isEmpty
                 ? _buildEmptyBody(isDark)
                 : SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                     physics: const ClampingScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _AllocationPremiumCard(
                           isDark: isDark,
+                          accent: status.color,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -90,36 +101,38 @@ class ModelAllocationPanel extends StatelessWidget {
                                 'STRATEGY WEIGHT',
                                 style: _overline(isDark),
                               ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Text('0%', style: _rangeLabel(isDark)),
-                                  const Spacer(),
-                                  Text(
-                                    formatAllocationPercent(totalPercent),
-                                    style: TextStyle(
-                                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.8,
-                                      height: 1,
-                                      color: isOver
-                                          ? HomeUi.negative(isDark)
-                                          : isValid
-                                              ? HomeUi.positive(isDark)
-                                              : HomeUi.title(isDark),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text('100%', style: _rangeLabel(isDark)),
-                                ],
-                              ),
                               const SizedBox(height: 12),
+                              Text(
+                                formatAllocationPercent(totalPercent),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                                  fontFamilyFallback: Constants.FONT_FALLBACK,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -1.2,
+                                  height: 1,
+                                  color: isOver
+                                      ? HomeUi.negative(isDark)
+                                      : isValid
+                                          ? HomeUi.positive(isDark)
+                                          : HomeUi.title(isDark),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
                               _AllocationProgressBar(
                                 isDark: isDark,
                                 progress: progress,
                                 isOver: isOver,
                                 isValid: isValid,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Text('0%', style: _rangeLabel(isDark)),
+                                  const Spacer(),
+                                  Text('100%', style: _rangeLabel(isDark)),
+                                ],
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -128,7 +141,11 @@ class ModelAllocationPanel extends StatelessWidget {
                                     : isValid
                                         ? 'Fully allocated — ready to publish'
                                         : '${formatAllocationPercent(remaining)} remaining to reach 100%',
-                                style: HomeUi.subtitle(isDark).copyWith(fontSize: 11),
+                                textAlign: TextAlign.center,
+                                style: HomeUi.subtitle(isDark).copyWith(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                               const SizedBox(height: 14),
                               Row(
@@ -169,17 +186,26 @@ class ModelAllocationPanel extends StatelessWidget {
                           ),
                         ),
                         if (largest != null) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
                           _AllocationPremiumCard(
                             isDark: isDark,
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.star_rounded,
-                                  size: 16,
-                                  color: HomeUi.accent(isDark),
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  alignment: Alignment.center,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: HomeUi.softBrandWellGradient,
+                                  ),
+                                  child: HomeUi.brandIcon(
+                                    icon: Icons.star_rounded,
+                                    size: 16,
+                                    gradient: HomeUi.softBrandIconGradient,
+                                  ),
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +219,7 @@ class ModelAllocationPanel extends StatelessWidget {
                                         largest.label,
                                         style: HomeUi.control(isDark).copyWith(
                                           fontWeight: FontWeight.w700,
-                                          fontSize: 13,
+                                          fontSize: 13.5,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -205,7 +231,8 @@ class ModelAllocationPanel extends StatelessWidget {
                                   formatAllocationPercent(largest.percent),
                                   style: HomeUi.control(isDark).copyWith(
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 16,
+                                    fontSize: 17,
+                                    letterSpacing: -0.4,
                                     color: HomeUi.accent(isDark),
                                   ),
                                 ),
@@ -214,7 +241,7 @@ class ModelAllocationPanel extends StatelessWidget {
                           ),
                         ],
                         if (assetSlices.isNotEmpty) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
                           _AllocationPremiumCard(
                             isDark: isDark,
                             child: Column(
@@ -226,9 +253,11 @@ class ModelAllocationPanel extends StatelessWidget {
                                   isDark: isDark,
                                   slices: assetSlices.take(5).toList(),
                                 ),
-                                const SizedBox(height: 12),
-                                for (var i = 0; i < assetSlices.take(4).length; i++) ...[
-                                  if (i > 0) const SizedBox(height: 8),
+                                const SizedBox(height: 14),
+                                for (var i = 0;
+                                    i < assetSlices.take(4).length;
+                                    i++) ...[
+                                  if (i > 0) const SizedBox(height: 10),
                                   _CompositionLegendRow(
                                     isDark: isDark,
                                     label: assetSlices[i].label,
@@ -237,17 +266,17 @@ class ModelAllocationPanel extends StatelessWidget {
                                   ),
                                 ],
                                 if (sectorSlices.isNotEmpty) ...[
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 14),
                                   Divider(
                                     height: 1,
                                     color: HomeUi.borderLight(isDark),
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 14),
                                   Text(
                                     'TOP SECTOR',
                                     style: _overline(isDark),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 10),
                                   _CompositionLegendRow(
                                     isDark: isDark,
                                     label: sectorSlices.first.label,
@@ -262,7 +291,7 @@ class ModelAllocationPanel extends StatelessWidget {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Text(
                           'Full market profile & exposure → Portfolio Analytics',
                           style: HomeUi.subtitle(isDark).copyWith(
@@ -319,32 +348,94 @@ class ModelAllocationPanel extends StatelessWidget {
 
   Widget _buildStatusBanner(
     bool isDark,
-    ({Color color, String label, String text, bool showCheck}) status,
+    ({Color color, String label, String text, bool showCheck, IconData icon})
+        status,
   ) {
+    final isEmpty = status.label == 'Get started';
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: HomeUi.borderLight(isDark))),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(HomeUi.radiusCard),
+          bottomRight: Radius.circular(HomeUi.radiusCard),
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  Color.alphaBlend(
+                    status.color.withValues(alpha: 0.14),
+                    const Color(0xFF171A24),
+                  ),
+                  const Color(0xFF141720),
+                ]
+              : isEmpty
+                  ? [const Color(0xFFFFF8F4), const Color(0xFFFCFCFD)]
+                  : [
+                      Color.alphaBlend(
+                        status.color.withValues(alpha: 0.06),
+                        const Color(0xFFFCFCFD),
+                      ),
+                      const Color(0xFFF8F9FB),
+                    ],
+        ),
       ),
       child: Row(
         children: [
-          Icon(
-            status.showCheck
-                ? Icons.check_circle_outline_rounded
-                : Icons.info_outline_rounded,
-            size: 16,
-            color: status.color,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              status.text,
-              style: HomeUi.control(isDark).copyWith(
-                color: status.color,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-                height: 1.35,
+          if (isEmpty)
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: HomeUi.softBrandWellGradient,
               ),
+              child: HomeUi.brandIcon(
+                icon: Icons.add_rounded,
+                size: 16,
+                gradient: HomeUi.softBrandIconGradient,
+              ),
+            )
+          else
+            Container(
+              width: 28,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: status.color.withValues(alpha: isDark ? 0.18 : 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(status.icon, size: 15, color: status.color),
+            ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isEmpty)
+                  Text(
+                    'Ready to allocate',
+                    style: HomeUi.control(isDark).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                Text(
+                  status.text,
+                  style: isEmpty
+                      ? HomeUi.subtitle(isDark).copyWith(fontSize: 12)
+                      : HomeUi.control(isDark).copyWith(
+                          color: status.color,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                          height: 1.3,
+                        ),
+                ),
+              ],
             ),
           ),
         ],
@@ -354,22 +445,47 @@ class ModelAllocationPanel extends StatelessWidget {
 
   Widget _statusBadge(
     bool isDark,
-    ({Color color, String label, String text, bool showCheck}) status,
+    ({Color color, String label, String text, bool showCheck, IconData icon})
+        status,
   ) {
+    final isGetStarted = status.label == 'Get started';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: status.color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        status.label,
-        style: HomeUi.control(isDark).copyWith(
-          color: status.color,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
+        color: isGetStarted
+            ? Colors.white
+            : status.color.withValues(alpha: isDark ? 0.16 : 0.1),
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(
+          color: isGetStarted
+              ? HomeUi.borderLight(isDark)
+              : status.color.withValues(alpha: 0.28),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isGetStarted
+                ? Colors.black.withValues(alpha: isDark ? 0.28 : 0.05)
+                : status.color.withValues(alpha: isDark ? 0.12 : 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(status.icon, size: 13, color: status.color),
+          const SizedBox(width: 6),
+          Text(
+            status.label,
+            style: HomeUi.control(isDark).copyWith(
+              color: status.color,
+              fontWeight: FontWeight.w700,
+              fontSize: 11.5,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -379,6 +495,7 @@ class ModelAllocationPanel extends StatelessWidget {
     String label,
     String text,
     bool showCheck,
+    IconData icon,
   }) _statusMeta({
     required bool isDark,
     required bool isValid,
@@ -393,6 +510,7 @@ class ModelAllocationPanel extends StatelessWidget {
         label: 'Over-allocated',
         text: 'Over by ${formatAllocationPercent(overBy)} — reduce weights',
         showCheck: false,
+        icon: Icons.warning_amber_rounded,
       );
     }
     if (isValid) {
@@ -401,14 +519,16 @@ class ModelAllocationPanel extends StatelessWidget {
         label: 'Balanced',
         text: 'Ready to publish',
         showCheck: true,
+        icon: Icons.check_circle_rounded,
       );
     }
     if (holdingsEmpty) {
       return (
-        color: HomeUi.muted(isDark),
-        label: 'Empty',
-        text: 'Add assets to begin',
+        color: HomeUi.accent(isDark),
+        label: 'Get started',
+        text: 'Add your first asset to track strategy weight',
         showCheck: false,
+        icon: Icons.add_circle_outline_rounded,
       );
     }
     return (
@@ -416,6 +536,7 @@ class ModelAllocationPanel extends StatelessWidget {
       label: 'Incomplete',
       text: '${formatAllocationPercent(remaining)} left to allocate',
       showCheck: false,
+      icon: Icons.pie_chart_outline_rounded,
     );
   }
 
@@ -493,13 +614,16 @@ class _AllocationPremiumCard extends StatelessWidget {
   const _AllocationPremiumCard({
     required this.isDark,
     required this.child,
+    this.accent,
   });
 
   final bool isDark;
   final Widget child;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
+    final tint = accent;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -508,21 +632,39 @@ class _AllocationPremiumCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [const Color(0xFF1A1D2E), const Color(0xFF151822)]
-              : [const Color(0xFFF9FAFB), const Color(0xFFFFFFFF)],
+              ? [
+                  tint != null
+                      ? Color.alphaBlend(
+                          tint.withValues(alpha: 0.08),
+                          const Color(0xFF1A1D2E),
+                        )
+                      : const Color(0xFF1A1D2E),
+                  const Color(0xFF151822),
+                ]
+              : [
+                  tint != null
+                      ? Color.alphaBlend(
+                          tint.withValues(alpha: 0.05),
+                          const Color(0xFFFCFCFD),
+                        )
+                      : const Color(0xFFFCFCFD),
+                  Colors.white,
+                ],
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDark
-              ? const Color(0xFF2A2D3E).withValues(alpha: 0.8)
-              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
+          color: tint != null
+              ? tint.withValues(alpha: isDark ? 0.28 : 0.18)
+              : (isDark
+                  ? const Color(0xFF2A2D3E).withValues(alpha: 0.8)
+                  : const Color(0xFFE8EAED)),
         ),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withValues(alpha: 0.18)
-                : const Color(0xFF6366F1).withValues(alpha: 0.04),
-            blurRadius: 10,
+                ? Colors.black.withValues(alpha: 0.2)
+                : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
             offset: const Offset(0, 3),
           ),
         ],
@@ -549,17 +691,22 @@ class _AllocationStatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(10, 11, 10, 11),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF12151F).withValues(alpha: 0.55)
-            : const Color(0xFFF3F4F6).withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(10),
+        color: isDark ? const Color(0xFF12151F) : Colors.white,
+        borderRadius: BorderRadius.circular(11),
         border: Border.all(
           color: isDark
-              ? const Color(0xFF2A2D3E).withValues(alpha: 0.6)
-              : const Color(0xFFE5E7EB),
+              ? const Color(0xFF2A2D3E).withValues(alpha: 0.7)
+              : const Color(0xFFE8EAED),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,6 +717,7 @@ class _AllocationStatTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontFamilyFallback: Constants.FONT_FALLBACK,
               fontSize: 9,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
@@ -583,6 +731,7 @@ class _AllocationStatTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontFamilyFallback: Constants.FONT_FALLBACK,
               fontSize: 16,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.4,
@@ -715,17 +864,32 @@ class _StackedAllocationBar extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(HomeUi.radiusPill),
       child: SizedBox(
-        height: 8,
+        height: 10,
         child: Row(
           children: [
-            for (var i = 0; i < slices.length; i++)
+            for (var i = 0; i < slices.length; i++) ...[
+              if (i > 0)
+                Container(
+                  width: 2,
+                  color: isDark ? const Color(0xFF151822) : Colors.white,
+                ),
               Expanded(
                 flex: (slices[i].percent * 100).round().clamp(1, 1000),
                 child: Container(
-                  color: slices[i].color,
-                  height: 8,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color.lerp(slices[i].color, Colors.white, 0.18)!,
+                        slices[i].color,
+                      ],
+                    ),
+                  ),
+                  height: 10,
                 ),
               ),
+            ],
           ],
         ),
       ),

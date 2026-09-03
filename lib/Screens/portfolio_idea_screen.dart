@@ -651,132 +651,446 @@ class _AssignmentDetailsDialog extends StatelessWidget {
     final dialogHeight =
         (MediaQuery.of(context).size.height * 0.82).clamp(480.0, 680.0);
     final currency = NumberFormat.currency(symbol: '\$');
+    final statusLabel = assignment.status.trim().isEmpty
+        ? '—'
+        : assignment.status[0].toUpperCase() +
+            assignment.status.substring(1).toLowerCase();
+    final isActive = assignment.status.toLowerCase() == 'active';
 
     return Container(
       width: 860,
       height: dialogHeight,
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
-        color: HomeUi.cardBg(isDark),
         borderRadius: BorderRadius.circular(HomeUi.radiusCard),
-        border: Border.all(color: HomeUi.borderLight(isDark)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: HomeUi.tableToolbarHeader(
-                    isDark,
-                    title: assignment.modelPortfolioName,
-                    subtitleText:
-                        '${assignment.customerName} · ${assignment.assignmentCode ?? assignment.id}',
-                    icon: Icons.pie_chart_outline_rounded,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close_rounded, color: HomeUi.muted(isDark)),
-                ),
-              ],
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.14),
+            blurRadius: 40,
+            offset: const Offset(0, 18),
           ),
-          Divider(height: 1, color: HomeUi.borderLight(isDark)),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _metaChip(isDark, 'Amount', currency.format(assignment.investmentAmount)),
-                    _metaChip(isDark, 'Status', assignment.status),
-                    _metaChip(
-                      isDark,
-                      'Allocation',
-                      '${assignment.totalAllocationPercent.toStringAsFixed(1)}%',
-                    ),
-                    _metaChip(isDark, 'Holdings', '${assignment.holdingsCount}'),
-                  ],
+        ],
+      ),
+      child: Material(
+        color: HomeUi.cardBg(isDark),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          side: BorderSide(color: HomeUi.borderLight(isDark)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(22, 18, 14, 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          const Color(0xFF1C1F2A),
+                          HomeUi.cardBg(isDark),
+                        ]
+                      : [
+                          const Color(0xFFFFF8F4),
+                          const Color(0xFFFCFCFD),
+                          Colors.white,
+                        ],
                 ),
-                const SizedBox(height: 20),
-                Text('How capital is invested', style: HomeUi.sectionTitle(isDark)),
-                const SizedBox(height: 12),
-                ...assignment.holdings.map((h) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: Border(
+                  bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      title: assignment.modelPortfolioName,
+                      subtitleText:
+                          '${assignment.customerName} · ${assignment.assignmentCode ?? assignment.id}',
+                      icon: Icons.account_balance_wallet_rounded,
+                      titleFontSize: 17,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (isActive)
+                    Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                        color: HomeUi.elevatedBg(isDark),
-                        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-                        border: Border.all(color: HomeUi.borderLight(isDark)),
+                        color: HomeUi.positive(isDark)
+                            .withValues(alpha: isDark ? 0.16 : 0.1),
+                        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                        border: Border.all(
+                          color: HomeUi.positive(isDark).withValues(alpha: 0.28),
+                        ),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              h.ticker,
-                              style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700),
-                            ),
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 13,
+                            color: HomeUi.positive(isDark),
                           ),
-                          Expanded(
-                            flex: 3,
-                            child: Text(
-                              h.company ?? '—',
-                              style: HomeUi.subtitle(isDark),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 70,
-                            child: Text(
-                              '${h.allocationPercent.toStringAsFixed(1)}%',
-                              textAlign: TextAlign.right,
-                              style: HomeUi.control(isDark),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 100,
-                            child: Text(
-                              currency.format(h.allocationAmount),
-                              textAlign: TextAlign.right,
-                              style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700),
+                          const SizedBox(width: 5),
+                          Text(
+                            statusLabel,
+                            style: HomeUi.control(isDark).copyWith(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: HomeUi.positive(isDark),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                }),
-              ],
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close_rounded, color: HomeUi.muted(isDark)),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 640;
+                      final tiles = [
+                        _SummaryMetricTile(
+                          isDark: isDark,
+                          label: 'Amount',
+                          value: currency.format(assignment.investmentAmount),
+                          accent: HomeUi.accent(isDark),
+                          icon: Icons.payments_outlined,
+                        ),
+                        _SummaryMetricTile(
+                          isDark: isDark,
+                          label: 'Status',
+                          value: statusLabel,
+                          accent: isActive
+                              ? HomeUi.positive(isDark)
+                              : HomeUi.muted(isDark),
+                          icon: Icons.flag_outlined,
+                          valueColor: isActive
+                              ? HomeUi.positive(isDark)
+                              : null,
+                        ),
+                        _SummaryMetricTile(
+                          isDark: isDark,
+                          label: 'Allocation',
+                          value:
+                              '${assignment.totalAllocationPercent.toStringAsFixed(1)}%',
+                          accent: const Color(0xFFD97706),
+                          icon: Icons.pie_chart_outline_rounded,
+                        ),
+                        _SummaryMetricTile(
+                          isDark: isDark,
+                          label: 'Holdings',
+                          value: '${assignment.holdingsCount}',
+                          accent: HomeUi.accent(isDark),
+                          icon: Icons.layers_outlined,
+                        ),
+                      ];
+
+                      if (wide) {
+                        return Row(
+                          children: [
+                            for (var i = 0; i < tiles.length; i++) ...[
+                              if (i > 0) const SizedBox(width: 10),
+                              Expanded(child: tiles[i]),
+                            ],
+                          ],
+                        );
+                      }
+
+                      return Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: tiles
+                            .map(
+                              (t) => SizedBox(
+                                width: (constraints.maxWidth - 10) / 2,
+                                child: t,
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 22),
+                  HomeUi.tableToolbarHeader(
+                    isDark,
+                    title: 'How capital is invested',
+                    subtitleText:
+                        '${assignment.holdings.length} positions · weighted allocation',
+                    icon: Icons.account_tree_outlined,
+                    titleFontSize: 15,
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                      border: Border.all(color: HomeUi.borderLight(isDark)),
+                      color: isDark
+                          ? const Color(0xFF151822)
+                          : const Color(0xFFFCFCFD),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.03)
+                                : Colors.white,
+                            border: Border(
+                              bottom: BorderSide(
+                                color: HomeUi.borderLight(isDark),
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'TICKER',
+                                  style: _colHeader(isDark),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  'COMPANY',
+                                  style: _colHeader(isDark),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 72,
+                                child: Text(
+                                  'WEIGHT',
+                                  textAlign: TextAlign.right,
+                                  style: _colHeader(isDark),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 108,
+                                child: Text(
+                                  'AMOUNT',
+                                  textAlign: TextAlign.right,
+                                  style: _colHeader(isDark),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (assignment.holdings.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(28),
+                            child: Text(
+                              'No holdings in this assignment',
+                              style: HomeUi.subtitle(isDark),
+                            ),
+                          )
+                        else
+                          ...assignment.holdings.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final h = entry.value;
+                            final zebra = index.isOdd;
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: zebra
+                                    ? (isDark
+                                        ? Colors.white.withValues(alpha: 0.02)
+                                        : const Color(0xFFF8F9FB))
+                                    : Colors.transparent,
+                                border: index == assignment.holdings.length - 1
+                                    ? null
+                                    : Border(
+                                        bottom: BorderSide(
+                                          color: HomeUi.borderLight(isDark)
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      h.ticker,
+                                      style: HomeUi.control(isDark).copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      h.company ?? '—',
+                                      style: HomeUi.subtitle(isDark).copyWith(
+                                        fontSize: 12.5,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 72,
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: HomeUi.accent(isDark)
+                                              .withValues(
+                                            alpha: isDark ? 0.16 : 0.08,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            HomeUi.radiusPill,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${h.allocationPercent.toStringAsFixed(1)}%',
+                                          style: HomeUi.control(isDark).copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11.5,
+                                            color: HomeUi.accent(isDark),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 108,
+                                    child: Text(
+                                      currency.format(h.allocationAmount),
+                                      textAlign: TextAlign.right,
+                                      style: HomeUi.control(isDark).copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _metaChip(bool isDark, String label, String value) {
+  TextStyle _colHeader(bool isDark) => HomeUi.subtitle(isDark).copyWith(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.7,
+      );
+}
+
+class _SummaryMetricTile extends StatelessWidget {
+  const _SummaryMetricTile({
+    required this.isDark,
+    required this.label,
+    required this.value,
+    required this.accent,
+    required this.icon,
+    this.valueColor,
+  });
+
+  final bool isDark;
+  final String label;
+  final String value;
+  final Color accent;
+  final IconData icon;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
+        color: isDark ? const Color(0xFF151822) : Colors.white,
         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
         border: Border.all(color: HomeUi.borderLight(isDark)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(label, style: HomeUi.subtitle(isDark).copyWith(fontSize: 11)),
-          const SizedBox(height: 4),
-          Text(value, style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700)),
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: isDark ? 0.18 : 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: HomeUi.subtitle(isDark).copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeUi.control(isDark).copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14.5,
+                    color: valueColor,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

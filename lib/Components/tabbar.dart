@@ -74,8 +74,11 @@ class HomeTabBar extends StatelessWidget {
         final borderColor =
             isDarkMode ? const Color(0xFF2A2F33) : const Color(0xFFE8EAED);
         final screenWidth = MediaQuery.sizeOf(context).width;
-        // Responsive centered search: ~45% of screen, clamped.
-        final searchWidth = (screenWidth * 0.45).clamp(300.0, 680.0);
+        final compactHeader = screenWidth < 1024;
+        // Keep prior centered search sizing, then tighten by 50px.
+        final searchWidth = compactHeader
+            ? ((screenWidth * 0.24).clamp(140.0, 300.0) - 50).clamp(110.0, 250.0)
+            : ((screenWidth * 0.45).clamp(300.0, 680.0) - 50).clamp(250.0, 630.0);
 
         return Container(
           decoration: BoxDecoration(
@@ -117,58 +120,97 @@ class HomeTabBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: Row(
-                        children: [
-                          SidebarMenuButton(isDarkMode: isDarkMode),
-                          const SizedBox(width: 12),
-                          if (showBackButton) ...[
-                            _HeaderBackButton(isDarkMode: isDarkMode),
-                            const SizedBox(width: 10),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          right: compactHeader ? 16 : 8,
+                        ),
+                        child: Row(
+                          children: [
+                            SidebarMenuButton(isDarkMode: isDarkMode),
+                            SizedBox(width: compactHeader ? 14 : 10),
+                            if (showBackButton) ...[
+                              _HeaderBackButton(isDarkMode: isDarkMode),
+                              const SizedBox(width: 8),
+                            ],
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: _HeaderLogoLockup(
+                                  isDarkMode: isDarkMode,
+                                ),
+                              ),
+                            ),
                           ],
-                          _HeaderLogoLockup(isDarkMode: isDarkMode),
-                        ],
+                        ),
                       ),
                     ),
                     Flexible(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: searchWidth),
-                      child: Obx(() {
-                        final canSearch = FeatureNavigation.isEnabled(
-                          FeatureKeys.stockSearch,
-                        );
-                        if (!canSearch) {
-                          return const SizedBox.shrink();
-                        }
-                        return _SearchField(
-                          onChanged: onSearch,
-                          onSubmitted: (_) => onSearchSubmit?.call(),
-                          isDarkMode: isDarkMode,
-                        );
-                      }),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = searchWidth.clamp(
+                            0.0,
+                            constraints.maxWidth,
+                          );
+                          return Align(
+                            alignment: Alignment.center,
+                            child: SizedBox(
+                              width: width,
+                              child: Obx(() {
+                                final canSearch = FeatureNavigation.isEnabled(
+                                  FeatureKeys.stockSearch,
+                                );
+                                if (!canSearch) {
+                                  return const SizedBox.shrink();
+                                }
+                                return _SearchField(
+                                  onChanged: onSearch,
+                                  onSubmitted: (_) => onSearchSubmit?.call(),
+                                  isDarkMode: isDarkMode,
+                                );
+                              }),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    ),
-                    Flexible(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Flexible(child: _NavToolsCluster(isDarkMode: isDarkMode)),
-                          Obx(() {
-                            final canWatchlists = FeatureNavigation.isEnabled(
-                              FeatureKeys.watchlists,
-                            );
-                            if (!canWatchlists) {
-                              return const SizedBox.shrink();
-                            }
-                            return Padding(
-                              padding: const EdgeInsets.only(left: 8),
-                              child: _WatchlistToggleButton(
-                                isOpen: isWatchlistOpen,
-                                onToggle: onWatchlistToggle,
-                                isDarkMode: isDarkMode,
-                              ),
-                            );
-                          }),
-                        ],
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _NavToolsCluster(
+                                  isDarkMode: isDarkMode,
+                                  iconOnly: compactHeader,
+                                ),
+                                Obx(() {
+                                  final canWatchlists =
+                                      FeatureNavigation.isEnabled(
+                                    FeatureKeys.watchlists,
+                                  );
+                                  if (!canWatchlists) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: _WatchlistToggleButton(
+                                      isOpen: isWatchlistOpen,
+                                      onToggle: onWatchlistToggle,
+                                      isDarkMode: isDarkMode,
+                                      iconOnly: compactHeader,
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -486,21 +528,19 @@ class _SearchFieldState extends State<_SearchField>
     final focused = _focusNode.hasFocus;
     final active = focused || _hovered;
     final hasQuery = _searchController.text.isNotEmpty;
-    final radius = BorderRadius.circular(HomeUi.radiusMd);
-    final fill = HomeUi.cardBg(dark);
-    final placeholderStyle = HomeUi.subtitle(dark).copyWith(
-      fontSize: 13.5,
+    final searchTextStyle = TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontFamilyFallback: Constants.FONT_FALLBACK,
+      fontSize: 14,
       height: 1.2,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+      color: HomeUi.title(dark),
     );
-    final borderColor = focused
-        ? const Color(0xFFC42329).withOpacity(dark ? 0.55 : 0.42)
-        : HomeUi.borderStrong(dark);
-
-    OutlineInputBorder outline(Color color, double width) => OutlineInputBorder(
-          borderRadius: radius,
-          borderSide: BorderSide(color: color, width: width),
-        );
+    final placeholderStyle = searchTextStyle.copyWith(
+      fontWeight: FontWeight.w400,
+      color: HomeUi.muted(dark),
+    );
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -511,20 +551,15 @@ class _SearchFieldState extends State<_SearchField>
         duration: const Duration(milliseconds: 160),
         curve: Curves.easeOut,
         height: fieldHeight,
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          boxShadow: focused
-              ? [
-                  BoxShadow(
-                    color:
-                        const Color(0xFFC42329).withOpacity(dark ? 0.18 : 0.10),
-                    blurRadius: 8,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : HomeUi.cardShadow(dark, hover: true),
+        alignment: Alignment.center,
+        decoration: HomeUi.headerControlDecoration(
+          dark,
+          hover: _hovered,
+          active: focused,
         ),
+        clipBehavior: Clip.antiAlias,
         child: Stack(
+          alignment: Alignment.centerLeft,
           children: [
             TextField(
               controller: _searchController,
@@ -532,6 +567,7 @@ class _SearchFieldState extends State<_SearchField>
               cursorColor: const Color(0xFFC42329),
               cursorWidth: 1.2,
               cursorHeight: 14,
+              textAlignVertical: TextAlignVertical.center,
               onChanged: (value) {
                 widget.onChanged?.call(value);
                 if (value.isEmpty) {
@@ -550,35 +586,32 @@ class _SearchFieldState extends State<_SearchField>
               },
               onSubmitted: (value) => widget.onSubmitted?.call(value),
               textInputAction: TextInputAction.search,
-              style: HomeUi.control(dark, active: true).copyWith(
-                fontSize: 14,
-                height: 1.2,
-                color: HomeUi.title(dark),
-              ),
+              style: searchTextStyle,
               decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 4),
+                  padding: const EdgeInsets.only(left: 10, right: 6),
                   child: active
                       ? HomeUi.brandIcon(
                           icon: CupertinoIcons.search,
-                          size: HomeUi.iconMd,
+                          size: HomeUi.iconSm,
                           gradient: HomeUi.iconFillGradient,
                         )
                       : HomeUi.vectorIcon(
                           icon: CupertinoIcons.search,
-                          size: HomeUi.iconMd,
+                          size: HomeUi.iconSm,
                           color: HomeUi.muted(dark),
                         ),
                 ),
                 prefixIconConstraints: const BoxConstraints(
-                  minWidth: 36,
+                  minWidth: 30,
                   minHeight: fieldHeight,
                 ),
                 suffixIcon: hasQuery
                     ? IconButton(
                         tooltip: 'Clear',
                         padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
                         constraints: const BoxConstraints(
                           minWidth: 28,
                           minHeight: fieldHeight,
@@ -604,20 +637,19 @@ class _SearchFieldState extends State<_SearchField>
                 hintText: '',
                 hintStyle: placeholderStyle,
                 contentPadding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
-                filled: true,
-                fillColor: fill,
-                border: outline(borderColor, active ? 1 : 0.5),
-                enabledBorder: outline(borderColor, active ? 1 : 0.5),
-                focusedBorder: outline(borderColor, 1),
-                errorBorder: outline(const Color(0xFFDC2626), 1),
-                focusedErrorBorder: outline(const Color(0xFFDC2626), 1),
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
               ),
             ),
             if (!hasQuery)
               Positioned.fill(
                 child: IgnorePointer(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(40, 8, 12, 8),
+                    padding: const EdgeInsets.fromLTRB(32, 0, 12, 0),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Row(
@@ -630,8 +662,8 @@ class _SearchFieldState extends State<_SearchField>
                           ),
                           ClipRect(
                             child: SizedBox(
-                              height: 20,
-                              width: 54,
+                              height: 18,
+                              width: 56,
                               child: AnimatedBuilder(
                                 animation: _keywordAnimationController,
                                 builder: (context, child) {
@@ -639,10 +671,10 @@ class _SearchFieldState extends State<_SearchField>
                                     _keywordAnimationController.value,
                                   );
                                   final currentDy =
-                                      _isKeywordAnimating ? -20.0 * t : 0.0;
+                                      _isKeywordAnimating ? -18.0 * t : 0.0;
                                   final nextDy = _isKeywordAnimating
-                                      ? 20.0 * (1 - t)
-                                      : 20.0;
+                                      ? 18.0 * (1 - t)
+                                      : 18.0;
                                   final currentOpacity =
                                       _isKeywordAnimating ? (1 - t) : 1.0;
                                   final nextOpacity =
@@ -1111,8 +1143,12 @@ class _IndexItem extends StatelessWidget {
 
 class _NavToolsCluster extends StatelessWidget {
   final bool isDarkMode;
+  final bool iconOnly;
 
-  const _NavToolsCluster({required this.isDarkMode});
+  const _NavToolsCluster({
+    required this.isDarkMode,
+    this.iconOnly = false,
+  });
 
   void _goScreener(BuildContext context) {
     bool isOnScreener = false;
@@ -1236,25 +1272,7 @@ class _NavToolsCluster extends StatelessWidget {
 
       return Container(
         height: HomeUi.controlHeight,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-          border: Border.all(color: HomeUi.borderLight(isDarkMode), width: 0.9),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              isDarkMode ? const Color(0xFF1A1D22) : Colors.white,
-              isDarkMode ? const Color(0xFF13161A) : const Color(0xFFF6F7F9),
-            ],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.16 : 0.05),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
+        decoration: HomeUi.headerControlDecoration(isDarkMode),
         clipBehavior: Clip.antiAlias,
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1269,6 +1287,7 @@ class _NavToolsCluster extends StatelessWidget {
               _ToolSegment(
                 spec: tools[i],
                 isDarkMode: isDarkMode,
+                iconOnly: iconOnly,
               ),
             ],
           ],
@@ -1349,10 +1368,12 @@ class _HeaderTooltip extends StatelessWidget {
 class _ToolSegment extends StatefulWidget {
   final _ToolSpec spec;
   final bool isDarkMode;
+  final bool iconOnly;
 
   const _ToolSegment({
     required this.spec,
     required this.isDarkMode,
+    this.iconOnly = false,
   });
 
   @override
@@ -1364,10 +1385,6 @@ class _ToolSegmentState extends State<_ToolSegment> {
 
   @override
   Widget build(BuildContext context) {
-    final idle =
-        widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final activeColor =
-        widget.isDarkMode ? const Color(0xFFF3F4F6) : const Color(0xFF111827);
     final hoverBg = widget.isDarkMode
         ? Colors.white.withOpacity(0.1)
         : const Color(0xFFF8FAFC);
@@ -1378,13 +1395,12 @@ class _ToolSegmentState extends State<_ToolSegment> {
         : null;
     final bool isActive = sidebarActive == widget.spec.navItem;
     final bool highlighted = _hovering || isActive;
-    final color = highlighted ? activeColor : idle;
 
     final chip = AnimatedContainer(
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOutCubic,
-      height: HomeUi.controlHeight - 2,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: HomeUi.controlHeight,
+      padding: EdgeInsets.symmetric(horizontal: widget.iconOnly ? 10 : 12),
       decoration: BoxDecoration(
         color: highlighted ? hoverBg : Colors.transparent,
         borderRadius: BorderRadius.circular(HomeUi.radiusMd - 2),
@@ -1397,18 +1413,16 @@ class _ToolSegmentState extends State<_ToolSegment> {
             size: HomeUi.iconSm,
             gradient: highlighted ? HomeUi.brandGradient : null,
           ),
-          const SizedBox(width: 6),
-          Text(
-            widget.spec.label,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontFamilyFallback: Constants.FONT_FALLBACK,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: color,
-              height: 1,
+          if (!widget.iconOnly) ...[
+            const SizedBox(width: 6),
+            Text(
+              widget.spec.label,
+              style: HomeUi.headerControlLabel(
+                widget.isDarkMode,
+                active: highlighted,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1442,12 +1456,9 @@ class _ToolSegmentState extends State<_ToolSegment> {
                     const SizedBox(width: 6),
                     Text(
                       widget.spec.label,
-                      style: TextStyle(
-                        fontFamily: Constants.FONT_DEFAULT_NEW,
-                        fontFamilyFallback: Constants.FONT_FALLBACK,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: activeColor,
+                      style: HomeUi.headerControlLabel(
+                        widget.isDarkMode,
+                        active: true,
                       ),
                     ),
                   ],
@@ -1467,11 +1478,13 @@ class _WatchlistToggleButton extends StatefulWidget {
   final bool isOpen;
   final VoidCallback? onToggle;
   final bool isDarkMode;
+  final bool iconOnly;
 
   const _WatchlistToggleButton({
     required this.isOpen,
     this.onToggle,
     required this.isDarkMode,
+    this.iconOnly = false,
   });
 
   @override
@@ -1635,21 +1648,12 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
   }
 
   Widget _buildButtonContent() {
-    final idle =
-        widget.isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    final activeColor =
-        widget.isDarkMode ? const Color(0xFFF3F4F6) : const Color(0xFF111827);
-    final hoverBg = widget.isDarkMode
-        ? Colors.white.withOpacity(0.1)
-        : const Color(0xFFF8FAFC);
-
     final sidebarActive = Get.isRegistered<GlobalSidebarService>()
         ? Get.find<GlobalSidebarService>().activeItem.value
         : null;
     final bool isActive =
         widget.isOpen || sidebarActive == SidebarNavItem.watchlist;
     final bool highlighted = _isHovered || isActive || _isDragOver;
-    final color = highlighted ? activeColor : idle;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -1664,42 +1668,11 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
             duration: const Duration(milliseconds: 140),
             curve: Curves.easeOutCubic,
             height: HomeUi.controlHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-              border: Border.all(
-                color: HomeUi.borderLight(widget.isDarkMode),
-                width: 0.9,
-              ),
-              color: _isDragOver
-                  ? const Color(0xFFC42329)
-                      .withOpacity(widget.isDarkMode ? 0.16 : 0.08)
-                  : highlighted
-                      ? hoverBg
-                      : null,
-              gradient: (!_isDragOver && !highlighted)
-                  ? LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        widget.isDarkMode
-                            ? const Color(0xFF1A1D22)
-                            : Colors.white,
-                        widget.isDarkMode
-                            ? const Color(0xFF13161A)
-                            : const Color(0xFFF6F7F9),
-                      ],
-                    )
-                  : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(
-                    widget.isDarkMode ? 0.16 : 0.05,
-                  ),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+            padding: EdgeInsets.symmetric(horizontal: widget.iconOnly ? 10 : 12),
+            decoration: HomeUi.headerControlDecoration(
+              widget.isDarkMode,
+              hover: _isHovered,
+              active: isActive || _isDragOver,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1711,18 +1684,16 @@ class _WatchlistToggleButtonState extends State<_WatchlistToggleButton> {
                   size: HomeUi.iconSm,
                   gradient: highlighted ? HomeUi.brandGradient : null,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  _isDragOver ? 'Add' : 'Watchlist',
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontFamilyFallback: Constants.FONT_FALLBACK,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 1,
-                    color: color,
+                if (!widget.iconOnly) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    _isDragOver ? 'Add' : 'Watchlist',
+                    style: HomeUi.headerControlLabel(
+                      widget.isDarkMode,
+                      active: highlighted,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

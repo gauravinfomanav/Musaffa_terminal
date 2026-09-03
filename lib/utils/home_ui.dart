@@ -196,6 +196,54 @@ class HomeUi {
     );
   }
 
+  /// Shared shell for header Menu / Search / Watchlist — same height and chrome.
+  static BoxDecoration headerControlDecoration(
+    bool dark, {
+    bool hover = false,
+    bool active = false,
+  }) {
+    final highlighted = hover || active;
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(radiusMd),
+      border: Border.all(
+        color: highlighted ? borderStrong(dark) : borderLight(dark),
+        width: 0.9,
+      ),
+      color: highlighted
+          ? (dark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFF8FAFC))
+          : null,
+      gradient: highlighted
+          ? null
+          : LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: dark
+                  ? [const Color(0xFF1A1D22), const Color(0xFF13161A)]
+                  : [Colors.white, const Color(0xFFF6F7F9)],
+            ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: dark ? 0.16 : 0.05),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    );
+  }
+
+  static TextStyle headerControlLabel(bool dark, {bool active = false}) =>
+      TextStyle(
+        fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        height: 1,
+        letterSpacing: 0.1,
+        color: active
+            ? (dark ? const Color(0xFFF3F4F6) : const Color(0xFF111827))
+            : (dark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+      );
+
   /// Outlined header control — same height as [primaryAction].
   static Widget ghostAction({
     required String label,
@@ -1057,7 +1105,6 @@ class HomeUi {
     double titleFontSize = 16,
   }) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (icon != null) ...[
@@ -1077,42 +1124,44 @@ class HomeUi {
           ),
           const SizedBox(width: 12),
         ],
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: cardTitle(dark).copyWith(
-                fontSize: titleFontSize,
-                height: 1.15,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 1),
-              DefaultTextStyle.merge(
-                style: HomeUi.subtitle(dark).copyWith(
-                  fontSize: 12,
-                  height: 1.2,
-                ),
-                child: subtitle,
-              ),
-            ] else if (subtitleText != null && subtitleText.isNotEmpty) ...[
-              const SizedBox(height: 1),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Text(
-                subtitleText,
-                style: HomeUi.subtitle(dark).copyWith(
-                  fontSize: 12,
-                  height: 1.2,
+                title,
+                style: cardTitle(dark).copyWith(
+                  fontSize: titleFontSize,
+                  height: 1.15,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 1),
+                DefaultTextStyle.merge(
+                  style: HomeUi.subtitle(dark).copyWith(
+                    fontSize: 12,
+                    height: 1.2,
+                  ),
+                  child: subtitle,
+                ),
+              ] else if (subtitleText != null && subtitleText.isNotEmpty) ...[
+                const SizedBox(height: 1),
+                Text(
+                  subtitleText,
+                  style: HomeUi.subtitle(dark).copyWith(
+                    fontSize: 12,
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ],
     );

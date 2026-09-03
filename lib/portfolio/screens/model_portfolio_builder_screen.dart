@@ -273,36 +273,6 @@ class _ModelPortfolioBuilderScreenState extends State<ModelPortfolioBuilderScree
     }
   }
 
-  void _preview() {
-    _syncSessionFromControllers();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: HomeUi.cardBg(isDark),
-          title: Text(_session.portfolioName, style: HomeUi.sectionTitle(isDark)),
-          content: SizedBox(
-            width: 480,
-            child: ModelAnalyticsPanel(
-              isDark: isDark,
-              holdings: _session.holdings,
-              totalPercent: _session.totalAllocationPercent,
-              benchmarkLabel: _session.benchmark,
-            ),
-          ),
-          actions: [
-            HomeUi.ghostAction(
-              label: 'Close',
-              dark: isDark,
-              onTap: () => Navigator.pop(ctx),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _updateTargetPercent(ModelPortfolioHolding holding, double percent) {
     holding.targetPercent = percent;
     _session.holdings.refresh();
@@ -464,13 +434,6 @@ class _ModelPortfolioBuilderScreenState extends State<ModelPortfolioBuilderScree
           onTap: _isSaving ? null : _saveDraft,
         ),
         const SizedBox(width: 8),
-        HomeUi.ghostAction(
-          label: 'Preview',
-          icon: Icons.visibility_outlined,
-          dark: isDark,
-          onTap: _preview,
-        ),
-        const SizedBox(width: 8),
         HomeUi.primaryAction(
           label: 'Publish Portfolio',
           icon: Icons.publish_rounded,
@@ -538,16 +501,14 @@ class _ModelPortfolioBuilderScreenState extends State<ModelPortfolioBuilderScree
             },
           ),
           const SizedBox(height: 12),
-          TextField(
+          FilterTextField(
+            dark: isDark,
+            label: 'Objective',
             controller: _objectiveController,
+            hintText:
+                'Long-term wealth creation through diversified exposure…',
+            minLines: 3,
             maxLines: 3,
-            style: HomeUi.control(isDark),
-            decoration: HomeUi.filterFieldDecoration(
-              isDark,
-              labelText: 'Objective',
-              hintText:
-                  'Long-term wealth creation through diversified exposure…',
-            ),
           ),
         ],
       ),
@@ -613,10 +574,11 @@ class _ModelPortfolioBuilderScreenState extends State<ModelPortfolioBuilderScree
     String label, {
     String? hint,
   }) {
-    return TextField(
+    return FilterTextField(
+      dark: isDark,
+      label: label,
       controller: controller,
-      style: HomeUi.control(isDark),
-      decoration: HomeUi.filterFieldDecoration(isDark, labelText: label, hintText: hint),
+      hintText: hint,
     );
   }
 
@@ -627,11 +589,10 @@ class _ModelPortfolioBuilderScreenState extends State<ModelPortfolioBuilderScree
     List<String> items,
     void Function(String) onChanged,
   ) {
-    return DropdownButtonFormField<String>(
+    return FilterDropdown<String>(
+      dark: isDark,
+      label: label,
       value: value,
-      decoration: HomeUi.filterFieldDecoration(isDark, labelText: label),
-      dropdownColor: HomeUi.cardBg(isDark),
-      style: HomeUi.control(isDark),
       items: items
           .map((v) => DropdownMenuItem(value: v, child: Text(v)))
           .toList(),

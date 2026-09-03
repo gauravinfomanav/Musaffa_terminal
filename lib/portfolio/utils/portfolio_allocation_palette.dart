@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musaffa_terminal/portfolio/models/model_portfolio_enums.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
 /// Brand-aligned colors for model portfolio allocation visuals.
@@ -10,7 +11,7 @@ abstract final class PortfolioAllocationPalette {
       case 'Equity':
         return HomeUi.accent(dark);
       case 'Gold':
-        return const Color(0xFFD97706);
+        return const Color(0xFFB45309);
       case 'Bonds':
         return const Color(0xFF0891B2);
       case 'Real Estate':
@@ -21,6 +22,61 @@ abstract final class PortfolioAllocationPalette {
         return const Color(0xFFE4621E);
       default:
         return const Color(0xFF6B7280);
+    }
+  }
+
+  /// Per-holding asset type colors for table badges (distinct + readable).
+  static Color forModelAssetType(ModelAssetType type, bool dark) {
+    switch (type) {
+      case ModelAssetType.stock:
+        return const Color(0xFF2563EB);
+      case ModelAssetType.etf:
+        return const Color(0xFF7C3AED);
+      case ModelAssetType.bond:
+        return const Color(0xFF0891B2);
+      case ModelAssetType.reit:
+        return const Color(0xFFDC2626);
+      case ModelAssetType.gold:
+        return const Color(0xFFB45309);
+      case ModelAssetType.commodity:
+        return const Color(0xFFE4621E);
+      case ModelAssetType.cash:
+        return const Color(0xFF059669);
+      case ModelAssetType.other:
+        return HomeUi.muted(dark);
+    }
+  }
+
+  /// Soft fill behind badge text — strong enough on white rows.
+  static Color softFill(Color color, bool dark) =>
+      color.withValues(alpha: dark ? 0.18 : 0.12);
+
+  /// Conviction badge tones — jewel colors that read well in light tables.
+  static Color conviction(ModelConviction level, bool dark) {
+    switch (level) {
+      case ModelConviction.high:
+        return dark ? const Color(0xFF34D399) : const Color(0xFF047857);
+      case ModelConviction.medium:
+        return dark ? const Color(0xFF818CF8) : const Color(0xFF4338CA);
+      case ModelConviction.low:
+        return dark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+    }
+  }
+
+  static Color convictionSoft(ModelConviction level, bool dark) {
+    switch (level) {
+      case ModelConviction.high:
+        return dark
+            ? const Color(0xFF34D399).withValues(alpha: 0.16)
+            : const Color(0xFFECFDF5);
+      case ModelConviction.medium:
+        return dark
+            ? const Color(0xFF818CF8).withValues(alpha: 0.16)
+            : const Color(0xFFEEF2FF);
+      case ModelConviction.low:
+        return dark
+            ? const Color(0xFFFBBF24).withValues(alpha: 0.16)
+            : const Color(0xFFFFFBEB);
     }
   }
 

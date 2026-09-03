@@ -188,6 +188,8 @@ class ModelBreakdownDonut extends StatelessWidget {
     required this.centerValue,
     required this.centerLabel,
     this.size = 160,
+    this.colors,
+    this.strokeFactor = 0.135,
   });
 
   final bool isDark;
@@ -195,6 +197,9 @@ class ModelBreakdownDonut extends StatelessWidget {
   final String centerValue;
   final String centerLabel;
   final double size;
+  /// Optional per-slice colors (falls back to palette).
+  final List<Color>? colors;
+  final double strokeFactor;
 
   @override
   Widget build(BuildContext context) {
@@ -203,11 +208,14 @@ class ModelBreakdownDonut extends StatelessWidget {
     for (var i = 0; i < slices.length; i++) {
       final s = slices[i];
       if (s.percent <= 0) continue;
+      final color = (colors != null && i < colors!.length)
+          ? colors![i]
+          : holdingColors[i % holdingColors.length];
       segments.add(
         _RingSegment(
           label: s.label,
           percent: s.percent,
-          color: holdingColors[i % holdingColors.length],
+          color: color,
         ),
       );
     }
@@ -225,21 +233,33 @@ class ModelBreakdownDonut extends StatelessWidget {
       );
     }
 
+    final valueSize = (size * 0.16).clamp(20.0, 30.0);
+
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(
-        painter: _ModelBreakdownDonutPainter(
-          isDark: isDark,
-          segments: segments,
-        ),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 780),
+        curve: Curves.easeOutCubic,
+        builder: (context, t, child) {
+          return CustomPaint(
+            painter: _ModelBreakdownDonutPainter(
+              isDark: isDark,
+              segments: segments,
+              progress: t,
+              strokeFactor: strokeFactor,
+            ),
+            child: child,
+          );
+        },
         child: _DonutCenterLabel(
           isDark: isDark,
           value: centerValue,
           label: centerLabel,
           ringSize: size,
-          strokeFactor: _DonutStrokePainter.defaultStrokeFactor,
-          valueSize: 22,
+          strokeFactor: strokeFactor,
+          valueSize: valueSize,
         ),
       ),
     );
@@ -445,25 +465,127 @@ class _ModelBreakdownDonutPainter extends CustomPainter {
   _ModelBreakdownDonutPainter({
     required this.isDark,
     required this.segments,
+    required this.progress,
+    this.strokeFactor = 0.135,
   });
 
   final bool isDark;
   final List<_RingSegment> segments;
+  final double progress;
+  final double strokeFactor;
 
   @override
   void paint(Canvas canvas, Size size) {
-    _DonutStrokePainter.draw(
-      canvas,
-      size,
-      isDark: isDark,
-      segments: segments,
+    final center = Offset(size.width / 2, size.height / 2);
+    final strokeWidth = size.shortestSide * strokeFactor;
+    final radius = size.shortestSide / 2 - strokeWidth / 2 - 3;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final trackColor =
+        isDark ? const Color(0xFF2A2D36) : const Color(0xFFE8EAED);
+
+    // Soft outer halo
+    canvas.drawCircle(
+      center,
+      radius + strokeWidth * 0.55,
+      Paint()
+        ..color = (isDark ? Colors.white : const Color(0xFF0F172A))
+            .withValues(alpha: isDark ? 0.04 : 0.03)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth * 0.9
+        ..isAntiAlias = true,
     );
+
+    // Track
+    canvas.drawArc(
+      rect,
+      0,
+      2 * math.pi,
+      false,
+      Paint()
+        ..color = trackColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt
+        ..isAntiAlias = true,
+    );
+
+    // Soft inner well
+    final innerR = radius - strokeWidth * 0.55;
+    if (innerR > 0) {
+      canvas.drawCircle(
+        center,
+        innerR,
+        Paint()
+          ..shader = RadialGradient(
+            colors: isDark
+                ? [
+                    const Color(0xFF1A1D28).withValues(alpha: 0.9),
+                    const Color(0xFF12151F).withValues(alpha: 0.2),
+                  ]
+                : [
+                    Colors.white,
+                    const Color(0xFFF8FAFC).withValues(alpha: 0.35),
+                  ],
+          ).createShader(Rect.fromCircle(center: center, radius: innerR)),
+      );
+    }
+
+    if (segments.isEmpty) return;
+
+    final total = segments.fold<double>(0, (s, seg) => s + seg.percent);
+    if (total <= 0) return;
+
+    final activeCount = segments.where((s) => !s.isRemaining).length;
+    final gap = activeCount > 1 ? 0.045 : 0.0;
+    var startAngle = -math.pi / 2;
+
+    for (final seg in segments) {
+      final rawSweep = (seg.percent / total) * 2 * math.pi;
+      final sweep = (rawSweep - gap).clamp(0.0, rawSweep) * progress;
+      if (sweep <= 0.004) {
+        startAngle += rawSweep;
+        continue;
+      }
+
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round
+        ..isAntiAlias = true
+        ..color = seg.color;
+
+      // Soft glow under segment
+      canvas.drawArc(
+        rect,
+        startAngle + gap / 2,
+        sweep,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth + 3
+          ..strokeCap = StrokeCap.round
+          ..isAntiAlias = true
+          ..color = seg.color.withValues(alpha: isDark ? 0.22 : 0.16),
+      );
+
+      canvas.drawArc(
+        rect,
+        startAngle + gap / 2,
+        sweep,
+        false,
+        paint,
+      );
+
+      startAngle += rawSweep;
+    }
   }
 
   @override
   bool shouldRepaint(covariant _ModelBreakdownDonutPainter oldDelegate) {
     return oldDelegate.segments.length != segments.length ||
-        oldDelegate.isDark != isDark;
+        oldDelegate.isDark != isDark ||
+        oldDelegate.progress != progress ||
+        oldDelegate.strokeFactor != strokeFactor;
   }
 }
 

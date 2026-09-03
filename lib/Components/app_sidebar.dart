@@ -1207,30 +1207,10 @@ class _SidebarMenuButtonState extends State<SidebarMenuButton>
                 curve: Curves.easeOutCubic,
                 width: HomeUi.controlHeight,
                 height: HomeUi.controlHeight,
-                decoration: BoxDecoration(
-                  gradient: isOpen || _hovering
-                      ? HomeUi.iconFillGradient
-                      : HomeUi.iconWellGradient,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isOpen
-                        ? HomeUi.buttonBorder
-                        : (_hovering
-                            ? HomeUi.borderStrong(widget.isDarkMode)
-                            : HomeUi.iconWellBorder),
-                    width: 0.9,
-                  ),
-                  boxShadow: isOpen || _hovering
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: widget.isDarkMode ? 0.22 : 0.08,
-                            ),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ]
-                      : const [],
+                decoration: HomeUi.headerControlDecoration(
+                  widget.isDarkMode,
+                  hover: _hovering,
+                  active: isOpen,
                 ),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),

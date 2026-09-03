@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:musaffa_terminal/Components/sliding_pill_tabs.dart';
 import 'package:musaffa_terminal/portfolio/models/model_portfolio_holding.dart';
 import 'package:musaffa_terminal/portfolio/models/portfolio_analytics_snapshot.dart';
 import 'package:musaffa_terminal/portfolio/services/portfolio_analytics_service.dart';
@@ -124,21 +126,57 @@ class _PortfolioAnalyticsDashboardState extends State<PortfolioAnalyticsDashboar
   }
 
   Widget _previewBanner(bool isDark) {
+    final accent = HomeUi.accent(isDark);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: HomeUi.accent(isDark).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        border: Border.all(color: HomeUi.accent(isDark).withValues(alpha: 0.25)),
+        border: Border.all(color: accent.withValues(alpha: isDark ? 0.28 : 0.2)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  Color.alphaBlend(
+                    accent.withValues(alpha: 0.14),
+                    const Color(0xFF171A24),
+                  ),
+                  const Color(0xFF141720),
+                ]
+              : [
+                  const Color(0xFFEFF6FF),
+                  const Color(0xFFF8FAFC),
+                ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: isDark ? 0.1 : 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: HomeUi.accent(isDark)),
-          const SizedBox(width: 8),
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.info_rounded, size: 16, color: accent),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Allocation % not set — showing equal-weight preview. Set target % for accurate weights.',
-              style: HomeUi.control(isDark).copyWith(fontSize: 11),
+              style: HomeUi.control(isDark).copyWith(
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -148,11 +186,32 @@ class _PortfolioAnalyticsDashboardState extends State<PortfolioAnalyticsDashboar
 
   Widget _buildTabBar(bool isDark) {
     const labels = ['Overview', 'Performance', 'Exposure', 'Risk', 'Valuation'];
-    return HomeUi.segmentedControl(
-      dark: isDark,
-      options: labels,
-      selectedIndex: _selectedTabIndex,
-      onChanged: (index) => setState(() => _selectedTabIndex = index),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SlidingPillTabs(
+        itemCount: labels.length,
+        selectedIndex: _selectedTabIndex,
+        isDarkMode: isDark,
+        height: HomeUi.controlHeight,
+        onSelect: (index) {
+          if (index == _selectedTabIndex) return;
+          // Defer body swap so mouse tracker finishes the pointer update first.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || index == _selectedTabIndex) return;
+            setState(() => _selectedTabIndex = index);
+          });
+        },
+        itemBuilder: (context, index, isSelected) {
+          return Text(
+            labels[index],
+            style: HomeUi.control(isDark, active: isSelected).copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : HomeUi.muted(isDark),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -195,15 +254,34 @@ class _PortfolioAnalyticsDashboardState extends State<PortfolioAnalyticsDashboar
 
   Widget _emptyState(bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 48),
+      padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
       alignment: Alignment.center,
       child: Column(
         children: [
-          Icon(Icons.insights_outlined, size: 44, color: HomeUi.muted(isDark)),
-          const SizedBox(height: 12),
+          Container(
+            width: 64,
+            height: 64,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: HomeUi.softBrandWellGradient,
+            ),
+            child: HomeUi.brandIcon(
+              icon: Icons.insights_rounded,
+              size: 28,
+              gradient: HomeUi.softBrandIconGradient,
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
-            'Add holdings with allocation to unlock analytics',
-            style: HomeUi.subtitle(isDark).copyWith(fontSize: 13),
+            'Analytics ready when you are',
+            style: HomeUi.sectionTitle(isDark).copyWith(fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add holdings with allocation to unlock performance, exposure, and risk.',
+            textAlign: TextAlign.center,
+            style: HomeUi.subtitle(isDark).copyWith(fontSize: 13, height: 1.4),
           ),
         ],
       ),
@@ -339,6 +417,7 @@ class _PerformanceTab extends StatelessWidget {
             isDark: isDark,
             title: 'Benchmark Comparison',
             subtitle: '1M return vs ${bench.benchmarkLabel}',
+            icon: Icons.compare_arrows_rounded,
             child: _BenchmarkTable(isDark: isDark, benchmark: bench),
           ),
         ],
@@ -425,15 +504,40 @@ class _RiskTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _ConcentrationCard(isDark: isDark, metrics: snapshot.concentration),
-        if (snapshot.correlation != null) ...[
-          const SizedBox(height: 12),
-          _CorrelationCard(isDark: isDark, matrix: snapshot.correlation!),
-        ],
-      ],
+    final concentration = _ConcentrationCard(
+      isDark: isDark,
+      metrics: snapshot.concentration,
+    );
+    final correlation = snapshot.correlation == null
+        ? null
+        : _CorrelationCard(isDark: isDark, matrix: snapshot.correlation!);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Avoid IntrinsicHeight here: correlation heatmap uses LayoutBuilder,
+        // which cannot provide intrinsic dimensions and crashes on desktop.
+        final wide = constraints.maxWidth >= 960 && correlation != null;
+        if (wide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 5, child: concentration),
+              const SizedBox(width: 12),
+              Expanded(flex: 6, child: correlation),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            concentration,
+            if (correlation != null) ...[
+              const SizedBox(height: 12),
+              correlation,
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -461,6 +565,7 @@ class _ValuationTab extends StatelessWidget {
           isDark: isDark,
           title: 'Portfolio Valuation',
           subtitle: 'Allocation-weighted fundamentals · Finnhub',
+          icon: Icons.account_balance_rounded,
           child: Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -492,6 +597,7 @@ class _ValuationTab extends StatelessWidget {
           isDark: isDark,
           title: 'Liquidity',
           subtitle: 'Volume-based holding classification',
+          icon: Icons.water_drop_rounded,
           child: Row(
             children: [
               Expanded(
@@ -533,29 +639,90 @@ class _AnalyticsCard extends StatelessWidget {
     required this.title,
     required this.child,
     this.subtitle,
+    this.icon,
+    this.trailing,
   });
 
   final bool isDark;
   final String title;
   final String? subtitle;
+  final IconData? icon;
+  final Widget? trailing;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: HomeUi.cardDecoration(isDark),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: HomeUi.sectionTitle(isDark)),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(subtitle!, style: HomeUi.subtitle(isDark).copyWith(fontSize: 11)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+        boxShadow: HomeUi.cardShadow(isDark),
+      ),
+      child: Material(
+        color: HomeUi.cardBg(isDark),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+          side: BorderSide(color: HomeUi.borderLight(isDark), width: 1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          const Color(0xFF1A1D28),
+                          HomeUi.cardBg(isDark),
+                        ]
+                      : [
+                          const Color(0xFFFAFBFC),
+                          Colors.white,
+                        ],
+                ),
+                border: Border(
+                  bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      isDark,
+                      title: title,
+                      subtitleText: subtitle,
+                      icon: icon,
+                      titleFontSize: 15,
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: trailing!,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: child,
+            ),
           ],
-          const SizedBox(height: 14),
-          child,
-        ],
+        ),
       ),
     );
   }
@@ -584,71 +751,77 @@ class _PerformanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final positive = performance.isPositive;
-    final lineColor = positive ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
-    final fillColor = lineColor.withValues(alpha: isDark ? 0.18 : 0.12);
-    final chartHeight = tallChart ? 160.0 : 100.0;
+    final selectedValue = _periodValue(performance, period);
+    final positive = (selectedValue ?? 0) >= 0;
+    final lineColor = selectedValue == null
+        ? HomeUi.accent(isDark)
+        : (positive ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
+    final fillColor = lineColor.withValues(alpha: isDark ? 0.16 : 0.1);
+    final chartHeight = tallChart ? 188.0 : 148.0;
+    final hasBenchmark = benchmark?.portfolioMonth != null &&
+        benchmark?.benchmarkMonth != null;
+    final vsBench = hasBenchmark
+        ? (benchmark!.portfolioMonth! - benchmark!.benchmarkMonth!)
+        : null;
 
     return _AnalyticsCard(
       isDark: isDark,
       title: 'Portfolio Performance',
       subtitle: 'Allocation-weighted · Finnhub daily closes',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _PeriodSelector(
+      icon: Icons.show_chart_rounded,
+      trailing: _PeriodSelector(
+        isDark: isDark,
+        period: period,
+        onChanged: onPeriodChanged,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 640;
+          final metricPanel = _PerformanceMetricPanel(
             isDark: isDark,
-            period: period,
-            onChanged: onPeriodChanged,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _PeriodMetric(
-                      isDark: isDark,
-                      label: _periodLabel(period),
-                      value: _periodValue(performance, period),
-                      loading: loading && _periodValue(performance, period) == null,
-                      large: true,
-                    ),
-                    if (benchmark?.portfolioMonth != null &&
-                        benchmark?.benchmarkMonth != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'vs ${benchmark!.benchmarkLabel} '
-                        '${_fmtPct(benchmark!.benchmarkMonth!)} (1M)',
-                        style: HomeUi.subtitle(isDark).copyWith(fontSize: 11),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 5,
-                child: SizedBox(
-                  height: chartHeight,
-                  child: performance.sparkline.length >= 2
-                      ? CustomPaint(
-                          painter: _SparklinePainter(
-                            values: performance.sparkline,
-                            lineColor: lineColor,
-                            fillColor: fillColor,
-                          ),
-                          child: const SizedBox.expand(),
-                        )
-                      : WatchlistShimmer.sparkline(isDarkMode: isDark, width: 200, height: chartHeight),
-                ),
-              ),
-            ],
-          ),
-        ],
+            periodLabel: _periodLabel(period),
+            value: selectedValue,
+            loading: loading && selectedValue == null,
+            lineColor: lineColor,
+            positive: positive,
+            benchmarkLabel: hasBenchmark ? benchmark!.benchmarkLabel : null,
+            benchmarkValue: hasBenchmark ? benchmark!.benchmarkMonth : null,
+            vsBenchmark: vsBench,
+            performance: performance,
+            activePeriod: period,
+            fillHeight: wide,
+          );
+          final chartPanel = _PerformanceChartPanel(
+            isDark: isDark,
+            lineColor: lineColor,
+            fillColor: fillColor,
+            chartHeight: chartHeight,
+            values: performance.sparkline,
+            dates: performance.sparklineDates,
+          );
+
+          if (!wide) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                metricPanel,
+                const SizedBox(height: 12),
+                chartPanel,
+              ],
+            );
+          }
+
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(width: 292, child: metricPanel),
+                const SizedBox(width: 12),
+                Expanded(child: chartPanel),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -686,10 +859,404 @@ class _PerformanceCard extends StatelessWidget {
         return p.year1;
     }
   }
+}
+
+class _PerformanceMetricPanel extends StatelessWidget {
+  const _PerformanceMetricPanel({
+    required this.isDark,
+    required this.periodLabel,
+    required this.value,
+    required this.loading,
+    required this.lineColor,
+    required this.positive,
+    required this.performance,
+    required this.activePeriod,
+    this.benchmarkLabel,
+    this.benchmarkValue,
+    this.vsBenchmark,
+    this.fillHeight = false,
+  });
+
+  final bool isDark;
+  final String periodLabel;
+  final double? value;
+  final bool loading;
+  final Color lineColor;
+  final bool positive;
+  final PortfolioPerformanceMetrics performance;
+  final _PerfPeriod activePeriod;
+  final String? benchmarkLabel;
+  final double? benchmarkValue;
+  final double? vsBenchmark;
+  final bool fillHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: fillHeight ? double.infinity : null,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(
+          color: lineColor.withValues(alpha: isDark ? 0.28 : 0.18),
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  Color.alphaBlend(
+                    lineColor.withValues(alpha: 0.14),
+                    const Color(0xFF171A24),
+                  ),
+                  const Color(0xFF12151F),
+                ]
+              : [
+                  Color.alphaBlend(
+                    lineColor.withValues(alpha: 0.07),
+                    const Color(0xFFFCFCFD),
+                  ),
+                  Colors.white,
+                ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+            ),
+            child: Text(
+              periodLabel.toUpperCase(),
+              style: HomeUi.subtitle(isDark).copyWith(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (loading)
+            WatchlistShimmer.metricValue(isDarkMode: isDark)
+          else
+            Text(
+              value == null
+                  ? '—'
+                  : '${positive ? '▲' : '▼'} ${value!.abs().toStringAsFixed(2)}%',
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontFamilyFallback: Constants.FONT_FALLBACK,
+                fontSize: 30,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.8,
+                height: 1.05,
+                color: value == null ? HomeUi.muted(isDark) : lineColor,
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            'Selected period return',
+            style: HomeUi.subtitle(isDark).copyWith(fontSize: 11.5),
+          ),
+          if (benchmarkLabel != null && benchmarkValue != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                border: Border.all(color: HomeUi.borderLight(isDark)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'VS ${benchmarkLabel!.toUpperCase()}',
+                    style: HomeUi.subtitle(isDark).copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    _fmtPct(benchmarkValue!),
+                    style: HomeUi.control(isDark).copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (vsBenchmark != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '${vsBenchmark! >= 0 ? '+' : ''}${vsBenchmark!.toStringAsFixed(2)}% vs bench',
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: vsBenchmark! >= 0
+                            ? HomeUi.positive(isDark)
+                            : HomeUi.negative(isDark),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          if (fillHeight) const Spacer(),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniPeriodChip(
+                  isDark: isDark,
+                  label: '1W',
+                  value: performance.week1,
+                  active: activePeriod == _PerfPeriod.week1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _MiniPeriodChip(
+                  isDark: isDark,
+                  label: '1M',
+                  value: performance.month1,
+                  active: activePeriod == _PerfPeriod.month1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _MiniPeriodChip(
+                  isDark: isDark,
+                  label: '1Y',
+                  value: performance.year1,
+                  active: activePeriod == _PerfPeriod.year1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   String _fmtPct(double v) {
     final sign = v >= 0 ? '+' : '';
     return '$sign${v.toStringAsFixed(2)}%';
+  }
+}
+
+class _MiniPeriodChip extends StatelessWidget {
+  const _MiniPeriodChip({
+    required this.isDark,
+    required this.label,
+    required this.value,
+    required this.active,
+  });
+
+  final bool isDark;
+  final String label;
+  final double? value;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final positive = (value ?? 0) >= 0;
+    final color = value == null
+        ? HomeUi.muted(isDark)
+        : (positive ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: active
+            ? color.withValues(alpha: isDark ? 0.16 : 0.1)
+            : (isDark ? const Color(0xFF151822) : Colors.white),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(
+          color: active
+              ? color.withValues(alpha: 0.35)
+              : HomeUi.borderLight(isDark),
+        ),
+        boxShadow: active
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: HomeUi.subtitle(isDark).copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 3),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value == null
+                  ? '—'
+                  : '${positive ? '+' : ''}${value!.toStringAsFixed(1)}%',
+              maxLines: 1,
+              softWrap: false,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PerformanceChartPanel extends StatelessWidget {
+  const _PerformanceChartPanel({
+    required this.isDark,
+    required this.lineColor,
+    required this.fillColor,
+    required this.chartHeight,
+    required this.values,
+    required this.dates,
+  });
+
+  final bool isDark;
+  final Color lineColor;
+  final Color fillColor;
+  final double chartHeight;
+  final List<double> values;
+  final List<DateTime> dates;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasChart = values.length >= 2;
+    final startLabel = dates.isNotEmpty
+        ? DateFormat('dd MMM').format(dates.first)
+        : null;
+    final endLabel = dates.length > 1
+        ? DateFormat('dd MMM').format(dates.last)
+        : null;
+
+    return Container(
+      constraints: BoxConstraints(minHeight: chartHeight + 36),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark
+              ? [
+                  Color.alphaBlend(
+                    lineColor.withValues(alpha: 0.08),
+                    const Color(0xFF151822),
+                  ),
+                  const Color(0xFF10131A),
+                ]
+              : [
+                  Color.alphaBlend(
+                    lineColor.withValues(alpha: 0.04),
+                    const Color(0xFFFCFCFD),
+                  ),
+                  const Color(0xFFF5F7FA),
+                ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(
+                'TREND',
+                style: HomeUi.subtitle(isDark).copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: lineColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: lineColor.withValues(alpha: 0.35),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Hover for details',
+                style: HomeUi.subtitle(isDark).copyWith(fontSize: 10.5),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: chartHeight,
+            child: hasChart
+                ? _InteractiveSparkline(
+                    isDark: isDark,
+                    values: values,
+                    dates: dates,
+                    lineColor: lineColor,
+                    fillColor: fillColor,
+                  )
+                : WatchlistShimmer.sparkline(
+                    isDarkMode: isDark,
+                    width: 200,
+                    height: chartHeight,
+                  ),
+          ),
+          if (startLabel != null && endLabel != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  startLabel,
+                  style: HomeUi.subtitle(isDark).copyWith(fontSize: 10.5),
+                ),
+                const Spacer(),
+                Text(
+                  endLabel,
+                  style: HomeUi.subtitle(isDark).copyWith(fontSize: 10.5),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -715,33 +1282,68 @@ class _PeriodSelector extends StatelessWidget {
       (_PerfPeriod.year1, '1Y'),
     ];
 
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: items.map((item) {
-        final selected = period == item.$1;
-        return GestureDetector(
-          onTap: () => onChanged(item.$1),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: selected ? HomeUi.accent(isDark).withValues(alpha: 0.12) : HomeUi.elevatedBg(isDark),
-              borderRadius: BorderRadius.circular(HomeUi.radiusSm),
-              border: Border.all(
-                color: selected ? HomeUi.accent(isDark) : HomeUi.borderLight(isDark),
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151822) : const Color(0xFFF3F5F8),
+        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: items.map((item) {
+          final selected = period == item.$1;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => onChanged(item.$1),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  curve: Curves.easeOutCubic,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? (isDark ? const Color(0xFF1E2430) : Colors.white)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                    border: Border.all(
+                      color: selected
+                          ? HomeUi.borderStrong(isDark)
+                          : Colors.transparent,
+                    ),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.22 : 0.04,
+                              ),
+                              blurRadius: 6,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    item.$2,
+                    style: HomeUi.control(isDark).copyWith(
+                      fontSize: 11.5,
+                      fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w500,
+                      letterSpacing: 0.2,
+                      color: selected
+                          ? HomeUi.title(isDark)
+                          : HomeUi.muted(isDark),
+                    ),
+                  ),
+                ),
               ),
             ),
-            child: Text(
-              item.$2,
-              style: HomeUi.control(isDark).copyWith(
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? HomeUi.accent(isDark) : HomeUi.muted(isDark),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 }
@@ -765,6 +1367,7 @@ class _CountryCard extends StatelessWidget {
       isDark: isDark,
       title: 'Country Exposure',
       subtitle: 'Geographic allocation by holding weight',
+      icon: Icons.public_rounded,
       child: countries.isEmpty
           ? Text('No country data yet', style: HomeUi.subtitle(isDark))
           : Column(
@@ -812,81 +1415,141 @@ class _SectorCard extends StatelessWidget {
     final slices = sectors
         .map((s) => (label: s.name, percent: s.percent))
         .toList();
+    final sliceColors = sectors
+        .map((s) => PortfolioAllocationPalette.sectorColor(s.name, isDark))
+        .toList();
     final total = sectors.fold<double>(0, (s, e) => s + e.percent);
 
     return _AnalyticsCard(
       isDark: isDark,
       title: 'Sector Exposure',
-      subtitle: showChange ? 'Allocation and today\'s sector move' : null,
+      subtitle: showChange
+          ? 'Allocation and today\'s sector move'
+          : 'Weight by GICS sector',
+      icon: Icons.donut_large_rounded,
       child: sectors.isEmpty
           ? Text('No sector data yet', style: HomeUi.subtitle(isDark))
           : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 ModelBreakdownDonut(
                   isDark: isDark,
                   slices: slices.take(6).toList(),
+                  colors: sliceColors.take(6).toList(),
                   centerValue: formatAllocationPercent(total),
                   centerLabel: 'Total',
-                  size: 120,
+                  size: 168,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 18),
                 Expanded(
                   child: Column(
-                    children: sectors.take(6).map((s) {
-                      final change = s.dayChange;
-                      final changeText = change == null
-                          ? null
-                          : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%';
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: PortfolioAllocationPalette.sectorColor(s.name, isDark),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                s.name,
-                                style: HomeUi.control(isDark).copyWith(fontSize: 12),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              formatAllocationPercent(s.percent),
-                              style: HomeUi.control(isDark).copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                            if (showChange && changeText != null) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                changeText,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: (change ?? 0) >= 0
-                                      ? HomeUi.positive(isDark)
-                                      : HomeUi.negative(isDark),
-                                ),
-                              ),
-                            ],
-                          ],
+                    children: [
+                      for (var i = 0; i < sectors.take(6).length; i++) ...[
+                        if (i > 0) const SizedBox(height: 10),
+                        _SectorLegendRow(
+                          isDark: isDark,
+                          sector: sectors[i],
+                          color: sliceColors[i],
+                          showChange: showChange,
                         ),
-                      );
-                    }).toList(),
+                      ],
+                    ],
                   ),
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _SectorLegendRow extends StatelessWidget {
+  const _SectorLegendRow({
+    required this.isDark,
+    required this.sector,
+    required this.color,
+    required this.showChange,
+  });
+
+  final bool isDark;
+  final SectorAllocation sector;
+  final Color color;
+  final bool showChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final change = sector.dayChange;
+    final changeText = change == null
+        ? null
+        : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF151822) : Colors.white,
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.35),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              sector.name,
+              style: HomeUi.control(isDark).copyWith(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            formatAllocationPercent(sector.percent),
+            style: HomeUi.control(isDark).copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: 12.5,
+            ),
+          ),
+          if (showChange && changeText != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: ((change ?? 0) >= 0
+                        ? HomeUi.positive(isDark)
+                        : HomeUi.negative(isDark))
+                    .withValues(alpha: isDark ? 0.16 : 0.1),
+                borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              ),
+              child: Text(
+                changeText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: (change ?? 0) >= 0
+                      ? HomeUi.positive(isDark)
+                      : HomeUi.negative(isDark),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -907,6 +1570,7 @@ class _ContributionCard extends StatelessWidget {
       isDark: isDark,
       title: 'Contribution to Portfolio Return',
       subtitle: 'Today\'s weighted impact by holding',
+      icon: Icons.stacked_bar_chart_rounded,
       child: rows.isEmpty
           ? Text('No contribution data yet', style: HomeUi.subtitle(isDark))
           : Column(
@@ -940,12 +1604,12 @@ class _ContributionCard extends StatelessWidget {
                       ),
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(HomeUi.radiusPill),
                           child: LinearProgressIndicator(
                             value: (r.contribution.abs() / maxAbs).clamp(0.0, 1.0),
-                            minHeight: 8,
+                            minHeight: 9,
                             backgroundColor: HomeUi.elevatedBg(isDark),
-                            valueColor: AlwaysStoppedAnimation(color.withValues(alpha: 0.85)),
+                            valueColor: AlwaysStoppedAnimation(color.withValues(alpha: 0.9)),
                           ),
                         ),
                       ),
@@ -979,6 +1643,7 @@ class _TopHoldingsCard extends StatelessWidget {
       isDark: isDark,
       title: 'Top Holdings',
       subtitle: 'Weight · daily change · contribution',
+      icon: Icons.workspace_premium_rounded,
       child: holdings.isEmpty
           ? Text('No holdings yet', style: HomeUi.subtitle(isDark))
           : Column(
@@ -1039,10 +1704,10 @@ class _TopHoldingsCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
                         child: LinearProgressIndicator(
                           value: (h.weight / maxWeight).clamp(0.0, 1.0),
-                          minHeight: 6,
+                          minHeight: 7,
                           backgroundColor: HomeUi.elevatedBg(isDark),
                           valueColor: AlwaysStoppedAnimation(HomeUi.accent(isDark)),
                         ),
@@ -1084,6 +1749,8 @@ class _RiskSnapshotCard extends StatelessWidget {
     return _AnalyticsCard(
       isDark: isDark,
       title: 'Risk & Market Profile',
+      subtitle: 'Concentration and valuation snapshot',
+      icon: Icons.shield_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1124,37 +1791,170 @@ class _ConcentrationCard extends StatelessWidget {
   final bool isDark;
   final ConcentrationMetrics metrics;
 
+  Color get _badgeColor {
+    final label = metrics.label.toLowerCase();
+    if (label.contains('high')) return const Color(0xFFD97706);
+    if (label.contains('low') || label.contains('divers')) {
+      return HomeUi.positive(isDark);
+    }
+    return HomeUi.accent(isDark);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final badgeColor = _badgeColor;
+
     return _AnalyticsCard(
       isDark: isDark,
       title: 'Risk & Concentration',
       subtitle: 'Portfolio weight concentration',
+      icon: Icons.security_rounded,
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+          border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: badgeColor.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.circle, size: 7, color: badgeColor),
+            const SizedBox(width: 6),
+            Text(
+              metrics.label,
+              style: HomeUi.control(isDark).copyWith(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: badgeColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _RiskStatTile(
+                  isDark: isDark,
+                  label: 'HHI',
+                  value: metrics.hhi.toStringAsFixed(0),
+                  hint: 'Herfindahl index',
+                  accent: badgeColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _RiskStatTile(
+                  isDark: isDark,
+                  label: 'Holdings',
+                  value: '${metrics.holdingsCount}',
+                  hint: 'Active positions',
+                  accent: HomeUi.accent(isDark),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _RiskStatTile(
+                  isDark: isDark,
+                  label: 'Top 1',
+                  value: formatAllocationPercent(metrics.top1),
+                  hint: 'Largest weight',
+                  accent: HomeUi.accent(isDark),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF171A24), const Color(0xFF12151F)]
+                    : [const Color(0xFFFCFCFD), const Color(0xFFF5F7FA)],
+              ),
+            ),
+            child: _ConcentrationBars(isDark: isDark, metrics: metrics),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RiskStatTile extends StatelessWidget {
+  const _RiskStatTile({
+    required this.isDark,
+    required this.label,
+    required this.value,
+    required this.hint,
+    required this.accent,
+  });
+
+  final bool isDark;
+  final String label;
+  final String value;
+  final String hint;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(color: HomeUi.borderLight(isDark)),
+        color: isDark ? const Color(0xFF151822) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: HomeUi.accent(isDark).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(HomeUi.radiusSm),
-              border: Border.all(color: HomeUi.accent(isDark).withValues(alpha: 0.35)),
-            ),
-            child: Text(
-              metrics.label,
-              style: HomeUi.control(isDark).copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: HomeUi.accent(isDark),
-              ),
+          Text(
+            label.toUpperCase(),
+            style: HomeUi.subtitle(isDark).copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.7,
             ),
           ),
-          const SizedBox(height: 14),
-          _ConcentrationBars(isDark: isDark, metrics: metrics),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Text(
-            'HHI ${metrics.hhi.toStringAsFixed(0)} · ${metrics.holdingsCount} holdings',
-            style: HomeUi.subtitle(isDark).copyWith(fontSize: 11),
+            value,
+            style: HomeUi.control(isDark).copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: accent,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            hint,
+            style: HomeUi.subtitle(isDark).copyWith(fontSize: 10.5),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1170,31 +1970,34 @@ class _ConcentrationBars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = HomeUi.accent(isDark);
+    final rows = <({String label, double value, Color color})>[
+      (label: 'Top 1 holding', value: metrics.top1, color: accent),
+      (
+        label: 'Top 3 holdings',
+        value: metrics.top3,
+        color: Color.lerp(accent, HomeUi.muted(isDark), 0.28)!,
+      ),
+      (
+        label: 'Top 5 holdings',
+        value: metrics.top5,
+        color: Color.lerp(accent, HomeUi.muted(isDark), 0.48)!,
+      ),
+    ];
+
     return Column(
       children: [
-        _HorizontalBarRow(
-          isDark: isDark,
-          label: 'Top 1',
-          trailing: formatAllocationPercent(metrics.top1),
-          fraction: metrics.top1 / 100,
-          color: HomeUi.accent(isDark),
-        ),
-        const SizedBox(height: 8),
-        _HorizontalBarRow(
-          isDark: isDark,
-          label: 'Top 3',
-          trailing: formatAllocationPercent(metrics.top3),
-          fraction: metrics.top3 / 100,
-          color: HomeUi.accent(isDark).withValues(alpha: 0.75),
-        ),
-        const SizedBox(height: 8),
-        _HorizontalBarRow(
-          isDark: isDark,
-          label: 'Top 5',
-          trailing: formatAllocationPercent(metrics.top5),
-          fraction: metrics.top5 / 100,
-          color: HomeUi.accent(isDark).withValues(alpha: 0.55),
-        ),
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const SizedBox(height: 14),
+          _HorizontalBarRow(
+            isDark: isDark,
+            label: rows[i].label,
+            trailing: formatAllocationPercent(rows[i].value),
+            fraction: rows[i].value / 100,
+            color: rows[i].color,
+            barHeight: 11,
+          ),
+        ],
       ],
     );
   }
@@ -1211,11 +2014,82 @@ class _CorrelationCard extends StatelessWidget {
     return _AnalyticsCard(
       isDark: isDark,
       title: 'Correlation Matrix',
-      subtitle: 'Daily return correlation · top ${matrix.tickers.length} holdings',
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: _CorrelationHeatmap(isDark: isDark, matrix: matrix),
+      subtitle:
+          'Daily return correlation · top ${matrix.tickers.length} holdings',
+      icon: Icons.grid_on_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+              border: Border.all(color: HomeUi.borderLight(isDark)),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF171A24), const Color(0xFF12151F)]
+                    : [const Color(0xFFFCFCFD), const Color(0xFFF5F7FA)],
+              ),
+            ),
+            child: _CorrelationHeatmap(isDark: isDark, matrix: matrix),
+          ),
+          const SizedBox(height: 12),
+          _CorrelationLegend(isDark: isDark),
+        ],
       ),
+    );
+  }
+}
+
+class _CorrelationLegend extends StatelessWidget {
+  const _CorrelationLegend({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <({String label, Color color})>[
+      (label: 'Self (1.0)', color: HomeUi.accent(isDark)),
+      (
+        label: 'Positive',
+        color: HomeUi.positive(isDark).withValues(alpha: 0.72),
+      ),
+      (
+        label: 'Negative',
+        color: HomeUi.negative(isDark).withValues(alpha: 0.72),
+      ),
+    ];
+
+    return Wrap(
+      spacing: 14,
+      runSpacing: 8,
+      children: items
+          .map(
+            (item) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: item.color,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  item.label,
+                  style: HomeUi.subtitle(isDark).copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -1226,70 +2100,134 @@ class _CorrelationHeatmap extends StatelessWidget {
   final bool isDark;
   final CorrelationMatrix matrix;
 
+  Color _cellColor(double v) {
+    if (v.isNaN || v.isInfinite) {
+      return isDark ? const Color(0xFF1A1D28) : const Color(0xFFF1F5F9);
+    }
+    if (v >= 0.99) return HomeUi.accent(isDark);
+    final t = v.abs().clamp(0.0, 1.0);
+    if (v >= 0) {
+      return Color.lerp(
+        isDark ? const Color(0xFF1A2E28) : const Color(0xFFE8F7F0),
+        HomeUi.positive(isDark),
+        0.35 + t * 0.65,
+      )!;
+    }
+    return Color.lerp(
+      isDark ? const Color(0xFF2A1A1C) : const Color(0xFFFCECEC),
+      HomeUi.negative(isDark),
+      0.35 + t * 0.65,
+    )!;
+  }
+
+  Color _textColor(double v) {
+    if (v.isNaN || v.isInfinite) return HomeUi.muted(isDark);
+    if (v >= 0.99) return Colors.white;
+    if (v.abs() >= 0.55) return Colors.white;
+    return HomeUi.title(isDark);
+  }
+
   @override
   Widget build(BuildContext context) {
-    const cell = 44.0;
     final tickers = matrix.tickers;
     final n = tickers.length;
-
-    Color cellColor(double v) {
-      if (v >= 0.99) return HomeUi.accent(isDark);
-      final t = v.abs().clamp(0.0, 1.0);
-      if (v >= 0) {
-        return HomeUi.positive(isDark).withValues(alpha: 0.15 + t * 0.65);
-      }
-      return HomeUi.negative(isDark).withValues(alpha: 0.15 + t * 0.65);
+    if (n == 0) {
+      return Text('No correlation data', style: HomeUi.subtitle(isDark));
     }
 
-    return Table(
-      defaultColumnWidth: const FixedColumnWidth(cell),
-      children: [
-        TableRow(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final labelCol = 64.0;
+        final available = (constraints.maxWidth - labelCol).clamp(180.0, 900.0);
+        final cell = (available / n).clamp(52.0, 88.0);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(width: cell, height: cell),
-            for (final t in tickers)
-              Center(
-                child: Text(
-                  t,
-                  style: HomeUi.control(isDark).copyWith(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                SizedBox(width: labelCol),
+                for (final t in tickers)
+                  SizedBox(
+                    width: cell,
+                    child: Center(
+                      child: Text(
+                        t,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeUi.control(isDark).copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (var i = 0; i < n; i++) ...[
+              if (i > 0) const SizedBox(height: 6),
+              Row(
+                children: [
+                  SizedBox(
+                    width: labelCol,
+                    child: Text(
+                      tickers[i],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeUi.control(isDark).copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  for (var j = 0; j < n; j++)
+                    SizedBox(
+                      width: cell,
+                      height: cell * 0.78,
+                      child: Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: _cellColor(matrix.values[i][j]),
+                            borderRadius:
+                                BorderRadius.circular(HomeUi.radiusSm),
+                            border: Border.all(
+                              color: HomeUi.borderLight(isDark)
+                                  .withValues(alpha: 0.55),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _cellColor(matrix.values[i][j])
+                                    .withValues(alpha: 0.18),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              matrix.values[i][j].toStringAsFixed(2),
+                              style: TextStyle(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                                fontFamilyFallback: Constants.FONT_FALLBACK,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: _textColor(matrix.values[i][j]),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
-        for (var i = 0; i < n; i++)
-          TableRow(
-            children: [
-              Center(
-                child: Text(
-                  tickers[i],
-                  style: HomeUi.control(isDark).copyWith(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              for (var j = 0; j < n; j++)
-                Container(
-                  width: cell,
-                  height: cell,
-                  margin: const EdgeInsets.all(2),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: cellColor(matrix.values[i][j]),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: HomeUi.borderLight(isDark)),
-                  ),
-                  child: Text(
-                    matrix.values[i][j].toStringAsFixed(2),
-                    style: HomeUi.control(isDark).copyWith(fontSize: 9),
-                  ),
-                ),
             ],
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -1305,6 +2243,8 @@ class _AssetClassCard extends StatelessWidget {
     return _AnalyticsCard(
       isDark: isDark,
       title: 'Asset-Class Exposure',
+      subtitle: 'Allocation across stocks, ETFs & more',
+      icon: Icons.category_rounded,
       child: slices.isEmpty
           ? Text('No asset-class data', style: HomeUi.subtitle(isDark))
           : Column(
@@ -1336,6 +2276,8 @@ class _MarketCapCard extends StatelessWidget {
     return _AnalyticsCard(
       isDark: isDark,
       title: 'Market-Cap Mix',
+      subtitle: 'Large · mid · small · micro weight',
+      icon: Icons.pie_chart_outline_rounded,
       child: buckets.isEmpty
           ? Text('No market-cap data', style: HomeUi.subtitle(isDark))
           : Column(
@@ -1424,21 +2366,92 @@ class _MoverCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: HomeUi.cardDecoration(isDark),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.28 : 0.18),
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  Color.alphaBlend(
+                    color.withValues(alpha: 0.14),
+                    const Color(0xFF171A24),
+                  ),
+                  const Color(0xFF141720),
+                ]
+              : [
+                  Color.alphaBlend(
+                    color.withValues(alpha: 0.07),
+                    const Color(0xFFFCFCFD),
+                  ),
+                  Colors.white,
+                ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: isDark ? 0.12 : 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: HomeUi.subtitle(isDark).copyWith(fontSize: 11)),
-          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: isDark ? 0.2 : 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  positive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                  size: 16,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: HomeUi.subtitle(isDark).copyWith(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
             holding.ticker,
-            style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w800, fontSize: 16),
+            style: HomeUi.control(isDark).copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: 17,
+            ),
           ),
-          Text(holding.name, style: HomeUi.subtitle(isDark), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 8),
           Text(
-            change == null ? '—' : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color),
+            holding.name,
+            style: HomeUi.subtitle(isDark),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            change == null
+                ? '—'
+                : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: -0.3,
+            ),
           ),
         ],
       ),
@@ -1454,6 +2467,7 @@ class _HorizontalBarRow extends StatelessWidget {
     required this.fraction,
     required this.color,
     this.subtitle,
+    this.barHeight = 9,
   });
 
   final bool isDark;
@@ -1462,9 +2476,12 @@ class _HorizontalBarRow extends StatelessWidget {
   final double fraction;
   final Color color;
   final String? subtitle;
+  final double barHeight;
 
   @override
   Widget build(BuildContext context) {
+    final track = isDark ? const Color(0xFF2A2F3A) : const Color(0xFFEEF1F5);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1474,26 +2491,60 @@ class _HorizontalBarRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: HomeUi.control(isDark).copyWith(fontSize: 12)),
+                  Text(
+                    label,
+                    style: HomeUi.control(isDark).copyWith(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   if (subtitle != null)
-                    Text(subtitle!, style: HomeUi.subtitle(isDark).copyWith(fontSize: 10)),
+                    Text(
+                      subtitle!,
+                      style: HomeUi.subtitle(isDark).copyWith(fontSize: 10),
+                    ),
                 ],
               ),
             ),
             Text(
               trailing,
-              style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
+              style: HomeUi.control(isDark).copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 12.5,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: LinearProgressIndicator(
-            value: fraction.clamp(0.0, 1.0),
-            minHeight: 6,
-            backgroundColor: HomeUi.elevatedBg(isDark),
-            valueColor: AlwaysStoppedAnimation(color),
+        const SizedBox(height: 7),
+        Container(
+          height: barHeight,
+          decoration: BoxDecoration(
+            color: track,
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : const Color(0xFFE2E6EC),
+              width: 0.8,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: fraction.clamp(0.0, 1.0),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    color,
+                    Color.lerp(color, Colors.white, isDark ? 0.14 : 0.1)!,
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -1511,21 +2562,45 @@ class _KpiTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 150,
-      padding: const EdgeInsets.all(14),
+      width: 158,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
         border: Border.all(color: HomeUi.borderLight(isDark)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1A1D28), const Color(0xFF141720)]
+              : [const Color(0xFFFCFCFD), Colors.white],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: HomeUi.subtitle(isDark).copyWith(fontSize: 12)),
-          const SizedBox(height: 6),
+          Text(
+            label.toUpperCase(),
+            style: HomeUi.subtitle(isDark).copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 8),
           Text(
             value ?? '—',
-            style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w800, fontSize: 18),
+            style: HomeUi.control(isDark).copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              letterSpacing: -0.3,
+            ),
           ),
         ],
       ),
@@ -1543,68 +2618,235 @@ class _ChipMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: HomeUi.elevatedBg(isDark),
-        borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+        color: isDark ? const Color(0xFF151822) : Colors.white,
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
         border: Border.all(color: HomeUi.borderLight(isDark)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: HomeUi.subtitle(isDark).copyWith(fontSize: 10)),
-          Text(value, style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(
+            label.toUpperCase(),
+            style: HomeUi.subtitle(isDark).copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.7,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: HomeUi.control(isDark).copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _PeriodMetric extends StatelessWidget {
-  const _PeriodMetric({
+class _InteractiveSparkline extends StatefulWidget {
+  const _InteractiveSparkline({
     required this.isDark,
-    required this.label,
-    this.value,
-    this.loading = false,
-    this.large = false,
+    required this.values,
+    required this.dates,
+    required this.lineColor,
+    required this.fillColor,
   });
 
   final bool isDark;
-  final String label;
-  final double? value;
-  final bool loading;
-  final bool large;
+  final List<double> values;
+  final List<DateTime> dates;
+  final Color lineColor;
+  final Color fillColor;
+
+  @override
+  State<_InteractiveSparkline> createState() => _InteractiveSparklineState();
+}
+
+class _InteractiveSparklineState extends State<_InteractiveSparkline> {
+  int? _hoverIndex;
+  bool _hoverUpdateScheduled = false;
+  int? _pendingHoverIndex;
+
+  void _scheduleHoverIndex(int? next) {
+    if (next == _hoverIndex && _pendingHoverIndex == null) return;
+    if (next == _pendingHoverIndex) return;
+    _pendingHoverIndex = next;
+    if (_hoverUpdateScheduled) return;
+    _hoverUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _hoverUpdateScheduled = false;
+      if (!mounted) return;
+      final pending = _pendingHoverIndex;
+      _pendingHoverIndex = null;
+      if (pending == _hoverIndex) return;
+      setState(() => _hoverIndex = pending);
+    });
+  }
+
+  void _updateHover(Offset local, Size size) {
+    final values = widget.values;
+    if (values.length < 2 || size.width <= 0) return;
+    final last = values.length - 1;
+    final t = (local.dx / size.width).clamp(0.0, 1.0);
+    final next = (t * last).round().clamp(0, last);
+    _scheduleHoverIndex(next);
+  }
+
+  void _clearHover() => _scheduleHoverIndex(null);
+
+  String _formatDate(int index) {
+    if (index < 0 || index >= widget.dates.length) return 'Point ${index + 1}';
+    return DateFormat('dd MMM yyyy').format(widget.dates[index]);
+  }
+
+  String _formatChange(int index) {
+    final values = widget.values;
+    if (values.isEmpty || index < 0 || index >= values.length) return '—';
+    final base = values.first;
+    if (base <= 0) return values[index].toStringAsFixed(2);
+    final change = (values[index] / base - 1) * 100;
+    final sign = change >= 0 ? '+' : '';
+    return '$sign${change.toStringAsFixed(2)}%';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final hasValue = value != null;
-    final positive = (value ?? 0) >= 0;
-    final color = !hasValue
-        ? HomeUi.muted(isDark)
-        : (positive ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
+    final values = widget.values;
+    final hover = _hoverIndex;
+    final tipChange = hover == null ? null : _formatChange(hover);
+    final tipDate = hover == null ? null : _formatDate(hover);
+    final tipPositive = hover != null &&
+        values.isNotEmpty &&
+        values.first > 0 &&
+        values[hover] >= values.first;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: HomeUi.subtitle(isDark).copyWith(fontSize: 12, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 4),
-        if (loading)
-          WatchlistShimmer.metricValue(isDarkMode: isDark)
-        else
-          Text(
-            !hasValue
-                ? '—'
-                : '${positive ? '▲' : '▼'} ${value!.abs().toStringAsFixed(2)}%',
-            style: TextStyle(
-              fontSize: large ? 22 : 15,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        return MouseRegion(
+          opaque: false,
+          cursor: SystemMouseCursors.precise,
+          onHover: (event) => _updateHover(event.localPosition, size),
+          onExit: (_) => _clearHover(),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _SparklinePainter(
+                    values: values,
+                    lineColor: widget.lineColor,
+                    fillColor: widget.fillColor,
+                    strokeWidth: 2.4,
+                    hoverIndex: hover,
+                    isDark: widget.isDark,
+                  ),
+                ),
+              ),
+              if (hover != null && tipDate != null && tipChange != null)
+                _SparklineTooltip(
+                  isDark: widget.isDark,
+                  dateLabel: tipDate,
+                  changeLabel: tipChange,
+                  positive: tipPositive,
+                  chartSize: size,
+                  hoverIndex: hover,
+                  pointCount: values.length,
+                ),
+            ],
           ),
-      ],
+        );
+      },
+    );
+  }
+}
+
+class _SparklineTooltip extends StatelessWidget {
+  const _SparklineTooltip({
+    required this.isDark,
+    required this.dateLabel,
+    required this.changeLabel,
+    required this.positive,
+    required this.chartSize,
+    required this.hoverIndex,
+    required this.pointCount,
+  });
+
+  final bool isDark;
+  final String dateLabel;
+  final String changeLabel;
+  final bool positive;
+  final Size chartSize;
+  final int hoverIndex;
+  final int pointCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final last = math.max(1, pointCount - 1);
+    final x = chartSize.width * (hoverIndex / last);
+    const tipWidth = 128.0;
+    final left = (x - tipWidth / 2).clamp(0.0, chartSize.width - tipWidth);
+
+    return Positioned(
+      left: left,
+      top: 0,
+      child: IgnorePointer(
+        child: Container(
+          width: tipWidth,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1D28) : Colors.white,
+            borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+            border: Border.all(color: HomeUi.borderLight(isDark)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.1),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                dateLabel,
+                style: HomeUi.subtitle(isDark).copyWith(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                changeLabel,
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontFamilyFallback: Constants.FONT_FALLBACK,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: positive
+                      ? HomeUi.positive(isDark)
+                      : HomeUi.negative(isDark),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1615,12 +2857,16 @@ class _SparklinePainter extends CustomPainter {
     required this.lineColor,
     required this.fillColor,
     this.strokeWidth = 2,
+    this.hoverIndex,
+    this.isDark = false,
   });
 
   final List<double> values;
   final Color lineColor;
   final Color fillColor;
   final double strokeWidth;
+  final int? hoverIndex;
+  final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1633,7 +2879,7 @@ class _SparklinePainter extends CustomPainter {
       maxV = math.max(maxV, v);
     }
     final span = (maxV - minV).abs() < 1e-9 ? 1.0 : (maxV - minV);
-    const padY = 2.0;
+    const padY = 4.0;
     final usableH = size.height - padY * 2;
     final last = values.length - 1;
 
@@ -1669,12 +2915,62 @@ class _SparklinePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
         ..color = lineColor,
+    );
+
+    final end = pointAt(last);
+    canvas.drawCircle(
+      end,
+      strokeWidth + 1.5,
+      Paint()..color = lineColor.withValues(alpha: 0.22),
+    );
+    canvas.drawCircle(
+      end,
+      strokeWidth * 0.7,
+      Paint()..color = lineColor,
+    );
+
+    final hover = hoverIndex;
+    if (hover == null || hover < 0 || hover > last) return;
+
+    final p = pointAt(hover);
+    final guide = Paint()
+      ..color = lineColor.withValues(alpha: isDark ? 0.35 : 0.28)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    const dash = 4.0;
+    var y = 0.0;
+    while (y < size.height) {
+      canvas.drawLine(Offset(p.dx, y), Offset(p.dx, math.min(y + dash, size.height)), guide);
+      y += dash * 2;
+    }
+
+    canvas.drawCircle(
+      p,
+      strokeWidth + 3.5,
+      Paint()..color = lineColor.withValues(alpha: 0.18),
+    );
+    canvas.drawCircle(
+      p,
+      strokeWidth + 1.2,
+      Paint()
+        ..color = isDark ? const Color(0xFF12151F) : Colors.white
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      p,
+      strokeWidth * 0.85,
+      Paint()..color = lineColor,
     );
   }
 
   @override
   bool shouldRepaint(covariant _SparklinePainter oldDelegate) {
-    return oldDelegate.values != values || oldDelegate.lineColor != lineColor;
+    return oldDelegate.values != values ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.hoverIndex != hoverIndex ||
+        oldDelegate.isDark != isDark;
   }
 }

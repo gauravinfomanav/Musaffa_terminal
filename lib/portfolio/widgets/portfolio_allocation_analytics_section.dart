@@ -203,9 +203,18 @@ class _PortfolioAllocationAnalyticsSectionState
                       child: ModelBreakdownDonut(
                         isDark: isDark,
                         slices: sectorSlices.take(5).toList(),
+                        colors: sectorSlices
+                            .take(5)
+                            .map(
+                              (s) => PortfolioAllocationPalette.sectorColor(
+                                s.label,
+                                isDark,
+                              ),
+                            )
+                            .toList(),
                         centerValue: formatAllocationPercent(totalPercent),
                         centerLabel: 'Total',
-                        size: 140,
+                        size: 168,
                       ),
                     ),
                     const SizedBox(height: 10),
