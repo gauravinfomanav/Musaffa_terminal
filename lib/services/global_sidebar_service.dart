@@ -6,6 +6,7 @@ enum SidebarNavItem {
   dashboard,
   screener,
   ideas,
+  modelPortfolio,
   portfolio,
   watchlist,
   earnings,

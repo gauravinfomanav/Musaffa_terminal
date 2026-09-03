@@ -11,7 +11,9 @@ class SnackBarUtils {
     Duration duration = const Duration(seconds: 2),
     bool isError = false,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
         content: Text(
           message,

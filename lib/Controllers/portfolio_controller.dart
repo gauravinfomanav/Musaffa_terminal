@@ -26,6 +26,7 @@ class PortfolioController extends GetxController {
     String? investmentHorizon,
     double? expectedRateOfReturn,
     String? commentary,
+    String? portfolioType,
   }) async {
     if (isSaving.value) return null;
     try {
@@ -45,6 +46,7 @@ class PortfolioController extends GetxController {
         if (investmentHorizon != null && investmentHorizon.isNotEmpty) 'investment_horizon': investmentHorizon,
         if (expectedRateOfReturn != null) 'expected_rate_of_return': expectedRateOfReturn,
         if (commentary != null && commentary.isNotEmpty) 'commentary': commentary,
+        if (portfolioType != null && portfolioType.isNotEmpty) 'portfolio_type': portfolioType,
         'status': 'active',
       };
 
@@ -100,6 +102,7 @@ class PortfolioController extends GetxController {
     String? investmentHorizon,
     double? expectedRateOfReturn,
     String? commentary,
+    String? portfolioType,
   }) async {
     if (isSaving.value) return null;
     try {
@@ -125,6 +128,7 @@ class PortfolioController extends GetxController {
       if (investmentHorizon != null && investmentHorizon.isNotEmpty) body['investment_horizon'] = investmentHorizon;
       if (expectedRateOfReturn != null) body['expected_rate_of_return'] = expectedRateOfReturn;
       if (commentary != null && commentary.isNotEmpty) body['commentary'] = commentary;
+      if (portfolioType != null && portfolioType.isNotEmpty) body['portfolio_type'] = portfolioType;
 
       print('📤 [PortfolioController] Saving draft...');
       print('📤 Request body: ${jsonEncode(body)}');
@@ -179,6 +183,7 @@ class PortfolioController extends GetxController {
     String? investmentHorizon,
     double? expectedRateOfReturn,
     String? commentary,
+    String? portfolioType,
   }) async {
     if (isSaving.value) return null;
     try {
@@ -198,6 +203,7 @@ class PortfolioController extends GetxController {
       if (investmentHorizon != null && investmentHorizon.isNotEmpty) body['investment_horizon'] = investmentHorizon;
       if (expectedRateOfReturn != null) body['expected_rate_of_return'] = expectedRateOfReturn;
       if (commentary != null && commentary.isNotEmpty) body['commentary'] = commentary;
+      if (portfolioType != null && portfolioType.isNotEmpty) body['portfolio_type'] = portfolioType;
 
       print('📤 [PortfolioController] Updating portfolio: $portfolioId');
       print('📤 Request body: ${jsonEncode(body)}');
@@ -510,10 +516,11 @@ class PortfolioController extends GetxController {
     }
   }
 
-  /// Fetch a single portfolio by ID
+  /// Fetch a single portfolio by ID.
+  /// Does not toggle [isLoading] — that flag drives list Obx widgets and must
+  /// not be flipped during route build (e.g. opening the model editor).
   Future<Portfolio?> getPortfolio(String portfolioId) async {
     try {
-      isLoading.value = true;
       errorMessage.value = '';
 
       print('📤 [PortfolioController] Fetching portfolio: $portfolioId');
@@ -531,23 +538,18 @@ class PortfolioController extends GetxController {
       if (response.status == ApiStatus.SUCCESS && response.data != null) {
         final jsonData = jsonDecode(response.data!);
         if (jsonData['status'] == 'success' && jsonData['data'] != null) {
-          final portfolio = Portfolio.fromJson(jsonData['data'] as Map<String, dynamic>);
-          isLoading.value = false;
-          return portfolio;
+          return Portfolio.fromJson(jsonData['data'] as Map<String, dynamic>);
         } else {
           errorMessage.value = jsonData['message'] ?? 'Portfolio not found';
-          isLoading.value = false;
           return null;
         }
       } else {
         final decoded = _tryDecode(response.data);
         errorMessage.value = decoded?['message'] ?? response.errorMessage ?? 'Failed to fetch portfolio';
-        isLoading.value = false;
         return null;
       }
     } catch (e) {
       errorMessage.value = 'Error fetching portfolio: $e';
-      isLoading.value = false;
       return null;
     }
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:musaffa_terminal/portfolio/utils/allocation_format.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 
 /// Visual tokens for dashboard and shared card surfaces.
@@ -198,7 +199,7 @@ class HomeUi {
   /// Outlined header control — same height as [primaryAction].
   static Widget ghostAction({
     required String label,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     required bool dark,
     IconData? icon,
   }) {
@@ -1531,8 +1532,8 @@ class HomeUi {
     IconData icon = Icons.donut_large_rounded,
   }) {
     final normalized = percentage / 100;
-    final isComplete = (percentage - 100.0).abs() < 0.01;
-    final isOver = percentage > 100.0;
+    final isComplete = isAllocationBalanced(percentage);
+    final isOver = isAllocationOver(percentage);
     final chipColor = isComplete
         ? const Color(0xFF10B981)
         : isOver
@@ -1761,7 +1762,7 @@ class _GhostAction extends StatefulWidget {
   });
 
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool dark;
   final IconData? icon;
 
@@ -1778,7 +1779,9 @@ class _GhostActionState extends State<_GhostAction> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
+      cursor: widget.onTap != null
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(

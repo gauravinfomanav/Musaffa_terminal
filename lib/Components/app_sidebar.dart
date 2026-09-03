@@ -6,6 +6,7 @@ import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/Screens/earnings_calendar_screen.dart';
 import 'package:musaffa_terminal/Screens/economic_calendar_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
+import 'package:musaffa_terminal/portfolio/screens/model_portfolios_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
 import 'package:musaffa_terminal/Screens/watchlist_screen.dart';
@@ -140,6 +141,20 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
     FeatureNavigation.toIfAllowed(
       FeatureKeys.tradingIdeas,
       () => const TradingIdeasScreen(),
+    );
+  }
+
+  void _goModelPortfolios() {
+    final sidebar = Get.find<GlobalSidebarService>();
+    if (sidebar.activeItem.value == SidebarNavItem.modelPortfolio) {
+      sidebar.close();
+      return;
+    }
+    sidebar.setActive(SidebarNavItem.modelPortfolio);
+    sidebar.close();
+    FeatureNavigation.toIfAllowed(
+      FeatureKeys.portfolios,
+      () => const ModelPortfoliosScreen(),
     );
   }
 
@@ -464,7 +479,16 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
                               if (canPortfolios)
                                 _NavTile(
                                   glyph: SidebarGlyph.portfolio,
-                                  label: 'Portfolios',
+                                  label: 'Model Portfolios',
+                                  selected:
+                                      active == SidebarNavItem.modelPortfolio,
+                                  isDark: isDark,
+                                  onTap: _goModelPortfolios,
+                                ),
+                              if (canPortfolios)
+                                _NavTile(
+                                  glyph: SidebarGlyph.portfolio,
+                                  label: 'Assignments',
                                   selected:
                                       active == SidebarNavItem.portfolio,
                                   isDark: isDark,

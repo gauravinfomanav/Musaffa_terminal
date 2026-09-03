@@ -28,9 +28,22 @@ import 'package:musaffa_terminal/Components/table_pagination_bar.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:musaffa_terminal/models/stocks_data.dart';
+import 'package:musaffa_terminal/models/ticker_model.dart';
+import 'package:musaffa_terminal/portfolio/models/model_portfolio_holding.dart';
+import 'package:musaffa_terminal/portfolio/services/model_portfolio_enrichment.dart';
+import 'package:musaffa_terminal/portfolio/services/portfolio_builder_session.dart';
 
 class ScreenerScreen extends StatefulWidget {
-  const ScreenerScreen({Key? key}) : super(key: key);
+  const ScreenerScreen({
+    Key? key,
+    this.portfolioPickMode = false,
+    this.replaceTicker,
+  }) : super(key: key);
+
+  /// When true, rows expose "Add to Portfolio" for the active model draft.
+  final bool portfolioPickMode;
+  final String? replaceTicker;
 
   @override
   State<ScreenerScreen> createState() => _ScreenerScreenState();
@@ -97,9 +110,12 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   void initState() {
     super.initState();
     print('🚀 [ScreenerScreen] initState called');
-    if (Get.isRegistered<GlobalSidebarService>()) {
-      Get.find<GlobalSidebarService>().setActive(SidebarNavItem.screener);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (Get.isRegistered<GlobalSidebarService>()) {
+        Get.find<GlobalSidebarService>().setActive(SidebarNavItem.screener);
+      }
+    });
 
     // Initialize Controllers
     filterController = Get.put(FilterController());
@@ -124,8 +140,10 @@ class _ScreenerScreenState extends State<ScreenerScreen>
     _loadFilters();
     _loadResultsTabs();
 
-    // Load default stocks on screen load
-    _loadDefaultStocks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadDefaultStocks();
+    });
   }
 
   Future<void> _loadDefaultStocks() async {
@@ -510,6 +528,10 @@ class _ScreenerScreenState extends State<ScreenerScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildHeader(isDarkMode),
+                              if (widget.portfolioPickMode) ...[
+                                const SizedBox(height: 12),
+                                _buildPortfolioPickBanner(isDarkMode),
+                              ],
                               const SizedBox(
                                   height: LayoutConstants.SECTION_GAP),
                               _isLoadingFilters
@@ -1264,7 +1286,11 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           price: stock.currentPrice,
           changePercent: stock.priceChange1DPercent,
           currency: stock.currency ?? 'USD',
-          fields: _getFieldsForStock(stock),
+          fields: {
+            ..._getFieldsForStock(stock),
+            if (widget.portfolioPickMode)
+              'portfolio_add': _buildPortfolioAddCell(stock, isDarkMode),
+          },
           changeColor: changeColor,
           isPositive: isPositive,
         );
@@ -1407,7 +1433,18 @@ class _ScreenerScreenState extends State<ScreenerScreen>
         width: (column.width ?? _screenerColumnWidth(column.id, column.type))
             .toDouble(),
       );
-    }).toList();
+    }).toList()
+      ..addAll(
+        widget.portfolioPickMode
+            ? [
+                const SimpleColumn(
+                  label: 'ADD',
+                  fieldName: 'portfolio_add',
+                  width: 72,
+                ),
+              ]
+            : [],
+      );
   }
 
   double _screenerColumnWidth(String id, String type) {
@@ -1654,6 +1691,92 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           ? '\$${stock.revenuePerShareAnnual!.toStringAsFixed(2)}'
           : '--',
     };
+  }
+
+  Widget _buildPortfolioPickBanner(bool isDarkMode) {
+    final session = PortfolioBuilderSession.ensureRegistered();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A2332) : const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF2D4A6F) : const Color(0xFFBFDBFE),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.pie_chart_outline_rounded,
+              size: 18, color: HomeUi.accent(isDarkMode)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              widget.replaceTicker != null
+                  ? 'Replace ${widget.replaceTicker} — pick a stock and set target %'
+                  : 'Research stocks here, then add them to your model portfolio draft',
+              style: HomeUi.control(isDarkMode).copyWith(fontSize: 12),
+            ),
+          ),
+          if (session.portfolioName.isNotEmpty)
+            Text(
+              session.portfolioName,
+              style: HomeUi.control(isDarkMode).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortfolioAddCell(StocksData stock, bool isDarkMode) {
+    return IconButton(
+      tooltip: 'Add to Portfolio',
+      icon: Icon(Icons.add_circle_outline_rounded,
+          size: 18, color: HomeUi.accent(isDarkMode)),
+      onPressed: () => _promptAddStockToPortfolio(stock),
+    );
+  }
+
+  Future<void> _promptAddStockToPortfolio(StocksData stock) async {
+    final ticker = stock.ticker ?? stock.companySymbol ?? '';
+    if (ticker.isEmpty) return;
+
+    final model = TickerModel(
+      symbol: ticker,
+      ticker: ticker,
+      companyName:
+          filterController.companyNamesMap[ticker] ?? stock.companySymbol,
+      exchange: stock.exchange,
+      sectorname: stock.sector,
+      currentPrice: stock.currentPrice,
+      logo: filterController.logoMap[ticker],
+      isStock: true,
+    );
+
+    final holding = ModelPortfolioHolding.fromTicker(model);
+    await enrichModelPortfolioHoldings([holding]);
+    if (stock.usdMarketCap != null &&
+        (holding.marketCap == null || holding.marketCap! <= 0)) {
+      holding.marketCap = stock.usdMarketCap!.toDouble();
+    }
+
+    final session = PortfolioBuilderSession.ensureRegistered();
+    final normalized = ticker.trim().toUpperCase();
+    if (session.holdings.any((h) => h.ticker.trim().toUpperCase() == normalized)) {
+      return;
+    }
+
+    if (widget.replaceTicker != null) {
+      session.removeHolding(widget.replaceTicker!);
+    }
+    session.addOrUpdateHolding(holding);
+
+    if (mounted && widget.replaceTicker != null) {
+      Get.back();
+    }
   }
 
   Widget _buildAddToWatchlistButton(bool isDarkMode) {

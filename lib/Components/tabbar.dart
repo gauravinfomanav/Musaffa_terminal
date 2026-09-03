@@ -18,6 +18,7 @@ import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
+import 'package:musaffa_terminal/portfolio/screens/model_portfolios_screen.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Controllers/floating_action_buttons_controller.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
@@ -1203,10 +1204,29 @@ class _NavToolsCluster extends StatelessWidget {
           ),
         if (canPortfolios && !fab.shouldHideInTabbar(FABType.portfolio))
           _ToolSpec(
-            label: 'Portfolios',
-            icon: CupertinoIcons.chart_pie_fill,
+            label: 'Models',
+            icon: CupertinoIcons.square_grid_2x2_fill,
             fabType: FABType.portfolio,
-            tooltip: 'Open Portfolios  ·  Drag to pin',
+            tooltip: 'Model Portfolios  ·  Drag to pin',
+            onTap: () {
+              if (Get.isRegistered<GlobalSidebarService>()) {
+                Get.find<GlobalSidebarService>()
+                    .setActive(SidebarNavItem.modelPortfolio);
+              }
+              FeatureNavigation.pushIfAllowed(
+                context,
+                FeatureKeys.portfolios,
+                const ModelPortfoliosScreen(),
+              );
+            },
+            navItem: SidebarNavItem.modelPortfolio,
+          ),
+        if (canPortfolios && !fab.shouldHideInTabbar(FABType.portfolio))
+          _ToolSpec(
+            label: 'Assign',
+            icon: CupertinoIcons.person_2_fill,
+            fabType: FABType.portfolio,
+            tooltip: 'Portfolio Assignments  ·  Drag to pin',
             onTap: () => _goPortfolio(context),
             navItem: SidebarNavItem.portfolio,
           ),

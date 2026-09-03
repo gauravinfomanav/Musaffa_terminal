@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -9,15 +7,15 @@ import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/global_fab_overlay.dart';
 import 'package:musaffa_terminal/Components/sliding_pill_tabs.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
+import 'package:musaffa_terminal/Controllers/portfolio_assignment_controller.dart';
+import 'package:musaffa_terminal/models/portfolio_assignment_model.dart';
+import 'package:musaffa_terminal/portfolio/screens/assign_portfolio_screen.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
-import 'package:musaffa_terminal/Controllers/portfolio_controller.dart';
-import 'package:musaffa_terminal/models/portfolio_model.dart';
-import 'package:musaffa_terminal/Screens/portfolio_builder_form.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
 
@@ -28,14 +26,16 @@ class PortfolioIdeaScreen extends StatefulWidget {
   State<PortfolioIdeaScreen> createState() => _PortfolioIdeaScreenState();
 }
 
-class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTickerProviderStateMixin {
+class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen>
+    with SingleTickerProviderStateMixin {
   late final WatchlistController _watchlistController;
-  final GlobalWatchlistService _watchlistService = Get.find<GlobalWatchlistService>();
+  final GlobalWatchlistService _watchlistService =
+      Get.find<GlobalWatchlistService>();
   late TabController _tabController;
   int _selectedTabIndex = 0;
   int _previousTabIndex = 0;
 
-  late PortfolioController _portfolioController;
+  late PortfolioAssignmentController _assignmentController;
 
   @override
   void initState() {
@@ -44,23 +44,21 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
       Get.find<GlobalSidebarService>().setActive(SidebarNavItem.portfolio);
     }
     _watchlistController = WatchlistController.ensureRegistered();
-    _portfolioController = Get.put(PortfolioController());
+    _assignmentController = Get.put(PortfolioAssignmentController());
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
-        // Only update UI state when animation is complete
         final newIndex = _tabController.index;
         if (newIndex != _previousTabIndex) {
-      setState(() {
+          setState(() {
             _selectedTabIndex = newIndex;
             _previousTabIndex = newIndex;
-      });
+          });
         }
       }
     });
-    // Load active portfolios on init - defer to after build completes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _portfolioController.fetchActivePortfolios();
+      _assignmentController.fetchAssignments(status: 'active');
     });
   }
 
@@ -77,34 +75,19 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
     _watchlistService.toggleWatchlist();
   }
 
-  void _refreshPortfolioList() {
+  void _refreshAssignmentList() {
     if (_selectedTabIndex == 0) {
-      _portfolioController.fetchActivePortfolios();
+      _assignmentController.fetchAssignments(status: 'active');
     } else {
-      _portfolioController.fetchDraftPortfolios();
+      _assignmentController.fetchAssignments(status: 'draft');
     }
   }
 
-  Future<void> _openNewPortfolioModal() async {
-    await _showPremiumPortfolioDialog(
-      barrierDismissible: false,
-      child: _PortfolioBuilderModal(
-        title: 'New Portfolio',
-        subtitle: 'Define client mandate, holdings, and allocation targets.',
-        child: PortfolioBuilderForm(
-          embeddedInModal: true,
-          onCancel: () => Navigator.pop(context),
-          onSaveDraft: () {
-            Navigator.pop(context);
-            _refreshPortfolioList();
-          },
-          onSavePortfolio: () {
-            Navigator.pop(context);
-            _refreshPortfolioList();
-          },
-        ),
-      ),
-    );
+  Future<void> _openAssignPortfolioModal() async {
+    final result = await Get.to(() => const AssignPortfolioScreen());
+    if (result == true && mounted) {
+      _refreshAssignmentList();
+    }
   }
 
   @override
@@ -192,19 +175,19 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Portfolios', style: HomeUi.heading(isDark)),
+              Text('Assign Portfolio', style: HomeUi.heading(isDark)),
               const SizedBox(height: 4),
               Text(
-                'Client books, allocations, and estimated returns.',
+                'Assign an existing model portfolio to customers.',
                 style: HomeUi.subtitle(isDark),
               ),
             ],
           ),
         ),
         HomeUi.primaryAction(
-          label: 'New Portfolio',
-          icon: Icons.add_rounded,
-          onTap: _openNewPortfolioModal,
+          label: 'Assign Portfolio',
+          icon: Icons.person_add_rounded,
+          onTap: _openAssignPortfolioModal,
         ),
       ],
     );
@@ -223,7 +206,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
 
   Widget _buildTabs(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tabs = ['Active Portfolios', 'Drafts'];
+    final tabs = ['Active Assignments', 'Pending Drafts'];
 
     return SlidingPillTabs(
       itemCount: tabs.length,
@@ -238,9 +221,9 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
           _previousTabIndex = index;
         });
         if (index == 0) {
-          _portfolioController.fetchActivePortfolios();
+          _assignmentController.fetchAssignments(status: 'active');
         } else {
-          _portfolioController.fetchDraftPortfolios();
+          _assignmentController.fetchAssignments(status: 'draft');
         }
       },
       itemBuilder: (context, index, isSelected) {
@@ -259,26 +242,26 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
   Widget _buildPortfoliosList(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isActiveTab = _selectedTabIndex == 0;
-    final title = isActiveTab ? 'Active Portfolios' : 'Draft Portfolios';
+    final title = isActiveTab ? 'Active Assignments' : 'Pending Assignments';
     final emptyMessage = isActiveTab
-        ? 'No active portfolios yet.'
-        : 'No draft portfolios yet.';
+        ? 'No active customer assignments yet.'
+        : 'No pending assignment drafts.';
 
     return Obx(() {
-      final isLoading = _portfolioController.isLoading.value;
-      final portfolios = isActiveTab
-          ? _portfolioController.activePortfolios
-          : _portfolioController.draftPortfolios;
-      final countLabel = portfolios.length == 1
+      final isLoading = _assignmentController.isLoading.value;
+      final assignments = isActiveTab
+          ? _assignmentController.activeAssignments.toList()
+          : _assignmentController.draftAssignments.toList();
+      final countLabel = assignments.length == 1
           ? (isActiveTab
-              ? '1 portfolio in your book'
+              ? '1 assignment in your book'
               : '1 draft in progress')
           : (isActiveTab
-              ? '${portfolios.length} portfolios in your book'
-              : '${portfolios.length} drafts in progress');
+              ? '${assignments.length} assignments in your book'
+              : '${assignments.length} drafts in progress');
 
       Widget content;
-      if (isLoading && portfolios.isEmpty) {
+      if (isLoading && assignments.isEmpty) {
         content = Padding(
           padding: const EdgeInsets.all(16),
           child: ShimmerWidgets.perShareTableShimmer(
@@ -287,7 +270,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
                 isDark ? const Color(0xFF404040) : const Color(0xFFF3F4F6),
           ),
         );
-      } else if (portfolios.isEmpty) {
+      } else if (assignments.isEmpty) {
         content = Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           child: Column(
@@ -307,8 +290,8 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
           ),
         );
       } else {
-        content = _buildPortfolioTable(
-          portfolios,
+        content = _buildAssignmentTable(
+          assignments,
           isDark,
           title: title,
           subtitle: countLabel,
@@ -317,7 +300,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
 
       return Container(
         width: double.infinity,
-        padding: portfolios.isEmpty && !isLoading
+        padding: assignments.isEmpty && !isLoading
             ? EdgeInsets.zero
             : const EdgeInsets.fromLTRB(0, 16, 0, 16),
         decoration: HomeUi.cardDecoration(isDark),
@@ -327,26 +310,30 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
     });
   }
 
-  Widget _buildPortfolioTable(
-    List<PortfolioSummary> portfolios,
+  Widget _buildAssignmentTable(
+    List<PortfolioAssignmentSummary> assignments,
     bool isDark, {
     required String title,
     required String subtitle,
   }) {
-    final rows = portfolios.map((portfolio) {
+    final rows = assignments.map((assignment) {
       return SimpleRowModel(
         symbol: '',
-        name: portfolio.portfolioName,
+        name: assignment.modelPortfolioName,
         logo: null,
         fields: {
-          'client':
-              portfolio.clientName.trim().isEmpty ? '--' : portfolio.clientName,
-          'capital': _formatCurrency(portfolio.initialCapital),
-          'holdings': portfolio.holdingsCount.toString(),
-          'allocation': '${portfolio.allocationPercent.toStringAsFixed(1)}%',
-          'returns': _formatCurrency(portfolio.estimatedReturns),
-          'updated': _formatDate(portfolio.lastUpdated),
-          'actions': _buildActionsMenu(portfolio, isDark),
+          'client': assignment.customerName.trim().isEmpty
+              ? '--'
+              : assignment.customerName,
+          'capital': _formatCurrency(assignment.investmentAmount),
+          'holdings': assignment.holdingsCount.toString(),
+          'allocation':
+              '${assignment.allocationPercent.toStringAsFixed(1)}%',
+          'code': assignment.assignmentCode ?? '--',
+          'updated': assignment.lastUpdated != null
+              ? _formatDate(assignment.lastUpdated!)
+              : '--',
+          'actions': _buildActionsMenu(assignment, isDark),
         },
       );
     }).toList();
@@ -358,14 +345,14 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
         const baseCapital = 120.0;
         const baseHoldings = 100.0;
         const baseAllocation = 120.0;
-        const baseReturns = 130.0;
+        const baseCode = 130.0;
         const baseUpdated = 140.0;
         const baseActions = 80.0;
         const totalBaseWidth = baseClient +
             baseCapital +
             baseHoldings +
             baseAllocation +
-            baseReturns +
+            baseCode +
             baseUpdated +
             baseActions;
 
@@ -383,7 +370,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
             width: baseClient * widthScale,
           ),
           SimpleColumn(
-            label: 'CAPITAL',
+            label: 'AMOUNT',
             fieldName: 'capital',
             width: baseCapital * widthScale,
             isNumeric: true,
@@ -401,10 +388,9 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
             isNumeric: true,
           ),
           SimpleColumn(
-            label: 'EST. RETURNS',
-            fieldName: 'returns',
-            width: baseReturns * widthScale,
-            isNumeric: true,
+            label: 'CODE',
+            fieldName: 'code',
+            width: baseCode * widthScale,
           ),
           SimpleColumn(
             label: 'LAST UPDATED',
@@ -437,15 +423,15 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
           enableColumnCustomization: true,
           showColumnActionMenu: true,
           showColumnResizeHandle: true,
-          tickerHeaderLabel: 'PORTFOLIO',
-          tableId: 'portfolio_ideas_table',
+          tickerHeaderLabel: 'MODEL',
+          tableId: 'portfolio_assignments_table',
         );
       },
     );
   }
 
   String _formatCurrency(double amount) {
-    final formatter = NumberFormat('#,##,###', 'en_US');
+    final formatter = NumberFormat('#,##,###.##', 'en_US');
     if (amount >= 1000000) {
       return '\$${(amount / 1000000).toStringAsFixed(1)}M';
     } else if (amount >= 1000) {
@@ -458,7 +444,10 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
     return DateFormat('MMM dd, yyyy').format(date);
   }
 
-  Widget _buildActionsMenu(PortfolioSummary portfolio, bool isDark) {
+  Widget _buildActionsMenu(
+    PortfolioAssignmentSummary assignment,
+    bool isDark,
+  ) {
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert_rounded, size: 18, color: HomeUi.muted(isDark)),
       color: HomeUi.cardBg(isDark),
@@ -472,19 +461,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
       itemBuilder: (context) {
         final items = <PopupMenuEntry<String>>[];
 
-        if (portfolio.status == 'active') {
-          items.add(
-            PopupMenuItem(
-              value: 'make_draft',
-              height: 44,
-              child: HomeUi.actionMenuItem(
-                dark: isDark,
-                icon: Icons.drafts_rounded,
-                label: 'Make as Draft',
-              ),
-            ),
-          );
-        } else {
+        if (assignment.status != 'active') {
           items.add(
             PopupMenuItem(
               value: 'make_active',
@@ -492,23 +469,11 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
               child: HomeUi.actionMenuItem(
                 dark: isDark,
                 icon: Icons.check_circle_rounded,
-                label: 'Make as Active',
+                label: 'Activate',
               ),
             ),
           );
         }
-
-        items.add(
-          PopupMenuItem(
-            value: 'edit',
-            height: 44,
-            child: HomeUi.actionMenuItem(
-              dark: isDark,
-              icon: Icons.edit_rounded,
-              label: 'Edit',
-            ),
-          ),
-        );
 
         items.add(
           PopupMenuItem(
@@ -531,7 +496,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
             child: HomeUi.actionMenuItem(
               dark: isDark,
               icon: Icons.delete_outline_rounded,
-              label: 'Delete',
+              label: 'Archive',
               destructive: true,
             ),
           ),
@@ -541,80 +506,38 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
       },
       onSelected: (value) async {
         switch (value) {
-          case 'make_draft':
-            await _convertToDraft(portfolio.id);
-            break;
           case 'make_active':
-            await _convertToActive(portfolio.id);
-            break;
-          case 'edit':
-            await _editPortfolio(portfolio.id);
+            await _activateAssignment(assignment.id);
             break;
           case 'view_details':
-            await _viewPortfolioDetails(portfolio.id);
+            await _viewAssignmentDetails(assignment.id);
             break;
           case 'delete':
-            await _deletePortfolio(portfolio.id);
+            await _archiveAssignment(assignment.id);
             break;
         }
       },
     );
   }
 
-  Future<void> _convertToDraft(String portfolioId) async {
-    final success = await _portfolioController.convertActiveToDraft(portfolioId);
+  Future<void> _activateAssignment(String id) async {
+    final success = await _assignmentController.activateAssignment(id);
     if (success && mounted) {
-      SnackBarUtils.showSuccess(context, 'Portfolio converted to draft');
+      SnackBarUtils.showSuccess(context, 'Assignment activated');
+      _refreshAssignmentList();
     } else if (mounted) {
-      SnackBarUtils.showError(context, _portfolioController.errorMessage.value);
+      SnackBarUtils.showError(context, _assignmentController.errorMessage.value);
     }
   }
 
-  Future<void> _convertToActive(String portfolioId) async {
-    final success = await _portfolioController.convertDraftToActive(portfolioId);
-    if (success && mounted) {
-      SnackBarUtils.showSuccess(context, 'Portfolio converted to active');
-    } else if (mounted) {
-      SnackBarUtils.showError(context, _portfolioController.errorMessage.value);
-    }
-  }
-
-  Future<void> _editPortfolio(String portfolioId) async {
-    final portfolio = await _portfolioController.getPortfolio(portfolioId);
-    if (portfolio != null && mounted) {
+  Future<void> _viewAssignmentDetails(String id) async {
+    final assignment = await _assignmentController.getAssignment(id);
+    if (assignment != null && mounted) {
       await _showPremiumPortfolioDialog(
-        barrierDismissible: false,
-        child: _PortfolioBuilderModal(
-          title: 'Edit Portfolio',
-          subtitle: 'Update client mandate, holdings, and allocation targets.',
-          child: PortfolioBuilderForm(
-            embeddedInModal: true,
-            initialPortfolio: portfolio,
-            onCancel: () {
-              Navigator.pop(context);
-            },
-            onSaveDraft: () {
-              Navigator.pop(context);
-              _refreshPortfolioList();
-            },
-            onSavePortfolio: () {
-              Navigator.pop(context);
-              _refreshPortfolioList();
-            },
-          ),
-        ),
+        child: _AssignmentDetailsDialog(assignment: assignment),
       );
     } else if (mounted) {
-      SnackBarUtils.showError(context, _portfolioController.errorMessage.value);
-    }
-  }
-
-  Future<void> _viewPortfolioDetails(String portfolioId) async {
-    final portfolio = await _portfolioController.getPortfolio(portfolioId);
-    if (portfolio != null && mounted) {
-      await _showPremiumPortfolioDialog(
-        child: _PortfolioDetailsDialog(portfolio: portfolio),
-      );
+      SnackBarUtils.showError(context, _assignmentController.errorMessage.value);
     }
   }
 
@@ -662,7 +585,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
     );
   }
 
-  Future<void> _deletePortfolio(String portfolioId) async {
+  Future<void> _archiveAssignment(String id) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -672,9 +595,9 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(HomeUi.radiusCard),
           ),
-          title: Text('Delete Portfolio', style: HomeUi.sectionTitle(isDark)),
+          title: Text('Archive Assignment', style: HomeUi.sectionTitle(isDark)),
           content: Text(
-            'Are you sure you want to delete this portfolio?',
+            'Archive this customer assignment?',
             style: HomeUi.subtitle(isDark),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
@@ -691,7 +614,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
                 const SizedBox(width: 10),
                 Expanded(
                   child: HomeUi.primaryAction(
-                    label: 'Delete',
+                    label: 'Archive',
                     onTap: () => Navigator.pop(context, true),
                   ),
                 ),
@@ -703,119 +626,31 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen> with SingleTi
     );
 
     if (confirmed == true) {
-      final success = await _portfolioController.deletePortfolio(portfolioId);
+      final success = await _assignmentController.deleteAssignment(id);
       if (success && mounted) {
-        SnackBarUtils.showSuccess(context, 'Portfolio deleted');
-        // Refresh list
-        if (_selectedTabIndex == 0) {
-          await _portfolioController.fetchActivePortfolios();
-        } else {
-          await _portfolioController.fetchDraftPortfolios();
-        }
+        SnackBarUtils.showSuccess(context, 'Assignment archived');
+        _refreshAssignmentList();
       } else if (mounted) {
-        SnackBarUtils.showError(context, _portfolioController.errorMessage.value);
+        SnackBarUtils.showError(
+          context,
+          _assignmentController.errorMessage.value,
+        );
       }
     }
   }
 }
 
-class _PortfolioBuilderModal extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Widget child;
+class _AssignmentDetailsDialog extends StatelessWidget {
+  const _AssignmentDetailsDialog({required this.assignment});
 
-  const _PortfolioBuilderModal({
-    required this.title,
-    required this.subtitle,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final size = MediaQuery.sizeOf(context);
-    final modalWidth = math.min(size.width * 0.92, 1200.0);
-    final modalHeight = (size.height * 0.9).clamp(560.0, 860.0);
-
-    return Container(
-      width: modalWidth,
-      height: modalHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      decoration: BoxDecoration(
-        color: HomeUi.cardBg(isDark),
-        borderRadius: BorderRadius.circular(HomeUi.radiusCard),
-        border: Border.all(color: HomeUi.borderLight(isDark)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
-            blurRadius: 40,
-            offset: const Offset(0, 18),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: HomeUi.tableToolbarHeader(
-                    isDark,
-                    title: title,
-                    subtitleText: subtitle,
-                    icon: Icons.pie_chart_outline_rounded,
-                  ),
-                ),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: HomeUi.controlHeight,
-                      height: HomeUi.controlHeight,
-                      decoration: BoxDecoration(
-                        color: HomeUi.elevatedBg(isDark),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: HomeUi.borderLight(isDark)),
-                      ),
-                      child: Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: HomeUi.muted(isDark),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(height: 1, color: HomeUi.borderLight(isDark)),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-              child: child,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Portfolio Details Dialog
-class _PortfolioDetailsDialog extends StatelessWidget {
-  final Portfolio portfolio;
-
-  const _PortfolioDetailsDialog({required this.portfolio});
+  final PortfolioAssignment assignment;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dialogHeight =
         (MediaQuery.of(context).size.height * 0.82).clamp(480.0, 680.0);
+    final currency = NumberFormat.currency(symbol: '\$');
 
     return Container(
       width: 860,
@@ -825,13 +660,6 @@ class _PortfolioDetailsDialog extends StatelessWidget {
         color: HomeUi.cardBg(isDark),
         borderRadius: BorderRadius.circular(HomeUi.radiusCard),
         border: Border.all(color: HomeUi.borderLight(isDark)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
-            blurRadius: 40,
-            offset: const Offset(0, 18),
-          ),
-        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -844,68 +672,90 @@ class _PortfolioDetailsDialog extends StatelessWidget {
                 Expanded(
                   child: HomeUi.tableToolbarHeader(
                     isDark,
-                    title: portfolio.portfolioName,
-                    subtitleText: portfolio.clientName,
+                    title: assignment.modelPortfolioName,
+                    subtitleText:
+                        '${assignment.customerName} · ${assignment.assignmentCode ?? assignment.id}',
                     icon: Icons.pie_chart_outline_rounded,
                   ),
                 ),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: HomeUi.controlHeight,
-                      height: HomeUi.controlHeight,
-                      decoration: BoxDecoration(
-                        color: HomeUi.elevatedBg(isDark),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: HomeUi.borderLight(isDark)),
-                      ),
-                      child: Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: HomeUi.muted(isDark),
-                      ),
-                    ),
-                  ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close_rounded, color: HomeUi.muted(isDark)),
                 ),
               ],
             ),
           ),
           Divider(height: 1, color: HomeUi.borderLight(isDark)),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSummaryStrip(isDark),
-                  const SizedBox(height: 16),
-                  _buildDetailsPanels(isDark),
-                  if (portfolio.commentary != null &&
-                      portfolio.commentary!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    HomeUi.detailCallout(
-                      dark: isDark,
-                      label: 'Commentary',
-                      body: portfolio.commentary!,
+            child: ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _metaChip(isDark, 'Amount', currency.format(assignment.investmentAmount)),
+                    _metaChip(isDark, 'Status', assignment.status),
+                    _metaChip(
+                      isDark,
+                      'Allocation',
+                      '${assignment.totalAllocationPercent.toStringAsFixed(1)}%',
                     ),
+                    _metaChip(isDark, 'Holdings', '${assignment.holdingsCount}'),
                   ],
-                  const SizedBox(height: 20),
-                  HomeUi.tableToolbarHeader(
-                    isDark,
-                    title: 'Holdings',
-                    subtitleText:
-                        '${portfolio.holdingsCount} position${portfolio.holdingsCount == 1 ? '' : 's'}',
-                    icon: Icons.account_balance_wallet_outlined,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildHoldingsHeader(isDark),
-                  const SizedBox(height: 8),
-                  ...portfolio.holdings
-                      .map((holding) => _buildHoldingRow(holding, isDark)),
-                ],
-              ),
+                ),
+                const SizedBox(height: 20),
+                Text('How capital is invested', style: HomeUi.sectionTitle(isDark)),
+                const SizedBox(height: 12),
+                ...assignment.holdings.map((h) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: HomeUi.elevatedBg(isDark),
+                        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+                        border: Border.all(color: HomeUi.borderLight(isDark)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              h.ticker,
+                              style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              h.company ?? '—',
+                              style: HomeUi.subtitle(isDark),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 70,
+                            child: Text(
+                              '${h.allocationPercent.toStringAsFixed(1)}%',
+                              textAlign: TextAlign.right,
+                              style: HomeUi.control(isDark),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              currency.format(h.allocationAmount),
+                              textAlign: TextAlign.right,
+                              style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ],
             ),
           ),
         ],
@@ -913,200 +763,22 @@ class _PortfolioDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryStrip(bool isDark) {
-    final currency = NumberFormat('#,##,###', 'en_US');
-    final allocationColor = portfolio.allocationPercent >= 99.9
-        ? const Color(0xFF10B981)
-        : portfolio.allocationPercent > 100
-            ? HomeUi.negative(isDark)
-            : HomeUi.accent(isDark);
-
-    return Row(
-      children: [
-        Expanded(
-          child: HomeUi.detailSummaryMetric(
-            dark: isDark,
-            label: 'Initial Capital',
-            value: '\$${currency.format(portfolio.initialCapital)}',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: HomeUi.detailSummaryMetric(
-            dark: isDark,
-            label: 'Allocated',
-            value: '\$${currency.format(portfolio.allocatedAmount)}',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: HomeUi.detailSummaryMetric(
-            dark: isDark,
-            label: 'Est. Returns',
-            value: '\$${currency.format(portfolio.estimatedReturns)}',
-            valueColor: const Color(0xFF10B981),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: HomeUi.detailSummaryMetric(
-            dark: isDark,
-            label: 'Allocation',
-            value: '${portfolio.allocationPercent.toStringAsFixed(1)}%',
-            valueColor: allocationColor,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDetailsPanels(bool isDark) {
-    final clientRows = <(String, String)>[
-      ('Client Name', portfolio.clientName),
-      if (portfolio.clientAge != null)
-        ('Client Age', portfolio.clientAge.toString()),
-      if (portfolio.riskProfile != null)
-        ('Risk Profile', portfolio.riskProfile!),
-      if (portfolio.strategyType != null)
-        ('Strategy Type', portfolio.strategyType!),
-      if (portfolio.benchmark != null) ('Benchmark', portfolio.benchmark!),
-      if (portfolio.objective != null) ('Objective', portfolio.objective!),
-    ];
-
-    final investmentRows = <(String, String)>[
-      if (portfolio.investmentHorizon != null)
-        ('Investment Horizon', portfolio.investmentHorizon!),
-      if (portfolio.expectedRateOfReturn != null)
-        (
-          'Expected Return',
-          '${portfolio.expectedRateOfReturn!.toStringAsFixed(1)}%',
-        ),
-      ('Holdings Count', portfolio.holdingsCount.toString()),
-    ];
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: HomeUi.detailPanel(
-            dark: isDark,
-            title: 'Client & Mandate',
-            rows: clientRows,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: HomeUi.detailPanel(
-            dark: isDark,
-            title: 'Investment Profile',
-            rows: investmentRows,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHoldingsHeader(bool isDark) {
+  Widget _metaChip(bool isDark, String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: HomeUi.tableHeaderBg(isDark),
+        color: HomeUi.elevatedBg(isDark),
         borderRadius: BorderRadius.circular(HomeUi.radiusMd),
         border: Border.all(color: HomeUi.borderLight(isDark)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: Text('TICKER', style: HomeUi.tableHeader(isDark))),
-          Expanded(child: Text('COMPANY', style: HomeUi.tableHeader(isDark))),
-          Expanded(
-            child: Text(
-              'QTY',
-              style: HomeUi.tableHeader(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'PRICE',
-              style: HomeUi.tableHeader(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'TARGET',
-              style: HomeUi.tableHeader(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'ALLOC %',
-              style: HomeUi.tableHeader(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHoldingRow(PortfolioHolding holding, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: HomeUi.cardBg(isDark),
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        border: Border.all(color: HomeUi.borderLight(isDark)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              holding.ticker,
-              style: HomeUi.tableCellEmphasis(isDark),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              holding.company ?? '--',
-              style: HomeUi.tableCellSecondary(isDark),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              holding.quantity.toString(),
-              style: HomeUi.tableCell(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '\$${holding.currentPrice.toStringAsFixed(2)}',
-              style: HomeUi.tableCellEmphasis(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '\$${holding.targetPrice.toStringAsFixed(2)}',
-              style: HomeUi.tableCellEmphasis(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '${holding.allocationPercent.toStringAsFixed(1)}%',
-              style: HomeUi.tableNumeric(isDark),
-              textAlign: TextAlign.right,
-            ),
-          ),
+          Text(label, style: HomeUi.subtitle(isDark).copyWith(fontSize: 11)),
+          const SizedBox(height: 4),
+          Text(value, style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700)),
         ],
       ),
     );
   }
 }
-

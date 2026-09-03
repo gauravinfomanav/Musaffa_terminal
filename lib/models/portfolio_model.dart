@@ -12,6 +12,15 @@ class PortfolioHolding {
   final double? marketCap;
   final double? peRatio;
   final String? notes;
+  final String? assetType;
+  final String? conviction;
+  final String? holdingStatus;
+  final String? investmentThesis;
+  final String? riskNotes;
+  final String? bullCase;
+  final String? bearCase;
+  final DateTime? reviewDate;
+  final String? reasonForSelection;
 
   PortfolioHolding({
     this.id,
@@ -27,6 +36,15 @@ class PortfolioHolding {
     this.marketCap,
     this.peRatio,
     this.notes,
+    this.assetType,
+    this.conviction,
+    this.holdingStatus,
+    this.investmentThesis,
+    this.riskNotes,
+    this.bullCase,
+    this.bearCase,
+    this.reviewDate,
+    this.reasonForSelection,
   });
 
   factory PortfolioHolding.fromJson(Map<String, dynamic> json) {
@@ -38,12 +56,21 @@ class PortfolioHolding {
       sector: json['sector'] as String?,
       currentPrice: (json['current_price'] as num?)?.toDouble() ?? 0.0,
       targetPrice: (json['target_price'] as num?)?.toDouble() ?? 0.0,
-      quantity: (json['quantity'] as int?) ?? 0,
+      quantity: (json['quantity'] as num?)?.toInt() ?? 0,
       allocationPercent: (json['allocation_percent'] as num?)?.toDouble() ?? 0.0,
       allocationAmount: (json['allocation_amount'] as num?)?.toDouble() ?? 0.0,
       marketCap: (json['market_cap'] as num?)?.toDouble(),
       peRatio: (json['pe_ratio'] as num?)?.toDouble(),
       notes: json['notes'] as String?,
+      assetType: json['asset_type'] as String?,
+      conviction: json['conviction'] as String?,
+      holdingStatus: json['holding_status'] as String? ?? json['status'] as String?,
+      investmentThesis: json['investment_thesis'] as String?,
+      riskNotes: json['risk_notes'] as String?,
+      bullCase: json['bull_case'] as String?,
+      bearCase: json['bear_case'] as String?,
+      reviewDate: _parseOptionalDate(json['review_date']),
+      reasonForSelection: json['reason_for_selection'] as String?,
     );
   }
 
@@ -62,13 +89,42 @@ class PortfolioHolding {
       if (marketCap != null) 'market_cap': marketCap,
       if (peRatio != null) 'pe_ratio': peRatio,
       if (notes != null) 'notes': notes,
+      if (assetType != null) 'asset_type': assetType,
+      if (conviction != null) 'conviction': conviction,
+      if (holdingStatus != null) 'holding_status': holdingStatus,
+      if (investmentThesis != null) 'investment_thesis': investmentThesis,
+      if (riskNotes != null) 'risk_notes': riskNotes,
+      if (bullCase != null) 'bull_case': bullCase,
+      if (bearCase != null) 'bear_case': bearCase,
+      if (reviewDate != null) 'review_date': reviewDate!.toIso8601String(),
+      if (reasonForSelection != null) 'reason_for_selection': reasonForSelection,
     };
   }
+}
+
+DateTime? _parseOptionalDate(dynamic dateData) {
+  if (dateData == null) return null;
+  if (dateData is String) {
+    try {
+      return DateTime.parse(dateData);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (dateData is Map && dateData.containsKey('_seconds')) {
+    final seconds = dateData['_seconds'] as int;
+    final nanoseconds = dateData['_nanoseconds'] as int? ?? 0;
+    return DateTime.fromMillisecondsSinceEpoch(
+      seconds * 1000 + (nanoseconds ~/ 1000000),
+    );
+  }
+  return null;
 }
 
 class Portfolio {
   final String id;
   final String portfolioName;
+  final String? portfolioCode;
   final String clientName;
   final int? clientAge;
   final String? riskProfile;
@@ -79,6 +135,8 @@ class Portfolio {
   final String? investmentHorizon;
   final double? expectedRateOfReturn;
   final String? commentary;
+  final String? marketOutlook;
+  final int? version;
   final double allocatedAmount;
   final double allocationPercent;
   final double estimatedReturns;
@@ -93,6 +151,7 @@ class Portfolio {
   Portfolio({
     required this.id,
     required this.portfolioName,
+    this.portfolioCode,
     required this.clientName,
     this.clientAge,
     this.riskProfile,
@@ -103,6 +162,8 @@ class Portfolio {
     this.investmentHorizon,
     this.expectedRateOfReturn,
     this.commentary,
+    this.marketOutlook,
+    this.version,
     required this.allocatedAmount,
     required this.allocationPercent,
     required this.estimatedReturns,
@@ -119,6 +180,7 @@ class Portfolio {
     return Portfolio(
       id: json['id'] as String? ?? '',
       portfolioName: json['portfolio_name'] as String? ?? '',
+      portfolioCode: json['portfolio_code'] as String?,
       clientName: json['client_name'] as String? ?? '',
       clientAge: json['client_age'] as int?,
       riskProfile: json['risk_profile'] as String?,
@@ -129,6 +191,8 @@ class Portfolio {
       investmentHorizon: json['investment_horizon'] as String?,
       expectedRateOfReturn: (json['expected_rate_of_return'] as num?)?.toDouble(),
       commentary: json['commentary'] as String?,
+      marketOutlook: json['market_outlook'] as String?,
+      version: (json['version'] as num?)?.toInt(),
       allocatedAmount: (json['allocated_amount'] as num?)?.toDouble() ?? 0.0,
       allocationPercent: (json['allocation_percent'] as num?)?.toDouble() ?? 0.0,
       estimatedReturns: (json['estimated_returns'] as num?)?.toDouble() ?? 0.0,
@@ -176,6 +240,7 @@ class Portfolio {
     return {
       if (id.isNotEmpty) 'id': id,
       'portfolio_name': portfolioName,
+      if (portfolioCode != null && portfolioCode!.isNotEmpty) 'portfolio_code': portfolioCode,
       'client_name': clientName,
       if (clientAge != null) 'client_age': clientAge,
       if (riskProfile != null) 'risk_profile': riskProfile,
@@ -186,6 +251,8 @@ class Portfolio {
       if (investmentHorizon != null) 'investment_horizon': investmentHorizon,
       if (expectedRateOfReturn != null) 'expected_rate_of_return': expectedRateOfReturn,
       if (commentary != null) 'commentary': commentary,
+      if (marketOutlook != null) 'market_outlook': marketOutlook,
+      if (version != null) 'version': version,
       'holdings': holdings.map((h) => h.toJson()).toList(),
       if (status.isNotEmpty) 'status': status,
     };

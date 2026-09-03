@@ -10,20 +10,54 @@ import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart
 import 'package:musaffa_terminal/web_service.dart';
 
 class AddStocksModal extends StatefulWidget {
-  final String watchlistName;
-  final String watchlistId;
+  final String? watchlistName;
+  final String? watchlistId;
+  final String? portfolioName;
+  final Future<bool> Function(TickerModel ticker)? onPortfolioAdd;
 
   const AddStocksModal({
     super.key,
-    required this.watchlistName,
-    required this.watchlistId,
-  });
+    this.watchlistName,
+    this.watchlistId,
+    this.portfolioName,
+    this.onPortfolioAdd,
+  }) : assert(
+          (watchlistName != null && watchlistId != null) ||
+              (portfolioName != null && onPortfolioAdd != null),
+          'Provide watchlist or portfolio target',
+        );
+
+  bool get isPortfolioMode => onPortfolioAdd != null;
 
   static Future<void> show({
     required BuildContext context,
     required String watchlistName,
     required String watchlistId,
   }) {
+    return _present(
+      context,
+      AddStocksModal(
+        watchlistName: watchlistName,
+        watchlistId: watchlistId,
+      ),
+    );
+  }
+
+  static Future<void> showForPortfolio({
+    required BuildContext context,
+    required String portfolioName,
+    required Future<bool> Function(TickerModel ticker) onAddTicker,
+  }) {
+    return _present(
+      context,
+      AddStocksModal(
+        portfolioName: portfolioName,
+        onPortfolioAdd: onAddTicker,
+      ),
+    );
+  }
+
+  static Future<void> _present(BuildContext context, AddStocksModal modal) {
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -34,10 +68,7 @@ class AddStocksModal extends StatefulWidget {
         return Center(
           child: Material(
             color: Colors.transparent,
-            child: AddStocksModal(
-              watchlistName: watchlistName,
-              watchlistId: watchlistId,
-            ),
+            child: modal,
           ),
         );
       },
@@ -65,14 +96,23 @@ class AddStocksModal extends StatefulWidget {
 class _AddStocksModalState extends State<AddStocksModal> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  final WatchlistController _watchlistController =
-      Get.find<WatchlistController>();
+  WatchlistController? get _watchlistController =>
+      widget.isPortfolioMode ? null : Get.find<WatchlistController>();
 
   List<TickerModel> _searchResults = [];
   final Set<String> _selectedTickers = {};
+  final Map<String, TickerModel> _selectedModels = {};
   bool _isSearching = false;
   bool _searchFocused = false;
   bool _searchHover = false;
+  bool _isAdding = false;
+
+  String get _destinationName =>
+      widget.isPortfolioMode
+          ? (widget.portfolioName?.trim().isNotEmpty == true
+              ? widget.portfolioName!.trim()
+              : 'Model Portfolio')
+          : widget.watchlistName!;
 
   @override
   void initState() {
@@ -119,17 +159,79 @@ class _AddStocksModalState extends State<AddStocksModal> {
     }
   }
 
-  void _toggleSelection(String ticker) {
+  void _toggleSelection(TickerModel ticker) {
+    final tickerSymbol = ticker.symbol ?? ticker.ticker ?? '';
+    if (tickerSymbol.isEmpty) return;
+
     setState(() {
-      if (_selectedTickers.contains(ticker)) {
-        _selectedTickers.remove(ticker);
+      if (_selectedTickers.contains(tickerSymbol)) {
+        _selectedTickers.remove(tickerSymbol);
+        _selectedModels.remove(tickerSymbol);
       } else {
-        _selectedTickers.add(ticker);
+        _selectedTickers.add(tickerSymbol);
+        _selectedModels[tickerSymbol] = ticker;
         _searchController.clear();
         _searchResults.clear();
         _searchFocusNode.requestFocus();
       }
     });
+  }
+
+  Future<void> _addSelectedStocks() async {
+    if (_selectedTickers.isEmpty || _isAdding) return;
+
+    if (widget.isPortfolioMode) {
+      setState(() => _isAdding = true);
+      var addedCount = 0;
+      var skippedCount = 0;
+      for (final ticker in _selectedTickers.toList()) {
+        final model = _selectedModels[ticker];
+        if (model == null) continue;
+        if (await widget.onPortfolioAdd!(model)) {
+          addedCount++;
+        } else {
+          skippedCount++;
+        }
+      }
+      if (!mounted) return;
+      setState(() => _isAdding = false);
+      Navigator.of(context).pop();
+      if (addedCount > 0) {
+        final skippedSuffix = skippedCount > 0
+            ? ' · $skippedCount already in portfolio'
+            : '';
+        SnackBarUtils.showSuccess(
+          context,
+          'Added $addedCount holding${addedCount == 1 ? '' : 's'} to "$_destinationName"$skippedSuffix',
+        );
+      } else if (skippedCount > 0) {
+        SnackBarUtils.showError(
+          context,
+          skippedCount == 1
+              ? 'That holding is already in the portfolio'
+              : '$skippedCount holdings are already in the portfolio',
+        );
+      }
+      return;
+    }
+
+    final stocksToAdd = await _fetchRealTimePricesForSelectedStocks();
+    final success =
+        await _watchlistController!.addStocksToWatchlist(stocksToAdd);
+
+    if (!mounted) return;
+    if (success) {
+      Navigator.of(context).pop();
+      SnackBarUtils.showSuccess(
+        context,
+        'Added ${_selectedTickers.length} stocks to "$_destinationName"',
+      );
+    } else {
+      SnackBarUtils.showError(
+        context,
+        _watchlistController!.stocksErrorMessage.value,
+      );
+    }
   }
 
   Future<List<Map<String, dynamic>>> _fetchRealTimePricesForSelectedStocks() async {
@@ -189,27 +291,6 @@ class _AddStocksModalState extends State<AddStocksModal> {
     return stocksToAdd;
   }
 
-  Future<void> _addSelectedStocks() async {
-    if (_selectedTickers.isEmpty) return;
-
-    final stocksToAdd = await _fetchRealTimePricesForSelectedStocks();
-    final success = await _watchlistController.addStocksToWatchlist(stocksToAdd);
-
-    if (!mounted) return;
-    if (success) {
-      Navigator.of(context).pop();
-      SnackBarUtils.showSuccess(
-        context,
-        'Added ${_selectedTickers.length} stocks to "${widget.watchlistName}"',
-      );
-    } else {
-      SnackBarUtils.showError(
-        context,
-        _watchlistController.stocksErrorMessage.value,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -267,7 +348,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
                   text: 'Search and add holdings to ',
                   children: [
                     TextSpan(
-                      text: widget.watchlistName,
+                      text: _destinationName,
                       style: HomeUi.tableCellEmphasis(isDark).copyWith(
                         fontSize: 12,
                         height: 1.2,
@@ -412,7 +493,9 @@ class _AddStocksModalState extends State<AddStocksModal> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            'Search for stocks to add to your watchlist',
+            widget.isPortfolioMode
+                ? 'Search for stocks to add to your model portfolio'
+                : 'Search for stocks to add to your watchlist',
             textAlign: TextAlign.center,
             style: HomeUi.subtitle(isDark),
           ),
@@ -433,7 +516,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
           ticker: ticker,
           tickerSymbol: tickerSymbol,
           isSelected: isSelected,
-          onTap: () => _toggleSelection(tickerSymbol),
+          onTap: () => _toggleSelection(ticker),
         );
       },
     );
@@ -452,7 +535,11 @@ class _AddStocksModalState extends State<AddStocksModal> {
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: () => _toggleSelection(ticker),
+              onTap: () {
+                _selectedTickers.remove(ticker);
+                _selectedModels.remove(ticker);
+                setState(() {});
+              },
               child: Container(
                 width: 22,
                 height: 22,
@@ -485,7 +572,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
   }
 
   Widget _buildBottomBar(bool isDark) {
-    final canAdd = _selectedTickers.isNotEmpty;
+    final canAdd = _selectedTickers.isNotEmpty && !_isAdding;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -511,7 +598,7 @@ class _AddStocksModalState extends State<AddStocksModal> {
                 child: IgnorePointer(
                   ignoring: !canAdd,
                   child: HomeUi.primaryAction(
-                    label: 'Add Selected',
+                    label: _isAdding ? 'Adding…' : 'Add Selected',
                     onTap: _addSelectedStocks,
                   ),
                 ),
