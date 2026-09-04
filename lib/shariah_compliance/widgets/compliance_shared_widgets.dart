@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/shariah_compliance/models/compliance_report.dart';
 import 'package:musaffa_terminal/shariah_compliance/utils/compliance_formatters.dart';
@@ -341,6 +341,9 @@ class ComplianceSearchResultsShimmer extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
+            color: index.isEven
+                ? HomeUi.tableRowEven(isDark)
+                : HomeUi.tableRowOdd(isDark),
             border: isLast
                 ? null
                 : Border(

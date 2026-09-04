@@ -176,6 +176,7 @@ class _ComplianceDetailSearchState extends State<ComplianceDetailSearch> {
                         ticker: _searchResults[index],
                         isLast: index == _searchResults.length - 1,
                         isDarkMode: isDarkMode,
+                        rowIndex: index,
                         onTap: () => _selectTicker(_searchResults[index]),
                       );
                     },
@@ -277,12 +278,14 @@ class _SearchSuggestionTile extends StatelessWidget {
     required this.isLast,
     required this.isDarkMode,
     required this.onTap,
+    this.rowIndex = 0,
   });
 
   final TickerModel ticker;
   final bool isLast;
   final bool isDarkMode;
   final VoidCallback onTap;
+  final int rowIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -302,6 +305,9 @@ class _SearchSuggestionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
+            color: rowIndex.isEven
+                ? HomeUi.tableRowEven(isDarkMode)
+                : HomeUi.tableRowOdd(isDarkMode),
             border: isLast
                 ? null
                 : Border(

@@ -4,6 +4,7 @@ import 'package:musaffa_terminal/Controllers/ticker_news_sentiment_controller.da
 import 'package:musaffa_terminal/models/news_sentiment_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class TickerNewsSentimentSection extends StatelessWidget {
@@ -139,20 +140,52 @@ class TickerNewsSentimentSection extends StatelessWidget {
       ),
     ];
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: items.map((_SummaryItem item) {
-        return SizedBox(
-          width: 168,
-          child: _buildMetricTile(
-            label: item.title,
-            value: item.value,
-            icon: item.icon,
-            iconColor: item.iconColor,
+    final Color line =
+        isDarkMode ? const Color(0xFF2A2F3A) : const Color(0xFFE7EBF0);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF151821) : const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF2A2F3A) : const Color(0xFFE7EBF0),
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: const Color(0xFF0F172A)
+                .withValues(alpha: isDarkMode ? 0.28 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
-        );
-      }).toList(),
+        ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            for (int i = 0; i < items.length; i++)
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: i > 0
+                          ? BorderSide(color: line)
+                          : BorderSide.none,
+                    ),
+                  ),
+                  child: _buildMetricTile(
+                    label: items[i].title,
+                    value: items[i].value,
+                    icon: items[i].icon,
+                    iconColor: items[i].iconColor,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -162,56 +195,55 @@ class TickerNewsSentimentSection extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFFFFFFF),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                iconColor.withValues(alpha: isDarkMode ? 0.28 : 0.16),
+                iconColor.withValues(alpha: isDarkMode ? 0.12 : 0.06),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: iconColor.withValues(alpha: isDarkMode ? 0.35 : 0.22),
+            ),
+          ),
+          child: Icon(icon, size: 18, color: iconColor),
         ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
+        const SizedBox(height: 14),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: DashboardTextStyles.tickerSymbol.copyWith(
+            fontSize: 11,
+            letterSpacing: 0.2,
             color: isDarkMode
-                ? Colors.black.withValues(alpha: 0.18)
-                : const Color(0xFF0F172A).withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+                ? const Color(0xFF9CA3AF)
+                : const Color(0xFF6B7280),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: isDarkMode ? 0.18 : 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: iconColor),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: DashboardTextStyles.dataCell.copyWith(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            height: 1.1,
           ),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 12,
-              color: isDarkMode
-                  ? const Color(0xFF9CA3AF)
-                  : const Color(0xFF6B7280),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: DashboardTextStyles.dataCell.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -226,11 +258,19 @@ class TickerNewsSentimentSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF111827) : const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(18),
+        color: isDarkMode ? const Color(0xFF151821) : const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDarkMode ? const Color(0xFF273244) : const Color(0xFFE2E8F0),
+          color: isDarkMode ? const Color(0xFF2A2F3A) : const Color(0xFFE7EBF0),
         ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: const Color(0xFF0F172A)
+                .withValues(alpha: isDarkMode ? 0.28 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,8 +282,18 @@ class TickerNewsSentimentSection extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: isDarkMode ? 0.20 : 0.12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[
+                        accent.withValues(alpha: isDarkMode ? 0.28 : 0.16),
+                        accent.withValues(alpha: isDarkMode ? 0.12 : 0.06),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: accent.withValues(alpha: isDarkMode ? 0.35 : 0.22),
+                    ),
                   ),
                   child: Icon(icon, color: accent, size: 17),
                 ),
@@ -307,23 +357,52 @@ class TickerNewsSentimentSection extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(String label, Color color) {
+    final bool above = label.toLowerCase().contains('above');
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: isDarkMode ? 0.20 : 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 11,
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          color: color,
-          fontWeight: FontWeight.w600,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            color.withValues(alpha: isDarkMode ? 0.28 : 0.16),
+            color.withValues(alpha: isDarkMode ? 0.12 : 0.06),
+          ],
         ),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.32)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: color.withValues(alpha: isDarkMode ? 0.22 : 0.14),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            above ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+            size: 13,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                color: color,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -409,9 +488,9 @@ class TickerNewsSentimentSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            height: 300,
+            height: 320,
             child: SfCircularChart(
-              margin: EdgeInsets.zero,
+              margin: const EdgeInsets.fromLTRB(12, 28, 12, 28),
               annotations: <CircularChartAnnotation>[
                 CircularChartAnnotation(
                   widget: _buildSentimentCenter(sentiment),
@@ -425,8 +504,8 @@ class TickerNewsSentimentSection extends StatelessWidget {
                   xValueMapper: (_SentimentSlice item, _) => item.label,
                   yValueMapper: (_SentimentSlice item, _) => item.value,
                   pointColorMapper: (_SentimentSlice item, _) => item.color,
-                  radius: '92%',
-                  innerRadius: '68%',
+                  radius: '80%',
+                  innerRadius: '70%',
                   strokeWidth: 3,
                   strokeColor:
                       isDarkMode ? const Color(0xFF111827) : Colors.white,
@@ -435,7 +514,10 @@ class TickerNewsSentimentSection extends StatelessWidget {
                   dataLabelSettings: const DataLabelSettings(
                     isVisible: true,
                     labelPosition: ChartDataLabelPosition.outside,
-                    connectorLineSettings: ConnectorLineSettings(length: '10%'),
+                    connectorLineSettings: ConnectorLineSettings(
+                      length: '18%',
+                      type: ConnectorType.curve,
+                    ),
                     textStyle: TextStyle(
                       fontSize: 12,
                       fontFamily: Constants.FONT_DEFAULT_NEW,
@@ -464,19 +546,12 @@ class TickerNewsSentimentSection extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          dominant.toStringAsFixed(0),
+          '${dominant.toStringAsFixed(0)}%',
           style: DashboardTextStyles.dataCell.copyWith(
             fontSize: 26,
             fontWeight: FontWeight.w800,
             color: color,
-          ),
-        ),
-        Text(
-          '%',
-          style: DashboardTextStyles.tickerSymbol.copyWith(
-            fontSize: 12,
-            color:
-                isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF64748B),
+            height: 1.05,
           ),
         ),
         const SizedBox(height: 4),
@@ -551,6 +626,30 @@ class TickerNewsSentimentSection extends StatelessWidget {
         model.companyNewsScore >= model.sectorAverageNewsScore;
     final bool aboveBullish =
         model.sentiment.bullishPercent >= model.sectorAverageBullishPercent;
+    final Color line =
+        isDarkMode ? const Color(0xFF2A2F3A) : const Color(0xFFE7EBF0);
+
+    Widget comparisonRow({
+      required Widget left,
+      required Widget right,
+    }) {
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Expanded(child: left),
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(left: BorderSide(color: line)),
+                ),
+                child: right,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return _buildInfoPanel(
       title: 'Sector Comparison',
@@ -558,59 +657,42 @@ class TickerNewsSentimentSection extends StatelessWidget {
       accentColor: _scoreAccent(model.companyNewsScore),
       child: Column(
         children: <Widget>[
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Expanded(
-                  child: _buildComparisonTile(
-                    label: 'Company News Score',
-                    value: model.companyNewsScore.toStringAsFixed(2),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildComparisonTile(
-                    label: 'Sector Avg Score',
-                    value: model.sectorAverageNewsScore.toStringAsFixed(2),
-                    badgeLabel: aboveScore ? 'Above Sector' : 'Below Sector',
-                    badgeColor: aboveScore
-                        ? const Color(0xFF0DB47D)
-                        : const Color(0xFFDB161B),
-                  ),
-                ),
-              ],
+          comparisonRow(
+            left: _buildComparisonTile(
+              label: 'Company News Score',
+              value: model.companyNewsScore.toStringAsFixed(2),
+            ),
+            right: _buildComparisonTile(
+              label: 'Sector Avg Score',
+              value: model.sectorAverageNewsScore.toStringAsFixed(2),
+              badgeLabel: aboveScore ? 'Above Sector' : 'Below Sector',
+              badgeColor: aboveScore
+                  ? const Color(0xFF0DB47D)
+                  : const Color(0xFFDB161B),
             ),
           ),
-          const SizedBox(height: 12),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Expanded(
-                  child: _buildComparisonTile(
-                    label: 'Company Bullish %',
-                    value: FinnhubDisplayFormatters.formatPercent(
-                      model.sentiment.bullishPercent,
-                      signed: false,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildComparisonTile(
-                    label: 'Sector Bullish %',
-                    value: FinnhubDisplayFormatters.formatPercent(
-                      model.sectorAverageBullishPercent,
-                      signed: false,
-                    ),
-                    badgeLabel: aboveBullish ? 'Above Sector' : 'Below Sector',
-                    badgeColor: aboveBullish
-                        ? const Color(0xFF0DB47D)
-                        : const Color(0xFFDB161B),
-                  ),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Divider(height: 1, thickness: 1, color: line),
+          ),
+          comparisonRow(
+            left: _buildComparisonTile(
+              label: 'Company Bullish %',
+              value: FinnhubDisplayFormatters.formatPercent(
+                model.sentiment.bullishPercent,
+                signed: false,
+              ),
+            ),
+            right: _buildComparisonTile(
+              label: 'Sector Bullish %',
+              value: FinnhubDisplayFormatters.formatPercent(
+                model.sectorAverageBullishPercent,
+                signed: false,
+              ),
+              badgeLabel: aboveBullish ? 'Above Sector' : 'Below Sector',
+              badgeColor: aboveBullish
+                  ? const Color(0xFF0DB47D)
+                  : const Color(0xFFDB161B),
             ),
           ),
         ],
@@ -624,55 +706,44 @@ class TickerNewsSentimentSection extends StatelessWidget {
     String? badgeLabel,
     Color? badgeColor,
   }) {
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 88),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0F172A) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFE5E7EB),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: DashboardTextStyles.tickerSymbol.copyWith(
-              fontSize: 12,
+              fontSize: 11,
+              letterSpacing: 0.2,
               color: isDarkMode
                   ? const Color(0xFF9CA3AF)
                   : const Color(0xFF6B7280),
             ),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 28,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: DashboardTextStyles.dataCell.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DashboardTextStyles.dataCell.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.35,
                   ),
                 ),
-                if (badgeLabel != null && badgeColor != null)
-                  _buildStatusBadge(badgeLabel, badgeColor)
-                else
-                  const SizedBox(width: 1),
+              ),
+              if (badgeLabel != null && badgeColor != null) ...<Widget>[
+                const SizedBox(width: 8),
+                _buildStatusBadge(badgeLabel, badgeColor),
               ],
-            ),
+            ],
           ),
         ],
       ),

@@ -1322,25 +1322,35 @@ class _KeyMetricsQuoteStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool? signed =
+        roeValue == null || roeValue == 0 ? null : roeValue! > 0;
+    final Color? signedValueColor = signed == null
+        ? null
+        : (signed ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
+
     return SizedBox(
       height: 104,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-              child: _PremiumStatCard(
-                  isDark: isDark, label: 'Market Cap', value: marketCap)),
-          const SizedBox(width: 12),
-          Expanded(
-              child: _PremiumStatCard(
-                  isDark: isDark, label: 'P/E Ratio', value: peRatio)),
-          const SizedBox(width: 12),
-          Expanded(
-              child: _PremiumStatCard(
-                  isDark: isDark,
-                  label: 'ROE',
-                  value: roe,
-                  signedValue: roeValue)),
+            flex: 3,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: HomeUi.detailSummaryMetricsRow(
+                dark: isDark,
+                items: [
+                  (label: 'Market Cap', value: marketCap, valueColor: null),
+                  (label: 'P/E Ratio', value: peRatio, valueColor: null),
+                  (
+                    label: 'ROE',
+                    value: roe,
+                    valueColor: signedValueColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,
@@ -1349,97 +1359,6 @@ class _KeyMetricsQuoteStrip extends StatelessWidget {
               weekLow: weekLow,
               weekHigh: weekHigh,
               currentPrice: currentPrice,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PremiumStatCard extends StatelessWidget {
-  const _PremiumStatCard({
-    required this.isDark,
-    required this.label,
-    required this.value,
-    this.signedValue,
-  });
-
-  final bool isDark;
-  final String label;
-  final String value;
-  final double? signedValue;
-
-  @override
-  Widget build(BuildContext context) {
-    final signed =
-        signedValue == null || signedValue == 0 ? null : signedValue! > 0;
-    final valueColor = signed == null
-        ? HomeUi.title(isDark)
-        : (signed ? HomeUi.positive(isDark) : HomeUi.negative(isDark));
-
-    return Container(
-      height: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF1A1D2E), const Color(0xFF151822)]
-              : [const Color(0xFFF9FAFB), const Color(0xFFFFFFFF)],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF2A2D3E).withValues(alpha: 0.8)
-              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.2)
-                : const Color(0xFF6366F1).withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          HomeUi.decorativeCardSparkline(dark: isDark, seed: label),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                    color: isDark
-                        ? const Color(0xFF8B8FA3)
-                        : const Color(0xFF9CA3AF),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.7,
-                    height: 1.05,
-                    color: valueColor,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

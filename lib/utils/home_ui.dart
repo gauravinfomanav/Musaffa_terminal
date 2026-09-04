@@ -135,19 +135,22 @@ class HomeUi {
   );
 
   /// Faded brand fill for chart bars — same stops as [iconFillGradient].
+  /// Prefer [chartBarColor] for overview / quarterly bars (solid, no gradient).
   static LinearGradient chartBarGradient(bool dark) {
-    final base = dark ? const Color(0xFF14161A) : const Color(0xFFFFFFFF);
-    final amount = dark ? 0.62 : 0.50;
+    final Color c = chartBarColor(dark);
     return LinearGradient(
       begin: Alignment.bottomCenter,
       end: Alignment.topCenter,
-      colors: [
-        for (final color in iconFillGradient.colors)
-          Color.lerp(base, color, amount)!,
-      ],
-      stops: iconFillGradient.stops,
+      colors: [c, c],
     );
   }
+
+  /// Solid bar fill for premium quarterly / overview charts.
+  static Color chartBarColor(bool dark) =>
+      dark ? const Color(0xFF7BA3C9) : const Color(0xFF3B6EA5);
+
+  static Color chartNegativeBarColor(bool dark) =>
+      dark ? const Color(0xFFF07178) : const Color(0xFFDC2626);
 
   static BoxDecoration primaryButton({double radius = radiusPill}) {
     return BoxDecoration(
@@ -1253,70 +1256,59 @@ class HomeUi {
     );
   }
 
-  /// Read-only summary tile for detail modals — premium glass card style.
+  /// Single metric cell — auto width, padding only; optional left divider.
   static Widget detailSummaryMetric({
     required bool dark,
     required String label,
     required String value,
     Color? valueColor,
+    bool showLeftBorder = false,
   }) {
+    final Color line = dark ? const Color(0xFF2A2F3A) : const Color(0xFFE7EBF0);
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? [const Color(0xFF1A1D2E), const Color(0xFF151822)]
-              : [const Color(0xFFF9FAFB), const Color(0xFFFFFFFF)],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: dark
-              ? const Color(0xFF2A2D3E).withValues(alpha: 0.8)
-              : const Color(0xFFE5E7EB).withValues(alpha: 0.9),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: dark
-                ? Colors.black.withValues(alpha: 0.2)
-                : const Color(0xFF6366F1).withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+      padding: EdgeInsets.fromLTRB(
+        showLeftBorder ? 28 : 4,
+        12,
+        28,
+        12,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+      decoration: BoxDecoration(
+        border: Border(
+          left: showLeftBorder
+              ? BorderSide(color: line, width: 1)
+              : BorderSide.none,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          decorativeCardSparkline(dark: dark, seed: label, height: 44),
-          Padding(
-            // Extra bottom space so value text clears the sparkline.
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 52),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                    color: dark
-                        ? const Color(0xFF8B8FA3)
-                        : const Color(0xFF9CA3AF),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  value,
-                  style: tableCellEmphasis(dark).copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                    color: valueColor,
-                  ),
-                ),
-              ],
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.15,
+              height: 1.1,
+              color: dark ? const Color(0xFF8B93A7) : const Color(0xFF7B8494),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            style: tableCellEmphasis(dark).copyWith(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.35,
+              height: 1.15,
+              color: valueColor ??
+                  (dark ? Colors.white : const Color(0xFF0F172A)),
             ),
           ),
         ],
@@ -1324,49 +1316,37 @@ class HomeUi {
     );
   }
 
-  /// Full-width decorative sparkline for summary cards (very light grey).
-  static Widget decorativeCardSparkline({
+  /// Auto-width metric strip — left border between items only (not on first).
+  static Widget detailSummaryMetricsRow({
     required bool dark,
-    required String seed,
-    double height = 56,
+    required List<({String label, String value, Color? valueColor})> items,
   }) {
-    final Color lineColor = dark
-        ? const Color(0xFF6B7280).withValues(alpha: 0.28)
-        : const Color(0xFFE8EAED);
-    final Color fillColor = dark
-        ? const Color(0xFF6B7280).withValues(alpha: 0.06)
-        : const Color(0xFFF1F4F8).withValues(alpha: 0.90);
-
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: -2,
-      height: height,
-      child: IgnorePointer(
-        child: CustomPaint(
-          painter: _DecorativeSparklinePainter(
-            values: _sparklineSeriesFor(seed),
-            lineColor: lineColor,
-            fillColor: fillColor,
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < items.length; i++)
+          detailSummaryMetric(
+            dark: dark,
+            label: items[i].label,
+            value: items[i].value,
+            valueColor: items[i].valueColor,
+            showLeftBorder: i > 0,
           ),
-        ),
-      ),
+      ],
     );
   }
 
-  static List<double> _sparklineSeriesFor(String seed) {
-    switch (seed.toLowerCase()) {
-      case 'p/e ratio':
-      case 'latest analysts':
-        return const [0.42, 0.38, 0.48, 0.44, 0.55, 0.52, 0.62, 0.58, 0.72, 0.78];
-      case 'roe':
-      case 'trend':
-        return const [0.35, 0.48, 0.40, 0.55, 0.50, 0.68, 0.60, 0.74, 0.70, 0.86];
-      case 'current consensus':
-        return const [0.45, 0.40, 0.52, 0.48, 0.60, 0.55, 0.68, 0.64, 0.76, 0.82];
-      default:
-        return const [0.40, 0.35, 0.48, 0.42, 0.58, 0.52, 0.66, 0.60, 0.78, 0.88];
-    }
+  /// Kept for call sites that still position a bottom motif; draws nothing
+  /// meaningful — prefer [detailSummaryMetricsRow] for new UI.
+  static Widget decorativeCardSparkline({
+    required bool dark,
+    required String seed,
+    double height = 52,
+    Color? accent,
+  }) {
+    return const SizedBox.shrink();
   }
 
   /// Grouped read-only rows — label left, value right.
@@ -2922,79 +2902,5 @@ class _DayCellState extends State<_DayCell> {
         ),
       ),
     );
-  }
-}
-
-class _DecorativeSparklinePainter extends CustomPainter {
-  const _DecorativeSparklinePainter({
-    required this.values,
-    required this.lineColor,
-    required this.fillColor,
-  });
-
-  final List<double> values;
-  final Color lineColor;
-  final Color fillColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.length < 2 || size.width <= 0 || size.height <= 0) return;
-
-    const double padX = 0;
-    const double padY = 6;
-    final double usableW = size.width;
-    final double usableH = size.height - padY * 2;
-    final int last = values.length - 1;
-
-    Offset pointAt(int i) {
-      final double t = i / last;
-      final double v = values[i].clamp(0.0, 1.0);
-      return Offset(
-        padX + usableW * t,
-        padY + usableH * (1 - v),
-      );
-    }
-
-    final Path line = Path()..moveTo(pointAt(0).dx, pointAt(0).dy);
-    for (int i = 1; i <= last; i++) {
-      final Offset p = pointAt(i);
-      line.lineTo(p.dx, p.dy);
-    }
-
-    final Path area = Path.from(line)
-      ..lineTo(pointAt(last).dx, size.height)
-      ..lineTo(pointAt(0).dx, size.height)
-      ..close();
-
-    canvas.drawPath(
-      area,
-      Paint()
-        ..style = PaintingStyle.fill
-        ..color = fillColor,
-    );
-
-    canvas.drawPath(
-      line,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..color = lineColor,
-    );
-
-    final Paint dotFill = Paint()
-      ..style = PaintingStyle.fill
-      ..color = lineColor;
-    for (int i = 0; i <= last; i++) {
-      canvas.drawCircle(pointAt(i), 1.6, dotFill);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DecorativeSparklinePainter oldDelegate) {
-    return oldDelegate.lineColor != lineColor ||
-        oldDelegate.fillColor != fillColor ||
-        oldDelegate.values != values;
   }
 }

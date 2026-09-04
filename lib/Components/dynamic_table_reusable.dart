@@ -128,8 +128,8 @@ class DynamicTable extends StatefulWidget {
     this.toolbar,
     this.showFixedColumn = true,
     this.considerPadding = true,
-    this.columnSpacing = 8,
-    this.horizontalMargin = 16,
+    this.columnSpacing = 4,
+    this.horizontalMargin = 0,
     this.fixedColumnWidth,
     this.enableDragging = false,
     this.enableLivePrices = false,
@@ -150,7 +150,7 @@ class DynamicTable extends StatefulWidget {
     this.headerHeight,
     this.rowHeight,
     this.toolbarPadding,
-    this.tableEdgeInset,
+    this.tableEdgeInset = const EdgeInsets.symmetric(horizontal: 12),
   }) : super(key: key);
 
   final List<SimpleColumn> columns;

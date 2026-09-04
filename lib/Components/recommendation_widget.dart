@@ -122,32 +122,23 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: HomeUi.detailSummaryMetric(
-                dark: _isDark,
-                label: 'Current Consensus',
-                value: latest.consensusText,
-                valueColor: consensusColor,
-              ),
+        HomeUi.detailSummaryMetricsRow(
+          dark: _isDark,
+          items: [
+            (
+              label: 'Current Consensus',
+              value: latest.consensusText,
+              valueColor: consensusColor,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: HomeUi.detailSummaryMetric(
-                dark: _isDark,
-                label: 'Latest Analysts',
-                value: latest.total.toString(),
-              ),
+            (
+              label: 'Latest Analysts',
+              value: latest.total.toString(),
+              valueColor: null,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: HomeUi.detailSummaryMetric(
-                dark: _isDark,
-                label: 'Trend',
-                value: trendText,
-                valueColor: trendColor,
-              ),
+            (
+              label: 'Trend',
+              value: trendText,
+              valueColor: trendColor,
             ),
           ],
         ),

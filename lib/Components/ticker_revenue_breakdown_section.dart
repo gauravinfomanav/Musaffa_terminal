@@ -361,9 +361,9 @@ class _RevenueDonutState extends State<_RevenueDonut>
   Offset? _pendingMousePos;
   bool _hoverFrameScheduled = false;
 
-  /// Thin ring — outer fills the box, hole stays open for center label.
+  /// Ring thickness — lower inner = thicker band (still room for center label).
   static const double _outerFactor = 0.98;
-  static const double _innerFactor = 0.88;
+  static const double _innerFactor = 0.78;
   static const double _hoverExpand = 5.0;
   static const double _gapPx = 1.0;
   static const double _defaultHeight = 280;

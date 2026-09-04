@@ -73,12 +73,16 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
     final QuarterlyBarChartTheme baseTheme = QuarterlyBarChartTheme(
       cardBackgroundColor: HomeUi.cardBg(isDark),
       cardBorderColor: HomeUi.borderLight(isDark),
-      gridLineColor: HomeUi.borderLight(isDark),
-      axisLineColor: HomeUi.borderStrong(isDark),
+      gridLineColor: isDark
+          ? const Color(0xFF2A3038)
+          : const Color(0xFFEEF1F5),
+      axisLineColor: HomeUi.borderLight(isDark),
       priceAxisLabelColor: HomeUi.accent(isDark),
-      barGradient: HomeUi.chartBarGradient(isDark),
-      barCornerRadius: 6,
-      barWidth: 0.48,
+      barColor: HomeUi.chartBarColor(isDark),
+      negativeBarColor: HomeUi.chartNegativeBarColor(isDark),
+      barCornerRadius: 5,
+      barWidth: 0.42,
+      barSpacing: 0.14,
     );
 
     return Column(
@@ -233,9 +237,11 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
           gridLineColor: baseTheme.gridLineColor,
           axisLineColor: baseTheme.axisLineColor,
           priceAxisLabelColor: baseTheme.priceAxisLabelColor,
-          barGradient: baseTheme.barGradient,
+          barColor: baseTheme.barColor,
+          negativeBarColor: baseTheme.negativeBarColor,
           barCornerRadius: baseTheme.barCornerRadius,
           barWidth: baseTheme.barWidth,
+          barSpacing: baseTheme.barSpacing,
           expandChart: true,
         ),
       ),

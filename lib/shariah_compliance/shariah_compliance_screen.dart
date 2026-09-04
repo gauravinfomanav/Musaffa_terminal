@@ -275,6 +275,7 @@ class _ShariahComplianceScreenState extends State<ShariahComplianceScreen> {
                                                 isLast: entry.key ==
                                                     _searchResults.length - 1,
                                                 isDark: isDark,
+                                                rowIndex: entry.key,
                                                 onTap: () =>
                                                     _selectTicker(entry.value),
                                               ),
@@ -382,12 +383,14 @@ class _SearchSuggestionTile extends StatefulWidget {
     required this.isLast,
     required this.isDark,
     required this.onTap,
+    this.rowIndex = 0,
   });
 
   final TickerModel ticker;
   final bool isLast;
   final bool isDark;
   final VoidCallback onTap;
+  final int rowIndex;
 
   @override
   State<_SearchSuggestionTile> createState() => _SearchSuggestionTileState();
@@ -420,7 +423,11 @@ class _SearchSuggestionTileState extends State<_SearchSuggestionTile> {
           duration: const Duration(milliseconds: 140),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: _hover ? HomeUi.tableRowHover(isDark) : Colors.transparent,
+            color: _hover
+                ? HomeUi.tableRowHover(isDark)
+                : (widget.rowIndex.isEven
+                    ? HomeUi.tableRowEven(isDark)
+                    : HomeUi.tableRowOdd(isDark)),
             border: widget.isLast
                 ? null
                 : Border(

@@ -48,9 +48,9 @@ class _PremiumAllocationDonutState extends State<PremiumAllocationDonut>
   late Animation<double> _hoverAnim;
   int? _animatingHoverIndex;
 
-  /// Thin ring — match revenue-breakdown donut (outer fills box).
+  /// Ring thickness — lower inner = thicker band.
   static const double _outerFactor = 0.98;
-  static const double _innerFactor = 0.88;
+  static const double _innerFactor = 0.78;
   static const double _hoverExpand = 5.0;
   static const double _gapWidth = 2.0;
 

@@ -208,9 +208,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       final bool isLargeScreen = screenWidth >= 1600;
                       final dataRowMaxHeight = isLargeScreen ? 44.0 : 42.0;
                       const headingRowHeight = 40.0;
-                      const columnSpacing = 16.0;
-                      // Match card title inset (Padding 16) so SECTOR aligns with title.
-                      const horizontalMargin = 16.0;
+                      const columnSpacing = 6.0;
+                      const horizontalMargin = 0.0;
+                      // Default 12px edge inset — SECTOR / 1Y stay off the card rim.
 
                       // Minimum widths only — DynamicTableFromWeb stretch fills
                       // leftover so the table always spans the full card width.
@@ -252,8 +252,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           dataRowMinHeight: 32,
                           dataRowMaxHeight: dataRowMaxHeight,
                           horizontalMargin: horizontalMargin,
+                          tableEdgeInset: const EdgeInsets.symmetric(horizontal: 12),
                           columnSpacing: columnSpacing,
-                          // Align cell text with card title (no extra 8px inset).
                           columnCellPadding:
                               const EdgeInsets.only(left: 0, right: 4),
                           dividerThickness: 0.5,

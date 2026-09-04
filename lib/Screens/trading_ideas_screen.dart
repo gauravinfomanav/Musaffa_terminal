@@ -288,7 +288,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
           showFixedColumn: true,
           considerPadding: false,
           showOuterShadow: false,
-          columnSpacing: 8,
+          columnSpacing: 4,
           fixedColumnWidth: 220,
           headerHeight: 44,
           rowHeight: 56,

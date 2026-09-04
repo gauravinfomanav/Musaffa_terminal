@@ -27,9 +27,11 @@ class TickerEarningsCompactChart {
       ),
       unitStyle: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12),
       inlineHeader: true,
-      barWidth: 0.48,
-      barCornerRadius: 6,
-      barGradient: HomeUi.chartBarGradient(isDarkMode),
+      barWidth: 0.42,
+      barSpacing: 0.14,
+      barCornerRadius: 5,
+      barColor: HomeUi.chartBarColor(isDarkMode),
+      negativeBarColor: HomeUi.chartNegativeBarColor(isDarkMode),
       expandChart: true,
     );
   }

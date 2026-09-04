@@ -194,26 +194,22 @@ class _TargetPriceDialogState extends State<TargetPriceDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: HomeUi.detailSummaryMetric(
-                          dark: isDark,
-                          label: 'Ticker',
-                          value: widget.ticker,
-                        ),
+                  HomeUi.detailSummaryMetricsRow(
+                    dark: isDark,
+                    items: [
+                      (
+                        label: 'Ticker',
+                        value: widget.ticker,
+                        valueColor: null,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: HomeUi.detailSummaryMetric(
-                          dark: isDark,
-                          label: 'Current Price',
-                          value: _isLoadingPrice
-                              ? '…'
-                              : _currentPrice != null
-                                  ? '\$${_currentPrice!.toStringAsFixed(2)}'
-                                  : '--',
-                        ),
+                      (
+                        label: 'Current Price',
+                        value: _isLoadingPrice
+                            ? '…'
+                            : _currentPrice != null
+                                ? '\$${_currentPrice!.toStringAsFixed(2)}'
+                                : '--',
+                        valueColor: null,
                       ),
                     ],
                   ),

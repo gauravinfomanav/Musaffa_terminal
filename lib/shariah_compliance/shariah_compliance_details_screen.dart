@@ -2516,6 +2516,7 @@ class _ShariahComplianceDetailsScreenState
                   showPercent,
                   compact: compact,
                   showDivider: !isLast,
+                  rowIndex: entry.key,
                 );
               },
             ),
@@ -2536,15 +2537,19 @@ class _ShariahComplianceDetailsScreenState
     bool showPercent, {
     bool compact = false,
     bool showDivider = true,
+    int rowIndex = 0,
   }) {
     final String key = '${item.id}-${item.name}';
     final bool expanded = _expandedRows.contains(key);
     final bool canExpand = _revenueRowCanExpand(item);
+    final Color rowBg = rowIndex.isEven
+        ? HomeUi.tableRowEven(isDark)
+        : HomeUi.tableRowOdd(isDark);
 
     return Column(
       children: <Widget>[
         Material(
-          color: Colors.transparent,
+          color: rowBg,
           child: InkWell(
             onTap: canExpand ? () => _toggleExpanded(key) : null,
             hoverColor: HomeUi.accent(isDark).withValues(alpha: 0.04),
@@ -3016,7 +3021,9 @@ class _ShariahComplianceDetailsScreenState
                   decoration: BoxDecoration(
                     color: _hoveredHistoryRow == index
                         ? HomeUi.tableRowHover(isDark)
-                        : Colors.transparent,
+                        : (index.isEven
+                            ? HomeUi.tableRowEven(isDark)
+                            : HomeUi.tableRowOdd(isDark)),
                     border: lastRow
                         ? null
                         : Border(

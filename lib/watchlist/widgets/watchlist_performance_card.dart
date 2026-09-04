@@ -422,6 +422,25 @@ class _PerformanceSparklinePainter extends CustomPainter {
   final Color lineColor;
   final Color fillColor;
 
+  Path _smoothLine(List<Offset> pts) {
+    final Path path = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (int i = 0; i < pts.length - 1; i++) {
+      final Offset p0 = i > 0 ? pts[i - 1] : pts[i];
+      final Offset p1 = pts[i];
+      final Offset p2 = pts[i + 1];
+      final Offset p3 = i + 2 < pts.length ? pts[i + 2] : p2;
+      path.cubicTo(
+        p1.dx + (p2.dx - p0.dx) / 6,
+        p1.dy + (p2.dy - p0.dy) / 6,
+        p2.dx - (p3.dx - p1.dx) / 6,
+        p2.dy - (p3.dy - p1.dy) / 6,
+        p2.dx,
+        p2.dy,
+      );
+    }
+    return path;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     if (values.length < 2 || size.width <= 0 || size.height <= 0) return;
@@ -434,27 +453,20 @@ class _PerformanceSparklinePainter extends CustomPainter {
     }
     final double span = (maxV - minV).abs() < 1e-9 ? 1.0 : (maxV - minV);
 
-    const double padY = 2;
+    const double padY = 3;
     final double usableH = size.height - padY * 2;
     final int last = values.length - 1;
 
-    Offset pointAt(int i) {
+    final List<Offset> pts = List<Offset>.generate(values.length, (int i) {
       final double t = i / last;
       final double norm = (values[i] - minV) / span;
-      return Offset(
-        size.width * t,
-        padY + usableH * (1 - norm),
-      );
-    }
+      return Offset(size.width * t, padY + usableH * (1 - norm));
+    });
 
-    final Path line = Path()..moveTo(pointAt(0).dx, pointAt(0).dy);
-    for (int i = 1; i <= last; i++) {
-      line.lineTo(pointAt(i).dx, pointAt(i).dy);
-    }
-
+    final Path line = _smoothLine(pts);
     final Path area = Path.from(line)
-      ..lineTo(pointAt(last).dx, size.height)
-      ..lineTo(pointAt(0).dx, size.height)
+      ..lineTo(pts.last.dx, size.height)
+      ..lineTo(pts.first.dx, size.height)
       ..close();
 
     canvas.drawPath(
@@ -475,11 +487,31 @@ class _PerformanceSparklinePainter extends CustomPainter {
       line,
       Paint()
         ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = lineColor.withValues(alpha: 0.16)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+
+    canvas.drawPath(
+      line,
+      Paint()
+        ..style = PaintingStyle.stroke
         ..strokeWidth = 2
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
         ..color = lineColor,
     );
+
+    final Offset end = pts.last;
+    canvas.drawCircle(
+      end,
+      6,
+      Paint()..color = lineColor.withValues(alpha: 0.16),
+    );
+    canvas.drawCircle(end, 3.2, Paint()..color = Colors.white);
+    canvas.drawCircle(end, 2.2, Paint()..color = lineColor);
   }
 
   @override

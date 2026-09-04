@@ -5,18 +5,12 @@ import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
-/// Default gap between DataTable columns (was 40 — felt sparse).
-const double _kDefaultColumnSpacing = 8;
+/// Always share leftover width across stretchable columns so the table
+/// fills the card on both compact and ultra-wide layouts.
+const double _kDefaultColumnSpacing = 4;
 
-/// Soft ceiling so callers that still pass legacy 28–40 do not blow out gaps.
-const double _kMaxColumnSpacing = 10;
-
-/// Full-width stretch when this many (or fewer) columns are visible.
-const int _kStretchAtMostVisibleColumns = 7;
-
-/// On dense tables, absorb at most this many extra px per stretchable column
-/// so wide monitors do not create huge empty cells.
-const double _kSoftStretchMaxExtraPerColumn = 18;
+/// Soft ceiling so callers that still pass legacy 8–40 stay dense.
+const double _kMaxColumnSpacing = 6;
 
 // ============================================================================
 // DATA MODELS
@@ -253,7 +247,7 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.headingRowHeight = 44,
     this.dataRowMinHeight = 48,
     this.dataRowMaxHeight = 48,
-    this.horizontalMargin = 16,
+    this.horizontalMargin = 0,
     this.columnSpacing,
     this.dividerThickness,
     this.tableBorder,
@@ -457,8 +451,19 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   double get _headerResizeReserve => widget.showColumnResizeHandle ? 8 : 0;
   double get _headerChromeTrailing =>
       8 + _headerActionReserve + _headerResizeReserve;
-  static const double _headerLeading = 6;
-  static const double _cellTrailing = 8;
+  static const double _headerLeading = 8;
+  static const double _cellTrailing = 6;
+
+  /// Breathing room from card edge into the first/last column.
+  /// Pass [tableEdgeInset] as [EdgeInsets.zero] for intentionally flush tables.
+  static const EdgeInsets _kDefaultTableEdgeInset =
+      EdgeInsets.symmetric(horizontal: 12);
+
+  EdgeInsets get _effectiveTableEdge =>
+      widget.tableEdgeInset ?? _kDefaultTableEdgeInset;
+
+  bool get _usesCellEdgeInset =>
+      _effectiveTableEdge.left > 0 || _effectiveTableEdge.right > 0;
 
   EdgeInsets _columnCellInsetsFor({
     bool leadingEdge = false,
@@ -466,7 +471,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   }) {
     final base = widget.columnCellPadding ??
         EdgeInsets.only(left: _headerLeading, right: _cellTrailing);
-    final edge = widget.tableEdgeInset ?? EdgeInsets.zero;
+    final edge = _effectiveTableEdge;
     return EdgeInsets.only(
       left: base.left + (leadingEdge ? edge.left : 0),
       right: base.right + (trailingEdge ? edge.right : 0),
@@ -474,7 +479,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   }
 
   EdgeInsets _tickerCellInsets({bool leadingEdge = false}) {
-    final edge = widget.tableEdgeInset ?? EdgeInsets.zero;
+    final edge = _effectiveTableEdge;
     return EdgeInsets.only(
       left: leadingEdge ? edge.left : 0,
       right: 8,
@@ -801,15 +806,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   /// True when leftover width was fully absorbed (table should fill card width).
   bool _stretchFilledAvailableWidth = false;
 
-  /// Tighter gaps when many columns are visible; roomier after columns are hidden.
+  /// Tighter gaps when many columns are visible; still dense when few remain.
   double _effectiveColumnSpacing([int? visibleCount]) {
     final n = visibleCount ?? _visibleColumns.length;
     final preferred =
         (widget.columnSpacing ?? _kDefaultColumnSpacing)
-            .clamp(4.0, _kMaxColumnSpacing);
-    if (n >= 10) return 4;
-    if (n >= 8) return preferred > 6 ? 6 : preferred;
-    if (n >= 6) return preferred > 8 ? 8 : preferred;
+            .clamp(2.0, _kMaxColumnSpacing);
+    if (n >= 10) return 2;
+    if (n >= 8) return preferred > 4 ? 4 : preferred;
+    if (n >= 6) return preferred > 5 ? 5 : preferred;
     return preferred;
   }
 
@@ -825,9 +830,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     return index.isEven ? even : odd;
   }
 
-  bool _isFullStretch(int visibleCount) =>
-      visibleCount <= _kStretchAtMostVisibleColumns;
-
   void _computeStretchedWidths(
     List<DynamicTableColumn> columns,
     double availableWidth, {
@@ -842,9 +844,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     // Natural mins must be fresh before we share leftover width.
     _refreshNaturalMinWidths(columns);
 
-    // Account for ticker column, horizontal margins, and DataTable spacing.
+    // Edge inset lives inside cell padding (within column width), so do not
+    // reserve it again here — that left a persistent right-side gutter.
     final double spacing = _effectiveColumnSpacing(visibleCount);
-    double reserved = widget.horizontalMargin * 2;
+    double reserved =
+        _usesCellEdgeInset ? 0.0 : widget.horizontalMargin * 2;
     if (includeTicker) {
       reserved += (widget.tickerColumnWidth ?? 200) + 8;
     }
@@ -868,22 +872,48 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       }
     }
 
-    if (totalStretchBase <= 0 || stretchableCount <= 0) return;
     final usableForStretch = usable - compactReserved;
-    if (usableForStretch <= totalStretchBase) return;
+    if (stretchableCount <= 0 || totalStretchBase <= 0) {
+      // No stretchable cols — dump leftover onto the last visible column.
+      if (columns.isNotEmpty && usableForStretch > 0) {
+        final DynamicTableColumn last = columns.last;
+        final double base = baseWidths[last.key] ?? _getNaturalMinWidth(last);
+        final double leftover = usable - compactReserved - totalStretchBase;
+        _stretchedColumnWidths[last.key] =
+            base + (leftover > 0 ? leftover : 0);
+      }
+      _stretchFilledAvailableWidth = true;
+      return;
+    }
 
-    final rawExtra = usableForStretch - totalStretchBase;
-    final double maxExtra = _isFullStretch(visibleCount)
-        ? double.infinity
-        : _kSoftStretchMaxExtraPerColumn * stretchableCount;
-    final extra = rawExtra > maxExtra ? maxExtra : rawExtra;
-    _stretchFilledAvailableWidth = extra >= rawExtra - 0.5;
+    // Always fill the card: grow columns when there is leftover; otherwise
+    // keep natural mins (horizontal scroll handles overflow).
+    final double extra =
+        usableForStretch > totalStretchBase
+            ? usableForStretch - totalStretchBase
+            : 0;
+    _stretchFilledAvailableWidth = true;
 
+    String? lastStretchKey;
     for (final col in columns) {
       if (HomeUi.isCompactTableColumn(col.key)) continue;
       final base = baseWidths[col.key]!;
       final share = base / totalStretchBase;
       _stretchedColumnWidths[col.key] = base + extra * share;
+      lastStretchKey = col.key;
+    }
+
+    // Absorb sub-pixel remainder on the last stretchable column.
+    if (extra > 0 && lastStretchKey != null) {
+      double assigned = compactReserved;
+      for (final col in columns) {
+        assigned += _stretchedColumnWidths[col.key] ?? 0;
+      }
+      final double drift = usable - assigned;
+      if (drift.abs() > 0.5) {
+        _stretchedColumnWidths[lastStretchKey] =
+            (_stretchedColumnWidths[lastStretchKey] ?? 0) + drift;
+      }
     }
   }
 
@@ -1587,7 +1617,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         if (availableW <= 0) return const SizedBox.shrink();
 
         _computeStretchedWidths(centerColumns, availableW);
-        final bool fillWidth = _stretchFilledAvailableWidth;
+        final bool fillWidth =
+            widget.enableColumnStretch || _stretchFilledAvailableWidth;
         return SizedBox(
           width: availableW,
           child: AnimatedSize(
@@ -1603,8 +1634,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 controller: _horizontalScrollController,
                 scrollDirection: Axis.horizontal,
                 child: ConstrainedBox(
-                  // Only force full card width when leftover was fully absorbed.
-                  // Soft-stretch (many cols) keeps content tight on wide monitors.
+                  // Always fill the card slot when stretch is on — no right gutter.
                   constraints: BoxConstraints(
                     minWidth: fillWidth ? availableW : 0,
                   ),
@@ -1795,9 +1825,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         headingRowHeight: _effectiveHeadingRowHeight,
         dataRowMinHeight: widget.rowHeight ?? widget.dataRowMinHeight,
         dataRowMaxHeight: _effectiveDataRowHeight,
-        horizontalMargin: widget.tableEdgeInset == null
-            ? widget.horizontalMargin
-            : 0,
+        horizontalMargin: _usesCellEdgeInset ? 0 : widget.horizontalMargin,
         columnSpacing: _effectiveColumnSpacing(),
         dividerThickness: widget.dividerThickness ?? 0.5,
         showBottomBorder: widget.showBottomBorder,
@@ -2095,7 +2123,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         : null;
 
     final tableContent = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Toolbar
         if (widget.title != null ||
@@ -2205,17 +2233,20 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             ),
           )
         else
-          _buildPinnedScrollBody(
-            context: context,
-            bgColor: bgColor,
-            borderColor: borderColor,
-            leftPinnedColumns: leftPinnedColumns,
-            centerColumns: centerColumns,
-            rightPinnedColumns: rightPinnedColumns,
-            paginatedRows: paginatedRows,
-            textColor: textColor,
-            mutedColor: mutedColor,
-            expanderColumnKey: expanderColumnKey,
+          SizedBox(
+            width: double.infinity,
+            child: _buildPinnedScrollBody(
+              context: context,
+              bgColor: bgColor,
+              borderColor: borderColor,
+              leftPinnedColumns: leftPinnedColumns,
+              centerColumns: centerColumns,
+              rightPinnedColumns: rightPinnedColumns,
+              paginatedRows: paginatedRows,
+              textColor: textColor,
+              mutedColor: mutedColor,
+              expanderColumnKey: expanderColumnKey,
+            ),
           ),
         // Pagination
         if (widget.paginated && paginatedRows.isNotEmpty)
@@ -2355,7 +2386,7 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                     );
                   },
                   child: Container(
-                    width: 268,
+                    width: 300,
                     constraints: const BoxConstraints(maxHeight: 380),
                     decoration: BoxDecoration(
                       color: HomeUi.cardBg(isDark),
@@ -2402,7 +2433,7 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                               final isVisible =
                                   _overlayVisibleColumns.contains(col.key);
                               return _ColumnMenuRow(
-                                label: col.label,
+                                label: col.fullLabel,
                                 selected: isVisible,
                                 isDark: isDark,
                                 onTap: () {
@@ -2541,8 +2572,8 @@ class _ColumnMenuRowState extends State<_ColumnMenuRow> {
           ),
           padding: EdgeInsets.all(_hover ? 1.5 : 1),
           child: Container(
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            constraints: const BoxConstraints(minHeight: 38),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: HomeUi.cardBg(dark),
               borderRadius: BorderRadius.circular(radius - 1),
@@ -2575,8 +2606,7 @@ class _ColumnMenuRowState extends State<_ColumnMenuRow> {
                 Expanded(
                   child: Text(
                     widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: HomeUi.control(dark, active: true).copyWith(
                       fontSize: 12.5,
                       fontWeight:

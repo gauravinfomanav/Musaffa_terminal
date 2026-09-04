@@ -65,6 +65,8 @@ class QuarterlyBarChartTheme {
     this.firstBarGap = 10,
     this.inlineHeader = false,
     this.barGradient,
+    this.barColor,
+    this.negativeBarColor,
     this.expandChart = false,
   });
 
@@ -97,7 +99,12 @@ class QuarterlyBarChartTheme {
   final double plotAreaBottomPadding;
   final double firstBarGap;
   final bool inlineHeader;
+  /// Deprecated: prefer solid [barColor]. Ignored when [barColor] is set.
   final LinearGradient? barGradient;
+  /// Solid fill for positive / zero bars (premium single-color look).
+  final Color? barColor;
+  /// Solid fill for negative bars.
+  final Color? negativeBarColor;
   final bool expandChart;
 }
 

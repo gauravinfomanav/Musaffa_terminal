@@ -82,14 +82,15 @@ class UsPremiumChartColors {
 
   Color seriesAt(int index) => series[index % series.length];
 
-  /// Donut / allocation ramp — deep navy → soft steel.
   static const List<Color> allocationRamp = <Color>[
-    Color(0xFF17283B),
-    Color(0xFF243A52),
-    Color(0xFF32506D),
-    Color(0xFF476682),
-    Color(0xFF6685A0),
-    Color(0xFF8CA5B7),
+    Color(0xFF1A3654),
+    Color(0xFF245C93),
+    Color(0xFF2F7C74),
+    Color(0xFF4A8093),
+    Color(0xFF556B8E),
+    Color(0xFF6D5F8C),
+    Color(0xFFB88746),
+    Color(0xFFC45C26),
   ];
 
   Color allocationAt(int index) => allocationRamp[index % allocationRamp.length];

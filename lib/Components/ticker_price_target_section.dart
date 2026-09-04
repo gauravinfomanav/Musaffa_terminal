@@ -131,18 +131,11 @@ class TickerPriceTargetSection extends StatelessWidget {
   }
 
   Widget _buildSummaryRow(List<List<String>> cards) {
-    return Row(
-      children: <Widget>[
-        for (var i = 0; i < cards.length; i++) ...<Widget>[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(
-            child: HomeUi.detailSummaryMetric(
-              dark: isDarkMode,
-              label: cards[i][0],
-              value: cards[i][1],
-            ),
-          ),
-        ],
+    return HomeUi.detailSummaryMetricsRow(
+      dark: isDarkMode,
+      items: [
+        for (final card in cards)
+          (label: card[0], value: card[1], valueColor: null),
       ],
     );
   }

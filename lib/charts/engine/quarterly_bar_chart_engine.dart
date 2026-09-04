@@ -262,13 +262,14 @@ class QuarterlyBarChartEngine {
       maximum: range.maximum,
       interval: range.interval,
       numberFormat: _axisNumberFormat,
-      axisLine: AxisLine(
-        width: 1,
-        color: theme.axisLineColor,
-      ),
+      axisLine: const AxisLine(width: 0),
       majorTickLines: const MajorTickLines(size: 0),
       minorTickLines: const MinorTickLines(size: 0),
-      majorGridLines: const MajorGridLines(width: 0),
+      majorGridLines: MajorGridLines(
+        width: 1,
+        color: theme.gridLineColor,
+        dashArray: const <double>[4, 4],
+      ),
       minorGridLines: const MinorGridLines(width: 0),
       labelStyle: axisLabelStyle,
       plotBands: const <PlotBand>[],
@@ -441,8 +442,10 @@ class QuarterlyBarChartEngine {
     bool enableTooltip = true,
     bool categoryXAxis = false,
   }) {
-    final LinearGradient barGradient =
-        theme.barGradient ?? QuarterlyChartColors.fadedBarGradient;
+    final Color positiveColor =
+        theme.barColor ?? QuarterlyChartColors.positive;
+    final Color negativeColor =
+        theme.negativeBarColor ?? QuarterlyChartColors.negative;
     final DataLabelSettings labels = DataLabelSettings(
       isVisible: true,
       labelPosition: ChartDataLabelPosition.outside,
@@ -458,12 +461,24 @@ class QuarterlyBarChartEngine {
             negative: isNegativeDominant(data),
           );
 
+    Color colorFor(QuarterDataPoint point, int index) {
+      final Color base =
+          point.value < 0 ? negativeColor : positiveColor;
+      final int focusIndex = hoveredIndex ?? latestIndex;
+      if (focusIndex < 0 || data.length <= 1 || index == focusIndex) {
+        return base;
+      }
+      return base.withValues(alpha: 0.58);
+    }
+
     if (categoryXAxis) {
       return <CartesianSeries<QuarterDataPoint, dynamic>>[
         ColumnSeries<QuarterDataPoint, String>(
           dataSource: data,
           xValueMapper: (QuarterDataPoint point, _) => point.label,
           yValueMapper: (QuarterDataPoint point, _) => point.value,
+          pointColorMapper: (QuarterDataPoint point, int index) =>
+              colorFor(point, index),
           dataLabelMapper: (QuarterDataPoint point, _) =>
               formatValue(point.value),
           width: theme.barWidth,
@@ -471,7 +486,7 @@ class QuarterlyBarChartEngine {
           borderRadius: radius,
           animationDuration: 0,
           enableTooltip: enableTooltip,
-          gradient: barGradient,
+          color: positiveColor,
           dataLabelSettings: labels,
         ),
       ];
@@ -482,13 +497,15 @@ class QuarterlyBarChartEngine {
         dataSource: data,
         xValueMapper: (QuarterDataPoint point, _) => point.date,
         yValueMapper: (QuarterDataPoint point, _) => point.value,
+        pointColorMapper: (QuarterDataPoint point, int index) =>
+            colorFor(point, index),
         dataLabelMapper: (QuarterDataPoint point, _) => formatValue(point.value),
         width: theme.barWidth,
         spacing: theme.barSpacing,
         borderRadius: radius,
         animationDuration: 0,
         enableTooltip: enableTooltip,
-        gradient: barGradient,
+        color: positiveColor,
         dataLabelSettings: labels,
       ),
     ];

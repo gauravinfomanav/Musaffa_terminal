@@ -1308,7 +1308,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             toolbar: _buildResultsTabs(isDarkMode),
             // Toolbar inset matches filter card; th/td get the same edge inset.
             toolbarPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            tableEdgeInset: const EdgeInsets.symmetric(horizontal: 16),
+            tableEdgeInset: const EdgeInsets.symmetric(horizontal: 12),
             showFixedColumn: true,
             considerPadding: false,
             showOuterShadow: false,
@@ -1321,7 +1321,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             showColumnResizeHandle: true,
             headerHeight: 44,
             rowHeight: 56,
-            columnSpacing: 8,
+            columnSpacing: 4,
             horizontalMargin: 0,
             tableId: 'screener_results_table_${_selectedResultsTab}',
             sortState: _resultsSortState,

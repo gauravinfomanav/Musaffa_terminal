@@ -736,22 +736,30 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                     : c.maxWidth >= 640
                         ? 3
                         : 2;
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: items
-                      .map(
-                        ((String, String, Color?) m) => SizedBox(
-                          width: (c.maxWidth - (10 * (cols - 1))) / cols,
-                          child: HomeUi.detailSummaryMetric(
-                            dark: isDark,
+                // Auto-width cells; left border only between columns in each row.
+                final List<Widget> rows = <Widget>[];
+                for (int start = 0; start < items.length; start += cols) {
+                  final int end =
+                      (start + cols > items.length) ? items.length : start + cols;
+                  final chunk = items.sublist(start, end);
+                  if (rows.isNotEmpty) rows.add(const SizedBox(height: 4));
+                  rows.add(
+                    HomeUi.detailSummaryMetricsRow(
+                      dark: isDark,
+                      items: [
+                        for (final m in chunk)
+                          (
                             label: m.$1,
                             value: m.$2,
                             valueColor: m.$3,
                           ),
-                        ),
-                      )
-                      .toList(),
+                      ],
+                    ),
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: rows,
                 );
               },
             ),
@@ -1080,7 +1088,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                 showOuterShadow: true,
                 showFixedColumn: true,
                 considerPadding: false,
-                columnSpacing: 8,
+                columnSpacing: 4,
                 fixedColumnWidth: 110,
                 enableLivePrices: false,
                 zebraStripes: true,
@@ -1457,30 +1465,23 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                     eps.first.epsLow != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: HomeUi.detailSummaryMetric(
-                            dark: isDark,
-                            label: 'EPS Avg (${eps.first.label})',
-                            value: eps.first.epsAvg?.toStringAsFixed(2) ?? '—',
-                          ),
+                    child: HomeUi.detailSummaryMetricsRow(
+                      dark: isDark,
+                      items: [
+                        (
+                          label: 'EPS Avg (${eps.first.label})',
+                          value: eps.first.epsAvg?.toStringAsFixed(2) ?? '—',
+                          valueColor: null,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: HomeUi.detailSummaryMetric(
-                            dark: isDark,
-                            label: 'EPS High',
-                            value: eps.first.epsHigh?.toStringAsFixed(2) ?? '—',
-                          ),
+                        (
+                          label: 'EPS High',
+                          value: eps.first.epsHigh?.toStringAsFixed(2) ?? '—',
+                          valueColor: null,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: HomeUi.detailSummaryMetric(
-                            dark: isDark,
-                            label: 'EPS Low',
-                            value: eps.first.epsLow?.toStringAsFixed(2) ?? '—',
-                          ),
+                        (
+                          label: 'EPS Low',
+                          value: eps.first.epsLow?.toStringAsFixed(2) ?? '—',
+                          valueColor: null,
                         ),
                       ],
                     ),
@@ -1492,7 +1493,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                   showOuterShadow: true,
                   showFixedColumn: true,
                   considerPadding: false,
-                  columnSpacing: 8,
+                  columnSpacing: 4,
                   fixedColumnWidth: 140,
                   enableLivePrices: false,
                   zebraStripes: true,
@@ -1551,7 +1552,7 @@ class _EarningsDetailScreenState extends State<EarningsDetailScreen> {
                   showOuterShadow: true,
                   showFixedColumn: true,
                   considerPadding: false,
-                  columnSpacing: 8,
+                  columnSpacing: 4,
                   fixedColumnWidth: 140,
                   enableLivePrices: false,
                   zebraStripes: true,
