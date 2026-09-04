@@ -453,8 +453,9 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
   }
 
   Widget _buildFooter(bool isDark, double total) {
+    // Empty portfolio already has Add Asset CTAs in the toolbar + empty body.
     if (widget.holdings.isEmpty) {
-      return _buildEmptyFooter(isDark);
+      return const SizedBox.shrink();
     }
 
     final isBalanced = isAllocationBalanced(total);
@@ -603,84 +604,6 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  /// Zero-data footer — brand-tinted CTA strip, not flat grey.
-  Widget _buildEmptyFooter(bool isDark) {
-    final accent = HomeUi.accent(isDark);
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: HomeUi.borderLight(isDark))),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(HomeUi.radiusCard),
-          bottomRight: Radius.circular(HomeUi.radiusCard),
-        ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  Color.alphaBlend(
-                    accent.withValues(alpha: 0.12),
-                    const Color(0xFF171A24),
-                  ),
-                  const Color(0xFF141720),
-                ]
-              : [
-                  const Color(0xFFFFF8F4),
-                  const Color(0xFFFCFCFD),
-                ],
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: HomeUi.softBrandWellGradient,
-            ),
-            child: HomeUi.brandIcon(
-              icon: Icons.add_rounded,
-              size: 18,
-              gradient: HomeUi.softBrandIconGradient,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Ready to build',
-                  style: HomeUi.control(isDark).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Add assets to start allocating toward 100%',
-                  style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          if (widget.onAddAsset != null)
-            HomeUi.primaryAction(
-              label: 'Add Asset',
-              icon: Icons.add_rounded,
-              onTap: widget.onAddAsset!,
-            ),
         ],
       ),
     );

@@ -15,6 +15,7 @@ import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
+import 'package:musaffa_terminal/Screens/sector_details_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
@@ -951,6 +952,37 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
     );
   }
 
+  void _openIndex(BuildContext context, MarketIndex index) {
+    final sectorName = MarketIndex.sectorEtfToName[index.symbol];
+    if (sectorName != null) {
+      FeatureNavigation.pushIfAllowed(
+        context,
+        FeatureKeys.sectorDetails,
+        SectorDetailsScreen(sectorName: sectorName),
+      );
+      return;
+    }
+
+    // Broad / bond / commodity ETFs open the ETF detail screen.
+    final symbol = index.symbol;
+    final ticker = TickerModel(
+      symbol: symbol,
+      ticker: symbol,
+      mainTicker: symbol,
+      stockName: symbol,
+      currentPrice: index.currentPrice,
+      lastPrice: index.currentPrice,
+      percentChange: index.changePercent,
+      currency: 'USD',
+      isStock: false,
+    );
+    FeatureNavigation.pushIfAllowed(
+      context,
+      FeatureKeys.etfDetails,
+      EtfDetailsScreen(ticker: ticker),
+    );
+  }
+
   Widget _buildIndexItems(List<MarketIndex> indices) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -960,6 +992,7 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
           _IndexItem(
             index: indices[i],
             isDarkMode: widget.isDarkMode,
+            onTap: () => _openIndex(context, indices[i]),
           ),
         ],
       ],
@@ -1018,7 +1051,7 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
       return MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
-        cursor: SystemMouseCursors.basic,
+        cursor: SystemMouseCursors.click,
         child: Listener(
           onPointerSignal: (event) {
             if (event is PointerScrollEvent && _scrollController.hasClients) {
@@ -1075,10 +1108,12 @@ class _MarketIndicesStripState extends State<_MarketIndicesStrip> {
 class _IndexItem extends StatelessWidget {
   final MarketIndex index;
   final bool isDarkMode;
+  final VoidCallback onTap;
 
   const _IndexItem({
     required this.index,
     required this.isDarkMode,
+    required this.onTap,
   });
 
   @override
@@ -1087,56 +1122,63 @@ class _IndexItem extends StatelessWidget {
     final color =
         up ? HomeUi.positive(isDarkMode) : HomeUi.negative(isDarkMode);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          index.displayName,
-          style: TextStyle(
-            fontFamily: Constants.FONT_DEFAULT_NEW,
-            fontFamilyFallback: Constants.FONT_FALLBACK,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-            height: 1,
-            color: HomeUi.title(isDarkMode),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Container(
-          padding: const EdgeInsets.fromLTRB(5, 3, 6, 3),
-          decoration: BoxDecoration(
-            color: color.withOpacity(isDarkMode ? 0.14 : 0.08),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                up
-                    ? CupertinoIcons.arrowtriangle_up_fill
-                    : CupertinoIcons.arrowtriangle_down_fill,
-                size: 7,
-                color: color,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              index.displayName,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontFamilyFallback: Constants.FONT_FALLBACK,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+                height: 1,
+                color: HomeUi.title(isDarkMode),
               ),
-              const SizedBox(width: 3),
-              Text(
-                index.formattedChangePercent,
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontFamilyFallback: Constants.FONT_FALLBACK,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  height: 1,
-                  letterSpacing: -0.15,
-                  color: color,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.fromLTRB(5, 3, 6, 3),
+              decoration: BoxDecoration(
+                color: color.withOpacity(isDarkMode ? 0.14 : 0.08),
+                borderRadius: BorderRadius.circular(4),
               ),
-            ],
-          ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    up
+                        ? CupertinoIcons.arrowtriangle_up_fill
+                        : CupertinoIcons.arrowtriangle_down_fill,
+                    size: 7,
+                    color: color,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    index.formattedChangePercent,
+                    style: TextStyle(
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      fontFamilyFallback: Constants.FONT_FALLBACK,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      height: 1,
+                      letterSpacing: -0.15,
+                      color: color,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

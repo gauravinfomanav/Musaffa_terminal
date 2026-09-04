@@ -191,6 +191,21 @@ class FinhubController extends GetxController {
 }
 
 class MarketIndex {
+  /// SPDR sector ETFs → sector names used by [SectorDetailsScreen] /
+  /// `sector_api_mapping.json`.
+  static const Map<String, String> sectorEtfToName = {
+    'XLK': 'Technology',
+    'XLF': 'Finance',
+    'XLE': 'Energy',
+    'XLV': 'Healthcare',
+    'XLY': 'Consumer Cyclical',
+    'XLI': 'Industrials',
+    'XLP': 'Consumer Defensive',
+    'XLB': 'Basic Materials',
+    'XLRE': 'Real Estate',
+    'XLU': 'Utilities',
+  };
+
   final String symbol;
   final String displayName;
   final double currentPrice;
@@ -214,20 +229,11 @@ class MarketIndex {
   });
 
   factory MarketIndex.fromJson(String symbol, Map<String, dynamic> json) {
-    final displayNames = {
-      // Equity proxies for indices (Finnhub free tier)
-      'SPY': 'S&P 500',
-      'QQQ': 'NASDAQ 100',
-      'DIA': 'DOW',
-      'IWM': 'RUSSELL 2000',
-      'VTI': 'TOTAL MARKET',
-      'XLK': 'TECH SECTOR',
-      // If actual index symbols ever work, they will fall back to symbol string
-    };
-
+    // Sector ETFs show the sector name (click opens sector details).
+    // Broad/other ETFs show the ticker (click opens ETF details).
     return MarketIndex(
       symbol: symbol,
-      displayName: displayNames[symbol] ?? symbol,
+      displayName: sectorEtfToName[symbol] ?? symbol,
       currentPrice: (json['c'] ?? 0.0).toDouble(),
       change: (json['d'] ?? 0.0).toDouble(),
       changePercent: (json['dp'] ?? 0.0).toDouble(),
