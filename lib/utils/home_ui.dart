@@ -326,15 +326,17 @@ class HomeUi {
   }
 
   static Color tableHeaderBg(bool dark) =>
-      dark ? const Color(0xFF16191E) : const Color(0xFFFAFAFA);
+      dark ? const Color(0xFF16191E) : const Color(0xFFF3F5F9);
 
-  /// Body rows share one fill — no odd/even zebra.
-  static Color tableRowEven(bool dark) => Colors.transparent;
+  /// Zebra body rows — white / soft blush (light), muted slate pair (dark).
+  static Color tableRowEven(bool dark) =>
+      dark ? const Color(0xFF16191E) : const Color(0xFFFFFFFF);
 
-  static Color tableRowOdd(bool dark) => Colors.transparent;
+  static Color tableRowOdd(bool dark) =>
+      dark ? const Color(0xFF171A1C) : const Color(0xFFF8FDFF);
 
   static Color tableRowHover(bool dark) =>
-      dark ? const Color(0xFF1E232A) : const Color(0xFFFAFAFA);
+      dark ? const Color(0xFF1E232A) : const Color(0xFFECF7FB);
 
   /// Table grid / inner borders.
   static Color tableBorder(bool dark) =>
@@ -347,7 +349,7 @@ class HomeUi {
         fontWeight: FontWeight.w600,
         letterSpacing: 0.55,
         height: 1.2,
-        color: muted(dark),
+        color: dark ? muted(dark) : const Color(0xFF48525D),
       );
 
   static TextStyle tableCell(bool dark) => TextStyle(

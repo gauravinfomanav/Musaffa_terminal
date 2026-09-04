@@ -130,10 +130,11 @@ class _DynamicTableState extends State<DynamicTable> {
     );
   }
 
-  Color _rowColor(String rowId, bool isDark) {
-    return _hoveredRowId == rowId
-        ? HomeUi.tableRowHover(isDark)
-        : Colors.transparent;
+  Color _rowColor(String rowId, bool isDark, {int index = 0}) {
+    if (_hoveredRowId == rowId) return HomeUi.tableRowHover(isDark);
+    return index.isEven
+        ? HomeUi.tableRowEven(isDark)
+        : HomeUi.tableRowOdd(isDark);
   }
 
   // Get filtered rows that have at least one non-empty value
@@ -220,7 +221,9 @@ class _DynamicTableState extends State<DynamicTable> {
             final bool isDark =
                 Theme.of(context).brightness == Brightness.dark;
             return DataRow(
-              color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
+              color: WidgetStateProperty.all(
+                _rowColor(row.id, isDark, index: entry.key),
+              ),
               cells: [
                 DataCell(
                   _wrapRowHover(
@@ -301,11 +304,14 @@ class _DynamicTableState extends State<DynamicTable> {
                 ),
               );
             }).toList(),
-            rows: _getFilteredRows().map((row) {
+            rows: _getFilteredRows().asMap().entries.map((entry) {
+              final row = entry.value;
               final bool isDark =
                   Theme.of(context).brightness == Brightness.dark;
               return DataRow(
-                color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
+                color: WidgetStateProperty.all(
+                  _rowColor(row.id, isDark, index: entry.key),
+                ),
                 onSelectChanged: (_) => widget.onRowSelect?.call(row),
                 cells: widget.columns.map((column) {
                   return DataCell(

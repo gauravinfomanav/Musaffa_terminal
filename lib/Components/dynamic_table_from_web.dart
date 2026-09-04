@@ -203,6 +203,10 @@ class DynamicTableFromWeb extends StatefulWidget {
   final EdgeInsets? toolbarPadding;
   /// Extra inset on the first/last th/td (table stays full card width).
   final EdgeInsets? tableEdgeInset;
+  /// Alternating row fills (#FFFFFF / #F8FDFF in light mode).
+  final bool zebraStripes;
+  final Color? evenRowColor;
+  final Color? oddRowColor;
 
   const DynamicTableFromWeb({
     Key? key,
@@ -282,6 +286,9 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.columnCellPadding,
     this.toolbarPadding,
     this.tableEdgeInset,
+    this.zebraStripes = true,
+    this.evenRowColor,
+    this.oddRowColor,
   }) : super(key: key);
 
   @override
@@ -809,6 +816,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   bool _shouldDistributeStretch(int visibleCount) {
     if (!widget.enableColumnStretch || visibleCount <= 0) return false;
     return true;
+  }
+
+  Color _zebraRowColor(int index, bool isDark) {
+    if (!widget.zebraStripes) return Colors.transparent;
+    final even = widget.evenRowColor ?? HomeUi.tableRowEven(isDark);
+    final odd = widget.oddRowColor ?? HomeUi.tableRowOdd(isDark);
+    return index.isEven ? even : odd;
   }
 
   bool _isFullStretch(int visibleCount) =>
@@ -1801,7 +1815,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               verticalInside: BorderSide.none,
             ),
         headingRowColor: WidgetStatePropertyAll(HomeUi.tableHeaderBg(isDark)),
-        dataRowColor: const WidgetStatePropertyAll(Colors.transparent),
+        dataRowColor: null,
         columns: [
           if (includeSelectable)
             DataColumn(
@@ -1859,7 +1873,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             color: WidgetStateProperty.all(
               _hoveredRowId == row.id
                   ? HomeUi.tableRowHover(isDark)
-                  : Colors.transparent,
+                  : _zebraRowColor(rowIndex, isDark),
             ),
             cells: [
               if (includeSelectable)

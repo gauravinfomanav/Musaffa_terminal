@@ -156,10 +156,11 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
     );
   }
 
-  Color _rowColor(String rowId, bool isDark) {
-    return _hoveredRowId == rowId
-        ? HomeUi.tableRowHover(isDark)
-        : Colors.transparent;
+  Color _rowColor(String rowId, bool isDark, {int index = 0}) {
+    if (_hoveredRowId == rowId) return HomeUi.tableRowHover(isDark);
+    return index.isEven
+        ? HomeUi.tableRowEven(isDark)
+        : HomeUi.tableRowOdd(isDark);
   }
 
   void _initializeExpandedState() {
@@ -277,11 +278,14 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
             ),
           ),
         ],
-        rows: flattenedRows.map((row) {
+        rows: flattenedRows.asMap().entries.map((entry) {
+          final row = entry.value;
           final bool isDark =
               Theme.of(context).brightness == Brightness.dark;
           return DataRow(
-            color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
+            color: WidgetStateProperty.all(
+              _rowColor(row.id, isDark, index: entry.key),
+            ),
             cells: [
               DataCell(
                 _wrapRowHover(
@@ -425,11 +429,14 @@ class _ExpandableDynamicTableState extends State<ExpandableDynamicTable> {
                 ),
               );
             }).toList(),
-            rows: flattenedRows.map((row) {
+            rows: flattenedRows.asMap().entries.map((entry) {
+              final row = entry.value;
               final bool isDark =
                   Theme.of(context).brightness == Brightness.dark;
               return DataRow(
-                color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
+                color: WidgetStateProperty.all(
+                  _rowColor(row.id, isDark, index: entry.key),
+                ),
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
                 cells: widget.columns.map((column) {
                   return DataCell(

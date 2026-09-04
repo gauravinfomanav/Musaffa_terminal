@@ -165,10 +165,11 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
     );
   }
 
-  Color _rowColor(String rowId, bool isDark) {
-    return _hoveredRowId == rowId
-        ? HomeUi.tableRowHover(isDark)
-        : Colors.transparent;
+  Color _rowColor(String rowId, bool isDark, {int index = 0}) {
+    if (_hoveredRowId == rowId) return HomeUi.tableRowHover(isDark);
+    return index.isEven
+        ? HomeUi.tableRowEven(isDark)
+        : HomeUi.tableRowOdd(isDark);
   }
 
   void _initializeExpandedState() {
@@ -409,10 +410,13 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
               ),
             ),
           ],
-          rows: flattenedRows.map((row) {
+          rows: flattenedRows.asMap().entries.map((entry) {
+            final row = entry.value;
             final isDark = Theme.of(context).brightness == Brightness.dark;
             return DataRow(
-              color: WidgetStateProperty.all(_rowColor(row.id, isDark)),
+              color: WidgetStateProperty.all(
+                _rowColor(row.id, isDark, index: entry.key),
+              ),
               cells: [
                 DataCell(
                   _wrapRowHover(
@@ -579,14 +583,17 @@ class _FinancialExpandableTableState extends State<FinancialExpandableTable> {
                 ),
               );
             }).toList(),
-            rows: flattenedRows.map((row) {
+            rows: flattenedRows.asMap().entries.map((entry) {
+              final row = entry.value;
               final isDark = Theme.of(context).brightness == Brightness.dark;
               return DataRow(
                 color: _splashRowIds.contains(row.id)
                     ? WidgetStateProperty.all(
                         const Color.fromARGB(255, 105, 177, 236)
                             .withOpacity(0.1))
-                    : WidgetStateProperty.all(_rowColor(row.id, isDark)),
+                    : WidgetStateProperty.all(
+                        _rowColor(row.id, isDark, index: entry.key),
+                      ),
                 onSelectChanged: row.isExpandable ? null : (_) => widget.onRowSelect?.call(row),
                 cells: allColumns.map((column) {
                   // If showNameColumn is false and this is the first column (metric column), add expand/collapse functionality
