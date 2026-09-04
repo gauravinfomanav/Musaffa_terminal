@@ -8,6 +8,16 @@ import 'package:musaffa_terminal/utils/utils.dart';
 /// Default gap between DataTable columns (was 40 — felt sparse).
 const double _kDefaultColumnSpacing = 8;
 
+/// Soft ceiling so callers that still pass legacy 28–40 do not blow out gaps.
+const double _kMaxColumnSpacing = 10;
+
+/// Full-width stretch when this many (or fewer) columns are visible.
+const int _kStretchAtMostVisibleColumns = 7;
+
+/// On dense tables, absorb at most this many extra px per stretchable column
+/// so wide monitors do not create huge empty cells.
+const double _kSoftStretchMaxExtraPerColumn = 18;
+
 // ============================================================================
 // DATA MODELS
 // ============================================================================
@@ -29,6 +39,8 @@ class DynamicTableColumn {
   final bool Function(dynamic value, Map<String, dynamic> row)? render;
   final TextAlign align;
   final bool editable;
+  /// Optional row-data key used for sorting when [key] holds a Widget cell.
+  final String? sortValueKey;
 
   const DynamicTableColumn({
     required this.key,
@@ -45,6 +57,7 @@ class DynamicTableColumn {
     this.render,
     this.align = TextAlign.left,
     this.editable = false,
+    this.sortValueKey,
   });
 
   String get fullLabel => (tooltipLabel ?? label).trim();
@@ -437,8 +450,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   double get _headerResizeReserve => widget.showColumnResizeHandle ? 8 : 0;
   double get _headerChromeTrailing =>
       8 + _headerActionReserve + _headerResizeReserve;
-  static const double _headerLeading = 8;
-  static const double _cellTrailing = 10;
+  static const double _headerLeading = 6;
+  static const double _cellTrailing = 8;
 
   EdgeInsets _columnCellInsetsFor({
     bool leadingEdge = false,
@@ -600,8 +613,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final sorted = [...rows];
 
     sorted.sort((a, b) {
-      final aVal = _extractComparableValue(a.data[sortCol.key]);
-      final bVal = _extractComparableValue(b.data[sortCol.key]);
+      final sortKey = sortCol.sortValueKey ?? sortCol.key;
+      final aVal = _extractComparableValue(a.data[sortKey]);
+      final bVal = _extractComparableValue(b.data[sortKey]);
       if (aVal == null && bVal == null) return 0;
       if (aVal == null) return 1;
       if (bVal == null) return -1;
@@ -777,19 +791,45 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   /// Stretched widths computed per-frame so visible columns fill available space.
   Map<String, double> _stretchedColumnWidths = <String, double>{};
 
+  /// True when leftover width was fully absorbed (table should fill card width).
+  bool _stretchFilledAvailableWidth = false;
+
+  /// Tighter gaps when many columns are visible; roomier after columns are hidden.
+  double _effectiveColumnSpacing([int? visibleCount]) {
+    final n = visibleCount ?? _visibleColumns.length;
+    final preferred =
+        (widget.columnSpacing ?? _kDefaultColumnSpacing)
+            .clamp(4.0, _kMaxColumnSpacing);
+    if (n >= 10) return 4;
+    if (n >= 8) return preferred > 6 ? 6 : preferred;
+    if (n >= 6) return preferred > 8 ? 8 : preferred;
+    return preferred;
+  }
+
+  bool _shouldDistributeStretch(int visibleCount) {
+    if (!widget.enableColumnStretch || visibleCount <= 0) return false;
+    return true;
+  }
+
+  bool _isFullStretch(int visibleCount) =>
+      visibleCount <= _kStretchAtMostVisibleColumns;
+
   void _computeStretchedWidths(
     List<DynamicTableColumn> columns,
     double availableWidth, {
     bool includeTicker = false,
   }) {
     _stretchedColumnWidths = <String, double>{};
-    if (!widget.enableColumnStretch || columns.isEmpty) return;
+    _stretchFilledAvailableWidth = false;
+    if (columns.isEmpty) return;
+    final visibleCount = _visibleColumns.length;
+    if (!_shouldDistributeStretch(visibleCount)) return;
 
     // Natural mins must be fresh before we share leftover width.
     _refreshNaturalMinWidths(columns);
 
     // Account for ticker column, horizontal margins, and DataTable spacing.
-    final double spacing = widget.columnSpacing ?? _kDefaultColumnSpacing;
+    final double spacing = _effectiveColumnSpacing(visibleCount);
     double reserved = widget.horizontalMargin * 2;
     if (includeTicker) {
       reserved += (widget.tickerColumnWidth ?? 200) + 8;
@@ -801,6 +841,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final baseWidths = <String, double>{};
     double totalStretchBase = 0;
     double compactReserved = 0;
+    int stretchableCount = 0;
     for (final col in columns) {
       final base = _getNaturalMinWidth(col);
       baseWidths[col.key] = base;
@@ -809,14 +850,21 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         _stretchedColumnWidths[col.key] = base; // no stretch share
       } else {
         totalStretchBase += base;
+        stretchableCount++;
       }
     }
 
-    if (totalStretchBase <= 0) return;
+    if (totalStretchBase <= 0 || stretchableCount <= 0) return;
     final usableForStretch = usable - compactReserved;
     if (usableForStretch <= totalStretchBase) return;
 
-    final extra = usableForStretch - totalStretchBase;
+    final rawExtra = usableForStretch - totalStretchBase;
+    final double maxExtra = _isFullStretch(visibleCount)
+        ? double.infinity
+        : _kSoftStretchMaxExtraPerColumn * stretchableCount;
+    final extra = rawExtra > maxExtra ? maxExtra : rawExtra;
+    _stretchFilledAvailableWidth = extra >= rawExtra - 0.5;
+
     for (final col in columns) {
       if (HomeUi.isCompactTableColumn(col.key)) continue;
       final base = baseWidths[col.key]!;
@@ -1391,12 +1439,16 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         } else if (parsed != null && looksPercent) {
           style = HomeUi.tableNumeric(isDark);
         } else if (col.align == TextAlign.right || parsed != null) {
+          // Mid-tier metrics — readable but not as heavy as price/mkt cap.
           style = HomeUi.tableCell(isDark).copyWith(
             color: HomeUi.body(isDark),
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           );
         } else {
-          style = HomeUi.tableCell(isDark).copyWith(color: textColor);
+          style = HomeUi.tableCell(isDark).copyWith(
+            color: HomeUi.muted(isDark),
+            fontWeight: FontWeight.w500,
+          );
         }
 
         if (parsed != null && looksSigned) {
@@ -1521,6 +1573,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         if (availableW <= 0) return const SizedBox.shrink();
 
         _computeStretchedWidths(centerColumns, availableW);
+        final bool fillWidth = _stretchFilledAvailableWidth;
         return SizedBox(
           width: availableW,
           child: AnimatedSize(
@@ -1536,7 +1589,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 controller: _horizontalScrollController,
                 scrollDirection: Axis.horizontal,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: availableW),
+                  // Only force full card width when leftover was fully absorbed.
+                  // Soft-stretch (many cols) keeps content tight on wide monitors.
+                  constraints: BoxConstraints(
+                    minWidth: fillWidth ? availableW : 0,
+                  ),
                   child: _buildAnimatedTableSection(
                     key: ValueKey<String>(
                       'center:${centerColumns.map((c) => c.key).join('|')}',
@@ -1727,7 +1784,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         horizontalMargin: widget.tableEdgeInset == null
             ? widget.horizontalMargin
             : 0,
-        columnSpacing: widget.columnSpacing ?? _kDefaultColumnSpacing,
+        columnSpacing: _effectiveColumnSpacing(),
         dividerThickness: widget.dividerThickness ?? 0.5,
         showBottomBorder: widget.showBottomBorder,
         border: widget.tableBorder ??
@@ -1958,6 +2015,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   @override
   Widget build(BuildContext context) {
     _stretchedColumnWidths = <String, double>{};
+    _stretchFilledAvailableWidth = false;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = HomeUi.cardBg(isDark);

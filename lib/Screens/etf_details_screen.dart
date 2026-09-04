@@ -24,6 +24,7 @@ import 'package:musaffa_terminal/watchlist/controllers/watchlist_controller.dart
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_table_cells.dart';
 
 class EtfDetailsScreen extends StatefulWidget {
   final TickerModel ticker;
@@ -1148,12 +1149,13 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             'debt': stockData?.longTermDebtEquityAnnual != null
                 ? '${stockData!.longTermDebtEquityAnnual!.toStringAsFixed(1)}%'
                 : '--',
-            '52wHigh': stockData?.d52WeekHigh != null
-                ? '\$${stockData!.d52WeekHigh!.toStringAsFixed(2)}'
-                : '--',
-            '52wLow': stockData?.d52WeekLow != null
-                ? '\$${stockData!.d52WeekLow!.toStringAsFixed(2)}'
-                : '--',
+            'range52': WatchlistRange52Cell(
+              low: stockData?.d52WeekLow?.toDouble(),
+              high: stockData?.d52WeekHigh?.toDouble(),
+              current: stockData?.currentPrice?.toDouble(),
+              isDark: isDarkMode,
+            ),
+            'week52HighSort': stockData?.d52WeekHigh?.toDouble(),
             'return1Y': stockData?.priceChange1YPercent != null
                 ? '${stockData!.priceChange1YPercent!.toStringAsFixed(1)}%'
                 : '--',
@@ -1197,8 +1199,13 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
           SimpleColumn(
               label: 'DEBT/EQUITY', fieldName: 'debt', isNumeric: true),
           SimpleColumn(
-              label: '52W HIGH', fieldName: '52wHigh', isNumeric: true),
-          SimpleColumn(label: '52W LOW', fieldName: '52wLow', isNumeric: true),
+            label: '52W RANGE',
+            fieldName: 'range52',
+            isNumeric: false,
+            width: 176,
+            align: TextAlign.center,
+            sortValueKey: 'week52HighSort',
+          ),
           SimpleColumn(
               label: '1Y RETURN', fieldName: 'return1Y', isNumeric: true),
           SimpleColumn(
@@ -1208,7 +1215,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
         showFixedColumn: true,
         tickerHeaderLabel: 'COMPANY',
         considerPadding: false,
-        columnSpacing: 40,
+        columnSpacing: 8,
         fixedColumnWidth: 280,
         enableDragging: true,
         enableLivePrices: true,

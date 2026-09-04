@@ -413,7 +413,7 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen>
           showFixedColumn: true,
           considerPadding: false,
           showOuterShadow: false,
-          columnSpacing: 40,
+          columnSpacing: 8,
           horizontalMargin: 16,
           fixedColumnWidth: fixedColumnWidth,
           headerHeight: 44,

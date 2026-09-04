@@ -188,7 +188,7 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
               showFixedColumn: true,
               tickerHeaderLabel: 'INSIDER',
               considerPadding: false,
-              columnSpacing: 40,
+              columnSpacing: 8,
               fixedColumnWidth: 220,
               enableLivePrices: false,
               zebraStripes: true,

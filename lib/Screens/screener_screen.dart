@@ -33,6 +33,7 @@ import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/portfolio/models/model_portfolio_holding.dart';
 import 'package:musaffa_terminal/portfolio/services/model_portfolio_enrichment.dart';
 import 'package:musaffa_terminal/portfolio/services/portfolio_builder_session.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_table_cells.dart';
 
 class ScreenerScreen extends StatefulWidget {
   const ScreenerScreen({
@@ -1287,7 +1288,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           changePercent: stock.priceChange1DPercent,
           currency: stock.currency ?? 'USD',
           fields: {
-            ..._getFieldsForStock(stock),
+            ..._getFieldsForStock(stock, isDarkMode),
             if (widget.portfolioPickMode)
               'portfolio_add': _buildPortfolioAddCell(stock, isDarkMode),
           },
@@ -1423,15 +1424,20 @@ class _ScreenerScreenState extends State<ScreenerScreen>
 
     return selectedTab.columns.map((column) {
       final fullLabel = column.label.trim();
+      final isRange52 =
+          column.id == 'range52W' || column.id == 'range52';
       return SimpleColumn(
         label: fullLabel.toUpperCase(),
         tooltipLabel: fullLabel.toUpperCase(),
         fieldName: column.id,
-        isNumeric: column.type == 'number' ||
-            column.type == 'currency' ||
-            column.type == 'percentage',
+        isNumeric: !isRange52 &&
+            (column.type == 'number' ||
+                column.type == 'currency' ||
+                column.type == 'percentage'),
         width: (column.width ?? _screenerColumnWidth(column.id, column.type))
             .toDouble(),
+        align: isRange52 ? TextAlign.center : null,
+        sortValueKey: isRange52 ? 'week52HighSort' : null,
       );
     }).toList()
       ..addAll(
@@ -1450,6 +1456,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   double _screenerColumnWidth(String id, String type) {
     if (id == 'sector') return 220;
     if (id == 'recommendation') return 72;
+    if (id == 'range52W' || id == 'range52') return 176;
     if (type == 'percentage') return 96;
     if (type == 'currency' || type == 'number') return 100;
     return 120;
@@ -1496,7 +1503,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
     ];
   }
 
-  Map<String, String> _getFieldsForStock(dynamic stock) {
+  Map<String, dynamic> _getFieldsForStock(dynamic stock, bool isDark) {
     return {
       // Basic fields (removed ticker as requested)
       'price': stock.currentPrice != null
@@ -1625,12 +1632,13 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           : '--',
 
       // Technical fields
-      'high52W': stock.d52WeekHigh != null
-          ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}'
-          : '--',
-      'low52W': stock.d52WeekLow != null
-          ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}'
-          : '--',
+      'range52W': WatchlistRange52Cell(
+        low: stock.d52WeekLow?.toDouble(),
+        high: stock.d52WeekHigh?.toDouble(),
+        current: stock.currentPrice?.toDouble(),
+        isDark: isDark,
+      ),
+      'week52HighSort': stock.d52WeekHigh?.toDouble(),
       'avgVolume10D': stock.avgVolume10days != null
           ? getShortenedT(stock.avgVolume10days!)
           : '--',

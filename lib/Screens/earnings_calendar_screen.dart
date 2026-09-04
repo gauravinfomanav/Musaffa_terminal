@@ -957,7 +957,7 @@ class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
                   .toList(),
               showFixedColumn: true,
               considerPadding: false,
-              columnSpacing: 40,
+              columnSpacing: 8,
               fixedColumnWidth: compact ? 200 : 248,
               enableLivePrices: false,
               zebraStripes: true,

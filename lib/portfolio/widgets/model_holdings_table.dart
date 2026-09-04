@@ -129,7 +129,7 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
                       showFixedColumn: true,
                       considerPadding: false,
                       showOuterShadow: false,
-                      columnSpacing: 20,
+                      columnSpacing: 8,
                       horizontalMargin: 16,
                       fixedColumnWidth: 228,
                       headerHeight: 42,

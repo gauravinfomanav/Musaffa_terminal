@@ -12,6 +12,7 @@ import 'package:musaffa_terminal/Controllers/market_summary_controller.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/table_pagination_bar.dart';
+import 'package:musaffa_terminal/charts/custom/premium_chart_theme.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/models/stocks_data.dart';
@@ -20,6 +21,8 @@ import 'package:musaffa_terminal/Screens/ticker_detail_screen.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_table_cells.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class SectorDetailsScreen extends StatefulWidget {
   final String sectorName;
@@ -507,60 +510,132 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     return _buildSectionCard(
       title: 'Sector Performance',
       subtitle: 'Relative returns across common periods',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildPerformanceChangeRow('1D', _getSectorChange('1D')),
-          _buildPerformanceChangeRow('5D', _getSectorChange('5D')),
-          _buildPerformanceChangeRow('1M', _getSectorChange('1M')),
-          _buildPerformanceChangeRow('3M', _getSectorChange('3M')),
-          _buildPerformanceChangeRow('6M', _getSectorChange('6M')),
-          _buildPerformanceChangeRow('1Y', _getSectorChange('1Y')),
-        ],
-      ),
+      child: Obx(() {
+        final marketSummaryController = Get.find<MarketSummaryController>();
+        // Touch reactive map so the chart rebuilds when market summary loads.
+        marketSummaryController.data;
+
+        final points = <_SectorPeriodReturn>[
+          _SectorPeriodReturn('1D', _getSectorChange('1D')),
+          _SectorPeriodReturn('5D', _getSectorChange('5D')),
+          _SectorPeriodReturn('1M', _getSectorChange('1M')),
+          _SectorPeriodReturn('3M', _getSectorChange('3M')),
+          _SectorPeriodReturn('6M', _getSectorChange('6M')),
+          _SectorPeriodReturn('1Y', _getSectorChange('1Y')),
+        ];
+
+        return SizedBox(
+          height: 248,
+          child: _buildSectorPerformanceAreaChart(isDarkMode, points),
+        );
+      }),
     );
   }
 
-  Widget _buildPerformanceChangeRow(String period, double change) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildSectorPerformanceAreaChart(
+    bool isDark,
+    List<_SectorPeriodReturn> points,
+  ) {
+    final theme = PremiumChartTheme(isDark: isDark);
+    final lineColor = PremiumChartTheme.brandLine;
+    final values = points.map((p) => p.value).toList();
+    final minVal = values.reduce((a, b) => a < b ? a : b);
+    final maxVal = values.reduce((a, b) => a > b ? a : b);
+    final span = (maxVal - minVal).abs();
+    final pad = (span * 0.12).clamp(2.0, 10.0);
 
-    Color changeColor;
-    if (change == 0) {
-      changeColor =
-          isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-    } else if (change > 0) {
-      changeColor = const Color(0xFF10B981); // Green for positive
-    } else {
-      changeColor = const Color(0xFFEF4444); // Red for negative
-    }
+    // Anchor to 0 so the wash fills the full plot (true area chart, not a thin ribbon).
+    final double yMin = minVal >= 0 ? 0 : (minVal - pad);
+    final double yMax = maxVal <= 0 ? 0 : (maxVal + pad);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: HomeUi.borderLight(isDarkMode).withValues(alpha: 0.7),
-            width: 1,
+    return SfCartesianChart(
+      plotAreaBorderWidth: 0,
+      margin: const EdgeInsets.only(top: 8, right: 4, bottom: 2, left: 2),
+      primaryXAxis: CategoryAxis(
+        majorGridLines: const MajorGridLines(width: 0),
+        axisLine: const AxisLine(width: 0),
+        majorTickLines: const MajorTickLines(size: 0),
+        labelStyle: theme.axisLabel(size: 10),
+        labelPlacement: LabelPlacement.onTicks,
+        interval: 1,
+      ),
+      primaryYAxis: NumericAxis(
+        opposedPosition: true,
+        majorGridLines: MajorGridLines(width: 0.5, color: theme.grid),
+        axisLine: const AxisLine(width: 0),
+        majorTickLines: const MajorTickLines(size: 0),
+        labelStyle: theme.axisLabel(size: 10),
+        labelFormat: '{value}%',
+        minimum: yMin,
+        maximum: yMax == yMin ? yMin + 1 : yMax,
+      ),
+      trackballBehavior: TrackballBehavior(
+        enable: true,
+        activationMode: ActivationMode.singleTap,
+        tooltipDisplayMode: TrackballDisplayMode.nearestPoint,
+        lineType: TrackballLineType.vertical,
+        lineColor: theme.borderStrong.withValues(alpha: 0.45),
+        lineWidth: 1,
+        markerSettings: TrackballMarkerSettings(
+          markerVisibility: TrackballVisibilityMode.visible,
+          height: 9,
+          width: 9,
+          color: lineColor,
+          borderWidth: 2.5,
+          borderColor: theme.surface,
+        ),
+        builder: (BuildContext context, TrackballDetails details) {
+          final x = details.point?.x;
+          final y = details.point?.y;
+          if (x is! String || y is! num) return const SizedBox.shrink();
+          final value = y.toDouble();
+          final valueColor = value > 0
+              ? theme.positive
+              : value < 0
+                  ? theme.negative
+                  : theme.muted;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: theme.tooltipDecoration(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(x, style: theme.tooltipTitle()),
+                const SizedBox(height: 2),
+                Text(
+                  PremiumChartFormatters.percent(value),
+                  style: theme.tooltipValue().copyWith(color: valueColor),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+      series: <CartesianSeries<_SectorPeriodReturn, String>>[
+        SplineAreaSeries<_SectorPeriodReturn, String>(
+          dataSource: points,
+          xValueMapper: (_SectorPeriodReturn p, _) => p.period,
+          yValueMapper: (_SectorPeriodReturn p, _) => p.value,
+          borderDrawMode: BorderDrawMode.top,
+          borderWidth: 2.4,
+          borderColor: lineColor,
+          animationDuration: 700,
+          splineType: SplineType.cardinal,
+          cardinalSplineTension: 0.28,
+          markerSettings: const MarkerSettings(isVisible: false),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const <double>[0.0, 0.45, 1.0],
+            colors: <Color>[
+              lineColor.withValues(alpha: isDark ? 0.55 : 0.42),
+              lineColor.withValues(alpha: isDark ? 0.22 : 0.16),
+              lineColor.withValues(alpha: isDark ? 0.04 : 0.02),
+            ],
           ),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            period,
-            style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12),
-          ),
-          Text(
-            '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
-            style: HomeUi.control(isDarkMode, active: true).copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: changeColor,
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -689,6 +764,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
   }
 
   Widget _buildStocksTable() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final rows = sectorStocksController.sectorStocks.map((stock) {
       final symbol = stock.ticker ?? '--';
       final companyName =
@@ -706,32 +782,33 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           'price': stock.currentPrice != null
               ? '\$${stock.currentPrice!.toStringAsFixed(2)}'
               : '--',
-          'change': stock.priceChange1DPercent != null
-              ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%'
-              : '--',
-          'changeAmount': stock.change1D != null
-              ? '\$${stock.change1D!.toStringAsFixed(2)}'
-              : '--',
+          'change': WatchlistChangeCell(
+            percent: stock.priceChange1DPercent?.toDouble(),
+            absolute: stock.change1D?.toDouble(),
+            isDark: isDarkMode,
+            absoluteOnTop: true,
+          ),
+          'changePct': stock.priceChange1DPercent?.toDouble(),
           'marketCap': stock.usdMarketCap != null
               ? Constants.formatMarketCapFromMillions(stock.usdMarketCap)
               : '--',
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
           'sector': stock.sector ?? '--',
           'beta': stock.beta != null ? stock.beta!.toStringAsFixed(2) : '--',
-          'week52High': stock.d52WeekHigh != null
-              ? '\$${stock.d52WeekHigh!.toStringAsFixed(2)}'
-              : '--',
-          'week52Low': stock.d52WeekLow != null
-              ? '\$${stock.d52WeekLow!.toStringAsFixed(2)}'
-              : '--',
+          'range52': WatchlistRange52Cell(
+            key: ValueKey<String>('range_$symbol'),
+            low: stock.d52WeekLow?.toDouble(),
+            high: stock.d52WeekHigh?.toDouble(),
+            current: stock.currentPrice?.toDouble(),
+            isDark: isDarkMode,
+          ),
+          'week52HighSort': stock.d52WeekHigh?.toDouble(),
           'avgVol10d': stock.avgVolume10days != null
               ? getShortenedT(stock.avgVolume10days!)
               : '--',
         },
       );
     }).toList();
-
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: HomeUi.cardDecoration(isDarkMode),
@@ -746,6 +823,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             companyKey: 'company',
             logoKey: 'logo',
             tickerHeaderLabel: 'Ticker',
+            rowHeight: 56,
             columns: const [
               DynamicTableColumn(
                   key: 'price',
@@ -754,14 +832,12 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   align: TextAlign.right),
               DynamicTableColumn(
                   key: 'change',
-                  label: 'Change %',
+                  label: '1D',
+                  tooltipLabel: '1D Change',
                   sortable: true,
-                  align: TextAlign.right),
-              DynamicTableColumn(
-                  key: 'changeAmount',
-                  label: 'Change \$',
-                  sortable: true,
-                  align: TextAlign.right),
+                  align: TextAlign.right,
+                  width: 92,
+                  sortValueKey: 'changePct'),
               DynamicTableColumn(
                   key: 'marketCap',
                   label: 'MKT CAP',
@@ -780,15 +856,13 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   sortable: true,
                   align: TextAlign.right),
               DynamicTableColumn(
-                  key: 'week52High',
-                  label: '52W High',
+                  key: 'range52',
+                  label: '52W RANGE',
+                  tooltipLabel: '52-Week Range',
                   sortable: true,
-                  align: TextAlign.right),
-              DynamicTableColumn(
-                  key: 'week52Low',
-                  label: '52W Low',
-                  sortable: true,
-                  align: TextAlign.right),
+                  align: TextAlign.center,
+                  width: 176,
+                  sortValueKey: 'week52HighSort'),
               DynamicTableColumn(
                   key: 'avgVol10d',
                   label: 'Avg Vol 10D',
@@ -919,12 +993,12 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           'price': stock.currentPrice != null
               ? '\$${stock.currentPrice!.toStringAsFixed(2)}'
               : '--',
-          'change': stock.priceChange1DPercent != null
-              ? '${stock.priceChange1DPercent! >= 0 ? '+' : ''}${stock.priceChange1DPercent!.toStringAsFixed(2)}%'
-              : '--',
-          'changeAmount': stock.change1D != null
-              ? '\$${stock.change1D!.toStringAsFixed(2)}'
-              : '--',
+          'change': WatchlistChangeCell(
+            percent: stock.priceChange1DPercent?.toDouble(),
+            absolute: stock.change1D?.toDouble(),
+            isDark: isDarkMode,
+            absoluteOnTop: true,
+          ),
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
           'marketCap': stock.usdMarketCap != null
               ? Constants.formatMarketCapFromMillions(stock.usdMarketCap)
@@ -945,12 +1019,10 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       tableId:
           'sector_details_${title.toLowerCase().replaceAll(' ', '_')}_table',
       enableColumnCustomization: true,
-      showOuterShadow: false,
+      showOuterShadow: true,
       columns: const [
         SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-        SimpleColumn(label: 'CHANGE %', fieldName: 'change', isNumeric: true),
-        SimpleColumn(
-            label: 'CHANGE \$', fieldName: 'changeAmount', isNumeric: true),
+        SimpleColumn(label: '1D', fieldName: 'change', isNumeric: true),
         SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
         SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
       ],
@@ -963,7 +1035,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       enableDragging: false,
       enableLivePrices: true,
       headerHeight: 44,
-      rowHeight: 50,
+      rowHeight: 56,
     );
   }
 
@@ -1196,4 +1268,11 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       ),
     );
   }
+}
+
+class _SectorPeriodReturn {
+  const _SectorPeriodReturn(this.period, this.value);
+
+  final String period;
+  final double value;
 }

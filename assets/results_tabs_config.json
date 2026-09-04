@@ -503,18 +503,12 @@
           "sortable": true
         },
         {
-          "id": "high52W",
-          "label": "52W High",
+          "id": "range52W",
+          "label": "52W Range",
           "field": "d52WeekHigh",
-          "type": "currency",
-          "sortable": true
-        },
-        {
-          "id": "low52W",
-          "label": "52W Low",
-          "field": "d52WeekLow",
-          "type": "currency",
-          "sortable": true
+          "type": "number",
+          "sortable": true,
+          "width": 176
         },
         {
           "id": "avgVolume10D",

@@ -17,6 +17,7 @@ import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_table_cells.dart';
 
 var holdingItemTitleGroup = AutoSizeGroup();
 
@@ -46,6 +47,8 @@ class SimpleColumn {
   final double? width;
   final bool isNumeric;
   final TextAlign? align;
+  /// Optional row-data key used for sorting when [fieldName] holds a Widget cell.
+  final String? sortValueKey;
 
   const SimpleColumn({
     required this.label,
@@ -54,6 +57,7 @@ class SimpleColumn {
     this.width,
     this.isNumeric = false,
     this.align,
+    this.sortValueKey,
   });
 }
 
@@ -427,9 +431,17 @@ class _DynamicTableState extends State<DynamicTable> {
           
           // Check if change field exists and is not empty ('--') and not 0
           bool shouldUpdateChange = false;
-          double? originalChangePercent = null;
+          double? originalChangePercent;
           
-          if (originalChange != null && originalChange != '--' && originalChange != '-') {
+          if (originalChange is WatchlistChangeCell) {
+            originalChangePercent =
+                originalChange.percent ?? row.changePercent?.toDouble();
+            if (originalChangePercent != null && originalChangePercent != 0) {
+              shouldUpdateChange = true;
+            }
+          } else if (originalChange != null &&
+              originalChange != '--' &&
+              originalChange != '-') {
             // Try to parse the original change value
             String changeStr = originalChange.toString();
             // Remove % sign and + sign if present
@@ -447,8 +459,18 @@ class _DynamicTableState extends State<DynamicTable> {
             final priceDiff = livePriceData.price - livePriceData.typesensePrice!;
             final changePercent = (priceDiff / livePriceData.typesensePrice!) * 100;
             
-            // Update change % field (use the field name that exists)
-            updatedFields[changeFieldName] = '${changePercent >= 0 ? '+' : ''}${changePercent.toStringAsFixed(2)}%';
+            if (originalChange is WatchlistChangeCell) {
+              updatedFields[changeFieldName] = WatchlistChangeCell(
+                percent: changePercent,
+                absolute: priceDiff,
+                isDark: originalChange.isDark,
+                absoluteOnTop: originalChange.absoluteOnTop,
+              );
+            } else {
+              // Update change % field (use the field name that exists)
+              updatedFields[changeFieldName] =
+                  '${changePercent >= 0 ? '+' : ''}${changePercent.toStringAsFixed(2)}%';
+            }
             
             // Update change amount if field exists
             if (updatedFields.containsKey('changeAmount')) {
@@ -501,8 +523,18 @@ class _DynamicTableState extends State<DynamicTable> {
         
         // Update isPositive and changeColor based on change % if it was recalculated
         bool? isPositive = row.isPositive;
-        if (updatedFields.containsKey('change') && updatedFields['change'] != '--' && updatedFields['change'] != '-') {
-          String changeStr = updatedFields['change'].toString();
+        final changeField = updatedFields['change'];
+        if (changeField is WatchlistChangeCell) {
+          final changeValue = changeField.percent ?? changeField.absolute;
+          if (changeValue != null) {
+            isPositive = changeValue >= 0;
+            changeColor =
+                changeValue >= 0 ? Colors.green.shade600 : Colors.red.shade600;
+          }
+        } else if (changeField != null &&
+            changeField != '--' &&
+            changeField != '-') {
+          String changeStr = changeField.toString();
           changeStr = changeStr.replaceAll('%', '').replaceAll('+', '').trim();
           final changeValue = double.tryParse(changeStr);
           if (changeValue != null) {
@@ -512,6 +544,20 @@ class _DynamicTableState extends State<DynamicTable> {
           }
         }
         
+        // Keep 52W range slider current price in sync with live quotes.
+        for (final String rangeKey in <String>['range52', 'range52W']) {
+          final dynamic rangeField = updatedFields[rangeKey];
+          if (rangeField is WatchlistRange52Cell) {
+            updatedFields[rangeKey] = WatchlistRange52Cell(
+              key: rangeField.key,
+              low: rangeField.low,
+              high: rangeField.high,
+              current: livePriceData.price,
+              isDark: rangeField.isDark,
+            );
+          }
+        }
+
         return row.copyWith(
           price: livePriceData.price,
           priceSource: 'websocket',
@@ -680,6 +726,7 @@ class _DynamicTableState extends State<DynamicTable> {
             sortable: true,
             align: col.align ??
                 (col.isNumeric ? TextAlign.right : TextAlign.left),
+            sortValueKey: col.sortValueKey,
           ),
         )
         .toList();
@@ -729,6 +776,7 @@ class _DynamicTableState extends State<DynamicTable> {
       resizeHandleIndicatorHeight: widget.resizeHandleIndicatorHeight,
       horizontalMargin: widget.horizontalMargin,
       columnSpacing: widget.columnSpacing,
+      enableColumnStretch: true,
       showHeaderTooltip: true,
       showSortIndicators: false,
       headerHeight: widget.headerHeight ?? 42,
@@ -1118,7 +1166,9 @@ class _DynamicTableState extends State<DynamicTable> {
           // Check if the field value is a Widget (like TargetPriceCell)
           if (fieldValue is Widget) {
             Widget cellContent = Align(
-              alignment: Alignment.centerLeft,
+              alignment: fieldValue is WatchlistChangeCell
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
               child: fieldValue,
             );
             
@@ -1148,6 +1198,14 @@ class _DynamicTableState extends State<DynamicTable> {
               } catch (e) {
                 // Context unavailable (during dispose), use stored value
               }
+            }
+
+            final isDarkMode =
+                Theme.of(context).brightness == Brightness.dark;
+            if (HomeUi.isSecondaryTableColumn(column.fieldName)) {
+              textColor = HomeUi.muted(isDarkMode);
+            } else if (HomeUi.isEmphasisTableColumn(column.fieldName)) {
+              textColor = HomeUi.title(isDarkMode);
             }
             
             // Apply special styling for change column, price column, currentPrice column, and gainLoss column

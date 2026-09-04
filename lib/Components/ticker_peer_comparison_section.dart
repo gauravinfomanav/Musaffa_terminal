@@ -45,7 +45,7 @@ class TickerPeerComparisonSection extends StatelessWidget {
           rows: _buildRows(controller.rows),
           showFixedColumn: true,
           considerPadding: false,
-          columnSpacing: 40,
+          columnSpacing: 8,
           fixedColumnWidth: 240,
           enableLivePrices: false,
           zebraStripes: true,

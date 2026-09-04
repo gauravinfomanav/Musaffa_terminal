@@ -278,75 +278,139 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
     }
 
     if (widget.isInWatchlist) {
-      // Show "In Watchlist" state
       return _buildInWatchlistButton();
     }
 
+    final bool dark = widget.isDarkMode;
+
     return CompositedTransformTarget(
       link: _layerLink,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
         height: HomeUi.controlHeight,
-        decoration: HomeUi.primaryButton(),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: _isAdding ? null : _addToDefaultWatchlist,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_isAdding)
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        decoration: _addButtonDecoration(dark),
+        child: Material(
+          color: Colors.transparent,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _isAdding ? null : _addToDefaultWatchlist,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 10, 0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isAdding)
+                          SizedBox(
+                            width: 13,
+                            height: 13,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                _fg(dark),
+                              ),
+                            ),
+                          )
+                        else
+                          Icon(
+                            Icons.add_rounded,
+                            size: 15,
+                            color: _fg(dark),
                           ),
-                        )
-                      else
-                        const Icon(Icons.add_rounded, size: 14, color: Colors.white),
-                      const SizedBox(width: 6),
-                      Text('Watchlist', style: HomeUi.primaryActionLabel()),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          'Watchlist',
+                          style: HomeUi.primaryActionLabel().copyWith(
+                            color: _fg(dark),
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.15,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Container(
-              width: 1,
-              height: 16,
-              color: Colors.white.withValues(alpha: 0.28),
-            ),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: _isAdding ? null : _showWatchlistDropdown,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(Icons.expand_more_rounded, size: 16, color: Colors.white),
+              Container(
+                width: 1,
+                height: 15,
+                color: HomeUi.borderLight(dark),
+              ),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _isAdding ? null : _showWatchlistDropdown,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      Icons.expand_more_rounded,
+                      size: 16,
+                      color: _fg(dark).withValues(alpha: 0.92),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Color _fg(bool dark) =>
+      dark ? HomeUi.title(true) : const Color(0xFF1A1D28);
+
+  BoxDecoration _addButtonDecoration(bool dark) {
+    return BoxDecoration(
+      color: dark ? HomeUi.elevatedBg(true) : Colors.white,
+      borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+      border: Border.all(
+        color: dark ? HomeUi.borderStrong(true) : HomeUi.borderStrong(false),
+        width: 1,
+      ),
+      boxShadow: dark
+          ? null
+          : [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+    );
+  }
+
   Widget _buildInWatchlistButton() {
+    final bool dark = widget.isDarkMode;
     return Container(
       height: HomeUi.controlHeight,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        gradient: HomeUi.iconWellGradient,
-        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        border: Border.all(color: HomeUi.iconWellBorder),
-      ),
+      decoration: dark
+          ? BoxDecoration(
+              gradient: HomeUi.iconWellGradient,
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              border: Border.all(color: HomeUi.iconWellBorder),
+            )
+          : BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+              border: Border.all(
+                color: HomeUi.positive(false).withValues(alpha: 0.28),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: HomeUi.positive(false).withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -358,9 +422,10 @@ class _AddToWatchlistButtonState extends State<AddToWatchlistButton> {
           const SizedBox(width: 6),
           Text(
             'In Watchlist',
-            style: HomeUi.control(widget.isDarkMode, active: true).copyWith(
+            style: HomeUi.control(dark, active: true).copyWith(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
+              color: dark ? null : const Color(0xFF1A1D28),
             ),
           ),
         ],
