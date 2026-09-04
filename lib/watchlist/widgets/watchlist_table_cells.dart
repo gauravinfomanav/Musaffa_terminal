@@ -11,11 +11,23 @@ class WatchlistChangeCell extends StatelessWidget {
     required this.percent,
     required this.absolute,
     required this.isDark,
+    this.absoluteOnTop = false,
   });
 
   final double? percent;
   final double? absolute;
   final bool isDark;
+  /// When true, shows `$` move above percent (sector / premium stack).
+  final bool absoluteOnTop;
+
+  String _fmtPercent(double pct, bool positive) =>
+      '${positive ? '+' : ''}${pct.toStringAsFixed(2)}%';
+
+  String _fmtAbsolute(double value, {required bool withDollar}) {
+    final sign = value >= 0 ? '+' : '-';
+    final body = value.abs().toStringAsFixed(2);
+    return withDollar ? '$sign\$$body' : '$sign$body';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,43 +35,57 @@ class WatchlistChangeCell extends StatelessWidget {
       return Text('—', style: HomeUi.tableCellSecondary(isDark));
     }
     final double pct = percent ?? 0;
-    final bool positive = pct >= 0;
+    final bool positive = (absolute ?? pct) >= 0;
     final Color tone =
         positive ? HomeUi.positive(isDark) : HomeUi.negative(isDark);
+
+    final TextStyle primaryStyle = TextStyle(
+      fontSize: 12.5,
+      fontWeight: FontWeight.w700,
+      color: tone,
+      height: 1.15,
+      letterSpacing: -0.1,
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    );
+    final TextStyle secondaryStyle = TextStyle(
+      fontSize: 10.5,
+      fontWeight: FontWeight.w500,
+      color: tone.withValues(alpha: 0.78),
+      height: 1.2,
+      letterSpacing: 0.1,
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    );
+
+    final Widget? absText = absolute == null
+        ? null
+        : Text(
+            _fmtAbsolute(absolute!, withDollar: absoluteOnTop),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
+            style: absoluteOnTop ? primaryStyle : secondaryStyle,
+          );
+    final Widget pctText = Text(
+      _fmtPercent(pct, pct >= 0),
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.visible,
+      style: absoluteOnTop ? secondaryStyle : primaryStyle,
+    );
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '${positive ? '+' : ''}${pct.toStringAsFixed(2)}%',
-          maxLines: 1,
-          softWrap: false,
-          overflow: TextOverflow.visible,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: tone,
-            height: 1.15,
-            fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-          ),
-        ),
-        if (absolute != null)
-          Text(
-            '${absolute! >= 0 ? '+' : ''}${absolute!.toStringAsFixed(2)}',
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.visible,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: tone.withValues(alpha: 0.85),
-              height: 1.15,
-              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-            ),
-          ),
-      ],
+      children: absoluteOnTop
+          ? [
+              if (absText != null) absText,
+              if (percent != null) pctText,
+            ]
+          : [
+              if (percent != null) pctText,
+              if (absText != null) absText,
+            ],
     );
   }
 }

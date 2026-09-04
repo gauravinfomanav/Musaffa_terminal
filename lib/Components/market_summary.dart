@@ -203,8 +203,6 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                     LayoutBuilder(
                     builder: (context, constraints) {
                       final availableWidth = constraints.maxWidth;
-                      final periodCount =
-                          math.max(1, controller.dataCols.length);
 
                       final screenWidth = MediaQuery.of(context).size.width;
                       final bool isLargeScreen = screenWidth >= 1600;
@@ -214,43 +212,14 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       // Match card title inset (Padding 16) so SECTOR aligns with title.
                       const horizontalMargin = 16.0;
 
-                      // Sector is pinned left; periods live in a second DataTable.
-                      // Each section applies its own horizontalMargin.
-                      final double leftChrome = horizontalMargin * 2;
-                      final double centerChrome = horizontalMargin * 2 +
-                          (columnSpacing * math.max(0, periodCount - 1));
-                      const double pinDivider = 1.0;
-                      final double usable = math.max(
-                        0.0,
-                        availableWidth - leftChrome - centerChrome - pinDivider,
-                      );
-
-                      // Sector stays readable; period cols stretch to fill card width.
-                      const double periodIdeal = 64.0;
+                      // Minimum widths only — DynamicTableFromWeb stretch fills
+                      // leftover so the table always spans the full card width.
                       const double periodMin = 56.0;
-                      const double sectorMin = 200.0;
                       const double sectorIdeal = 220.0;
 
-                      late final double periodColumnWidth;
-                      late final double fixedColumnWidth;
-                      if (usable >= sectorIdeal + periodIdeal * periodCount) {
-                        fixedColumnWidth = sectorIdeal;
-                        periodColumnWidth = periodIdeal;
-                      } else if (usable >=
-                          sectorMin + periodMin * periodCount) {
-                        fixedColumnWidth = sectorMin;
-                        periodColumnWidth = periodMin;
-                      } else {
-                        periodColumnWidth = periodMin;
-                        fixedColumnWidth = math.max(
-                          180.0,
-                          usable - periodMin * periodCount,
-                        );
-                      }
-
                       final dynamicColumns = _mapToDynamicColumns(
-                        fixedSectorColumnWidth: fixedColumnWidth,
-                        periodColumnWidth: periodColumnWidth,
+                        fixedSectorColumnWidth: sectorIdeal,
+                        periodColumnWidth: periodMin,
                       );
                       final dynamicRows = _mapToDynamicRows();
 
@@ -260,7 +229,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           ? 60.0
                           : calculatedTableHeight;
 
-                      return DynamicTableFromWeb(
+                      return SizedBox(
+                        width: availableWidth,
+                        child: DynamicTableFromWeb(
                           columns: dynamicColumns,
                           rows: dynamicRows,
                           title: null,
@@ -304,7 +275,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           enableColumnStretch: true,
                           showPinnedSectionDividers: true,
                           initialPinnedLeftColumnKeys: const <String>['sector'],
-                        );
+                        ),
+                      );
                     },
                   ),
                 ],

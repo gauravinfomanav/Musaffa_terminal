@@ -222,12 +222,15 @@ class SidebarMenuGlyph extends StatelessWidget {
     required this.active,
     this.size = 18,
     this.mutedColor = const Color(0xFF6B7280),
+    this.activeGradient,
   });
 
   final bool open;
   final bool active;
   final double size;
   final Color mutedColor;
+  /// Brand stroke fill when [active] (hover / open). Defaults to [HomeUi.iconFillGradient].
+  final LinearGradient? activeGradient;
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +240,10 @@ class SidebarMenuGlyph extends StatelessWidget {
       child: CustomPaint(
         painter: _MenuGlyphPainter(
           open: open,
-          color: active ? Colors.white : mutedColor,
+          color: mutedColor,
+          gradient: active
+              ? (activeGradient ?? HomeUi.iconFillGradient)
+              : null,
         ),
       ),
     );
@@ -245,17 +251,29 @@ class SidebarMenuGlyph extends StatelessWidget {
 }
 
 class _MenuGlyphPainter extends CustomPainter {
-  _MenuGlyphPainter({required this.open, required this.color});
+  _MenuGlyphPainter({
+    required this.open,
+    required this.color,
+    this.gradient,
+  });
 
   final bool open;
   final Color color;
+  final LinearGradient? gradient;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color
       ..strokeWidth = 1.75
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke
+      ..isAntiAlias = true;
+
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Offset.zero & size);
+    } else {
+      paint.color = color;
+    }
 
     final cx = size.width / 2;
     final cy = size.height / 2;
@@ -281,5 +299,7 @@ class _MenuGlyphPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MenuGlyphPainter old) =>
-      old.open != open || old.color != color;
+      old.open != open ||
+      old.color != color ||
+      old.gradient != gradient;
 }

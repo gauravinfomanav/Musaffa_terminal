@@ -1231,7 +1231,7 @@ class _PortfolioBuilderFormState extends State<PortfolioBuilderForm> {
               fixedColumnWidth: 220,
               headerHeight: 44,
               rowHeight: 56,
-              columnSpacing: 40,
+              columnSpacing: 8,
               horizontalMargin: 16,
               enableLivePrices: false,
               zebraStripes: true,

@@ -400,36 +400,116 @@ class HomeUi {
         color: muted(dark),
       );
 
+  static String _normTableKey(String key) =>
+      key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+  /// Headline money / size metrics — darker, heavier.
   static bool isEmphasisTableColumn(String key) {
+    final k = _normTableKey(key);
     const keys = {
       'price',
-      'currentPrice',
-      'marketCap',
-      'addedPrice',
+      'pricedisplay',
+      'currentprice',
+      'marketcap',
+      'usdmarketcap',
+      'addedprice',
       'target',
+      'targetprice',
       'current',
       'capital',
       'holdings',
       'allocation',
       'returns',
+      'enterprisevalue',
+      'ev',
+      'revenue',
+      'revenueannual',
+      'netincome',
+      'netincomeannual',
     };
-    return keys.contains(key);
+    if (keys.contains(k)) return true;
+    if (k.endsWith('marketcap') || k.contains('enterprisevalue')) return true;
+    if ((k.contains('revenue') || k.contains('netincome')) &&
+        !k.contains('growth') &&
+        !k.contains('change')) {
+      return true;
+    }
+    return false;
   }
 
+  /// Supporting / meta columns — muted grey for premium hierarchy.
   static bool isSecondaryTableColumn(String key) {
+    if (isEmphasisTableColumn(key)) return false;
+    final k = _normTableKey(key);
     const keys = {
       'sector',
       'recommendation',
+      'rec',
       'industry',
       'country',
       'exchange',
       'analyst',
-      'researchOrg',
-      'dateAdded',
+      'researchorg',
+      'dateadded',
       'client',
       'updated',
+      'volume',
+      'avgvol10d',
+      'beta',
+      'notes',
+      'shares',
+      'sharesoutstanding',
+      'pettm',
+      'pe',
+      'pb',
+      'ps',
+      'peg',
+      'dividendyield',
+      'divyld',
+      'divyield',
+      'currentdividendyieldttm',
+      'epsttm',
+      'eps',
     };
-    return keys.contains(key);
+    if (keys.contains(k)) return true;
+    if (k.contains('volume') || k.contains('avgvol')) return true;
+    if (k == 'beta' || k.endsWith('beta')) return true;
+    if (k.startsWith('pe') || k.contains('peratio') || k.contains('pettm')) {
+      return true;
+    }
+    if (k.contains('dividend') || k.contains('divyld') || k.contains('divyield')) {
+      return true;
+    }
+    if (k.contains('shares') || k.contains('float')) return true;
+    if (k.contains('sector') ||
+        k.contains('industry') ||
+        k.contains('country') ||
+        k.contains('exchange')) {
+      return true;
+    }
+    if (k.contains('recommendation') || k.endsWith('rec')) return true;
+    if (k.contains('date') ||
+        k.contains('notes') ||
+        k.contains('comment') ||
+        k.contains('analyst')) {
+      return true;
+    }
+    if (k.contains('pbratio') ||
+        k.contains('psratio') ||
+        k.contains('pegratio') ||
+        k == 'pb' ||
+        k == 'ps' ||
+        k == 'peg') {
+      return true;
+    }
+    // Generic ratios / TTM supporting stats (not headline P&L).
+    if ((k.contains('ratio') || k.endsWith('ttm') || k.contains('ttm')) &&
+        !k.contains('revenue') &&
+        !k.contains('income') &&
+        !k.contains('price')) {
+      return true;
+    }
+    return false;
   }
 
   /// Long text labels that need a wider floor (not short enums like REC).
@@ -572,6 +652,10 @@ class HomeUi {
       'revenueshare': 'REV/SH',
       '52whigh': '52W H',
       '52wlow': '52W L',
+      'range52': '52W RANGE',
+      'range52w': '52W RANGE',
+      'high52w': '52W H',
+      'low52w': '52W L',
       'analystrec': 'REC',
     };
     if (id.isNotEmpty && byId.containsKey(id)) {
@@ -1140,21 +1224,21 @@ class HomeUi {
                 overflow: TextOverflow.ellipsis,
               ),
               if (subtitle != null) ...[
-                const SizedBox(height: 1),
+                const SizedBox(height: 4),
                 DefaultTextStyle.merge(
                   style: HomeUi.subtitle(dark).copyWith(
                     fontSize: 12,
-                    height: 1.2,
+                    height: 1.25,
                   ),
                   child: subtitle,
                 ),
               ] else if (subtitleText != null && subtitleText.isNotEmpty) ...[
-                const SizedBox(height: 1),
+                const SizedBox(height: 4),
                 Text(
                   subtitleText,
                   style: HomeUi.subtitle(dark).copyWith(
                     fontSize: 12,
-                    height: 1.2,
+                    height: 1.25,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
