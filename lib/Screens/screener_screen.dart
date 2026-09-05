@@ -1454,7 +1454,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   }
 
   double _screenerColumnWidth(String id, String type) {
-    if (id == 'sector') return 220;
+    if (id == 'sector') return 168;
     if (id == 'recommendation') return 72;
     if (id == 'range52W' || id == 'range52') return 176;
     if (type == 'percentage') return 96;
@@ -1499,7 +1499,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           tooltipLabel: 'SECTOR',
           fieldName: 'sector',
           isNumeric: false,
-          width: 220),
+          width: 168),
     ];
   }
 

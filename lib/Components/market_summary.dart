@@ -210,12 +210,11 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       const headingRowHeight = 40.0;
                       const columnSpacing = 6.0;
                       const horizontalMargin = 0.0;
-                      // Default 12px edge inset — SECTOR / 1Y stay off the card rim.
+                      const tableEdgeInset = EdgeInsets.symmetric(horizontal: 16);
 
-                      // Minimum widths only — DynamicTableFromWeb stretch fills
-                      // leftover so the table always spans the full card width.
-                      const double periodMin = 56.0;
-                      const double sectorIdeal = 220.0;
+                      // Content mins — equal gaps fill leftover card width.
+                      const double periodMin = 64.0;
+                      const double sectorIdeal = 168.0;
 
                       final dynamicColumns = _mapToDynamicColumns(
                         fixedSectorColumnWidth: sectorIdeal,
@@ -252,10 +251,10 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           dataRowMinHeight: 32,
                           dataRowMaxHeight: dataRowMaxHeight,
                           horizontalMargin: horizontalMargin,
-                          tableEdgeInset: const EdgeInsets.symmetric(horizontal: 12),
+                          tableEdgeInset: tableEdgeInset,
                           columnSpacing: columnSpacing,
                           columnCellPadding:
-                              const EdgeInsets.only(left: 0, right: 4),
+                              const EdgeInsets.symmetric(horizontal: 4),
                           dividerThickness: 0.5,
                           showBottomBorder: false,
                           tableBorder: TableBorder(

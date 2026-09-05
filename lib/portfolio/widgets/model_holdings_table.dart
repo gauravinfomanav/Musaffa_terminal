@@ -40,7 +40,7 @@ class ModelHoldingsTable extends StatefulWidget {
 
   static const _columns = [
     SimpleColumn(label: 'ASSET TYPE', fieldName: 'asset_type', width: 132),
-    SimpleColumn(label: 'SECTOR', fieldName: 'sector', width: 200),
+    SimpleColumn(label: 'SECTOR', fieldName: 'sector', width: 168),
     SimpleColumn(
       label: 'PRICE',
       fieldName: 'price',

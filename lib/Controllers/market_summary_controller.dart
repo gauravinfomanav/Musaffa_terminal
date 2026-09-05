@@ -114,13 +114,13 @@ class MarketSummaryController extends GetxController {
 
     dataFieldsToDisplay.forEach((element) {
       var widget = DataColumn(
-        headingRowAlignment: MainAxisAlignment.end,
+        headingRowAlignment: MainAxisAlignment.center,
         label: Padding(
           padding: EdgeInsets.zero,
           child: Text(
             (element.displayName ?? '').toUpperCase(),
             style: headerStyle,
-            textAlign: TextAlign.right,
+            textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -212,7 +212,7 @@ class MarketSummaryController extends GetxController {
           }
 
           var valueCell = DataCell(Align(
-            alignment: Alignment.centerRight,
+            alignment: Alignment.center,
             child: numericValue == null || numericValue == 0
                 ? Text(
                     numericValue == null ? '—' : '0.0%',
