@@ -80,9 +80,9 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
       priceAxisLabelColor: HomeUi.accent(isDark),
       barColor: HomeUi.chartBarColor(isDark),
       negativeBarColor: HomeUi.chartNegativeBarColor(isDark),
-      barCornerRadius: 5,
-      barWidth: 0.42,
-      barSpacing: 0.14,
+      barCornerRadius: 9,
+      barWidth: 0.40,
+      barSpacing: 0.16,
     );
 
     return Column(

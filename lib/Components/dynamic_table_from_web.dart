@@ -757,14 +757,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           _headerLeading + _cellTrailing + _headerChromeTrailing + 12;
       if (minWidth < chromeFloor) minWidth = chromeFloor;
 
-      // Widget cells (custom renderers) skip text measure — honor declared width.
+      // Honor declared width as a floor (year cols + ⋮ chrome need this so
+      // values like 8.8088 never clip).
       if (col.width != null && col.width! > minWidth) {
-        final bool hasWidgetCell = widget.rows.any(
-          (DynamicTableRow row) => row.data[col.key] is Widget,
-        );
-        if (hasWidgetCell) {
-          minWidth = col.width!;
-        }
+        minWidth = col.width!;
       }
 
       for (final row in widget.rows) {

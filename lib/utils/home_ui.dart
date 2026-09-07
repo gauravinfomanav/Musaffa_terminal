@@ -147,10 +147,36 @@ class HomeUi {
 
   /// Solid bar fill for premium quarterly / overview charts.
   static Color chartBarColor(bool dark) =>
-      dark ? const Color(0xFF7BA3C9) : const Color(0xFF3B6EA5);
+      dark ? const Color(0xFF8BB4E0) : const Color(0xFF6B9FD4);
 
   static Color chartNegativeBarColor(bool dark) =>
-      dark ? const Color(0xFFF07178) : const Color(0xFFDC2626);
+      dark ? const Color(0xFFD49A90) : const Color(0xFFC4847A);
+
+  /// Soft multi-tone palette for Charts-tab bars (not Custom Charts).
+  static List<Color> chartBarPalette(bool dark) => dark
+      ? const <Color>[
+          Color(0xFFC5D67E),
+          Color(0xFFA3B5C8),
+          Color(0xFF7A8BA0),
+          Color(0xFFD49A90),
+          Color(0xFFE0BC6A),
+          Color(0xFF8BB4E0),
+          Color(0xFF95C4B4),
+        ]
+      : const <Color>[
+          Color(0xFFB8C96A),
+          Color(0xFF8FA3B8),
+          Color(0xFF4A5A6E),
+          Color(0xFFC4847A),
+          Color(0xFFD4A84B),
+          Color(0xFF6B9FD4),
+          Color(0xFF7BAFA0),
+        ];
+
+  static Color chartBarPaletteAt(bool dark, int index) {
+    final List<Color> colors = chartBarPalette(dark);
+    return colors[index % colors.length];
+  }
 
   static BoxDecoration primaryButton({double radius = radiusPill}) {
     return BoxDecoration(

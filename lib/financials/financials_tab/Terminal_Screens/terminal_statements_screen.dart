@@ -421,7 +421,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       DynamicTableColumn(
         key: 'metric',
         label: title,
-        width: 200,
+        width: 260,
         align: TextAlign.left,
         sortable: false,
       ),
@@ -435,7 +435,7 @@ class _TerminalStatementsScreenState extends State<TerminalStatementsScreen> {
       return DynamicTableColumn(
         key: period,
         label: period,
-        width: 80,
+        width: 118,
         align: TextAlign.right,
         sortable: true,
       );
