@@ -716,10 +716,8 @@ class _DynamicTableState extends State<DynamicTable> {
         .map(
           (col) => DynamicTableColumn(
             key: col.fieldName,
-            label: HomeUi.shortTableHeader(
-              label: col.label,
-              key: col.fieldName,
-            ),
+            // Full header label in TH, Columns menu, and sort actions.
+            label: col.label,
             tooltipLabel: col.tooltipLabel ?? col.label,
             headerWidget: null,
             width: col.width,
@@ -731,7 +729,9 @@ class _DynamicTableState extends State<DynamicTable> {
         )
         .toList();
 
-    final mappedRows = filteredRows.map((row) {
+    final mappedRows = filteredRows.asMap().entries.map((entry) {
+      final int index = entry.key;
+      final row = entry.value;
       final data = <String, dynamic>{...row.fields};
       data['_ticker_symbol'] = row.symbol;
       data['_company_name'] = row.name;
@@ -742,9 +742,11 @@ class _DynamicTableState extends State<DynamicTable> {
         data['price'] = '\$${row.price!.toStringAsFixed(2)}';
       }
 
+      final String baseId = data['_row_id']?.toString() ??
+          (row.symbol.isNotEmpty ? row.symbol : row.name);
       return DynamicTableRow(
-        id: data['_row_id']?.toString() ??
-            (row.symbol.isNotEmpty ? row.symbol : row.name),
+        // Index suffix keeps duplicate symbols (same insider) unique for hover/keys.
+        id: '${baseId}_$index',
         data: data,
       );
     }).toList();

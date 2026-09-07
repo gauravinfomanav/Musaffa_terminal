@@ -29,7 +29,9 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
   static const Color _hold = Color(0xFFE4621E);
   static const Color _sell = Color(0xFFF87171);
   static const Color _strongSell = Color(0xFFDC2626);
-  static const Color _priceLine = Color.fromARGB(255, 213, 244, 187);
+  /// Steel navy — reads clearly over green/orange stacks (not pale lime).
+  static const Color _priceLine = Color(0xFF1F3A5F);
+  static const Color _priceLineDark = Color(0xFF7BA3C9);
 
   bool _showPrice = false;
   bool _priceLoading = false;
@@ -191,22 +193,29 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
               toggleSeriesVisibility: true,
               textStyle: HomeUi.subtitle(_isDark).copyWith(fontSize: 11),
             ),
-            tooltipBehavior: TooltipBehavior(
+            tooltipBehavior: TooltipBehavior(enable: false),
+            trackballBehavior: TrackballBehavior(
               enable: true,
-              color: Colors.transparent,
-              borderColor: Colors.transparent,
-              elevation: 0,
-              builder: (
-                dynamic data,
-                dynamic point,
-                dynamic series,
-                int pointIndex,
-                int seriesIndex,
-              ) {
-                if (pointIndex < 0 || pointIndex >= trends.length) {
-                  return const SizedBox.shrink();
-                }
-                return _trendTooltip(trends[pointIndex]);
+              activationMode: ActivationMode.singleTap,
+              tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+              lineType: TrackballLineType.vertical,
+              lineWidth: 1.25,
+              lineDashArray: const <double>[4, 3],
+              lineColor: (_isDark ? _priceLineDark : _priceLine)
+                  .withValues(alpha: 0.55),
+              markerSettings: TrackballMarkerSettings(
+                markerVisibility: TrackballVisibilityMode.visible,
+                height: 7,
+                width: 7,
+                borderWidth: 2,
+                borderColor: _isDark ? const Color(0xFF151821) : Colors.white,
+                color: _isDark ? _priceLineDark : _priceLine,
+              ),
+              builder: (BuildContext context, TrackballDetails details) {
+                final RecommendationTrendModel? point =
+                    _trendFromTrackball(details, trends);
+                if (point == null) return const SizedBox.shrink();
+                return _trendTooltip(point);
               },
             ),
             primaryXAxis: CategoryAxis(
@@ -268,15 +277,23 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
               if (_showPrice && _priceByPeriod.isNotEmpty)
                 LineSeries<RecommendationTrendModel, String>(
                   name: 'Price',
-                  color: _priceLine,
-                  width: 2,
+                  color: _isDark ? _priceLineDark : _priceLine,
+                  width: 2.5,
                   yAxisName: 'price',
                   dataSource: trends,
                   xValueMapper: (RecommendationTrendModel t, _) =>
                       _formatPeriod(t.period),
                   yValueMapper: (RecommendationTrendModel t, _) =>
                       _priceByPeriod[_formatPeriod(t.period)],
-                  markerSettings: const MarkerSettings(isVisible: false),
+                  markerSettings: MarkerSettings(
+                    isVisible: true,
+                    height: 5,
+                    width: 5,
+                    borderWidth: 1.5,
+                    borderColor: _isDark ? _priceLineDark : _priceLine,
+                    color: _isDark ? const Color(0xFF151821) : Colors.white,
+                    shape: DataMarkerType.circle,
+                  ),
                   legendIconType: LegendIconType.horizontalLine,
                 ),
             ],
@@ -307,44 +324,169 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     );
   }
 
+  RecommendationTrendModel? _trendFromTrackball(
+    TrackballDetails details,
+    List<RecommendationTrendModel> trends,
+  ) {
+    if (trends.isEmpty) return null;
+
+    final int? index = details.pointIndex ??
+        (details.groupingModeInfo?.currentPointIndices.isNotEmpty == true
+            ? details.groupingModeInfo!.currentPointIndices.first
+            : null);
+    if (index != null && index >= 0 && index < trends.length) {
+      return trends[index];
+    }
+
+    final dynamic x = details.point?.x;
+    if (x != null) {
+      final String label = x.toString();
+      for (final RecommendationTrendModel t in trends) {
+        if (_formatPeriod(t.period) == label) return t;
+      }
+    }
+    return null;
+  }
+
   Widget _trendTooltip(RecommendationTrendModel p) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: HomeUi.cardBg(_isDark),
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        border: Border.all(color: HomeUi.borderLight(_isDark)),
-        boxShadow: HomeUi.cardShadow(_isDark),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            _formatPeriod(p.period),
-            style: HomeUi.tableCellSecondary(_isDark),
-          ),
-          if (_showPrice && _priceByPeriod[_formatPeriod(p.period)] != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '\$${_priceByPeriod[_formatPeriod(p.period)]!.toStringAsFixed(2)}',
-              style: HomeUi.tableCellEmphasis(_isDark).copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: HomeUi.chartBarColor(_isDark),
+    final String period = _formatPeriod(p.period);
+    final double? price = _showPrice ? _priceByPeriod[period] : null;
+    final List<({String label, int count, Color color})> rows =
+        <({String label, int count, Color color})>[
+      (label: 'Strong Buy', count: p.strongBuy, color: _strongBuy),
+      (label: 'Buy', count: p.buy, color: _buy),
+      (label: 'Hold', count: p.hold, color: _hold),
+      (label: 'Sell', count: p.sell, color: _sell),
+      (label: 'Strong Sell', count: p.strongSell, color: _strongSell),
+    ];
+    final int total = rows.fold<int>(0, (int s, r) => s + r.count);
+
+    // Syncfusion trackball applies a tight maxHeight; UnconstrainedBox lets
+    // the card size to its content so the footer never overflows.
+    return UnconstrainedBox(
+      alignment: Alignment.center,
+      child: Material(
+        color: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          width: 176,
+          padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+          decoration: BoxDecoration(
+            color: _isDark ? const Color(0xFF151821) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: HomeUi.borderLight(_isDark)),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: _isDark ? 0.35 : 0.10),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            'Strong Buy  ${p.strongBuy}\n'
-            'Buy  ${p.buy}\n'
-            'Hold  ${p.hold}\n'
-            'Sell  ${p.sell}\n'
-            'Strong Sell  ${p.strongSell}',
-            style: HomeUi.tableCellEmphasis(_isDark).copyWith(height: 1.45),
+            ],
           ),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                period,
+                style: HomeUi.tableCellSecondary(_isDark).copyWith(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              if (price != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '\$${price.toStringAsFixed(2)}',
+                  style: HomeUi.tableCellEmphasis(_isDark).copyWith(
+                    fontSize: 15,
+                    height: 1.15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                    color: _isDark ? _priceLineDark : _priceLine,
+                  ),
+                ),
+                Text(
+                  'Price',
+                  style: HomeUi.subtitle(_isDark).copyWith(
+                    fontSize: 10,
+                    height: 1.15,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              for (final r in rows)
+                if (r.count > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(
+                      children: <Widget>[
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: r.color,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            r.label,
+                            style: HomeUi.subtitle(_isDark).copyWith(
+                              fontSize: 11,
+                              height: 1.2,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${r.count}',
+                          style: HomeUi.tableNumeric(_isDark).copyWith(
+                            fontSize: 11.5,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              if (total > 0) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 4),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: HomeUi.borderLight(_isDark),
+                  ),
+                ),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        'Analysts',
+                        style: HomeUi.subtitle(_isDark).copyWith(
+                          fontSize: 11,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '$total',
+                      style: HomeUi.tableCellEmphasis(_isDark).copyWith(
+                        fontSize: 12,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

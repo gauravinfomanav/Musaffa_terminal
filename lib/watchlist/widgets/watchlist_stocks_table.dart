@@ -938,7 +938,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         label: 'PRICE',
         fieldName: 'priceDisplay',
         isNumeric: true,
-        width: 100,
+        width: 140,
       ),
       const SimpleColumn(
         label: 'CHANGE %',

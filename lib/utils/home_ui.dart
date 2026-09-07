@@ -532,9 +532,11 @@ class HomeUi {
   static bool isPriceTableColumn(String key) {
     final k = key.toLowerCase();
     return k == 'price' ||
+        k == 'pricedisplay' ||
         k == 'currentprice' ||
         k == 'addedprice' ||
         k == 'targetprice' ||
+        k == 'avgprice' ||
         k == 'marketcap' ||
         k == 'current';
   }
@@ -546,6 +548,16 @@ class HomeUi {
         k == 'rec' ||
         k.endsWith('_rec') ||
         k.contains('recommendation');
+  }
+
+  /// Fixed-metric columns (stacked 1D change, sparklines) — content-sized, no stretch.
+  static bool isNonStretchTableColumn(String key) {
+    final String k = key.toLowerCase();
+    return isCompactTableColumn(k) ||
+        k == 'change' ||
+        k == 'change1d' ||
+        k == 'sparkline' ||
+        k == 'range52';
   }
 
   /// Long prose (notes/comments) may ellipsize. Short labels/values must not.
@@ -572,7 +584,6 @@ class HomeUi {
   }
 
   static const int tableCellMaxChars = 25;
-  static const int tableHeaderMaxChars = 10;
 
   /// Shows up to [maxChars] characters; truncates with ellipsis from the 26th.
   /// Price / currency strings are never truncated.
@@ -606,6 +617,8 @@ class HomeUi {
       'netincome': 'NET INC',
       'change1d': '1D',
       'sparkline': '1D',
+      // Do not map generic "change %" / "chg %" labels → "1D".
+      // Those appear on ownership / investor tables as portfolio change.
       'grossmargin': 'GROSS %',
       'operatingmargin': 'OP MGN',
       'netprofitmargin': 'NPM',
@@ -662,6 +675,31 @@ class HomeUi {
       'high52w': '52W H',
       'low52w': '52W L',
       'analystrec': 'REC',
+      // Ownership / investor / insider thead shorts (full name in tooltip).
+      // Avoid generic keys like `share` / `change` — those collide across tables.
+      'previousshares': 'Prev Shares',
+      'prevshare': 'Prev Shares',
+      'shareoftotal': 'T Shares',
+      'valuechange': 'VAL CHG',
+      'percentage': 'PORT %',
+      'portfoliopercent': 'PORT %',
+      'percentagechange': 'CHG %',
+      'changepercent': 'CHG %',
+      'convictionlevel': 'CONV',
+      'transactiontype': 'TXN',
+      'shareoftop': 'OF LIST',
+      'positionvalue': 'POS VAL',
+      'filedago': 'FILED',
+      'filingdate': 'FILED ON',
+      'transactionvalue': 'TXN VAL',
+      'currentprice': 'C Price',
+      'holdingsvalue': 'HLD VAL',
+      'transactiondate': 'TXN DATE',
+      'timeago': 'AGO',
+      'change1dpercent': '1D %',
+      'revenuegrowth': 'REV GR',
+      'evrevenue': 'EV/REV',
+      'avgprice': 'AVG PX',
     };
     if (id.isNotEmpty && byId.containsKey(id)) {
       return byId[id]!;
@@ -676,8 +714,6 @@ class HomeUi {
       'div yield': 'DIV YLD',
       'revenue annual': 'REV',
       'net income': 'NET INC',
-      'change %': '1D',
-      'chg %': '1D',
       'gross margin': 'GROSS %',
       'operating margin': 'OP MGN',
       'net profit margin': 'NPM',
@@ -720,13 +756,37 @@ class HomeUi {
       'revenue/share': 'REV/SH',
       '52w high': '52W H',
       '52w low': '52W L',
+      'current shares': 'C Shares',
+      'previous shares': 'Prev Shares',
+      'total shares': 'T Shares',
+      'change (shares)': 'Change',
+      'change shares': 'Change',
+      'shares changed': 'Change',
+      'value change': 'VAL CHG',
+      'portfolio %': 'PORT %',
+      'change %': 'CHG %',
+      'share of list': 'OF LIST',
+      'position value': 'POS VAL',
+      'filed ago': 'FILED',
+      'filing date': 'FILED ON',
+      'transaction value': 'TXN VAL',
+      'current price': 'C Price',
+      'holdings value': 'HLD VAL',
+      'transaction date': 'TXN DATE',
+      'time ago': 'AGO',
+      '1d change %': '1D %',
+      'revenue growth': 'REV GR',
+      'dividend yield': 'DIV YLD',
+      'avg price': 'AVG PX',
+      'conviction': 'CONV',
     };
     if (byLabel.containsKey(normalized)) {
       return byLabel[normalized]!;
     }
 
-    if (label.length <= tableHeaderMaxChars) return label;
-    return truncateTableText(label, maxChars: tableHeaderMaxChars);
+    // Never character-truncate headers (e.g. CURRENT SH…). Full name stays
+    // visible; intentional abbreviations come only from the maps above.
+    return label;
   }
 
   static TextOverflow tableCellOverflow(String text, {String? columnKey}) {
@@ -750,6 +810,78 @@ class HomeUi {
     );
     if (display == text) return child;
     return premiumTooltip(message: text, child: child);
+  }
+
+  /// Soft High / Medium / Low conviction chip — intrinsic width, never clipped text.
+  static Widget convictionLevelPill(bool dark, String? level) {
+    final raw = (level ?? '').trim();
+    if (raw.isEmpty || raw == '--' || raw == '—') {
+      return Text('--', style: tableCellSecondary(dark));
+    }
+
+    final key = raw.toLowerCase();
+    late final Color accent;
+    late final Color bg;
+    if (key.startsWith('high')) {
+      accent = dark ? const Color(0xFF34D399) : const Color(0xFF059669);
+      bg = dark
+          ? const Color(0xFF064E3B).withValues(alpha: 0.38)
+          : const Color(0xFFECFDF5);
+    } else if (key.startsWith('med')) {
+      accent = dark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+      bg = dark
+          ? const Color(0xFF78350F).withValues(alpha: 0.36)
+          : const Color(0xFFFFF7ED);
+    } else if (key.startsWith('low')) {
+      accent = dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+      bg = dark
+          ? const Color(0xFF1E293B).withValues(alpha: 0.50)
+          : const Color(0xFFF8FAFC);
+    } else {
+      accent = muted(dark);
+      bg = dark ? const Color(0xFF1A1D22) : const Color(0xFFF8FAFC);
+    }
+
+    final label = raw[0].toUpperCase() + raw.substring(1).toLowerCase();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: accent,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
+            style: TextStyle(
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontFamilyFallback: Constants.FONT_FALLBACK,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+              height: 1.2,
+              color: dark
+                  ? const Color(0xFFF1F5F9)
+                  : const Color(0xFF1E293B),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Dark premium tooltip used across tables and chrome.

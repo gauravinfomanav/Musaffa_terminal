@@ -83,17 +83,17 @@ class TickerFundOwnershipSection extends StatelessWidget {
         );
 
         final List<SimpleColumn> columns = <SimpleColumn>[
-          const SimpleColumn(label: 'C. SHARES', fieldName: 'share', isNumeric: true, width: 105),
-          const SimpleColumn(label: 'P. SHARES', fieldName: 'prevShare', isNumeric: true, width: 100),
+          const SimpleColumn(label: 'CURRENT SHARES', fieldName: 'share', isNumeric: true, width: 130),
+          const SimpleColumn(label: 'PREVIOUS SHARES', fieldName: 'prevShare', isNumeric: true, width: 130),
           const SimpleColumn(label: 'CHANGE', fieldName: 'change', isNumeric: true, width: 90),
           const SimpleColumn(label: 'CHANGE %', fieldName: 'changePercent', isNumeric: true, width: 105),
           const SimpleColumn(label: 'ACTIVITY', fieldName: 'activity', width: 95),
-          const SimpleColumn(label: 'PORTFOLIO %', fieldName: 'portfolioPercent', isNumeric: true, width: 105),
-          const SimpleColumn(label: 'SHARE', fieldName: 'shareOfTop', isNumeric: true, width: 115),
-          const SimpleColumn(label: 'TOTAL SHARES', fieldName: 'shareOfTotal', isNumeric: true, width: 115),
-          const SimpleColumn(label: 'POSITION VALUE', fieldName: 'positionValue', isNumeric: true, width: 115),
+          const SimpleColumn(label: 'PORTFOLIO %', fieldName: 'portfolioPercent', isNumeric: true, width: 115),
+          const SimpleColumn(label: 'SHARE OF LIST', fieldName: 'shareOfTop', isNumeric: true, width: 120),
+          const SimpleColumn(label: 'TOTAL SHARES', fieldName: 'shareOfTotal', isNumeric: true, width: 120),
+          const SimpleColumn(label: 'POSITION VALUE', fieldName: 'positionValue', isNumeric: true, width: 130),
           const SimpleColumn(label: 'FILED AGO', fieldName: 'filedAgo', width: 95),
-          const SimpleColumn(label: 'FILING DATE', fieldName: 'filingDate', width: 105),
+          const SimpleColumn(label: 'FILING DATE', fieldName: 'filingDate', width: 110),
         ];
 
         final List<SimpleRowModel> rows = visibleItems.map((FundOwnershipModel item) {

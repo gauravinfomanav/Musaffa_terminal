@@ -823,20 +823,22 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             companyKey: 'company',
             logoKey: 'logo',
             tickerHeaderLabel: 'Ticker',
+            tickerColumnWidth: 220,
             rowHeight: 56,
             columns: const [
               DynamicTableColumn(
                   key: 'price',
                   label: 'Price',
                   sortable: true,
-                  align: TextAlign.right),
+                  align: TextAlign.right,
+                  width: 100),
               DynamicTableColumn(
                   key: 'change',
                   label: '1D',
                   tooltipLabel: '1D Change',
                   sortable: true,
                   align: TextAlign.right,
-                  width: 92,
+                  width: 100,
                   sortValueKey: 'changePct'),
               DynamicTableColumn(
                   key: 'marketCap',
@@ -878,6 +880,8 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             maxHeight: 560,
             useOuterContainer: false,
             columnSpacing: 4,
+            // Less air after the ticker pin before PRICE / 1D.
+            tableEdgeInset: const EdgeInsets.fromLTRB(8, 0, 12, 0),
             enableColumnStretch: true,
             onTickerTap: (row) {
               final ticker = row.data['ticker']?.toString() ?? '';
@@ -999,6 +1003,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             isDark: isDarkMode,
             absoluteOnTop: true,
           ),
+          'changePct': stock.priceChange1DPercent?.toDouble(),
           'volume': stock.volume != null ? getShortenedT(stock.volume!) : '--',
           'marketCap': stock.usdMarketCap != null
               ? Constants.formatMarketCapFromMillions(stock.usdMarketCap)
@@ -1021,8 +1026,14 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
       enableColumnCustomization: true,
       showOuterShadow: true,
       columns: const [
-        SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true),
-        SimpleColumn(label: '1D', fieldName: 'change', isNumeric: true),
+        SimpleColumn(
+            label: 'PRICE', fieldName: 'price', isNumeric: true, width: 100),
+        SimpleColumn(
+            label: '1D',
+            fieldName: 'change',
+            isNumeric: true,
+            width: 100,
+            sortValueKey: 'changePct'),
         SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true),
         SimpleColumn(label: 'MKT CAP', fieldName: 'marketCap', isNumeric: true),
       ],
