@@ -186,13 +186,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
               : SfCartesianChart(
             plotAreaBorderWidth: 0,
             margin: const EdgeInsets.fromLTRB(0, 8, 8, 0),
-            legend: Legend(
-              isVisible: true,
-              position: LegendPosition.top,
-              overflowMode: LegendItemOverflowMode.wrap,
-              toggleSeriesVisibility: true,
-              textStyle: HomeUi.subtitle(_isDark).copyWith(fontSize: 11),
-            ),
+            legend: const Legend(isVisible: false),
             tooltipBehavior: TooltipBehavior(enable: false),
             trackballBehavior: TrackballBehavior(
               enable: true,

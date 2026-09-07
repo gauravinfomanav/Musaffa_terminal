@@ -7,10 +7,10 @@ import 'package:musaffa_terminal/utils/utils.dart';
 
 /// Column widths follow content (auto). Leftover card width is shared as
 /// equal pixel gaps between every pair of columns — never uneven max-widths.
-const double _kDefaultColumnSpacing = 12;
+const double _kDefaultColumnSpacing = 8;
 
 /// Minimum gap between columns (dense tables / many columns).
-const double _kMinColumnSpacing = 4;
+const double _kMinColumnSpacing = 2;
 
 // ============================================================================
 // DATA MODELS
@@ -850,14 +850,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final preferred = widget.columnSpacing ?? _kDefaultColumnSpacing;
     final int count =
         _visibleColumns.length + (widget.showTickerCell ? 1 : 0);
-    // More columns → tighter equal gaps so thead stays readable.
+    // More columns → tighter gaps. Few columns keep preferred spacing and
+    // let stretch expand column widths to fill the card.
     double densified = preferred;
-    if (count >= 12) {
-      densified = 4;
-    } else if (count >= 9) {
-      densified = 6;
+    if (count >= 14) {
+      densified = 2;
+    } else if (count >= 10) {
+      densified = 3;
     } else if (count >= 7) {
-      densified = 8;
+      densified = preferred < 4 ? preferred : 4;
     }
     final double spacing = densified < preferred ? densified : preferred;
     return spacing < _kMinColumnSpacing ? _kMinColumnSpacing : spacing;

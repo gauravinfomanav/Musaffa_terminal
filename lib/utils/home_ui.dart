@@ -550,14 +550,15 @@ class HomeUi {
         k.contains('recommendation');
   }
 
-  /// Fixed-metric columns (stacked 1D change, sparklines) — content-sized, no stretch.
+  /// Fixed-metric columns (stacked 1D change widgets, sparklines) — content-sized,
+  /// no stretch. Plain % text columns like screener `change1D` still stretch.
   static bool isNonStretchTableColumn(String key) {
     final String k = key.toLowerCase();
     return isCompactTableColumn(k) ||
         k == 'change' ||
-        k == 'change1d' ||
         k == 'sparkline' ||
-        k == 'range52';
+        k == 'range52' ||
+        k == 'range52w';
   }
 
   /// Long prose (notes/comments) may ellipsize. Short labels/values must not.
