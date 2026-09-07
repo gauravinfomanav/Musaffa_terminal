@@ -36,6 +36,12 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
     if (widget is Text) {
       return widget.data ?? widget.textSpan?.toPlainText() ?? '';
     }
+    if (widget is RichText) {
+      return widget.text.toPlainText();
+    }
+    if (widget is Tooltip && widget.child != null) {
+      return _extractTextFromWidget(widget.child!);
+    }
     if (widget is Padding && widget.child != null) {
       return _extractTextFromWidget(widget.child!);
     }
@@ -46,6 +52,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
       return _extractTextFromWidget(widget.child!);
     }
     if (widget is Center && widget.child != null) {
+      return _extractTextFromWidget(widget.child!);
+    }
+    if (widget is SizedBox && widget.child != null) {
       return _extractTextFromWidget(widget.child!);
     }
     return '';
@@ -62,8 +71,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
       columns.add(
         DynamicTableColumn(
           key: 'sector',
-          label: _extractTextFromWidget(fixedColumn.label),
-          headerWidget: fixedColumn.label,
+          label: _extractTextFromWidget(fixedColumn.label).isEmpty
+              ? 'SECTOR'
+              : _extractTextFromWidget(fixedColumn.label),
           width: fixedSectorColumnWidth,
           sortable: true,
           searchable: false,
@@ -75,11 +85,12 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
 
     for (var i = 0; i < controller.dataCols.length; i++) {
       final column = controller.dataCols[i];
+      final label = _extractTextFromWidget(column.label);
       columns.add(
         DynamicTableColumn(
           key: 'period_$i',
-          label: _extractTextFromWidget(column.label),
-          headerWidget: column.label,
+          label: label.isEmpty ? '—' : label,
+          // No headerWidget — same TextAlign path as cells (fixes 1Y th/td).
           width: periodColumnWidth,
           sortable: true,
           searchable: false,
@@ -102,15 +113,20 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
       final dataRowCells = controller.dataRows[rowIndex].cells;
 
       final rowData = <String, dynamic>{
+        // Keep sector widget for click-through navigation.
         'sector': fixedRowCells.isNotEmpty ? fixedRowCells.first.child : '--',
       };
 
       for (var colIndex = 0;
           colIndex < controller.dataCols.length;
           colIndex++) {
-        rowData['period_$colIndex'] = colIndex < dataRowCells.length
-            ? dataRowCells[colIndex].child
-            : '--';
+        if (colIndex < dataRowCells.length) {
+          final extracted = _extractTextFromWidget(dataRowCells[colIndex].child);
+          rowData['period_$colIndex'] =
+              extracted.isEmpty ? '--' : extracted;
+        } else {
+          rowData['period_$colIndex'] = '--';
+        }
       }
 
       rows.add(
@@ -210,7 +226,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                       const headingRowHeight = 40.0;
                       const columnSpacing = 6.0;
                       const horizontalMargin = 0.0;
-                      const tableEdgeInset = EdgeInsets.symmetric(horizontal: 16);
+                      // Left 16 matches the card title inset; right breathes for 1Y.
+                      const tableEdgeInset = EdgeInsets.fromLTRB(16, 0, 24, 0);
 
                       // Content mins — equal gaps fill leftover card width.
                       const double periodMin = 64.0;
@@ -253,8 +270,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           horizontalMargin: horizontalMargin,
                           tableEdgeInset: tableEdgeInset,
                           columnSpacing: columnSpacing,
-                          columnCellPadding:
-                              const EdgeInsets.symmetric(horizontal: 4),
+                          // Left 0 so leading edge inset (=16) lines up with title.
+                          columnCellPadding: const EdgeInsets.only(right: 4),
                           dividerThickness: 0.5,
                           showBottomBorder: false,
                           tableBorder: TableBorder(
