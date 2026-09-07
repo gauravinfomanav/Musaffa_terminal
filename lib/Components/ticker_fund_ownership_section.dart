@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
+import 'package:musaffa_terminal/Screens/fund_ownership_detail_screen.dart';
 import 'package:musaffa_terminal/models/fund_ownership_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
@@ -13,12 +14,16 @@ class TickerFundOwnershipSection extends StatelessWidget {
     required this.controller,
     required this.isDarkMode,
     required this.onRetry,
+    required this.holdingSymbol,
+    this.holdingName,
     this.currentPrice,
   });
 
   final TickerFundOwnershipController controller;
   final bool isDarkMode;
   final VoidCallback onRetry;
+  final String holdingSymbol;
+  final String? holdingName;
   final double? currentPrice;
 
   static const int _topRows = 10;
@@ -150,6 +155,28 @@ class TickerFundOwnershipSection extends StatelessWidget {
           showColumnActionMenu: true,
           showColumnResizeHandle: true,
           compactHeaderText: true,
+          onTickerTap: (row) {
+            final String name = row.data['_ticker_symbol']?.toString() ?? '';
+            FundOwnershipModel? match;
+            for (final FundOwnershipModel item in visibleItems) {
+              if (item.name == name) {
+                match = item;
+                break;
+              }
+            }
+            match ??= visibleItems.isEmpty ? null : visibleItems.first;
+            if (match == null) return;
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => FundOwnershipDetailScreen(
+                  fund: match!,
+                  holdingSymbol: holdingSymbol,
+                  holdingName: holdingName ?? holdingSymbol,
+                  currentPrice: currentPrice,
+                ),
+              ),
+            );
+          },
         );
       },
     );

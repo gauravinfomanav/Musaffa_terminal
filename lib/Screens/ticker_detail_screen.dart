@@ -51,6 +51,7 @@ import 'package:musaffa_terminal/models/live_price_model.dart';
 import 'package:musaffa_terminal/utils/snackbar_utils.dart';
 import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/utils/feature_navigation.dart';
+import 'package:intl/intl.dart';
 import 'dart:async';
 
 class TickerDetailScreen extends StatefulWidget {
@@ -821,7 +822,12 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                     _headerKv(
                       isDarkMode,
                       'IPO Date',
-                      stockData.ipoDate ?? '--',
+                      _formatIpoDate(stockData.ipoDate),
+                    ),
+                    _headerKv(
+                      isDarkMode,
+                      'Since IPO',
+                      _formatTimeSinceIpo(stockData.ipoDate),
                     ),
                     _headerKv(
                       isDarkMode,
@@ -1179,6 +1185,11 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
               child: TickerFundOwnershipSection(
                 controller: tickerFundOwnershipController,
                 isDarkMode: isDarkMode,
+                holdingSymbol:
+                    widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                holdingName: widget.ticker.companyName ??
+                    widget.ticker.name ??
+                    widget.ticker.symbol,
                 currentPrice: _livePrice ?? stockData.currentPrice?.toDouble(),
                 onRetry: () => tickerFundOwnershipController.load(
                   widget.ticker.symbol ?? widget.ticker.ticker ?? '',
@@ -1297,6 +1308,76 @@ bool? _metricSignedTone(String label, String value) {
   );
   if (parsed == null || parsed == 0) return null;
   return parsed > 0;
+}
+
+class _IpoAge {
+  const _IpoAge({required this.display});
+
+  final String display;
+}
+
+_IpoAge? _ipoAge(String? raw) {
+  final DateTime? date = _parseIpoDate(raw);
+  if (date == null) return null;
+  final DateTime now = DateTime.now();
+  final int days = now.difference(date).inDays;
+  if (days < 0) return null;
+
+  return _IpoAge(display: _formatIpoTenure(date, now, days));
+}
+
+String _formatIpoTenure(DateTime ipo, DateTime now, int days) {
+  if (days < 365) {
+    return days == 1 ? '1 day' : '$days days';
+  }
+
+  int years = now.year - ipo.year;
+  int months = now.month - ipo.month;
+  if (now.day < ipo.day) months -= 1;
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+  if (years < 1) {
+    return days == 1 ? '1 day' : '$days days';
+  }
+
+  final String yearLabel = years == 1 ? '1 year' : '$years years';
+  if (months <= 0) return yearLabel;
+  final String monthLabel = months == 1 ? '1 month' : '$months months';
+  return '$yearLabel, $monthLabel';
+}
+
+DateTime? _parseIpoDate(String? raw) {
+  final String value = (raw ?? '').trim();
+  if (value.isEmpty || value == '--') return null;
+  final DateTime? iso = DateTime.tryParse(value);
+  if (iso != null) return iso;
+  const List<String> patterns = <String>[
+    'yyyy-MM-dd',
+    'MM/dd/yyyy',
+    'MMM d, yyyy',
+    'MMM yyyy',
+    'yyyy',
+  ];
+  for (final String pattern in patterns) {
+    try {
+      return DateFormat(pattern).parseStrict(value);
+    } catch (_) {}
+  }
+  return null;
+}
+
+String _formatIpoDate(String? raw) {
+  final DateTime? date = _parseIpoDate(raw);
+  if (date == null) return (raw ?? '').trim().isEmpty ? '--' : raw!.trim();
+  return DateFormat('MMM d, yyyy').format(date);
+}
+
+String _formatTimeSinceIpo(String? raw) {
+  final _IpoAge? age = _ipoAge(raw);
+  if (age == null) return '--';
+  return age.display;
 }
 
 class _KeyMetricsQuoteStrip extends StatelessWidget {

@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/Controllers/market_news_controller.dart';
+import 'package:musaffa_terminal/Screens/news_article_webview_screen.dart';
 import 'package:musaffa_terminal/models/market_news.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class LatestMarketNewsWidget extends StatefulWidget {
   const LatestMarketNewsWidget({
@@ -152,7 +151,12 @@ class _LatestMarketNewsWidgetState extends State<LatestMarketNewsWidget> {
               isDark: isDark,
               controller: _controller,
               compact: widget.height != null,
-              onTap: () => _open(n.uRL),
+              onTap: () => openNewsArticle(
+                context,
+                url: n.uRL,
+                title: n.headline,
+                source: n.source,
+              ),
             ),
           )
           .toList(),
@@ -212,22 +216,9 @@ class _LatestMarketNewsWidgetState extends State<LatestMarketNewsWidget> {
       ),
     );
   }
-
-  Future<void> _open(String? raw) async {
-    if (raw == null || raw.trim().isEmpty) return;
-    var url = raw.trim();
-    if (!url.startsWith('http')) url = 'https://$url';
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        await launchUrlString(url);
-      }
-    } catch (_) {}
-  }
 }
 
-class _NewsRow extends StatelessWidget {
+class _NewsRow extends StatefulWidget {
   const _NewsRow({
     required this.news,
     required this.isDark,
@@ -242,6 +233,13 @@ class _NewsRow extends StatelessWidget {
   final MarketNewsController controller;
   final VoidCallback onTap;
 
+  @override
+  State<_NewsRow> createState() => _NewsRowState();
+}
+
+class _NewsRowState extends State<_NewsRow> {
+  bool _hovered = false;
+
   String _clean(String? v) {
     if (v == null || v.trim().isEmpty) return '--';
     return v.replaceAll(RegExp(r'\s+'), ' ').trim();
@@ -249,78 +247,148 @@ class _NewsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = widget.isDark;
     final title = HomeUi.title(isDark);
     final muted = HomeUi.muted(isDark);
     final imgBg = HomeUi.elevatedBg(isDark);
-    final imageUrl = news.image?.trim();
+    final imageUrl = widget.news.image?.trim();
+    final compact = widget.compact;
 
     final imageWidth = compact ? 64.0 : 72.0;
     final imageHeight = compact ? 44.0 : 52.0;
 
     return Padding(
       padding: EdgeInsets.only(bottom: compact ? 6 : 10),
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(HomeUi.radiusSm),
-              child: Container(
-                width: imageWidth,
-                height: imageHeight,
-                color: imgBg,
-                alignment: Alignment.center,
-                child: imageUrl != null && imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Stack(
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                decoration: BoxDecoration(
+                  color: _hovered
+                      ? imgBg.withValues(alpha: isDark ? 0.55 : 0.7)
+                      : null,
+                  borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(HomeUi.radiusSm),
+                      child: Container(
                         width: imageWidth,
                         height: imageHeight,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(CupertinoIcons.photo, size: 18, color: muted),
-                      )
-                    : Icon(CupertinoIcons.photo, size: 18, color: muted),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _clean(news.headline),
-                    maxLines: compact ? 1 : 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                      fontSize: compact ? 13 : 13.5,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
-                      letterSpacing: -0.15,
-                      color: title,
+                        color: imgBg,
+                        alignment: Alignment.center,
+                        child: imageUrl != null && imageUrl.isNotEmpty
+                            ? Image.network(
+                                imageUrl,
+                                width: imageWidth,
+                                height: imageHeight,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  CupertinoIcons.photo,
+                                  size: 18,
+                                  color: muted,
+                                ),
+                              )
+                            : Icon(
+                                CupertinoIcons.photo,
+                                size: 18,
+                                color: muted,
+                              ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_clean(news.source)} • ${controller.formatRelativeTime(news.datetime)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: Constants.FONT_DEFAULT_NEW, fontSize: 12, color: muted),
-                  ),
-                  if (!compact) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      _clean(news.summary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: Constants.FONT_DEFAULT_NEW, fontSize: 12.5, color: muted),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: _hovered ? 118 : 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                          Text(
+                            _clean(widget.news.headline),
+                            maxLines: compact ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: Constants.FONT_DEFAULT_NEW,
+                              fontSize: compact ? 13 : 13.5,
+                              fontWeight: FontWeight.w600,
+                              height: 1.3,
+                              letterSpacing: -0.15,
+                              color: title,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_clean(widget.news.source)} • ${widget.controller.formatRelativeTime(widget.news.datetime)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: Constants.FONT_DEFAULT_NEW,
+                              fontSize: 12,
+                              color: muted,
+                            ),
+                          ),
+                          if (!compact) ...[
+                            const SizedBox(height: 3),
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 180),
+                              curve: Curves.easeOut,
+                              alignment: Alignment.topLeft,
+                              child: Text(
+                                _clean(widget.news.summary),
+                                maxLines: _hovered ? null : 1,
+                                overflow: _hovered
+                                    ? TextOverflow.visible
+                                    : TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                                  fontSize: 12.5,
+                                  height: 1.4,
+                                  color: muted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              if (_hovered)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: HomeUi.cardBg(isDark),
+                      borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                      border: Border.all(color: HomeUi.borderLight(isDark)),
+                    ),
+                    child: Text(
+                      'View full news',
+                      style: HomeUi.subtitle(isDark).copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Controllers/market_news_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
+import 'package:musaffa_terminal/Screens/news_article_webview_screen.dart';
 import 'package:musaffa_terminal/models/market_news.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class SimpleNewsWidget extends StatefulWidget {
   final String symbol;
@@ -246,42 +245,48 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
         : 'UNKNOWN';
     final bool hasSummary = summary != '--';
 
-    return SizedBox(
-      height: _newsItemHeight,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _newsItemHeight),
       child: _NewsRow(
         isDarkMode: isDarkMode,
         showBottomBorder: showBottomBorder,
-        onTap: () => _openNewsUrl(news.uRL),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              source,
-              style: HomeUi.overline(isDarkMode).copyWith(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.9,
-                color: HomeUi.muted(isDarkMode),
+        onTap: () => openNewsArticle(
+          context,
+          url: news.uRL,
+          title: headline,
+          source: source,
+        ),
+        builder: (bool hovered) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                source,
+                style: HomeUi.overline(isDarkMode).copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.9,
+                  color: HomeUi.muted(isDarkMode),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              headline,
-              style: HomeUi.sectionTitle(isDarkMode).copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                height: 1.35,
-                letterSpacing: -0.25,
+              const SizedBox(height: 8),
+              Text(
+                headline,
+                style: HomeUi.sectionTitle(isDarkMode).copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                  letterSpacing: -0.25,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              height: 36,
-              child: Align(
+              const SizedBox(height: 6),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
                 alignment: Alignment.topLeft,
                 child: Text(
                   hasSummary ? summary : ' ',
@@ -295,15 +300,16 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
                             : const Color(0xFF374151))
                         : Colors.transparent,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: hovered ? null : 2,
+                  overflow:
+                      hovered ? TextOverflow.visible : TextOverflow.ellipsis,
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            _buildTimeBelow(news.datetime, isDarkMode),
-          ],
-        ),
+              const SizedBox(height: 6),
+              _buildTimeBelow(news.datetime, isDarkMode),
+            ],
+          );
+        },
       ),
     );
   }
@@ -396,72 +402,19 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
-
-  Future<void> _openNewsUrl(String? rawUrl) async {
-    if (rawUrl == null || rawUrl.trim().isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No URL available for this news item')),
-      );
-      return;
-    }
-
-    var url = rawUrl.trim();
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://$url';
-    }
-
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid news URL')),
-      );
-      return;
-    }
-
-    bool launched = false;
-    try {
-      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      launched = false;
-    }
-
-    if (!launched) {
-      try {
-        launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
-      } catch (_) {
-        launched = false;
-      }
-    }
-
-    if (!launched) {
-      try {
-        launched = await launchUrlString(url);
-      } catch (_) {
-        launched = false;
-      }
-    }
-
-    if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open link')),
-      );
-    }
-  }
 }
 
 class _NewsRow extends StatefulWidget {
   const _NewsRow({
     required this.isDarkMode,
     required this.onTap,
-    required this.child,
+    required this.builder,
     this.showBottomBorder = true,
   });
 
   final bool isDarkMode;
   final VoidCallback onTap;
-  final Widget child;
+  final Widget Function(bool hovered) builder;
   final bool showBottomBorder;
 
   @override
@@ -469,18 +422,26 @@ class _NewsRow extends StatefulWidget {
 }
 
 class _NewsRowState extends State<_NewsRow> {
+  bool _hovered = false;
+
   @override
   Widget build(BuildContext context) {
     final bool dark = widget.isDarkMode;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
           width: double.infinity,
-          height: double.infinity,
           padding: const EdgeInsets.fromLTRB(4, 14, 8, 14),
           decoration: BoxDecoration(
+            color: _hovered
+                ? HomeUi.elevatedBg(dark).withValues(alpha: dark ? 0.55 : 0.7)
+                : null,
             border: widget.showBottomBorder
                 ? Border(
                     bottom: BorderSide(
@@ -490,7 +451,38 @@ class _NewsRowState extends State<_NewsRow> {
                   )
                 : null,
           ),
-          child: widget.child,
+          child: Stack(
+            children: <Widget>[
+              Padding(
+                padding: EdgeInsets.only(right: _hovered ? 124 : 0),
+                child: widget.builder(_hovered),
+              ),
+              if (_hovered)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: HomeUi.cardBg(dark),
+                      borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                      boxShadow: HomeUi.cardShadow(dark),
+                      border: Border.all(color: HomeUi.borderLight(dark)),
+                    ),
+                    child: Text(
+                      'View full news',
+                      style: HomeUi.subtitle(dark).copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

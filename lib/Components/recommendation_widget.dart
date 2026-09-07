@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/Controllers/recommendation_controller.dart';
+import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/models/recommendation_model.dart';
 import 'package:musaffa_terminal/models/recommendation_trend_model.dart';
+import 'package:musaffa_terminal/services/finnhub/stock_candle_service.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -26,6 +29,12 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
   static const Color _hold = Color(0xFFE4621E);
   static const Color _sell = Color(0xFFF87171);
   static const Color _strongSell = Color(0xFFDC2626);
+  static const Color _priceLine = Color.fromARGB(255, 213, 244, 187);
+
+  bool _showPrice = false;
+  bool _priceLoading = false;
+  final Map<String, double> _priceByPeriod = <String, double>{};
+  final StockCandleService _candleService = StockCandleService();
 
   @override
   void initState() {
@@ -62,11 +71,30 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              HomeUi.tableToolbarHeader(
-                _isDark,
-                icon: Icons.thumbs_up_down_outlined,
-                title: 'Recommendation Trend',
-                subtitleText: 'Analyst consensus over the last 12 months',
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: HomeUi.tableToolbarHeader(
+                      _isDark,
+                      icon: Icons.thumbs_up_down_outlined,
+                      title: 'Recommendation Trend',
+                      subtitleText: _showPrice
+                          ? 'Analyst consensus with price overlay'
+                          : 'Analyst consensus over the last 12 months',
+                    ),
+                  ),
+                  HomeUi.ghostAction(
+                    label: _showPrice ? 'Hide price' : 'Add price',
+                    icon: _showPrice
+                        ? Icons.show_chart
+                        : Icons.add_chart_outlined,
+                    onTap: () {
+                      _togglePrice();
+                    },
+                    dark: _isDark,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Row(
@@ -145,11 +173,23 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
         const SizedBox(height: 14),
         SizedBox(
           height: 248,
-          child: SfCartesianChart(
+          child: _priceLoading
+              ? const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : SfCartesianChart(
             plotAreaBorderWidth: 0,
             margin: const EdgeInsets.fromLTRB(0, 8, 8, 0),
             legend: Legend(
-              isVisible: false,
+              isVisible: true,
+              position: LegendPosition.top,
+              overflowMode: LegendItemOverflowMode.wrap,
+              toggleSeriesVisibility: true,
+              textStyle: HomeUi.subtitle(_isDark).copyWith(fontSize: 11),
             ),
             tooltipBehavior: TooltipBehavior(
               enable: true,
@@ -173,7 +213,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
               majorGridLines: const MajorGridLines(width: 0),
               majorTickLines: const MajorTickLines(size: 0),
               axisLine: AxisLine(width: 1, color: HomeUi.borderLight(_isDark)),
-              labelPlacement: LabelPlacement.onTicks,
+              labelPlacement: LabelPlacement.betweenTicks,
               labelIntersectAction: AxisLabelIntersectAction.none,
               maximumLabels: 6,
               labelStyle: HomeUi.subtitle(_isDark).copyWith(
@@ -183,21 +223,62 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
               ),
             ),
             primaryYAxis: NumericAxis(
-              majorGridLines: const MajorGridLines(width: 0),
+              name: 'ratings',
+              majorGridLines: MajorGridLines(
+                width: 1,
+                dashArray: const <double>[4, 4],
+                color: HomeUi.borderLight(_isDark),
+              ),
               majorTickLines: const MajorTickLines(size: 0),
-              axisLine: AxisLine(width: 1, color: HomeUi.borderLight(_isDark)),
+              axisLine: AxisLine(width: 0),
               labelStyle: HomeUi.subtitle(_isDark).copyWith(
                 fontSize: 11,
                 height: 1.15,
                 fontWeight: FontWeight.w500,
               ),
             ),
+            axes: _showPrice
+                ? <ChartAxis>[
+                    NumericAxis(
+                      name: 'price',
+                      opposedPosition: true,
+                      majorGridLines: const MajorGridLines(width: 0),
+                      majorTickLines: const MajorTickLines(size: 4),
+                      axisLine: AxisLine(
+                        width: 1,
+                        color: HomeUi.borderLight(_isDark),
+                      ),
+                      labelStyle: HomeUi.subtitle(_isDark).copyWith(
+                        fontSize: 11,
+                        color: const Color(0xFF6B7280),
+                      ),
+                      numberFormat: NumberFormat.simpleCurrency(
+                        name: 'USD',
+                        decimalDigits: 0,
+                      ),
+                    ),
+                  ]
+                : const <ChartAxis>[],
             series: <CartesianSeries<RecommendationTrendModel, String>>[
-              _trendLine('Strong Buy', _strongBuy, trends, (t) => t.strongBuy),
-              _trendLine('Buy', _buy, trends, (t) => t.buy),
-              _trendLine('Hold', _hold, trends, (t) => t.hold),
-              _trendLine('Sell', _sell, trends, (t) => t.sell),
-              _trendLine('Strong Sell', _strongSell, trends, (t) => t.strongSell),
+              _trendBar('Strong Buy', _strongBuy, trends, (t) => t.strongBuy),
+              _trendBar('Buy', _buy, trends, (t) => t.buy),
+              _trendBar('Hold', _hold, trends, (t) => t.hold),
+              _trendBar('Sell', _sell, trends, (t) => t.sell),
+              _trendBar('Strong Sell', _strongSell, trends, (t) => t.strongSell),
+              if (_showPrice && _priceByPeriod.isNotEmpty)
+                LineSeries<RecommendationTrendModel, String>(
+                  name: 'Price',
+                  color: _priceLine,
+                  width: 2,
+                  yAxisName: 'price',
+                  dataSource: trends,
+                  xValueMapper: (RecommendationTrendModel t, _) =>
+                      _formatPeriod(t.period),
+                  yValueMapper: (RecommendationTrendModel t, _) =>
+                      _priceByPeriod[_formatPeriod(t.period)],
+                  markerSettings: const MarkerSettings(isVisible: false),
+                  legendIconType: LegendIconType.horizontalLine,
+                ),
             ],
           ),
         ),
@@ -205,21 +286,24 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     );
   }
 
-  SplineSeries<RecommendationTrendModel, String> _trendLine(
+  StackedColumnSeries<RecommendationTrendModel, String> _trendBar(
     String name,
     Color color,
     List<RecommendationTrendModel> trends,
     int Function(RecommendationTrendModel) y,
   ) {
-    return SplineSeries<RecommendationTrendModel, String>(
+    return StackedColumnSeries<RecommendationTrendModel, String>(
       name: name,
       color: color,
-      width: 2.4,
+      yAxisName: 'ratings',
+      groupName: 'ratings',
+      width: 0.62,
+      spacing: 0.12,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
       dataSource: trends,
       xValueMapper: (RecommendationTrendModel t, _) => _formatPeriod(t.period),
       yValueMapper: (RecommendationTrendModel t, _) => y(t),
-      markerSettings: const MarkerSettings(isVisible: false),
-      legendIconType: LegendIconType.horizontalLine,
+      legendIconType: LegendIconType.rectangle,
     );
   }
 
@@ -240,6 +324,17 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
             _formatPeriod(p.period),
             style: HomeUi.tableCellSecondary(_isDark),
           ),
+          if (_showPrice && _priceByPeriod[_formatPeriod(p.period)] != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '\$${_priceByPeriod[_formatPeriod(p.period)]!.toStringAsFixed(2)}',
+              style: HomeUi.tableCellEmphasis(_isDark).copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: HomeUi.chartBarColor(_isDark),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Text(
             'Strong Buy  ${p.strongBuy}\n'
@@ -344,6 +439,84 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
         ],
       ),
     );
+  }
+
+  String _priceTooltipLine(RecommendationTrendModel p) {
+    final double? price = _priceByPeriod[_formatPeriod(p.period)];
+    if (!_showPrice || price == null) return '';
+    return '\nPrice  \$${price.toStringAsFixed(2)}';
+  }
+
+  Future<void> _togglePrice() async {
+    if (_showPrice) {
+      setState(() => _showPrice = false);
+      return;
+    }
+    setState(() {
+      _showPrice = true;
+      if (_priceByPeriod.isEmpty) _priceLoading = true;
+    });
+    if (_priceByPeriod.isEmpty) {
+      await _loadPriceOverlay();
+    }
+  }
+
+  Future<void> _loadPriceOverlay() async {
+    final List<RecommendationTrendModel> trends =
+        widget.controller.trendHistory;
+    if (trends.isEmpty) {
+      if (mounted) setState(() => _priceLoading = false);
+      return;
+    }
+
+    DateTime? from;
+    DateTime? to;
+    for (final RecommendationTrendModel trend in trends) {
+      final DateTime? date = DateTime.tryParse(trend.period);
+      if (date == null) continue;
+      from = from == null || date.isBefore(from) ? date : from;
+      to = to == null || date.isAfter(to) ? date : to;
+    }
+    from ??= DateTime.now().subtract(const Duration(days: 400));
+    to ??= DateTime.now();
+
+    try {
+      final List<PriceDataPoint> candles = await _candleService.fetchDailyCloses(
+        widget.symbol,
+        from: from.subtract(const Duration(days: 10)),
+        to: to.add(const Duration(days: 10)),
+      );
+      if (!mounted) return;
+      final Map<String, double> mapped = <String, double>{};
+      for (final RecommendationTrendModel trend in trends) {
+        final DateTime? periodDate = DateTime.tryParse(trend.period);
+        final double? price = _priceOnOrBefore(candles, periodDate);
+        if (price != null) {
+          mapped[_formatPeriod(trend.period)] = price;
+        }
+      }
+      setState(() {
+        _priceByPeriod
+          ..clear()
+          ..addAll(mapped);
+        _priceLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _priceLoading = false);
+    }
+  }
+
+  double? _priceOnOrBefore(List<PriceDataPoint> candles, DateTime? period) {
+    if (candles.isEmpty) return null;
+    if (period == null) return candles.last.value;
+    PriceDataPoint? best;
+    for (final PriceDataPoint point in candles) {
+      if (!point.date.isAfter(period.add(const Duration(days: 5)))) {
+        best = point;
+      }
+    }
+    return best?.value ?? candles.first.value;
   }
 
   String _formatPeriod(String period) {

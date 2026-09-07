@@ -5,6 +5,8 @@ class FundOwnershipModel {
     required this.portfolioPercent,
     required this.change,
     required this.filingDate,
+    this.cik,
+    this.symbol,
   });
 
   final String name;
@@ -12,6 +14,8 @@ class FundOwnershipModel {
   final double portfolioPercent;
   final num change;
   final DateTime? filingDate;
+  final String? cik;
+  final String? symbol;
 
   factory FundOwnershipModel.fromJson(Map<String, dynamic> json) {
     return FundOwnershipModel(
@@ -20,8 +24,15 @@ class FundOwnershipModel {
       portfolioPercent: _double(json['portfolioPercent']),
       change: _num(json['change']),
       filingDate: _date(json['filingDate']),
+      cik: _optional(json['cik']),
+      symbol: _optional(json['symbol']),
     );
   }
+}
+
+String? _optional(dynamic value) {
+  final String raw = (value ?? '').toString().trim();
+  return raw.isEmpty ? null : raw;
 }
 
 num _num(dynamic value) {

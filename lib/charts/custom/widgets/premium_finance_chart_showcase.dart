@@ -253,12 +253,14 @@ class _ChartShell extends StatelessWidget {
     required this.caption,
     required this.height,
     required this.child,
+    this.trailing,
   });
 
   final bool dark;
   final String caption;
   final double height;
   final Widget child;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -273,15 +275,22 @@ class _ChartShell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            caption,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.6,
-              color: UsPremiumPalette.muted(dark),
-            ),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  caption,
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.6,
+                    color: UsPremiumPalette.muted(dark),
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
           ),
           const SizedBox(height: 10),
           Expanded(child: child),
@@ -1605,23 +1614,58 @@ class _AnalystPriceTargetsChart extends StatelessWidget {
   }
 }
 
-class _AnalystRecommendationsChart extends StatelessWidget {
+class _AnalystRecommendationsChart extends StatefulWidget {
   const _AnalystRecommendationsChart({required this.dark});
   final bool dark;
 
   @override
+  State<_AnalystRecommendationsChart> createState() =>
+      _AnalystRecommendationsChartState();
+}
+
+class _AnalystRecommendationsChartState
+    extends State<_AnalystRecommendationsChart> {
+  bool _showPrice = false;
+
+  @override
   Widget build(BuildContext context) {
+    final bool dark = widget.dark;
     final List<StaticRecommendationBar> data =
         StaticPremiumChartData.analystRecommendationBars;
     final UsPremiumChartColors c = chartColors(dark);
+    final List<double> prices = _sampledPrices(data.length);
+    const Color priceGreen = Color(0xFF16A34A);
 
     return _ChartShell(
       dark: dark,
       caption: 'ANALYST RECOMMENDATIONS',
       height: 260,
+      trailing: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => setState(() => _showPrice = !_showPrice),
+          child: Text(
+            _showPrice ? 'HIDE PRICE' : 'ADD PRICE',
+            style: TextStyle(
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: _showPrice ? priceGreen : UsPremiumPalette.muted(dark),
+            ),
+          ),
+        ),
+      ),
       child: SfCartesianChart(
         plotAreaBorderWidth: 0,
         margin: EdgeInsets.zero,
+        legend: Legend(
+          isVisible: true,
+          position: LegendPosition.top,
+          overflowMode: LegendItemOverflowMode.wrap,
+          textStyle: _axisStyle(dark),
+        ),
+        enableSideBySideSeriesPlacement: false,
         primaryXAxis: CategoryAxis(
           majorGridLines: const MajorGridLines(width: 0),
           axisLine: AxisLine(width: 0),
@@ -1629,6 +1673,7 @@ class _AnalystRecommendationsChart extends StatelessWidget {
           labelStyle: _axisStyle(dark),
         ),
         primaryYAxis: NumericAxis(
+          name: 'ratings',
           maximum: 16,
           majorGridLines: MajorGridLines(
             width: 0.5,
@@ -1638,6 +1683,22 @@ class _AnalystRecommendationsChart extends StatelessWidget {
           majorTickLines: const MajorTickLines(size: 0),
           labelStyle: _axisStyle(dark),
         ),
+        axes: _showPrice
+            ? <ChartAxis>[
+                NumericAxis(
+                  name: 'price',
+                  opposedPosition: true,
+                  axisLine: AxisLine(width: 0),
+                  majorGridLines: const MajorGridLines(width: 0),
+                  majorTickLines: const MajorTickLines(size: 0),
+                  labelStyle: _axisStyle(dark).copyWith(color: priceGreen),
+                  numberFormat: NumberFormat.currency(
+                    symbol: '\$',
+                    decimalDigits: 0,
+                  ),
+                ),
+              ]
+            : const <ChartAxis>[],
         tooltipBehavior: _sfTooltip(dark, (dynamic data) {
           if (data is! StaticRecommendationBar) return const SizedBox.shrink();
           return _tooltip(dark, data.month, '${data.total} analyst ratings');
@@ -1648,6 +1709,8 @@ class _AnalystRecommendationsChart extends StatelessWidget {
             dataSource: data,
             xValueMapper: (StaticRecommendationBar m, _) => m.month,
             yValueMapper: (StaticRecommendationBar m, _) => m.strongBuy,
+            yAxisName: 'ratings',
+            groupName: 'ratings',
             color: c.analystStrongBuy,
             width: 0.48,
           ),
@@ -1656,6 +1719,8 @@ class _AnalystRecommendationsChart extends StatelessWidget {
             dataSource: data,
             xValueMapper: (StaticRecommendationBar m, _) => m.month,
             yValueMapper: (StaticRecommendationBar m, _) => m.buy,
+            yAxisName: 'ratings',
+            groupName: 'ratings',
             color: c.analystBuy,
             width: 0.48,
           ),
@@ -1664,6 +1729,8 @@ class _AnalystRecommendationsChart extends StatelessWidget {
             dataSource: data,
             xValueMapper: (StaticRecommendationBar m, _) => m.month,
             yValueMapper: (StaticRecommendationBar m, _) => m.hold,
+            yAxisName: 'ratings',
+            groupName: 'ratings',
             color: c.analystHold,
             width: 0.48,
           ),
@@ -1672,6 +1739,8 @@ class _AnalystRecommendationsChart extends StatelessWidget {
             dataSource: data,
             xValueMapper: (StaticRecommendationBar m, _) => m.month,
             yValueMapper: (StaticRecommendationBar m, _) => m.underperform,
+            yAxisName: 'ratings',
+            groupName: 'ratings',
             color: const Color(0xFFE57B39),
             width: 0.48,
           ),
@@ -1680,6 +1749,8 @@ class _AnalystRecommendationsChart extends StatelessWidget {
             dataSource: data,
             xValueMapper: (StaticRecommendationBar m, _) => m.month,
             yValueMapper: (StaticRecommendationBar m, _) => m.sell,
+            yAxisName: 'ratings',
+            groupName: 'ratings',
             color: c.analystStrongSell,
             width: 0.48,
           ),
@@ -1687,6 +1758,7 @@ class _AnalystRecommendationsChart extends StatelessWidget {
             dataSource: data,
             xValueMapper: (StaticRecommendationBar m, _) => m.month,
             yValueMapper: (StaticRecommendationBar m, _) => m.total.toDouble(),
+            yAxisName: 'ratings',
             color: Colors.transparent,
             markerSettings: const MarkerSettings(isVisible: false),
             dataLabelSettings: DataLabelSettings(
@@ -1701,9 +1773,35 @@ class _AnalystRecommendationsChart extends StatelessWidget {
             ),
             dataLabelMapper: (StaticRecommendationBar m, _) => '${m.total}',
           ),
+          if (_showPrice)
+            LineSeries<StaticRecommendationBar, String>(
+              name: 'Price',
+              dataSource: data,
+              xValueMapper: (StaticRecommendationBar m, _) => m.month,
+              yValueMapper: (StaticRecommendationBar m, int index) =>
+                  index < prices.length ? prices[index] : null,
+              yAxisName: 'price',
+              color: const Color.fromARGB(255, 213, 244, 187),
+              width: 2,
+              markerSettings: const MarkerSettings(isVisible: false),
+            ),
         ],
       ),
     );
+  }
+
+  List<double> _sampledPrices(int count) {
+    final List<OhlcCandlePoint> history = StaticPremiumChartData.priceHistory;
+    if (history.isEmpty || count <= 0) return const <double>[];
+    if (count == 1) return <double>[history.last.close];
+    return List<double>.generate(count, (int i) {
+      final int index =
+          ((i / (count - 1)) * (history.length - 1)).round().clamp(
+                0,
+                history.length - 1,
+              );
+      return history[index].close;
+    });
   }
 }
 
