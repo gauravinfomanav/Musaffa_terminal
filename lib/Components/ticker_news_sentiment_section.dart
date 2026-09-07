@@ -91,9 +91,9 @@ class TickerNewsSentimentSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _buildMetrics(model),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         _buildSentimentSplit(model.sentiment),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         _buildSectorCompare(model),
       ],
     );
@@ -115,12 +115,16 @@ class TickerNewsSentimentSection extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Expanded(flex: 5, child: _softPanel(child: details)),
+          Expanded(
+            flex: 5,
+            child: _softPanel(child: details),
+          ),
           const SizedBox(width: 14),
           Expanded(
             flex: 4,
             child: _softPanel(
-              child: Center(child: chart),
+              child: chart,
+              align: Alignment.center,
             ),
           ),
         ],
@@ -128,9 +132,13 @@ class TickerNewsSentimentSection extends StatelessWidget {
     );
   }
 
-  Widget _softPanel({required Widget child}) {
+  Widget _softPanel({
+    required Widget child,
+    AlignmentGeometry align = Alignment.topLeft,
+  }) {
     return Container(
       width: double.infinity,
+      alignment: align,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         color: _panelBg,
@@ -194,51 +202,49 @@ class TickerNewsSentimentSection extends StatelessWidget {
     final Color bull = HomeUi.positive(isDarkMode);
     final Color bear = HomeUi.negative(isDarkMode);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text('COVERAGE MIX', style: _eyebrow),
-        const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 8,
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  flex: (bullShare * 1000).round().clamp(1, 999),
-                  child: ColoredBox(color: bull),
-                ),
-                const SizedBox(width: 2),
-                Expanded(
-                  flex: ((1 - bullShare) * 1000).round().clamp(1, 999),
-                  child: ColoredBox(color: bear),
-                ),
-              ],
+    return _sectionBlock(
+      title: 'Coverage mix',
+      subtitle: 'Share of bullish vs bearish news coverage',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 8,
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    flex: (bullShare * 1000).round().clamp(1, 999),
+                    child: ColoredBox(color: bull),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    flex: ((1 - bullShare) * 1000).round().clamp(1, 999),
+                    child: ColoredBox(color: bear),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _splitStat(
+          const SizedBox(height: 14),
+          Row(
+            children: <Widget>[
+              _splitStat(
                 label: 'Bullish',
                 value: _pctLabel(bullish),
                 color: bull,
               ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: _splitStat(
+              const SizedBox(width: 36),
+              _splitStat(
                 label: 'Bearish',
                 value: _pctLabel(bearish),
                 color: bear,
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -284,30 +290,67 @@ class TickerNewsSentimentSection extends StatelessWidget {
     final bool aboveBullish = _toPercent(model.sentiment.bullishPercent) >=
         _toPercent(model.sectorAverageBullishPercent);
 
+    return _sectionBlock(
+      title: 'Sector context',
+      subtitle: 'How this company compares with its sector',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _compareRow(
+            leftLabel: 'Company news score',
+            leftValue: model.companyNewsScore.toStringAsFixed(2),
+            rightLabel: 'Sector average',
+            rightValue: model.sectorAverageNewsScore.toStringAsFixed(2),
+            note: aboveScore ? 'Above sector' : 'Below sector',
+            notePositive: aboveScore,
+          ),
+          const SizedBox(height: 12),
+          _compareRow(
+            leftLabel: 'Company bullish',
+            leftValue: _pctLabel(_toPercent(model.sentiment.bullishPercent)),
+            rightLabel: 'Sector bullish',
+            rightValue: _pctLabel(
+              _toPercent(model.sectorAverageBullishPercent),
+            ),
+            note: aboveBullish ? 'Above sector' : 'Below sector',
+            notePositive: aboveBullish,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Clear group header — distinct from metric field labels.
+  Widget _sectionBlock({
+    required String title,
+    required String subtitle,
+    required Widget child,
+  }) {
+    final Color rule =
+        isDarkMode ? const Color(0xFF2A2F3A) : const Color(0xFFE4E7EC);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text('SECTOR CONTEXT', style: _eyebrow),
-        const SizedBox(height: 10),
-        _compareRow(
-          leftLabel: 'Company news score',
-          leftValue: model.companyNewsScore.toStringAsFixed(2),
-          rightLabel: 'Sector average',
-          rightValue: model.sectorAverageNewsScore.toStringAsFixed(2),
-          note: aboveScore ? 'Above sector' : 'Below sector',
-          notePositive: aboveScore,
-        ),
-        const SizedBox(height: 4),
-        _compareRow(
-          leftLabel: 'Company bullish',
-          leftValue: _pctLabel(_toPercent(model.sentiment.bullishPercent)),
-          rightLabel: 'Sector bullish',
-          rightValue: _pctLabel(
-            _toPercent(model.sectorAverageBullishPercent),
+        Divider(height: 1, thickness: 1, color: rule),
+        const SizedBox(height: 14),
+        Text(
+          title,
+          style: HomeUi.sectionTitle(isDarkMode).copyWith(
+            fontSize: 14,
+            letterSpacing: -0.1,
           ),
-          note: aboveBullish ? 'Above sector' : 'Below sector',
-          notePositive: aboveBullish,
         ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: HomeUi.subtitle(isDarkMode).copyWith(
+            fontSize: 12,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 14),
+        child,
       ],
     );
   }
@@ -325,7 +368,7 @@ class TickerNewsSentimentSection extends StatelessWidget {
         : HomeUi.negative(isDarkMode);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: EdgeInsets.zero,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -402,18 +445,27 @@ class TickerNewsSentimentSection extends StatelessWidget {
     final double leanPct = leanBull ? bullish : bearish;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Center(
-          child: Text(
-            'BULLISH VS BEARISH',
-            style: _eyebrow,
-            textAlign: TextAlign.center,
+        Text(
+          'Bullish vs bearish',
+          style: HomeUi.sectionTitle(isDarkMode).copyWith(
+            fontSize: 14,
+            letterSpacing: -0.1,
           ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Distribution of scored articles',
+          style: HomeUi.subtitle(isDarkMode).copyWith(fontSize: 12),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         SizedBox(
           height: 236,
+          width: double.infinity,
           child: SfCircularChart(
             margin: const EdgeInsets.fromLTRB(4, 4, 4, 0),
             annotations: <CircularChartAnnotation>[
@@ -458,6 +510,7 @@ class TickerNewsSentimentSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Row(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             _legendDot(label: 'Bullish', value: _pctLabel(bullish), color: bull),

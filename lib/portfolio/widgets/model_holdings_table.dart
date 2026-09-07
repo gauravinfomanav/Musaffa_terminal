@@ -40,7 +40,7 @@ class ModelHoldingsTable extends StatefulWidget {
 
   static const _columns = [
     SimpleColumn(label: 'ASSET TYPE', fieldName: 'asset_type', width: 132),
-    SimpleColumn(label: 'SECTOR', fieldName: 'sector', width: 168),
+    SimpleColumn(label: 'SECTOR', fieldName: 'sector', width: 210),
     SimpleColumn(
       label: 'PRICE',
       fieldName: 'price',
@@ -48,9 +48,10 @@ class ModelHoldingsTable extends StatefulWidget {
       isNumeric: true,
     ),
     SimpleColumn(
-      label: 'ALLOCATION %',
+      label: 'ALLOC %',
       fieldName: 'target_pct',
-      width: 118,
+      tooltipLabel: 'ALLOCATION %',
+      width: 100,
       isNumeric: true,
     ),
     SimpleColumn(
@@ -137,6 +138,8 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
                       enableLivePrices: false,
                       zebraStripes: true,
                       enableColumnCustomization: false,
+                      showColumnActionMenu: true,
+                      showColumnResizeHandle: false,
                       tickerHeaderLabel: 'COMPANY / ASSET',
                       tableId: 'model_portfolio_holdings',
                     ),
@@ -341,10 +344,13 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
     }
     return Text(
       label,
-      softWrap: false,
+      maxLines: 2,
+      softWrap: true,
+      overflow: TextOverflow.ellipsis,
       style: HomeUi.control(isDark, active: true).copyWith(
         fontSize: 12.5,
         fontWeight: FontWeight.w500,
+        height: 1.25,
       ),
     );
   }
@@ -718,13 +724,6 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
                                 ],
                     ),
                     borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.28),
-                        blurRadius: 6,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
                   ),
                 ),
             ],

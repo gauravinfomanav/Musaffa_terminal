@@ -507,16 +507,29 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     bool leadingEdge = false,
     bool trailingEdge = false,
   }) {
+    final EdgeInsets insets = _columnCellInsetsFor(
+      leadingEdge: leadingEdge,
+      trailingEdge: trailingEdge,
+    );
+
+    // No ⋮ chrome — identical TH/TD box (critical for right-aligned last col).
+    if (!widget.showColumnActionMenu) {
+      return Padding(
+        padding: insets,
+        child: Align(
+          alignment: _alignmentFor(col.align),
+          child: child,
+        ),
+      );
+    }
+
     return Padding(
-      padding: _columnCellInsetsFor(
-        leadingEdge: leadingEdge,
-        trailingEdge: trailingEdge,
-      ),
+      padding: insets,
       child: LayoutBuilder(
         builder: (context, constraints) {
           // When a column is squeezed (animating pin slots / first layout),
           // skip the fixed ⋮ reserve so the Row cannot overflow.
-          final bool showActionSlot = widget.showColumnActionMenu &&
+          final bool showActionSlot =
               constraints.maxWidth >= _headerActionReserve + 4;
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -885,8 +898,17 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
     final double minTable = contentSum + baseSpacing * gaps;
     if (usable > minTable) {
-      // Every inter-column gap gets the exact same pixel width.
-      _liveColumnSpacing = (usable - contentSum) / gaps;
+      // Put leftover into column widths (not gaps). Large DataTable
+      // columnSpacing pads every mid-cell by spacing/2 but the last column
+      // only gets horizontalMargin on the end — that desyncs last-column
+      // header/cell right edges (e.g. market summary 1Y).
+      final double extra = usable - minTable;
+      final double perCol = extra / columns.length;
+      for (final col in columns) {
+        _stretchedColumnWidths[col.key] =
+            _stretchedColumnWidths[col.key]! + perCol;
+      }
+      _liveColumnSpacing = baseSpacing;
       _stretchFilledAvailableWidth = true;
     } else {
       _liveColumnSpacing = baseSpacing;
@@ -1151,6 +1173,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           overflow: TextOverflow.ellipsis,
         );
 
+    // Short Text alone shrink-wraps — force full width so textAlign.right
+    // matches right-aligned td values (e.g. market summary 1Y).
+    if (col.headerWidget == null &&
+        (_isEndAlign(col.align) || _isCenterAlign(col.align))) {
+      label = SizedBox(width: double.infinity, child: label);
+    }
+
     // Short / sorted headers: hover shows the full original name.
     if (col.headerWidget == null &&
         (sorted ||
@@ -1178,7 +1207,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       // Always LTR/start: DataTable.numeric uses RTL on headers and
       // centerRight on cells, which desyncs th/td. We align both ourselves.
       numeric: false,
-      headingRowAlignment: MainAxisAlignment.start,
+      headingRowAlignment: _isEndAlign(col.align)
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       label: _maybeHeaderTooltip(
         col.fullLabel.toUpperCase(),
         DragTarget<String>(
@@ -1307,7 +1338,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                         }
                       : null,
                   child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: _alignmentFor(col.align),
                     child: SizedBox(
                     width: resolvedWidth,
                     child: Stack(
@@ -1548,7 +1579,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         _wrapRowHover(
           row.id,
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: _alignmentFor(col.align),
             child: SizedBox(
               width: resolvedWidth,
               height: _effectiveDataRowHeight,

@@ -78,7 +78,6 @@ class _InlineTargetPercentCellState extends State<InlineTargetPercentCell> {
   Widget build(BuildContext context) {
     final dark = widget.isDark;
     final focused = _focusNode.hasFocus;
-    final accent = focused;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
@@ -86,33 +85,21 @@ class _InlineTargetPercentCellState extends State<InlineTargetPercentCell> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         curve: Curves.easeOutCubic,
-        width: 86,
-        height: 34,
+        width: 64,
+        height: 32,
         decoration: BoxDecoration(
-          gradient: accent ? HomeUi.iconFillGradient : null,
-          color: accent
-              ? null
-              : (_hover ? HomeUi.borderStrong(dark) : HomeUi.borderLight(dark)),
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(
-                alpha: dark
-                    ? (accent ? 0.28 : (_hover ? 0.20 : 0.14))
-                    : (accent ? 0.08 : (_hover ? 0.06 : 0.04)),
-              ),
-              blurRadius: accent ? 10 : (_hover ? 8 : 6),
-              offset: Offset(0, accent ? 3 : 2),
-            ),
-          ],
+          color: _hover || focused
+              ? HomeUi.borderStrong(dark)
+              : HomeUi.borderLight(dark),
+          borderRadius: BorderRadius.circular(8),
         ),
-        padding: EdgeInsets.all(accent ? 1.5 : 1),
+        padding: const EdgeInsets.all(1),
         child: Container(
           decoration: BoxDecoration(
             color: HomeUi.cardBg(dark),
-            borderRadius: BorderRadius.circular(accent ? 8.5 : 9),
+            borderRadius: BorderRadius.circular(7),
           ),
-          padding: const EdgeInsets.only(left: 10, right: 8),
+          padding: const EdgeInsets.only(left: 6, right: 6),
           child: Row(
             children: [
               Expanded(
@@ -131,7 +118,7 @@ class _InlineTargetPercentCellState extends State<InlineTargetPercentCell> {
                   style: TextStyle(
                     fontFamily: Constants.FONT_DEFAULT_NEW,
                     fontFamilyFallback: Constants.FONT_FALLBACK,
-                    fontSize: 13,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.2,
                     color: HomeUi.title(dark),
@@ -146,13 +133,13 @@ class _InlineTargetPercentCellState extends State<InlineTargetPercentCell> {
                   onSubmitted: (_) => _commit(),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 3),
               Text(
                 '%',
                 style: TextStyle(
                   fontFamily: Constants.FONT_DEFAULT_NEW,
                   fontFamilyFallback: Constants.FONT_FALLBACK,
-                  fontSize: 11.5,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: focused
                       ? HomeUi.accent(dark)

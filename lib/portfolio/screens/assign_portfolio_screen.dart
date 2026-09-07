@@ -962,43 +962,16 @@ class _BriefingPanel extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: _KpiTile(
-                  isDark: isDark,
-                  label: 'Holdings',
-                  value: '${p.holdings.length}',
-                  icon: Icons.layers_outlined,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _KpiTile(
-                  isDark: isDark,
-                  label: 'Top position',
-                  value: formatAllocationPercent(top1),
-                  icon: Icons.trending_up_rounded,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _KpiTile(
-                  isDark: isDark,
-                  label: 'Top 3 weight',
-                  value: formatAllocationPercent(top3),
-                  icon: Icons.pie_chart_outline_rounded,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _KpiTile(
-                  isDark: isDark,
-                  label: 'Allocated',
-                  value: formatAllocationPercent(p.totalAllocationPercent),
-                  icon: Icons.check_circle_outline_rounded,
-                ),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+          child: _BriefingMetricsStrip(
+            isDark: isDark,
+            items: [
+              (label: 'Holdings', value: '${p.holdings.length}'),
+              (label: 'Top position', value: formatAllocationPercent(top1)),
+              (label: 'Top 3 weight', value: formatAllocationPercent(top3)),
+              (
+                label: 'Allocated',
+                value: formatAllocationPercent(p.totalAllocationPercent),
               ),
             ],
           ),
@@ -1069,16 +1042,25 @@ class _BriefingPanel extends StatelessWidget {
                                               children: [
                                                 Text(
                                                   '${sectorSlices.length}',
-                                                  style: HomeUi.control(isDark)
-                                                      .copyWith(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.w800,
+                                                  style: HomeUi.tableCellEmphasis(
+                                                    isDark,
+                                                  ).copyWith(
+                                                    fontSize: 28,
+                                                    fontWeight: FontWeight.w700,
+                                                    letterSpacing: -0.8,
+                                                    height: 1.05,
+                                                    color: HomeUi.title(isDark),
                                                   ),
                                                 ),
+                                                const SizedBox(height: 2),
                                                 Text(
                                                   'sectors',
                                                   style: HomeUi.subtitle(isDark)
-                                                      .copyWith(fontSize: 10),
+                                                      .copyWith(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: HomeUi.muted(isDark),
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -1348,79 +1330,76 @@ class _BriefingPanel extends StatelessWidget {
   }
 }
 
-class _KpiTile extends StatelessWidget {
-  const _KpiTile({
+class _BriefingMetricsStrip extends StatelessWidget {
+  const _BriefingMetricsStrip({
     required this.isDark,
-    required this.label,
-    required this.value,
-    this.icon,
+    required this.items,
   });
 
   final bool isDark;
-  final String label;
-  final String value;
-  final IconData? icon;
+  final List<({String label, String value})> items;
 
   @override
   Widget build(BuildContext context) {
+    final Color line =
+        isDark ? const Color(0xFF2A2F3A) : const Color(0xFFE7EBF0);
+    final Color wash =
+        isDark ? const Color(0xFF12151C) : const Color(0xFFF6F7F9);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF151822) : Colors.white,
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        border: Border.all(color: HomeUi.borderLight(isDark)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: wash,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          if (icon != null) ...[
-            Container(
-              width: 30,
-              height: 30,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: HomeUi.accent(isDark)
-                    .withValues(alpha: isDark ? 0.16 : 0.08),
-                shape: BoxShape.circle,
+          for (int i = 0; i < items.length; i++)
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.only(
+                  left: i == 0 ? 12 : 20,
+                  right: 12,
+                ),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: i > 0
+                        ? BorderSide(color: line)
+                        : BorderSide.none,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      items[i].label.toUpperCase(),
+                      style: TextStyle(
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.1,
+                        color: isDark
+                            ? const Color(0xFF8B93A7)
+                            : const Color(0xFF7B8494),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      items[i].value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeUi.tableCellEmphasis(isDark).copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Icon(icon, size: 14, color: HomeUi.accent(isDark)),
             ),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    fontFamily: Constants.FONT_DEFAULT_NEW,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: HomeUi.muted(isDark),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: HomeUi.control(isDark).copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -1479,22 +1458,28 @@ class _LedgerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(
-      fontFamily: Constants.FONT_DEFAULT_NEW,
+    final style = HomeUi.tableHeader(isDark).copyWith(
       fontSize: 10,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 0.6,
-      color: HomeUi.muted(isDark),
+      letterSpacing: 0.7,
     );
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       child: Row(
         children: [
           Expanded(flex: 2, child: Text('TICKER', style: style)),
           Expanded(flex: 3, child: Text('NAME / SECTOR', style: style)),
-          SizedBox(width: 70, child: Text('WEIGHT', style: style, textAlign: TextAlign.right)),
-          SizedBox(width: 90, child: Text('AMOUNT', style: style, textAlign: TextAlign.right)),
-          SizedBox(width: 56, child: Text('QTY', style: style, textAlign: TextAlign.right)),
+          SizedBox(
+            width: 72,
+            child: Text('WEIGHT', style: style, textAlign: TextAlign.right),
+          ),
+          SizedBox(
+            width: 92,
+            child: Text('AMOUNT', style: style, textAlign: TextAlign.right),
+          ),
+          SizedBox(
+            width: 64,
+            child: Text('QTY', style: style, textAlign: TextAlign.right),
+          ),
         ],
       ),
     );
@@ -1539,6 +1524,23 @@ class _LedgerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = HomeUi.tableCellEmphasis(isDark).copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+    );
+    final body = HomeUi.tableCell(isDark).copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+    );
+    final secondary = HomeUi.tableCellSecondary(isDark).copyWith(
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+    );
+    final numeric = HomeUi.tableNumeric(isDark).copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -1554,17 +1556,9 @@ class _LedgerRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  ticker,
-                  style: HomeUi.control(isDark).copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  asset,
-                  style: HomeUi.subtitle(isDark).copyWith(fontSize: 10),
-                ),
+                Text(ticker, style: primary),
+                const SizedBox(height: 2),
+                Text(asset, style: secondary),
               ],
             ),
           ),
@@ -1577,31 +1571,32 @@ class _LedgerRow extends StatelessWidget {
                   company,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: HomeUi.control(isDark).copyWith(fontSize: 12),
+                  style: body,
                 ),
+                const SizedBox(height: 2),
                 Text(
                   sector,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: HomeUi.subtitle(isDark).copyWith(fontSize: 10),
+                  style: secondary,
                 ),
               ],
             ),
           ),
           SizedBox(
-            width: 70,
+            width: 72,
             child: Text(
               formatAllocationPercent(weight),
               textAlign: TextAlign.right,
-              style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700),
+              style: numeric,
             ),
           ),
           SizedBox(
-            width: 90,
+            width: 92,
             child: Text(
               money.format(amount),
               textAlign: TextAlign.right,
-              style: HomeUi.control(isDark).copyWith(fontWeight: FontWeight.w700),
+              style: numeric,
             ),
           ),
           SizedBox(
@@ -1609,7 +1604,7 @@ class _LedgerRow extends StatelessWidget {
             child: Text(
               _qtyLabel,
               textAlign: TextAlign.right,
-              style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
+              style: numeric,
             ),
           ),
         ],
