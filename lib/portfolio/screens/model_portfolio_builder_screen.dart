@@ -280,15 +280,26 @@ class _ModelPortfolioBuilderScreenState extends State<ModelPortfolioBuilderScree
   }
 
   Future<void> _editHolding(ModelPortfolioHolding holding) async {
-    final result = await showDialog<ModelPortfolioHolding>(
-      context: context,
-      builder: (ctx) => AddToPortfolioDialog(
-        ticker: holding.ticker,
-        tickerModel: holding.tickerModel,
-      ),
-    );
+    final result = ModelPortfolioHolding.isSearchableAsset(holding.assetType)
+        ? await AddToPortfolioDialog.show(
+            context: context,
+            ticker: holding.ticker,
+            tickerModel: holding.tickerModel,
+            initialHolding: holding,
+          )
+        : await AddToPortfolioDialog.showManual(
+            context: context,
+            presetAssetType: holding.assetType,
+            defaultName: holding.company ?? holding.ticker,
+            existingHoldings: _session.holdings.toList(),
+            initialHolding: holding,
+          );
     if (result != null) {
       result.id = holding.id;
+      // Keep original ticker on edit so we don't mint a new manual id.
+      if (!ModelPortfolioHolding.isSearchableAsset(holding.assetType)) {
+        result.ticker = holding.ticker;
+      }
       _session.addOrUpdateHolding(result);
       setState(() {});
     }

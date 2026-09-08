@@ -154,6 +154,7 @@ class DynamicTable extends StatefulWidget {
     this.tableEdgeInset = const EdgeInsets.symmetric(horizontal: 12),
     this.columnCellPadding,
     this.enableColumnStretch = true,
+    this.showSortIndicators = false,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -195,6 +196,7 @@ class DynamicTable extends StatefulWidget {
   final EdgeInsets? tableEdgeInset;
   final EdgeInsets? columnCellPadding;
   final bool enableColumnStretch;
+  final bool showSortIndicators;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -817,7 +819,7 @@ class _DynamicTableState extends State<DynamicTable> {
       evenRowColor: widget.evenRowColor,
       oddRowColor: widget.oddRowColor,
       showHeaderTooltip: true,
-      showSortIndicators: false,
+      showSortIndicators: widget.showSortIndicators,
       headerHeight: widget.headerHeight ?? 42,
       rowHeight: widget.rowHeight ?? 52,
       dataRowMinHeight: widget.rowHeight ?? 52,

@@ -523,12 +523,22 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     return keys;
   }
 
-  double get _headerActionReserve => widget.showColumnActionMenu ? 20 : 0;
+  double get _headerActionReserve => widget.showColumnActionMenu ? 24 : 0;
   double get _headerResizeReserve => widget.showColumnResizeHandle ? 8 : 0;
   double get _headerChromeTrailing =>
       8 + _headerActionReserve + _headerResizeReserve;
   static const double _headerLeading = 12;
   static const double _cellTrailing = 6;
+
+  /// Row-action columns don't need sort/pin ⋮ — keep header title visible.
+  bool _columnShowsActionMenu(DynamicTableColumn col) {
+    if (!widget.showColumnActionMenu) return false;
+    final key = col.key.toLowerCase().trim();
+    return key != 'actions' && key != 'action';
+  }
+
+  double _actionReserveFor(DynamicTableColumn col) =>
+      _columnShowsActionMenu(col) ? _headerActionReserve : 0;
 
   /// Breathing room from card edge into the first/last column.
   /// Pass [tableEdgeInset] as [EdgeInsets.zero] for intentionally flush tables.
@@ -587,9 +597,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       leadingEdge: leadingEdge,
       trailingEdge: trailingEdge,
     );
+    final actionReserve = _actionReserveFor(col);
 
     // No ⋮ chrome — identical TH/TD box (critical for right-aligned last col).
-    if (!widget.showColumnActionMenu) {
+    if (actionReserve <= 0) {
       return Padding(
         padding: insets,
         child: Align(
@@ -606,7 +617,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           // When a column is squeezed (animating pin slots / first layout),
           // skip the fixed ⋮ reserve so the Row cannot overflow.
           final bool showActionSlot =
-              constraints.maxWidth >= _headerActionReserve + 4;
+              constraints.maxWidth >= actionReserve + 4;
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
@@ -616,12 +627,14 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                   child: child,
                 ),
               ),
-              if (showActionSlot)
+              if (showActionSlot) ...[
+                const SizedBox(width: 2),
                 SizedBox(
-                  width: _headerActionReserve,
+                  width: actionReserve - 2,
                   height: trailingHeight,
                   child: trailing == null ? null : Center(child: trailing),
                 ),
+              ],
             ],
           );
         },
@@ -808,7 +821,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   double _cellRightPadding(DynamicTableColumn col) {
     final EdgeInsets base = widget.columnCellPadding ??
         EdgeInsets.only(left: _headerLeading, right: _cellTrailing);
-    return base.left + base.right + _headerActionReserve;
+    return base.left + base.right + _actionReserveFor(col);
   }
 
   void _refreshNaturalMinWidths(List<DynamicTableColumn> columns) {
@@ -827,10 +840,13 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         ).toUpperCase(),
         headerStyle,
       );
-      // Pure content/header auto width — no max-width caps.
-      var minWidth = headerWidth + 8 + _headerChromeTrailing + 4;
+      final actionReserve = _actionReserveFor(col);
+      final chromeTrailing =
+          8 + actionReserve + _headerResizeReserve;
+      // Pure content/header auto width — room for short label + ⋮ without clip.
+      var minWidth = headerWidth + 12 + chromeTrailing + 6;
       final double chromeFloor =
-          cellPad.left + cellPad.right + _headerChromeTrailing + 12;
+          cellPad.left + cellPad.right + chromeTrailing + 12;
       if (minWidth < chromeFloor) minWidth = chromeFloor;
 
       // Honor declared width as a floor (year cols + ⋮ chrome need this so
@@ -1108,94 +1124,57 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     DynamicTableColumn col,
     Color iconColor,
   ) {
-    if (!widget.showColumnActionMenu) {
+    if (!_columnShowsActionMenu(col)) {
       return const SizedBox.shrink();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPinned = _pinnedLeftColumns.contains(col.key) ||
         _pinnedRightColumns.contains(col.key);
-    PopupMenuItem<String> menuItem({
-      required String value,
-      required IconData icon,
-      required String label,
-      bool enabled = true,
-    }) {
-      return PopupMenuItem<String>(
-        value: value,
-        enabled: enabled,
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color:
-                  enabled ? const Color(0xFF1F2937) : const Color(0xFFD1D5DB),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color:
-                    enabled ? const Color(0xFF111827) : const Color(0xFFD1D5DB),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                fontFamily: Constants.FONT_DEFAULT_NEW,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
 
-    return PopupMenuButton<String>(
+    return HomeUi.tableRowActionsMenu<String>(
+      dark: isDark,
       tooltip: widget.showHeaderTooltip ? 'Column actions' : '',
+      offset: const Offset(0, 6),
+      compact: true,
       onSelected: (value) => _applyColumnAction(col, value),
-      position: PopupMenuPosition.under,
-      constraints: const BoxConstraints(minWidth: 180),
-      color: Colors.white,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
-      ),
-      padding: EdgeInsets.zero,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Padding(
-          padding: EdgeInsets.zero,
-          child: Icon(
-            Icons.more_vert,
-            size: 16,
-            color: iconColor,
-          ),
-        ),
-      ),
       itemBuilder: (context) => [
-        menuItem(
-            value: 'sort_asc',
-            icon: Icons.north,
-            label: 'Sort Ascending',
-            enabled: col.sortable),
-        menuItem(
-            value: 'sort_desc',
-            icon: Icons.south,
-            label: 'Sort Descending',
-            enabled: col.sortable),
-        menuItem(
-            value: 'pin_left',
-            icon: Icons.push_pin_outlined,
-            label: 'Pin Left',
-            enabled: widget.enableColumnPinning),
-        menuItem(
-            value: 'pin_right',
-            icon: Icons.push_pin_outlined,
-            label: 'Pin Right',
-            enabled: widget.enableColumnPinning),
-        menuItem(
-            value: 'unpin',
-            icon: Icons.vertical_align_center,
-            label: 'Unpin',
-            enabled: widget.enableColumnPinning && isPinned),
+        HomeUi.actionMenuEntry(
+          value: 'sort_asc',
+          dark: isDark,
+          icon: Icons.north_rounded,
+          label: 'Sort Ascending',
+          enabled: col.sortable,
+        ),
+        HomeUi.actionMenuEntry(
+          value: 'sort_desc',
+          dark: isDark,
+          icon: Icons.south_rounded,
+          label: 'Sort Descending',
+          enabled: col.sortable,
+        ),
+        HomeUi.actionMenuDivider(),
+        HomeUi.actionMenuEntry(
+          value: 'pin_left',
+          dark: isDark,
+          icon: Icons.push_pin_outlined,
+          label: 'Pin Left',
+          enabled: widget.enableColumnPinning,
+        ),
+        HomeUi.actionMenuEntry(
+          value: 'pin_right',
+          dark: isDark,
+          icon: Icons.push_pin_outlined,
+          label: 'Pin Right',
+          enabled: widget.enableColumnPinning,
+        ),
+        HomeUi.actionMenuEntry(
+          value: 'unpin',
+          dark: isDark,
+          icon: Icons.vertical_align_center_rounded,
+          label: 'Unpin',
+          enabled: widget.enableColumnPinning && isPinned,
+        ),
       ],
     );
   }

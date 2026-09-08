@@ -148,37 +148,35 @@ class ModelAllocationPanel extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _AllocationStatTile(
-                                      isDark: isDark,
-                                      label: 'Allocated',
-                                      value: formatAllocationPercent(totalPercent),
-                                      valueColor: isValid
-                                          ? HomeUi.positive(isDark)
-                                          : (isOver
-                                              ? HomeUi.negative(isDark)
-                                              : null),
-                                    ),
+                              _AllocationMetricStrip(
+                                isDark: isDark,
+                                items: [
+                                  (
+                                    label: 'Allocated',
+                                    value: formatAllocationPercent(totalPercent),
+                                    icon: Icons.donut_large_rounded,
+                                    valueColor: isValid
+                                        ? HomeUi.positive(isDark)
+                                        : (isOver
+                                            ? HomeUi.negative(isDark)
+                                            : HomeUi.title(isDark)),
+                                    emphasize: isValid || isOver,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: _AllocationStatTile(
-                                      isDark: isDark,
-                                      label: 'Remaining',
-                                      value: isOver
-                                          ? '0%'
-                                          : formatAllocationPercent(remaining),
-                                    ),
+                                  (
+                                    label: 'Remaining',
+                                    value: isOver
+                                        ? '0%'
+                                        : formatAllocationPercent(remaining),
+                                    icon: Icons.hourglass_bottom_rounded,
+                                    valueColor: HomeUi.title(isDark),
+                                    emphasize: false,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: _AllocationStatTile(
-                                      isDark: isDark,
-                                      label: 'Holdings',
-                                      value: '${holdings.length}',
-                                    ),
+                                  (
+                                    label: 'Holdings',
+                                    value: '${holdings.length}',
+                                    icon: Icons.layers_rounded,
+                                    valueColor: HomeUi.title(isDark),
+                                    emphasize: false,
                                   ),
                                 ],
                               ),
@@ -675,56 +673,148 @@ class _AllocationPremiumCard extends StatelessWidget {
   }
 }
 
-class _AllocationStatTile extends StatelessWidget {
-  const _AllocationStatTile({
+class _AllocationMetricStrip extends StatelessWidget {
+  const _AllocationMetricStrip({
+    required this.isDark,
+    required this.items,
+  });
+
+  final bool isDark;
+  final List<
+      ({
+        String label,
+        String value,
+        IconData icon,
+        Color valueColor,
+        bool emphasize,
+      })> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF12151F).withValues(alpha: 0.72)
+            : const Color(0xFFF4F5F7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: isDark
+                        ? const Color(0xFF2A2D3E)
+                        : const Color(0xFFE2E5EA),
+                  ),
+                ),
+              Expanded(
+                child: _AllocationMetricCell(
+                  isDark: isDark,
+                  label: items[i].label,
+                  value: items[i].value,
+                  icon: items[i].icon,
+                  valueColor: items[i].valueColor,
+                  emphasize: items[i].emphasize,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AllocationMetricCell extends StatelessWidget {
+  const _AllocationMetricCell({
     required this.isDark,
     required this.label,
     required this.value,
-    this.valueColor,
+    required this.icon,
+    required this.valueColor,
+    required this.emphasize,
   });
 
   final bool isDark;
   final String label;
   final String value;
-  final Color? valueColor;
+  final IconData icon;
+  final Color valueColor;
+  final bool emphasize;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 11, 10, 11),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF12151F) : Colors.white,
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF2A2D3E).withValues(alpha: 0.7)
-              : const Color(0xFFE8EAED),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: Constants.FONT_DEFAULT_NEW,
-              fontFamilyFallback: Constants.FONT_FALLBACK,
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.8,
-              color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF9CA3AF),
-            ),
+          Row(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: emphasize ? HomeUi.softBrandWellGradient : null,
+                  color: emphasize
+                      ? null
+                      : (isDark
+                          ? const Color(0xFF1C2030)
+                          : Colors.white),
+                  border: emphasize
+                      ? null
+                      : Border.all(
+                          color: isDark
+                              ? const Color(0xFF2A2D3E)
+                              : const Color(0xFFE5E7EB),
+                        ),
+                ),
+                child: emphasize
+                    ? HomeUi.brandIcon(
+                        icon: icon,
+                        size: 11,
+                        gradient: HomeUi.softBrandIconGradient,
+                      )
+                    : Icon(
+                        icon,
+                        size: 11,
+                        color: isDark
+                            ? const Color(0xFF9CA3AF)
+                            : const Color(0xFF6B7280),
+                      ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: Constants.FONT_DEFAULT_NEW,
+                    fontFamilyFallback: Constants.FONT_FALLBACK,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.15,
+                    height: 1.1,
+                    color: isDark
+                        ? const Color(0xFF9CA3AF)
+                        : const Color(0xFF6B7280),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             value,
             maxLines: 1,
@@ -732,13 +822,30 @@ class _AllocationStatTile extends StatelessWidget {
             style: TextStyle(
               fontFamily: Constants.FONT_DEFAULT_NEW,
               fontFamilyFallback: Constants.FONT_FALLBACK,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-              height: 1.05,
-              color: valueColor ?? HomeUi.title(isDark),
+              letterSpacing: -0.6,
+              height: 1,
+              color: valueColor,
             ),
           ),
+          if (emphasize) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: 22,
+              height: 2.5,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+                gradient: LinearGradient(
+                  colors: [
+                    valueColor.withValues(alpha: 0.2),
+                    valueColor,
+                  ],
+                ),
+              ),
+            ),
+          ] else
+            const SizedBox(height: 10.5),
         ],
       ),
     );

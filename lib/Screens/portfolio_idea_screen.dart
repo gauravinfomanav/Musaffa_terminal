@@ -448,62 +448,8 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen>
     PortfolioAssignmentSummary assignment,
     bool isDark,
   ) {
-    return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert_rounded, size: 18, color: HomeUi.muted(isDark)),
-      color: HomeUi.cardBg(isDark),
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        side: BorderSide(color: HomeUi.borderLight(isDark)),
-      ),
-      offset: const Offset(0, 8),
-      itemBuilder: (context) {
-        final items = <PopupMenuEntry<String>>[];
-
-        if (assignment.status != 'active') {
-          items.add(
-            PopupMenuItem(
-              value: 'make_active',
-              height: 44,
-              child: HomeUi.actionMenuItem(
-                dark: isDark,
-                icon: Icons.check_circle_rounded,
-                label: 'Activate',
-              ),
-            ),
-          );
-        }
-
-        items.add(
-          PopupMenuItem(
-            value: 'view_details',
-            height: 44,
-            child: HomeUi.actionMenuItem(
-              dark: isDark,
-              icon: Icons.visibility_rounded,
-              label: 'View Details',
-            ),
-          ),
-        );
-
-        items.add(const PopupMenuDivider());
-
-        items.add(
-          PopupMenuItem(
-            value: 'delete',
-            height: 44,
-            child: HomeUi.actionMenuItem(
-              dark: isDark,
-              icon: Icons.delete_outline_rounded,
-              label: 'Archive',
-              destructive: true,
-            ),
-          ),
-        );
-
-        return items;
-      },
+    return HomeUi.tableRowActionsMenu<String>(
+      dark: isDark,
       onSelected: (value) async {
         switch (value) {
           case 'make_active':
@@ -516,6 +462,43 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen>
             await _archiveAssignment(assignment.id);
             break;
         }
+      },
+      itemBuilder: (context) {
+        final items = <PopupMenuEntry<String>>[];
+
+        if (assignment.status != 'active') {
+          items.add(
+            HomeUi.actionMenuEntry(
+              value: 'make_active',
+              dark: isDark,
+              icon: Icons.check_circle_rounded,
+              label: 'Activate',
+            ),
+          );
+        }
+
+        items.add(
+          HomeUi.actionMenuEntry(
+            value: 'view_details',
+            dark: isDark,
+            icon: Icons.visibility_rounded,
+            label: 'View Details',
+          ),
+        );
+
+        items.add(HomeUi.actionMenuDivider());
+
+        items.add(
+          HomeUi.actionMenuEntry(
+            value: 'delete',
+            dark: isDark,
+            icon: Icons.delete_outline_rounded,
+            label: 'Archive',
+            destructive: true,
+          ),
+        );
+
+        return items;
       },
     );
   }
@@ -649,25 +632,27 @@ class _AssignmentDetailsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dialogHeight =
-        (MediaQuery.of(context).size.height * 0.82).clamp(480.0, 680.0);
+        (MediaQuery.of(context).size.height * 0.82).clamp(480.0, 720.0);
     final currency = NumberFormat.currency(symbol: '\$');
     final statusLabel = assignment.status.trim().isEmpty
         ? '—'
         : assignment.status[0].toUpperCase() +
             assignment.status.substring(1).toLowerCase();
     final isActive = assignment.status.toLowerCase() == 'active';
+    final allocated =
+        '${assignment.totalAllocationPercent.toStringAsFixed(1)}%';
 
     return Container(
-      width: 860,
+      width: 920,
       height: dialogHeight,
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(HomeUi.radiusCard),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.14),
-            blurRadius: 40,
-            offset: const Offset(0, 18),
+            color: Colors.black.withValues(alpha: isDark ? 0.48 : 0.12),
+            blurRadius: 48,
+            offset: const Offset(0, 22),
           ),
         ],
       ),
@@ -683,27 +668,8 @@ class _AssignmentDetailsDialog extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
+            Padding(
               padding: const EdgeInsets.fromLTRB(22, 18, 14, 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark
-                      ? [
-                          const Color(0xFF1C1F2A),
-                          HomeUi.cardBg(isDark),
-                        ]
-                      : [
-                          const Color(0xFFFFF8F4),
-                          const Color(0xFFFCFCFD),
-                          Colors.white,
-                        ],
-                ),
-                border: Border(
-                  bottom: BorderSide(color: HomeUi.borderLight(isDark)),
-                ),
-              ),
               child: Row(
                 children: [
                   Expanded(
@@ -716,120 +682,58 @@ class _AssignmentDetailsDialog extends StatelessWidget {
                       titleFontSize: 17,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (isActive)
-                    Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: HomeUi.positive(isDark)
-                            .withValues(alpha: isDark ? 0.16 : 0.1),
-                        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-                        border: Border.all(
-                          color: HomeUi.positive(isDark).withValues(alpha: 0.28),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            size: 13,
-                            color: HomeUi.positive(isDark),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            statusLabel,
-                            style: HomeUi.control(isDark).copyWith(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: HomeUi.positive(isDark),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close_rounded, color: HomeUi.muted(isDark)),
+                  const SizedBox(width: 10),
+                  _StatusPill(
+                    isDark: isDark,
+                    label: statusLabel,
+                    active: isActive,
                   ),
+                  const SizedBox(width: 8),
+                  _DialogCloseButton(isDark: isDark),
                 ],
               ),
             ),
+            Divider(height: 1, thickness: 1, color: HomeUi.borderLight(isDark)),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
                 children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final wide = constraints.maxWidth >= 640;
-                      final tiles = [
-                        _SummaryMetricTile(
-                          isDark: isDark,
-                          label: 'Amount',
-                          value: currency.format(assignment.investmentAmount),
-                          accent: HomeUi.accent(isDark),
-                          icon: Icons.payments_outlined,
-                        ),
-                        _SummaryMetricTile(
-                          isDark: isDark,
-                          label: 'Status',
-                          value: statusLabel,
-                          accent: isActive
-                              ? HomeUi.positive(isDark)
-                              : HomeUi.muted(isDark),
-                          icon: Icons.flag_outlined,
-                          valueColor: isActive
-                              ? HomeUi.positive(isDark)
-                              : null,
-                        ),
-                        _SummaryMetricTile(
-                          isDark: isDark,
-                          label: 'Allocation',
-                          value:
-                              '${assignment.totalAllocationPercent.toStringAsFixed(1)}%',
-                          accent: const Color(0xFFD97706),
-                          icon: Icons.pie_chart_outline_rounded,
-                        ),
-                        _SummaryMetricTile(
-                          isDark: isDark,
-                          label: 'Holdings',
-                          value: '${assignment.holdingsCount}',
-                          accent: HomeUi.accent(isDark),
-                          icon: Icons.layers_outlined,
-                        ),
-                      ];
-
-                      if (wide) {
-                        return Row(
-                          children: [
-                            for (var i = 0; i < tiles.length; i++) ...[
-                              if (i > 0) const SizedBox(width: 10),
-                              Expanded(child: tiles[i]),
-                            ],
-                          ],
-                        );
-                      }
-
-                      return Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: tiles
-                            .map(
-                              (t) => SizedBox(
-                                width: (constraints.maxWidth - 10) / 2,
-                                child: t,
-                              ),
-                            )
-                            .toList(),
-                      );
-                    },
+                  _AssignmentMetricStrip(
+                    isDark: isDark,
+                    items: [
+                      (
+                        label: 'Amount',
+                        value: currency.format(assignment.investmentAmount),
+                        icon: Icons.payments_rounded,
+                        valueColor: HomeUi.title(isDark),
+                        emphasize: true,
+                      ),
+                      (
+                        label: 'Status',
+                        value: statusLabel,
+                        icon: Icons.verified_rounded,
+                        valueColor: isActive
+                            ? HomeUi.positive(isDark)
+                            : HomeUi.title(isDark),
+                        emphasize: false,
+                      ),
+                      (
+                        label: 'Allocation',
+                        value: allocated,
+                        icon: Icons.pie_chart_rounded,
+                        valueColor: HomeUi.title(isDark),
+                        emphasize: false,
+                      ),
+                      (
+                        label: 'Holdings',
+                        value: '${assignment.holdingsCount}',
+                        icon: Icons.layers_rounded,
+                        valueColor: HomeUi.title(isDark),
+                        emphasize: false,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 24),
                   HomeUi.tableToolbarHeader(
                     isDark,
                     title: 'How capital is invested',
@@ -839,168 +743,10 @@ class _AssignmentDetailsDialog extends StatelessWidget {
                     titleFontSize: 15,
                   ),
                   const SizedBox(height: 14),
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-                      border: Border.all(color: HomeUi.borderLight(isDark)),
-                      color: isDark
-                          ? const Color(0xFF151822)
-                          : const Color(0xFFFCFCFD),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.03)
-                                : Colors.white,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: HomeUi.borderLight(isDark),
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'TICKER',
-                                  style: _colHeader(isDark),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 3,
-                                child: Text(
-                                  'COMPANY',
-                                  style: _colHeader(isDark),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 72,
-                                child: Text(
-                                  'WEIGHT',
-                                  textAlign: TextAlign.right,
-                                  style: _colHeader(isDark),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 108,
-                                child: Text(
-                                  'AMOUNT',
-                                  textAlign: TextAlign.right,
-                                  style: _colHeader(isDark),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (assignment.holdings.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.all(28),
-                            child: Text(
-                              'No holdings in this assignment',
-                              style: HomeUi.subtitle(isDark),
-                            ),
-                          )
-                        else
-                          ...assignment.holdings.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final h = entry.value;
-                            final zebra = index.isOdd;
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: zebra
-                                    ? (isDark
-                                        ? Colors.white.withValues(alpha: 0.02)
-                                        : const Color(0xFFF8F9FB))
-                                    : Colors.transparent,
-                                border: index == assignment.holdings.length - 1
-                                    ? null
-                                    : Border(
-                                        bottom: BorderSide(
-                                          color: HomeUi.borderLight(isDark)
-                                              .withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      h.ticker,
-                                      style: HomeUi.control(isDark).copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: Text(
-                                      h.company ?? '—',
-                                      style: HomeUi.subtitle(isDark).copyWith(
-                                        fontSize: 12.5,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 72,
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: HomeUi.accent(isDark)
-                                              .withValues(
-                                            alpha: isDark ? 0.16 : 0.08,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            HomeUi.radiusPill,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${h.allocationPercent.toStringAsFixed(1)}%',
-                                          style: HomeUi.control(isDark).copyWith(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 11.5,
-                                            color: HomeUi.accent(isDark),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 108,
-                                    child: Text(
-                                      currency.format(h.allocationAmount),
-                                      textAlign: TextAlign.right,
-                                      style: HomeUi.control(isDark).copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                      ],
-                    ),
+                  _HoldingsBreakdownTable(
+                    isDark: isDark,
+                    holdings: assignment.holdings,
+                    currency: currency,
                   ),
                 ],
               ),
@@ -1010,89 +756,500 @@ class _AssignmentDetailsDialog extends StatelessWidget {
       ),
     );
   }
-
-  TextStyle _colHeader(bool isDark) => HomeUi.subtitle(isDark).copyWith(
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.7,
-      );
 }
 
-class _SummaryMetricTile extends StatelessWidget {
-  const _SummaryMetricTile({
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
     required this.isDark,
     required this.label,
-    required this.value,
-    required this.accent,
-    required this.icon,
-    this.valueColor,
+    required this.active,
   });
 
   final bool isDark;
   final String label;
-  final String value;
-  final Color accent;
-  final IconData icon;
-  final Color? valueColor;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? HomeUi.positive(isDark) : HomeUi.muted(isDark);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+      decoration: BoxDecoration(
+        color: active
+            ? (isDark
+                ? const Color(0xFF064E3B).withValues(alpha: 0.38)
+                : const Color(0xFFECFDF5))
+            : HomeUi.elevatedBg(isDark),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: Constants.FONT_DEFAULT_NEW,
+              fontFamilyFallback: Constants.FONT_FALLBACK,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? const Color(0xFFF1F5F9)
+                  : const Color(0xFF1E293B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialogCloseButton extends StatefulWidget {
+  const _DialogCloseButton({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  State<_DialogCloseButton> createState() => _DialogCloseButtonState();
+}
+
+class _DialogCloseButtonState extends State<_DialogCloseButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: HomeUi.controlHeight,
+          height: HomeUi.controlHeight,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _hover
+                ? HomeUi.elevatedBg(isDark)
+                : Colors.transparent,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _hover
+                  ? HomeUi.borderLight(isDark)
+                  : Colors.transparent,
+            ),
+          ),
+          child: Icon(
+            Icons.close_rounded,
+            size: 16,
+            color: _hover ? HomeUi.title(isDark) : HomeUi.muted(isDark),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AssignmentMetricStrip extends StatelessWidget {
+  const _AssignmentMetricStrip({
+    required this.isDark,
+    required this.items,
+  });
+
+  final bool isDark;
+  final List<
+      ({
+        String label,
+        String value,
+        IconData icon,
+        Color valueColor,
+        bool emphasize,
+      })> items;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF151822) : Colors.white,
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
+        color: isDark
+            ? const Color(0xFF12151F).withValues(alpha: 0.85)
+            : const Color(0xFFF4F5F7),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: isDark
+                        ? const Color(0xFF2A2D3E)
+                        : const Color(0xFFE2E5EA),
+                  ),
+                ),
+              Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: items[i].emphasize
+                                  ? HomeUi.softBrandWellGradient
+                                  : null,
+                              color: items[i].emphasize
+                                  ? null
+                                  : (isDark
+                                      ? const Color(0xFF1C2030)
+                                      : Colors.white),
+                              border: items[i].emphasize
+                                  ? null
+                                  : Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF2A2D3E)
+                                          : const Color(0xFFE5E7EB),
+                                    ),
+                            ),
+                            child: items[i].emphasize
+                                ? HomeUi.brandIcon(
+                                    icon: items[i].icon,
+                                    size: 12,
+                                    gradient: HomeUi.softBrandIconGradient,
+                                  )
+                                : Icon(
+                                    items[i].icon,
+                                    size: 12,
+                                    color: isDark
+                                        ? const Color(0xFF9CA3AF)
+                                        : const Color(0xFF6B7280),
+                                  ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              items[i].label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: Constants.FONT_DEFAULT_NEW,
+                                fontFamilyFallback: Constants.FONT_FALLBACK,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? const Color(0xFF9CA3AF)
+                                    : const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        items[i].value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          fontFamilyFallback: Constants.FONT_FALLBACK,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.55,
+                          height: 1,
+                          color: items[i].valueColor,
+                        ),
+                      ),
+                      if (items[i].emphasize) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 22,
+                          height: 2.5,
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(HomeUi.radiusPill),
+                            gradient: LinearGradient(
+                              colors: [
+                                items[i].valueColor.withValues(alpha: 0.15),
+                                items[i].valueColor,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ] else
+                        const SizedBox(height: 10.5),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HoldingsBreakdownTable extends StatelessWidget {
+  const _HoldingsBreakdownTable({
+    required this.isDark,
+    required this.holdings,
+    required this.currency,
+  });
+
+  final bool isDark;
+  final List<AssignmentHolding> holdings;
+  final NumberFormat currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWeight = holdings.isEmpty
+        ? 0.0
+        : holdings
+            .map((h) => h.allocationPercent)
+            .fold<double>(0, (a, b) => a > b ? a : b);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF141720) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: HomeUi.borderLight(isDark)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.045),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
         children: [
           Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
+            padding: const EdgeInsets.fromLTRB(16, 13, 18, 13),
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: isDark ? 0.18 : 0.1),
-              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        const Color(0xFF1A1D28),
+                        const Color(0xFF141720),
+                      ]
+                    : [
+                        const Color(0xFFFFF8F4),
+                        const Color(0xFFF8F9FB),
+                      ],
+              ),
+              border: Border(
+                bottom: BorderSide(color: HomeUi.borderLight(isDark)),
+              ),
             ),
-            child: Icon(icon, size: 16, color: accent),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  label.toUpperCase(),
-                  style: HomeUi.subtitle(isDark).copyWith(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.7,
+                Expanded(
+                  flex: 2,
+                  child: Text('TICKER', style: _headerStyle(isDark)),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Text('COMPANY', style: _headerStyle(isDark)),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: Text(
+                    'WEIGHT',
+                    textAlign: TextAlign.right,
+                    style: _headerStyle(isDark),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: HomeUi.control(isDark).copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14.5,
-                    color: valueColor,
-                    letterSpacing: -0.2,
+                SizedBox(
+                  width: 112,
+                  child: Text(
+                    'AMOUNT',
+                    textAlign: TextAlign.right,
+                    style: _headerStyle(isDark),
                   ),
                 ),
               ],
             ),
           ),
+          if (holdings.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                'No holdings in this assignment',
+                style: HomeUi.subtitle(isDark),
+              ),
+            )
+          else
+            ...holdings.asMap().entries.map((entry) {
+              final index = entry.key;
+              final h = entry.value;
+              final zebra = index.isOdd;
+              final weight = h.allocationPercent;
+              final barFraction = maxWeight <= 0
+                  ? 0.0
+                  : (weight / maxWeight).clamp(0.08, 1.0);
+
+              return Container(
+                padding: const EdgeInsets.fromLTRB(16, 13, 18, 13),
+                decoration: BoxDecoration(
+                  color: zebra
+                      ? (isDark
+                          ? Colors.white.withValues(alpha: 0.025)
+                          : const Color(0xFFFBFBFC))
+                      : Colors.transparent,
+                  border: index == holdings.length - 1
+                      ? null
+                      : Border(
+                          bottom: BorderSide(
+                            color: HomeUi.borderLight(isDark)
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        h.ticker,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeUi.control(isDark).copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                          letterSpacing: -0.2,
+                          color: HomeUi.title(isDark),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        h.company ?? '—',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeUi.subtitle(isDark).copyWith(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 120,
+                      child: _WeightCell(
+                        isDark: isDark,
+                        percentLabel: '${weight.toStringAsFixed(1)}%',
+                        fraction: barFraction,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 112,
+                      child: Text(
+                        currency.format(h.allocationAmount),
+                        textAlign: TextAlign.right,
+                        style: HomeUi.tableNumeric(isDark).copyWith(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
+    );
+  }
+
+  TextStyle _headerStyle(bool isDark) => TextStyle(
+        fontFamily: Constants.FONT_DEFAULT_NEW,
+        fontFamilyFallback: Constants.FONT_FALLBACK,
+        fontSize: 10.5,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.7,
+        color: isDark ? const Color(0xFF8B8FA3) : const Color(0xFF6B7280),
+      );
+}
+
+class _WeightCell extends StatelessWidget {
+  const _WeightCell({
+    required this.isDark,
+    required this.percentLabel,
+    required this.fraction,
+  });
+
+  final bool isDark;
+  final String percentLabel;
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          percentLabel,
+          style: TextStyle(
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            fontFamilyFallback: Constants.FONT_FALLBACK,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.15,
+            color: isDark
+                ? const Color(0xFFF1F5F9)
+                : const Color(0xFF1E293B),
+          ),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: 72,
+          height: 4,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(HomeUi.radiusPill),
+            child: Stack(
+              children: [
+                Container(
+                  color: isDark
+                      ? const Color(0xFF2A2D3E)
+                      : const Color(0xFFE8EAED),
+                ),
+                FractionallySizedBox(
+                  widthFactor: fraction,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: HomeUi.iconFillGradient,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -149,12 +149,12 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
                   child: SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
                     child: Padding(
-                      padding: LayoutConstants.screenPadding,
+                      padding: LayoutConstants.dashboardBodyPadding,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildHeader(context),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: LayoutConstants.SECTION_GAP),
                           _buildIdeasCard(context),
                         ],
                       ),
@@ -285,11 +285,16 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
               ? '1 research idea from your team'
               : '${ideas.length} research ideas from your team',
           toolbarLeadingIcon: Icons.insights_rounded,
+          // Match screener results card: outer vertical inset owns top space.
+          toolbarPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
           showFixedColumn: true,
           considerPadding: false,
           showOuterShadow: false,
-          columnSpacing: 4,
-          fixedColumnWidth: 220,
+          columnSpacing: 2,
+          columnCellPadding: const EdgeInsets.only(left: 8, right: 4),
+          tableEdgeInset: const EdgeInsets.fromLTRB(16, 0, 12, 0),
+          enableColumnStretch: true,
+          fixedColumnWidth: 200,
           headerHeight: 44,
           rowHeight: 56,
           enableLivePrices: false,
@@ -297,6 +302,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
           enableColumnCustomization: true,
           showColumnActionMenu: true,
           showColumnResizeHandle: true,
+          showSortIndicators: true,
           tickerHeaderLabel: 'COMPANY',
           tableId: 'trading_ideas_table',
         );
@@ -306,7 +312,7 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
         width: double.infinity,
         padding: ideas.isEmpty && !isLoading
             ? EdgeInsets.zero
-            : const EdgeInsets.fromLTRB(0, 16, 0, 16),
+            : const EdgeInsets.symmetric(vertical: 14),
         decoration: HomeUi.cardDecoration(isDark),
         clipBehavior: Clip.antiAlias,
         child: content,
@@ -327,54 +333,68 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
   }
 
   List<SimpleColumn> _buildIdeaColumns(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    const fixedTickerWidth = 220.0;
-    final padding = LayoutConstants.screenPadding.horizontal + 48;
-    final availableWidth = max(screenWidth - padding - fixedTickerWidth, 720.0);
-
-    double clampWidth(double desired, double min, double max) {
-      return desired.clamp(min, max);
-    }
-
-    final titleWidth = clampWidth(availableWidth * 0.42, 280, 640);
-    final remainingWidth = availableWidth - titleWidth;
-
-    const configs = [
-      _ColumnConfig('ANALYST', 'analyst'),
-      _ColumnConfig('RESEARCH ORG', 'researchOrg'),
-      _ColumnConfig('ACTION', 'action'),
-      _ColumnConfig('CONFIDENCE', 'conviction'),
-      _ColumnConfig('TARGET', 'target', isNumeric: true),
-      _ColumnConfig('CURRENT', 'current', isNumeric: true),
-      _ColumnConfig('DATE ADDED', 'dateAdded'),
-      _ColumnConfig('SUPPORTING REPORTS', 'reports'),
-    ];
-
-    final perWidth = clampWidth(
-      remainingWidth / configs.length,
-      140,
-      260,
-    );
-
-    return [
+    return const [
       SimpleColumn(
         label: 'ANALYST',
+        tooltipLabel: 'ANALYST',
         fieldName: 'analyst',
-        width: perWidth,
+        width: 100,
       ),
       SimpleColumn(
         label: 'TITLE',
+        tooltipLabel: 'IDEA TITLE',
         fieldName: 'title',
-        width: titleWidth,
+        width: 220,
+        sortValueKey: 'titleSort',
       ),
-      ...configs.skip(1).map(
-            (config) => SimpleColumn(
-              label: config.label,
-              fieldName: config.fieldName,
-              width: perWidth,
-              isNumeric: config.isNumeric,
-            ),
-          ),
+      SimpleColumn(
+        label: 'ORG',
+        tooltipLabel: 'RESEARCH ORGANIZATION',
+        fieldName: 'researchOrg',
+        width: 110,
+      ),
+      SimpleColumn(
+        label: 'ACTION',
+        tooltipLabel: 'RECOMMENDED ACTION',
+        fieldName: 'action',
+        width: 88,
+        sortValueKey: 'actionSort',
+      ),
+      SimpleColumn(
+        label: 'CONV',
+        tooltipLabel: 'CONFIDENCE',
+        fieldName: 'conviction',
+        width: 130,
+        sortValueKey: 'convictionSort',
+      ),
+      SimpleColumn(
+        label: 'TARGET',
+        tooltipLabel: 'TARGET PRICE',
+        fieldName: 'target',
+        isNumeric: true,
+        width: 80,
+      ),
+      SimpleColumn(
+        label: 'CURRENT',
+        tooltipLabel: 'CURRENT PRICE',
+        fieldName: 'current',
+        isNumeric: true,
+        width: 88,
+      ),
+      SimpleColumn(
+        label: 'ADDED',
+        tooltipLabel: 'DATE ADDED',
+        fieldName: 'dateAdded',
+        width: 100,
+        sortValueKey: 'dateAddedSort',
+      ),
+      SimpleColumn(
+        label: 'REPORTS',
+        tooltipLabel: 'SUPPORTING REPORTS',
+        fieldName: 'reports',
+        width: 120,
+        sortValueKey: 'reportsSort',
+      ),
     ];
   }
 
@@ -404,25 +424,30 @@ class _TradingIdeasScreenState extends State<TradingIdeasScreen> {
             enableTooltip: true,
             emphasized: true,
           ),
+          'titleSort': idea.title,
           'researchOrg':
               idea.researchOrg.trim().isEmpty ? '--' : idea.researchOrg.trim(),
           'action': _buildActionWidget(
             idea.action,
             width: widthByField['action'],
           ),
+          'actionSort': idea.action,
           'conviction': _buildConvictionCell(
             context,
             idea.conviction,
             widthByField['conviction'],
           ),
+          'convictionSort': idea.conviction,
           'target': _formatNumber(idea.target),
           'current': _formatNumber(idea.current),
           'dateAdded': _formatDate(idea.createdAt),
+          'dateAddedSort': idea.createdAt?.millisecondsSinceEpoch ?? 0,
           'reports': _buildReportsWidget(
             context,
             idea.supportingReports,
             width: widthByField['reports'],
           ),
+          'reportsSort': idea.supportingReports.length,
         },
       );
     }).toList();
@@ -714,14 +739,6 @@ class _HeaderGhostButtonState extends State<_HeaderGhostButton> {
       ),
     );
   }
-}
-
-class _ColumnConfig {
-  final String label;
-  final String fieldName;
-  final bool isNumeric;
-
-  const _ColumnConfig(this.label, this.fieldName, {this.isNumeric = false});
 }
 
 class _NumericInputFormatter extends TextInputFormatter {

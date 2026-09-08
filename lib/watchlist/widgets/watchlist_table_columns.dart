@@ -65,14 +65,14 @@ class WatchlistTableColumns {
         fieldName: 'targetPrice',
         isNumeric: false,
         align: TextAlign.center,
-        width: 120,
+        width: 96,
       ),
       SimpleColumn(
         label: 'NOTES',
         fieldName: 'notes',
         isNumeric: false,
         align: TextAlign.center,
-        width: 72,
+        width: 96,
       ),
       SimpleColumn(
         label: 'P/E',

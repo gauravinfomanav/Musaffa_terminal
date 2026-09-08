@@ -1142,7 +1142,7 @@ class _PageIconButton extends StatelessWidget {
   }
 }
 
-class _NotesCell extends StatelessWidget {
+class _NotesCell extends StatefulWidget {
   const _NotesCell({
     required this.ticker,
     required this.name,
@@ -1153,12 +1153,19 @@ class _NotesCell extends StatelessWidget {
   final String name;
   final bool isDark;
 
+  @override
+  State<_NotesCell> createState() => _NotesCellState();
+}
+
+class _NotesCellState extends State<_NotesCell> {
+  bool _hover = false;
+
   void _openNotes() {
     if (!Get.isRegistered<NotesController>()) return;
     final NotesController notes = Get.find<NotesController>();
     notes.setCustomPanel(
-      title: 'Notes · $ticker',
-      subtitle: name,
+      title: 'Notes · ${widget.ticker}',
+      subtitle: widget.name,
       builder: (BuildContext context, VoidCallback onClose) {
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -1166,7 +1173,7 @@ class _NotesCell extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Quick notes for $ticker',
+                'Quick notes for ${widget.ticker}',
                 style: HomeUi.sectionTitle(
                   Theme.of(context).brightness == Brightness.dark,
                 ),
@@ -1198,13 +1205,32 @@ class _NotesCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: IconButton(
-        tooltip: 'Notes',
-        onPressed: _openNotes,
-        icon: Icon(
-          Icons.description_outlined,
-          size: 18,
-          color: HomeUi.muted(isDark),
+      child: HomeUi.premiumTooltip(
+        message: 'Notes',
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hover = true),
+          onExit: (_) => setState(() => _hover = false),
+          child: GestureDetector(
+            onTap: _openNotes,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _hover
+                    ? HomeUi.elevatedBg(widget.isDark)
+                    : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.description_outlined,
+                size: 18,
+                color: HomeUi.muted(widget.isDark),
+              ),
+            ),
+          ),
         ),
       ),
     );

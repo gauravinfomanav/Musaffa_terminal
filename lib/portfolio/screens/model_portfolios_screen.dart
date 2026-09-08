@@ -126,38 +126,8 @@ class _ModelPortfoliosScreenState extends State<ModelPortfoliosScreen>
   }
 
   Widget _buildActionsMenu(PortfolioSummary portfolio, bool isDark) {
-    return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert_rounded, size: 18, color: HomeUi.muted(isDark)),
-      color: HomeUi.cardBg(isDark),
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        side: BorderSide(color: HomeUi.borderLight(isDark)),
-      ),
-      offset: const Offset(0, 8),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'edit',
-          height: 44,
-          child: HomeUi.actionMenuItem(
-            dark: isDark,
-            icon: Icons.edit_rounded,
-            label: 'Edit',
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'delete',
-          height: 44,
-          child: HomeUi.actionMenuItem(
-            dark: isDark,
-            icon: Icons.delete_outline_rounded,
-            label: 'Delete',
-            destructive: true,
-          ),
-        ),
-      ],
+    return HomeUi.tableRowActionsMenu<String>(
+      dark: isDark,
       onSelected: (value) async {
         if (value == 'edit') {
           _openEdit(portfolio.id);
@@ -165,6 +135,22 @@ class _ModelPortfoliosScreenState extends State<ModelPortfoliosScreen>
           await _confirmDelete(portfolio);
         }
       },
+      itemBuilder: (context) => [
+        HomeUi.actionMenuEntry(
+          value: 'edit',
+          dark: isDark,
+          icon: Icons.edit_rounded,
+          label: 'Edit',
+        ),
+        HomeUi.actionMenuDivider(),
+        HomeUi.actionMenuEntry(
+          value: 'delete',
+          dark: isDark,
+          icon: Icons.delete_outline_rounded,
+          label: 'Delete',
+          destructive: true,
+        ),
+      ],
     );
   }
 
@@ -340,7 +326,7 @@ class _ModelPortfoliosScreenState extends State<ModelPortfoliosScreen>
           ),
           SimpleColumn(label: 'STATUS', fieldName: 'status', width: 90),
           SimpleColumn(label: 'UPDATED', fieldName: 'updated', width: 120),
-          SimpleColumn(label: 'ACTIONS', fieldName: 'actions', width: 64),
+          SimpleColumn(label: 'ACTIONS', fieldName: 'actions', width: 92),
         ],
         rows: rows,
         title: title,

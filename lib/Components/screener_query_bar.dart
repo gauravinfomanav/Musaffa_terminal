@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:musaffa_terminal/models/screener_query.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
 /// Compact query composer — intended to open from a trigger button, not sit full-width.
@@ -379,146 +380,146 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
             child: Container(
               decoration: BoxDecoration(
                 color: HomeUi.cardBg(dark),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: focused
-                      ? HomeUi.borderStrong(dark)
-                      : HomeUi.borderLight(dark),
-                ),
+                borderRadius: BorderRadius.circular(HomeUi.radiusCard),
+                border: Border.all(color: HomeUi.borderLight(dark)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: dark ? 0.25 : 0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: Colors.black.withValues(alpha: dark ? 0.42 : 0.10),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _header(dark),
-                  if (widget.clauses.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          for (var i = 0; i < widget.clauses.length; i++)
-                            _ClauseChip(
-                              clause: widget.clauses[i],
-                              isDarkMode: dark,
-                              onEdit: () => _editAt(i),
-                              onRemove: () => _removeAt(i),
-                            ),
-                        ],
+              clipBehavior: Clip.antiAlias,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      width: 3,
+                      decoration: const BoxDecoration(
+                        gradient: HomeUi.brandGradient,
                       ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      curve: Curves.easeOut,
-                      padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
-                      decoration: BoxDecoration(
-                        color: dark
-                            ? const Color(0xFF181B20)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        // Hairline only — depth comes from shadow, not a heavy stroke.
-                        border: Border.all(
-                          color: dark
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : const Color(0xFFEEF0F3),
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: dark
-                                  ? (focused ? 0.45 : 0.32)
-                                  : (focused ? 0.10 : 0.06),
-                            ),
-                            blurRadius: focused ? 18 : 12,
-                            spreadRadius: focused ? 0 : -1,
-                            offset: Offset(0, focused ? 6 : 4),
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: dark ? 0.18 : 0.03,
-                            ),
-                            blurRadius: 3,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Row(
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.search_rounded,
-                            size: 16,
-                            color: focused
-                                ? HomeUi.body(dark)
-                                : HomeUi.muted(dark),
+                          _header(dark),
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: HomeUi.borderLight(dark),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focus,
-                              cursorColor: HomeUi.title(dark),
-                              cursorWidth: 1.2,
-                              textInputAction: TextInputAction.search,
-                              keyboardType: TextInputType.text,
-                              onSubmitted: (_) =>
-                                  _commitDraft(forceValue: true),
-                              style: HomeUi.control(dark, active: true)
-                                  .copyWith(
-                                fontSize: 13,
-                                height: 1.3,
-                                fontWeight: FontWeight.w500,
+                          if (widget.clauses.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  for (var i = 0; i < widget.clauses.length; i++)
+                                    _ClauseChip(
+                                      clause: widget.clauses[i],
+                                      isDarkMode: dark,
+                                      onEdit: () => _editAt(i),
+                                      onRemove: () => _removeAt(i),
+                                    ),
+                                ],
                               ),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                filled: false,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 11,
-                                ),
-                                hintText: _hint,
-                                hintStyle: HomeUi.control(dark).copyWith(
-                                  fontSize: 13,
-                                  color: HomeUi.muted(dark),
-                                ),
+                            ),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              widget.clauses.isNotEmpty ? 12 : 14,
+                              16,
+                              10,
+                            ),
+                            child: HomeUi.filterFieldShell(
+                              dark: dark,
+                              accent: focused,
+                              height: 44,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.tune_rounded,
+                                    size: 16,
+                                    color: focused
+                                        ? HomeUi.title(dark)
+                                        : HomeUi.muted(dark),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _controller,
+                                      focusNode: _focus,
+                                      cursorColor: HomeUi.title(dark),
+                                      cursorWidth: 1.2,
+                                      textInputAction: TextInputAction.search,
+                                      keyboardType: TextInputType.text,
+                                      onSubmitted: (_) =>
+                                          _commitDraft(forceValue: true),
+                                      style: HomeUi.control(dark, active: true)
+                                          .copyWith(
+                                        fontSize: 13,
+                                        height: 1.3,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      decoration:
+                                          HomeUi.filterTextFieldDecoration(
+                                        dark,
+                                        hintText: _hint,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _StageBadge(
+                                    dark: dark,
+                                    label: _stageLabel,
+                                    active: focused,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _stageLabel,
-                            style: HomeUi.subtitle(dark).copyWith(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                            child: Row(
+                              children: [
+                                _HintKey(dark: dark, label: 'Tab'),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'accept',
+                                  style: HomeUi.subtitle(dark)
+                                      .copyWith(fontSize: 11),
+                                ),
+                                _HintDot(dark: dark),
+                                _HintKey(dark: dark, label: 'Enter'),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'apply',
+                                  style: HomeUi.subtitle(dark)
+                                      .copyWith(fontSize: 11),
+                                ),
+                                _HintDot(dark: dark),
+                                _HintKey(dark: dark, label: 'Esc'),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'close',
+                                  style: HomeUi.subtitle(dark)
+                                      .copyWith(fontSize: 11),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                    child: Text(
-                      'Tab to accept  ·  Enter to apply  ·  Esc to close',
-                      style: HomeUi.subtitle(dark).copyWith(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -529,54 +530,47 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
 
   Widget _header(bool dark) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Query filter',
-                  style: HomeUi.sectionTitle(dark).copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Field, operator, then value',
-                  style: HomeUi.subtitle(dark).copyWith(fontSize: 11.5),
-                ),
-              ],
+            child: HomeUi.tableToolbarHeader(
+              dark,
+              icon: Icons.filter_alt_rounded,
+              title: 'Query filter',
+              subtitleText: 'Field, operator, then value',
+              titleFontSize: 15,
             ),
           ),
-          if (widget.clauses.isNotEmpty)
-            TextButton(
-              onPressed: _clearAll,
-              style: TextButton.styleFrom(
-                foregroundColor: HomeUi.muted(dark),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                'Clear',
-                style: HomeUi.control(dark).copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+          if (widget.clauses.isNotEmpty) ...[
+            HomeUi.ghostAction(
+              label: 'Clear',
+              dark: dark,
+              onTap: _clearAll,
+            ),
+            const SizedBox(width: 6),
+          ],
+          if (widget.onClose != null)
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: widget.onClose,
+                child: Container(
+                  width: HomeUi.controlHeight,
+                  height: HomeUi.controlHeight,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: HomeUi.elevatedBg(dark),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: HomeUi.borderLight(dark)),
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: HomeUi.muted(dark),
+                  ),
                 ),
               ),
-            ),
-          if (widget.onClose != null)
-            IconButton(
-              onPressed: widget.onClose,
-              tooltip: 'Close',
-              visualDensity: VisualDensity.compact,
-              iconSize: 18,
-              color: HomeUi.muted(dark),
-              icon: const Icon(Icons.close_rounded),
             ),
         ],
       ),
@@ -609,105 +603,220 @@ class _ScreenerQueryBarState extends State<ScreenerQueryBar> {
             showWhenUnlinked: false,
             targetAnchor: Alignment.bottomLeft,
             followerAnchor: Alignment.topLeft,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, 8),
             child: Material(
               color: Colors.transparent,
               child: SizedBox(
-              width: _panelWidth,
-              child: Container(
-                constraints: const BoxConstraints(maxHeight: 280),
-                decoration: BoxDecoration(
-                  color: HomeUi.cardBg(dark),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: HomeUi.borderLight(dark)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: dark ? 0.35 : 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-                      child: Text(
-                        sectionTitle,
-                        style: HomeUi.subtitle(dark).copyWith(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                width: _panelWidth,
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 280),
+                  decoration: BoxDecoration(
+                    color: dark ? const Color(0xFF171A24) : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: HomeUi.borderLight(dark)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black
+                            .withValues(alpha: dark ? 0.45 : 0.12),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+                        child: Text(
+                          sectionTitle.toUpperCase(),
+                          style: TextStyle(
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                            fontFamilyFallback: Constants.FONT_FALLBACK,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.7,
+                            color: dark
+                                ? const Color(0xFF8B8FA3)
+                                : const Color(0xFF6B7280),
+                          ),
                         ),
                       ),
-                    ),
-                    Flexible(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.only(bottom: 6),
-                        itemCount: _suggestions.length,
-                        itemBuilder: (context, i) {
-                          final s = _suggestions[i];
-                          final selected = i == _highlight;
-                          return MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            onEnter: (_) => setState(() => _highlight = i),
-                            child: Listener(
-                              behavior: HitTestBehavior.opaque,
-                              onPointerDown: (_) => _acceptSuggestion(s),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 9,
-                                ),
-                                color: selected
-                                    ? (dark
-                                        ? const Color(0xFF1A1D22)
-                                        : const Color(0xFFF5F6F8))
-                                    : Colors.transparent,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 5,
-                                      child: Text(
-                                        s.title,
-                                        style: HomeUi.control(dark, active: true)
-                                            .copyWith(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+                          itemCount: _suggestions.length,
+                          itemBuilder: (context, i) {
+                            final s = _suggestions[i];
+                            final selected = i == _highlight;
+                            return MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              onEnter: (_) => setState(() => _highlight = i),
+                              child: Listener(
+                                behavior: HitTestBehavior.opaque,
+                                onPointerDown: (_) => _acceptSuggestion(s),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 120),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 1),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 9,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? (dark
+                                            ? const Color(0xFF1F2433)
+                                            : const Color(0xFFF4F5F7))
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      if (selected)
+                                        Container(
+                                          width: 3,
+                                          height: 18,
+                                          margin:
+                                              const EdgeInsets.only(right: 10),
+                                          decoration: BoxDecoration(
+                                            gradient: HomeUi.brandGradient,
+                                            borderRadius:
+                                                BorderRadius.circular(2),
+                                          ),
+                                        )
+                                      else
+                                        const SizedBox(width: 13),
+                                      Expanded(
+                                        flex: 5,
+                                        child: Text(
+                                          s.title,
+                                          style: HomeUi.control(
+                                            dark,
+                                            active: true,
+                                          ).copyWith(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      flex: 5,
-                                      child: Text(
-                                        s.subtitle,
-                                        style: HomeUi.subtitle(dark).copyWith(
-                                          fontSize: 12,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        flex: 5,
+                                        child: Text(
+                                          s.subtitle,
+                                          style: HomeUi.subtitle(dark).copyWith(
+                                            fontSize: 12,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.right,
                                         ),
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.right,
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StageBadge extends StatelessWidget {
+  const _StageBadge({
+    required this.dark,
+    required this.label,
+    required this.active,
+  });
+
+  final bool dark;
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: active
+            ? (dark
+                ? const Color(0xFFE4621E).withValues(alpha: 0.16)
+                : const Color(0xFFFFF1E8))
+            : (dark ? const Color(0xFF1C2030) : const Color(0xFFF1F5F9)),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+          fontFamilyFallback: Constants.FONT_FALLBACK,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
+          color: active
+              ? (dark ? const Color(0xFFFB923C) : const Color(0xFFC2410C))
+              : (dark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _HintKey extends StatelessWidget {
+  const _HintKey({required this.dark, required this.label});
+
+  final bool dark;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF1C2030) : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: HomeUi.borderLight(dark)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+          fontFamilyFallback: Constants.FONT_FALLBACK,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: dark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+        ),
+      ),
+    );
+  }
+}
+
+class _HintDot extends StatelessWidget {
+  const _HintDot({required this.dark});
+
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        '·',
+        style: HomeUi.subtitle(dark).copyWith(fontSize: 11),
       ),
     );
   }
@@ -734,20 +843,33 @@ class _ClauseChip extends StatelessWidget {
       child: GestureDetector(
         onTap: onEdit,
         child: Container(
-          padding: const EdgeInsets.only(left: 10, top: 5, bottom: 5, right: 4),
+          padding: const EdgeInsets.only(left: 9, top: 5, bottom: 5, right: 4),
           decoration: BoxDecoration(
-            color: HomeUi.elevatedBg(dark),
+            color: dark
+                ? const Color(0xFFE4621E).withValues(alpha: 0.12)
+                : const Color(0xFFFFF1E8),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: HomeUi.borderLight(dark)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: HomeUi.iconFillGradient,
+                ),
+              ),
+              const SizedBox(width: 7),
               Text(
                 clause.display,
                 style: HomeUi.control(dark, active: true).copyWith(
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  color: dark
+                      ? const Color(0xFFF1F5F9)
+                      : const Color(0xFF1E293B),
                 ),
               ),
               const SizedBox(width: 2),

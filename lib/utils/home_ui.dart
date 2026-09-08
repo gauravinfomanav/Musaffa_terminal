@@ -720,6 +720,12 @@ class HomeUi {
       'percentagechange': 'CHG %',
       'changepercent': 'CHG %',
       'convictionlevel': 'CONV',
+      'conviction': 'CONV',
+      'assettype': 'TYPE',
+      'asset_type': 'TYPE',
+      'researchorg': 'ORG',
+      'dateadded': 'ADDED',
+      'reports': 'REPORTS',
       'transactiontype': 'TXN',
       'shareoftop': 'OF LIST',
       'positionvalue': 'POS VAL',
@@ -814,6 +820,14 @@ class HomeUi {
       'dividend yield': 'DIV YLD',
       'avg price': 'AVG PX',
       'conviction': 'CONV',
+      'asset type': 'TYPE',
+      'research organization': 'ORG',
+      'recommended action': 'ACTION',
+      'target price': 'TARGET',
+      'date added': 'ADDED',
+      'supporting reports': 'REPORTS',
+      'idea title': 'TITLE',
+      'allocation %': 'ALLOC %',
     };
     if (byLabel.containsKey(normalized)) {
       return byLabel[normalized]!;
@@ -1308,46 +1322,152 @@ class HomeUi {
     );
   }
 
-  /// Popup / context menu row with brand icon well.
+  /// Popup / context menu row — soft icon well, no loud bordered squares.
   static Widget actionMenuItem({
     required bool dark,
     required IconData icon,
     required String label,
     bool destructive = false,
+    bool enabled = true,
   }) {
-    final tint = destructive ? negative(dark) : null;
-    return Row(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: destructive ? null : iconWellGradient,
-            color: destructive ? negative(dark).withValues(alpha: 0.1) : null,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: destructive
-                  ? negative(dark).withValues(alpha: 0.28)
-                  : iconWellBorder,
+    final mutedOpacity = enabled ? 1.0 : 0.42;
+    final labelColor = destructive
+        ? negative(dark)
+        : (dark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B));
+    final iconTint = destructive
+        ? negative(dark)
+        : (dark ? const Color(0xFFCBD5E1) : const Color(0xFF475569));
+
+    return Opacity(
+      opacity: mutedOpacity,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: destructive || !enabled
+                    ? null
+                    : softBrandWellGradient,
+                color: destructive
+                    ? negative(dark).withValues(alpha: dark ? 0.18 : 0.10)
+                    : (!enabled
+                        ? elevatedBg(dark)
+                        : null),
+              ),
+              child: destructive || !enabled
+                  ? Icon(icon, size: 14, color: iconTint)
+                  : brandIcon(
+                      icon: icon,
+                      size: 14,
+                      gradient: softBrandIconGradient,
+                    ),
             ),
-          ),
-          child: destructive
-              ? Icon(icon, size: 14, color: negative(dark))
-              : brandIcon(icon: icon, size: 14),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            style: control(dark, active: true).copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: tint,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: Constants.FONT_DEFAULT_NEW,
+                  fontFamilyFallback: Constants.FONT_FALLBACK,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.1,
+                  height: 1.2,
+                  color: labelColor,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  /// Inset hairline between action groups (Edit / destructive).
+  static PopupMenuEntry<T> actionMenuDivider<T>() {
+    return PopupMenuItem<T>(
+      enabled: false,
+      height: 14,
+      padding: EdgeInsets.zero,
+      child: Builder(
+        builder: (context) {
+          final dark = Theme.of(context).brightness == Brightness.dark;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Divider(height: 1, thickness: 1, color: borderLight(dark)),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Shared table ACTIONS ⋮ menu — premium panel for every holdings/list table.
+  static Widget tableRowActionsMenu<T extends Object>({
+    required bool dark,
+    required List<PopupMenuEntry<T>> Function(BuildContext context) itemBuilder,
+    required ValueChanged<T> onSelected,
+    String tooltip = 'Actions',
+    Offset offset = const Offset(0, 10),
+    bool compact = false,
+  }) {
+    return PopupMenuButton<T>(
+      tooltip: tooltip,
+      onSelected: onSelected,
+      offset: offset,
+      position: PopupMenuPosition.under,
+      color: dark ? const Color(0xFF171A24) : Colors.white,
+      elevation: 18,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.black.withValues(alpha: dark ? 0.45 : 0.14),
+      padding: EdgeInsets.zero,
+      splashRadius: compact ? 12 : 18,
+      constraints: const BoxConstraints(minWidth: 196),
+      style: compact
+          ? const ButtonStyle(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              minimumSize: WidgetStatePropertyAll(Size.zero),
+              padding: WidgetStatePropertyAll(EdgeInsets.zero),
+              overlayColor: WidgetStatePropertyAll(Colors.transparent),
+            )
+          : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: dark ? const Color(0xFF2A2D3E) : const Color(0xFFE8EAED),
+        ),
+      ),
+      menuPadding: const EdgeInsets.symmetric(vertical: 8),
+      child: _TableActionsTrigger(dark: dark, compact: compact),
+      itemBuilder: (context) => itemBuilder(context),
+    );
+  }
+
+  static PopupMenuItem<T> actionMenuEntry<T>({
+    required T value,
+    required bool dark,
+    required IconData icon,
+    required String label,
+    bool destructive = false,
+    bool enabled = true,
+  }) {
+    return PopupMenuItem<T>(
+      value: value,
+      enabled: enabled,
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: actionMenuItem(
+        dark: dark,
+        icon: icon,
+        label: label,
+        destructive: destructive,
+        enabled: enabled,
+      ),
     );
   }
 
@@ -2031,6 +2151,61 @@ class HomeCard extends StatelessWidget {
       decoration: HomeUi.cardDecoration(dark, hover: hover),
       clipBehavior: Clip.antiAlias,
       child: child,
+    );
+  }
+}
+
+class _TableActionsTrigger extends StatefulWidget {
+  const _TableActionsTrigger({
+    required this.dark,
+    this.compact = false,
+  });
+
+  final bool dark;
+  final bool compact;
+
+  @override
+  State<_TableActionsTrigger> createState() => _TableActionsTriggerState();
+}
+
+class _TableActionsTriggerState extends State<_TableActionsTrigger> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final size = widget.compact ? 18.0 : 32.0;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _hover
+              ? (dark
+                  ? const Color(0xFF232736)
+                  : const Color(0xFFF1F5F9))
+              : Colors.transparent,
+          border: Border.all(
+            color: _hover
+                ? (dark
+                    ? const Color(0xFF2A2D3E)
+                    : const Color(0xFFE2E8F0))
+                : Colors.transparent,
+          ),
+        ),
+        child: Icon(
+          widget.compact ? Icons.more_vert_rounded : Icons.more_horiz_rounded,
+          size: widget.compact ? 14 : 18,
+          color: _hover ? HomeUi.title(dark) : HomeUi.muted(dark),
+        ),
+      ),
     );
   }
 }

@@ -60,61 +60,65 @@ class _TargetPriceCellState extends State<TargetPriceCell> {
     final bool hasAlert = targetPrice != null;
 
     return Center(
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: isLoading
-              ? null
-              : () => _showTargetPriceDialog(targetPrice),
-          onLongPress: hasAlert && !isLoading
-              ? () => _confirmDelete(targetPrice.targetId)
-              : null,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _isHovered
-                  ? HomeUi.elevatedBg(isDark)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: isLoading
-                ? _buildLoading(isDark)
-                : Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Icon(
-                        hasAlert
-                            ? Icons.notifications_rounded
-                            : Icons.notifications_none_rounded,
-                        size: 20,
-                        color: hasAlert
-                            ? HomeUi.title(isDark)
-                            : HomeUi.muted(isDark),
-                      ),
-                      if (hasAlert)
-                        Positioned(
-                          right: -1,
-                          top: -1,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: HomeUi.negative(isDark),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: HomeUi.cardBg(isDark),
-                                width: 1.5,
+      child: HomeUi.premiumTooltip(
+        message: hasAlert ? 'Alerts' : 'Set alert',
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: isLoading
+                ? null
+                : () => _showTargetPriceDialog(targetPrice),
+            onLongPress: hasAlert && !isLoading
+                ? () => _confirmDelete(targetPrice.targetId)
+                : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _isHovered
+                    ? HomeUi.elevatedBg(isDark)
+                    : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              child: isLoading
+                  ? _buildLoading(isDark)
+                  : Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          hasAlert
+                              ? Icons.notifications_rounded
+                              : Icons.notifications_none_rounded,
+                          size: 18,
+                          color: hasAlert
+                              ? HomeUi.title(isDark)
+                              : HomeUi.muted(isDark),
+                        ),
+                        if (hasAlert)
+                          Positioned(
+                            right: -1,
+                            top: -2,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: HomeUi.negative(isDark),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: HomeUi.cardBg(isDark),
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),

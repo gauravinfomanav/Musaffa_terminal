@@ -39,7 +39,12 @@ class ModelHoldingsTable extends StatefulWidget {
   final VoidCallback? onEnrichmentComplete;
 
   static const _columns = [
-    SimpleColumn(label: 'ASSET TYPE', fieldName: 'asset_type', width: 132),
+    SimpleColumn(
+      label: 'TYPE',
+      fieldName: 'asset_type',
+      tooltipLabel: 'ASSET TYPE',
+      width: 108,
+    ),
     SimpleColumn(label: 'SECTOR', fieldName: 'sector', width: 210),
     SimpleColumn(
       label: 'PRICE',
@@ -60,9 +65,14 @@ class ModelHoldingsTable extends StatefulWidget {
       width: 100,
       isNumeric: true,
     ),
-    SimpleColumn(label: 'CONV.', fieldName: 'conviction', width: 108),
+    SimpleColumn(
+      label: 'CONV',
+      fieldName: 'conviction',
+      tooltipLabel: 'CONVICTION',
+      width: 108,
+    ),
     SimpleColumn(label: 'STATUS', fieldName: 'status', width: 108),
-    SimpleColumn(label: 'ACTIONS', fieldName: 'actions', width: 64),
+    SimpleColumn(label: 'ACTIONS', fieldName: 'actions', width: 92),
   ];
 
   @override
@@ -363,26 +373,44 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
     bool allowTruncate = false,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-        border: Border.all(
-          color: foreground.withValues(alpha: isDark ? 0.32 : 0.26),
-        ),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        label,
-        maxLines: 1,
-        softWrap: false,
-        overflow: allowTruncate ? TextOverflow.ellipsis : TextOverflow.visible,
-        style: HomeUi.control(isDark, active: true).copyWith(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.1,
-          color: foreground,
-          height: 1.1,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: foreground,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              overflow:
+                  allowTruncate ? TextOverflow.ellipsis : TextOverflow.visible,
+              style: TextStyle(
+                fontFamily: Constants.FONT_DEFAULT_NEW,
+                fontFamilyFallback: Constants.FONT_FALLBACK,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+                height: 1.2,
+                color: isDark
+                    ? const Color(0xFFF1F5F9)
+                    : const Color(0xFF1E293B),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -398,13 +426,7 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
   }
 
   Widget _convictionChip(bool isDark, ModelConviction conviction) {
-    final color = PortfolioAllocationPalette.conviction(conviction, isDark);
-    return _pillBadge(
-      isDark: isDark,
-      label: conviction.label,
-      foreground: color,
-      background: PortfolioAllocationPalette.convictionSoft(conviction, isDark),
-    );
+    return HomeUi.convictionLevelPill(isDark, conviction.label);
   }
 
   /// Soft status pill — Active uses positiveSoft like other portfolio badges.
@@ -735,47 +757,8 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
 
   Widget _buildActions(BuildContext context, ModelPortfolioHolding h) {
     final isDark = widget.isDark;
-    return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert_rounded, size: 18, color: HomeUi.muted(isDark)),
-      color: HomeUi.cardBg(isDark),
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        side: BorderSide(color: HomeUi.borderLight(isDark)),
-      ),
-      offset: const Offset(0, 8),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'edit',
-          height: 44,
-          child: HomeUi.actionMenuItem(
-            dark: isDark,
-            icon: Icons.edit_rounded,
-            label: 'Edit',
-          ),
-        ),
-        PopupMenuItem(
-          value: 'replace',
-          height: 44,
-          child: HomeUi.actionMenuItem(
-            dark: isDark,
-            icon: Icons.swap_horiz_rounded,
-            label: 'Replace',
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'remove',
-          height: 44,
-          child: HomeUi.actionMenuItem(
-            dark: isDark,
-            icon: Icons.delete_outline_rounded,
-            label: 'Remove',
-            destructive: true,
-          ),
-        ),
-      ],
+    return HomeUi.tableRowActionsMenu<String>(
+      dark: isDark,
       onSelected: (value) {
         switch (value) {
           case 'edit':
@@ -789,6 +772,28 @@ class _ModelHoldingsTableState extends State<ModelHoldingsTable> {
             break;
         }
       },
+      itemBuilder: (context) => [
+        HomeUi.actionMenuEntry(
+          value: 'edit',
+          dark: isDark,
+          icon: Icons.edit_rounded,
+          label: 'Edit',
+        ),
+        HomeUi.actionMenuEntry(
+          value: 'replace',
+          dark: isDark,
+          icon: Icons.swap_horiz_rounded,
+          label: 'Replace',
+        ),
+        HomeUi.actionMenuDivider(),
+        HomeUi.actionMenuEntry(
+          value: 'remove',
+          dark: isDark,
+          icon: Icons.delete_outline_rounded,
+          label: 'Remove',
+          destructive: true,
+        ),
+      ],
     );
   }
 
