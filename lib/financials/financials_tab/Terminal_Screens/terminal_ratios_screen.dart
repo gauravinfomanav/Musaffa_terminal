@@ -250,7 +250,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       DynamicTableColumn(
         key: 'metric',
         label: 'Metric',
-        width: 200,
+        width: 260,
         align: TextAlign.left,
         sortable: false,
       ),
@@ -264,7 +264,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       return DynamicTableColumn(
         key: period,
         label: period,
-        width: 80,
+        width: 118,
         align: TextAlign.right,
         sortable: true,
       );

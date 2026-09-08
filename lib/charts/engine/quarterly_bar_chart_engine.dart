@@ -446,6 +446,9 @@ class QuarterlyBarChartEngine {
         theme.barColor ?? QuarterlyChartColors.positive;
     final Color negativeColor =
         theme.negativeBarColor ?? QuarterlyChartColors.negative;
+    final bool darkSurface =
+        ThemeData.estimateBrightnessForColor(theme.cardBackgroundColor) ==
+            Brightness.dark;
     final DataLabelSettings labels = DataLabelSettings(
       isVisible: true,
       labelPosition: ChartDataLabelPosition.outside,
@@ -462,13 +465,15 @@ class QuarterlyBarChartEngine {
           );
 
     Color colorFor(QuarterDataPoint point, int index) {
-      final Color base =
-          point.value < 0 ? negativeColor : positiveColor;
+      // Soft multi-tone bars (reference palette); negatives stay muted rose.
+      final Color filled = point.value < 0
+          ? negativeColor
+          : QuarterlyChartColors.paletteAt(index, dark: darkSurface);
       final int focusIndex = hoveredIndex ?? latestIndex;
       if (focusIndex < 0 || data.length <= 1 || index == focusIndex) {
-        return base;
+        return filled;
       }
-      return base.withValues(alpha: 0.58);
+      return filled.withValues(alpha: 0.62);
     }
 
     if (categoryXAxis) {

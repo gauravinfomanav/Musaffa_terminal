@@ -100,14 +100,15 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       DynamicTableColumn(
         key: 'metric',
         label: 'Metric',
-        width: 200,
+        width: 260,
         align: TextAlign.left,
         sortable: false,
       ),
       ...sortedYears.map((year) => DynamicTableColumn(
             key: year,
             label: year,
-            width: 80,
+            // Year values like 8.8088 + ⋮ chrome need >80px or digits clip.
+            width: 118,
             align: TextAlign.right,
             sortable: true,
           )),
@@ -221,6 +222,9 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       autoPinStatColumns: false,
       showPinnedSectionDividers: true,
       columnSpacing: 4,
+      enableColumnStretch: true,
+      enforceColumnWidths: true,
+      initialPinnedLeftColumnKeys: const <String>['metric'],
       onRowDoubleClick: (row) {
         final metricName = row.data['metric']?.toString() ?? '';
         if (metricName.isNotEmpty) {
@@ -239,7 +243,9 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       Map<String, double?> sourceData, List<String> years) {
     Map<String, dynamic> result = {};
     for (String year in years) {
-      result[year] = sourceData[year];
+      result[year] = sourceData[year] == null
+          ? '--'
+          : sourceData[year]!.toStringAsFixed(4);
     }
     return result;
   }

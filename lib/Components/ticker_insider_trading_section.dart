@@ -74,14 +74,14 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
 
         final List<SimpleColumn> columns = <SimpleColumn>[
           const SimpleColumn(label: 'ACTION', fieldName: 'action', width: 90),
-          const SimpleColumn(label: 'SHARES CHANGED', fieldName: 'change', isNumeric: true, width: 130),
+          const SimpleColumn(label: 'SHARES CHANGED', fieldName: 'change', isNumeric: true, width: 140),
           const SimpleColumn(label: 'SHARES HELD', fieldName: 'share', isNumeric: true, width: 120),
           const SimpleColumn(label: 'PRICE', fieldName: 'price', isNumeric: true, width: 100),
-          const SimpleColumn(label: 'TXN VALUE', fieldName: 'transactionValue', isNumeric: true, width: 120),
-          const SimpleColumn(label: 'CURRENT PRICE', fieldName: 'currentPrice', isNumeric: true, width: 120),
-          const SimpleColumn(label: 'HOLDINGS VALUE', fieldName: 'holdingsValue', isNumeric: true, width: 130),
+          const SimpleColumn(label: 'TRANSACTION VALUE', fieldName: 'transactionValue', isNumeric: true, width: 150),
+          const SimpleColumn(label: 'CURRENT PRICE', fieldName: 'currentPrice', isNumeric: true, width: 130),
+          const SimpleColumn(label: 'HOLDINGS VALUE', fieldName: 'holdingsValue', isNumeric: true, width: 140),
           const SimpleColumn(label: 'TIME AGO', fieldName: 'timeAgo', width: 100),
-          const SimpleColumn(label: 'TXN DATE', fieldName: 'transactionDate', width: 110),
+          const SimpleColumn(label: 'TRANSACTION DATE', fieldName: 'transactionDate', width: 140),
           const SimpleColumn(label: 'FILING DATE', fieldName: 'filingDate', width: 110),
         ];
 
@@ -117,7 +117,9 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
         }
 
         final List<SimpleRowModel> allRows =
-            filteredItems.map((InsiderTransactionModel item) {
+            filteredItems.asMap().entries.map((entry) {
+          final int index = entry.key;
+          final InsiderTransactionModel item = entry.value;
           final String changed = _formatShares(item.change);
           final bool isRecent = _isRecent(item.transactionDate);
           final num transactionValue = (item.change.abs() * item.transactionPrice);
@@ -127,6 +129,8 @@ class _TickerInsiderTradingSectionState extends State<TickerInsiderTradingSectio
             symbol: item.name,
             name: isRecent ? 'Recent' : '',
             fields: <String, dynamic>{
+              '_row_id':
+                  '${item.name}_${item.transactionDate?.millisecondsSinceEpoch ?? 0}_$index',
               'action': item.isBuy
                   ? 'Buy'
                   : item.isSell

@@ -231,7 +231,9 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
 
                       // Content mins — equal gaps fill leftover card width.
                       const double periodMin = 64.0;
-                      const double sectorIdeal = 168.0;
+                      // Room for long labels (e.g. Electronic Technology) + gap
+                      // before the pinned-section divider.
+                      const double sectorIdeal = 196.0;
 
                       final dynamicColumns = _mapToDynamicColumns(
                         fixedSectorColumnWidth: sectorIdeal,
@@ -271,7 +273,8 @@ class _MarketSummaryDynamicTableState extends State<MarketSummaryDynamicTable> {
                           tableEdgeInset: tableEdgeInset,
                           columnSpacing: columnSpacing,
                           // Left 0 so leading edge inset (=16) lines up with title.
-                          columnCellPadding: const EdgeInsets.only(right: 4),
+                          // Right 16 keeps SECTOR (and period cells) off the pin divider.
+                          columnCellPadding: const EdgeInsets.only(right: 16),
                           dividerThickness: 0.5,
                           showBottomBorder: false,
                           tableBorder: TableBorder(

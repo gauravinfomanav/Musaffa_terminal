@@ -7,10 +7,10 @@ import 'package:musaffa_terminal/utils/utils.dart';
 
 /// Column widths follow content (auto). Leftover card width is shared as
 /// equal pixel gaps between every pair of columns — never uneven max-widths.
-const double _kDefaultColumnSpacing = 12;
+const double _kDefaultColumnSpacing = 8;
 
 /// Minimum gap between columns (dense tables / many columns).
-const double _kMinColumnSpacing = 8;
+const double _kMinColumnSpacing = 2;
 
 // ============================================================================
 // DATA MODELS
@@ -310,7 +310,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   String? _draggingColumnKey;
   String? _dragOverColumnKey;
   String? _hoveredResizeColumnKey;
-  String? _hoveredRowId;
+  String? _hoveredRowKey;
   int _rowHoverGeneration = 0;
   final Set<String> _pinnedLeftColumns = <String>{};
   final Set<String> _pinnedRightColumns = <String>{};
@@ -449,26 +449,30 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     widget.onColumnVisibilityChanged?.call(Set<String>.from(_visibleColumns));
   }
 
-  void _onRowHoverEnter(String rowId) {
+  /// Unique per visible row — duplicate business ids (same insider name) must
+  /// not light up every matching row on hover.
+  String _rowHoverKey(DynamicTableRow row, int index) => '${row.id}::$index';
+
+  void _onRowHoverEnter(String rowKey) {
     _rowHoverGeneration++;
-    if (_hoveredRowId == rowId) return;
-    setState(() => _hoveredRowId = rowId);
+    if (_hoveredRowKey == rowKey) return;
+    setState(() => _hoveredRowKey = rowKey);
   }
 
-  void _onRowHoverExit(String rowId) {
+  void _onRowHoverExit(String rowKey) {
     final int generation = _rowHoverGeneration;
     Future<void>.delayed(const Duration(milliseconds: 20), () {
       if (!mounted) return;
       if (_rowHoverGeneration != generation) return;
-      if (_hoveredRowId != rowId) return;
-      setState(() => _hoveredRowId = null);
+      if (_hoveredRowKey != rowKey) return;
+      setState(() => _hoveredRowKey = null);
     });
   }
 
-  Widget _wrapRowHover(String rowId, Widget child) {
+  Widget _wrapRowHover(String rowKey, Widget child) {
     return MouseRegion(
-      onEnter: (_) => _onRowHoverEnter(rowId),
-      onExit: (_) => _onRowHoverExit(rowId),
+      onEnter: (_) => _onRowHoverEnter(rowKey),
+      onExit: (_) => _onRowHoverExit(rowKey),
       child: child,
     );
   }
@@ -523,7 +527,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   double get _headerResizeReserve => widget.showColumnResizeHandle ? 8 : 0;
   double get _headerChromeTrailing =>
       8 + _headerActionReserve + _headerResizeReserve;
-  static const double _headerLeading = 8;
+  static const double _headerLeading = 12;
   static const double _cellTrailing = 6;
 
   /// Breathing room from card edge into the first/last column.
@@ -825,19 +829,35 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           _headerLeading + _cellTrailing + _headerChromeTrailing + 12;
       if (minWidth < chromeFloor) minWidth = chromeFloor;
 
-      // Widget cells (custom renderers) skip text measure — honor declared width.
+      // Honor declared width as a floor (year cols + ⋮ chrome need this so
+      // values like 8.8088 never clip).
       if (col.width != null && col.width! > minWidth) {
-        final bool hasWidgetCell = widget.rows.any(
-          (DynamicTableRow row) => row.data[col.key] is Widget,
-        );
-        if (hasWidgetCell) {
-          minWidth = col.width!;
-        }
+        minWidth = col.width!;
       }
 
       for (final row in widget.rows) {
         final value = row.data[col.key];
-        if (value == null || value is Widget) continue;
+        if (value == null) continue;
+        // Widget cells: size from companion sort string (e.g. "Medium") so
+        // chips keep full padding and never clip.
+        if (value is Widget) {
+          final String? sortKey = col.sortValueKey;
+          if (sortKey == null) continue;
+          final String sortText =
+              (row.data[sortKey]?.toString() ?? '').trim();
+          if (sortText.isEmpty || sortText == '--' || sortText == '—') {
+            continue;
+          }
+          // Dot (6) + gap (7) + text + pad (8+10) + chrome.
+          const double pillChrome = 6 + 7 + 8 + 10 + 4;
+          final double contentWidth = _measureTextWidth(sortText, cellStyle) +
+              pillChrome +
+              _cellRightPadding(col);
+          if (contentWidth > minWidth) {
+            minWidth = contentWidth;
+          }
+          continue;
+        }
         final text = value.toString().trim();
         if (text.isEmpty || text == '--' || text == '—') continue;
         if (HomeUi.isCommentLikeTableText(text, columnKey: col.key)) continue;
@@ -847,16 +867,23 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           minWidth = contentWidth;
         }
       }
-      // Price must show full values (e.g. $213.45) — never squeeze under content.
+      // Price must show full values (e.g. $759350.00) — size from content,
+      // with a modest floor so typical quotes stay readable.
       if (HomeUi.isPriceTableColumn(col.key)) {
-        const double priceFloor = 100;
+        const double priceFloor = 96;
+        const double priceSlack = 12;
         if (minWidth < priceFloor) minWidth = priceFloor;
+        minWidth += priceSlack;
+        if (col.width != null && col.width! > minWidth) {
+          minWidth = col.width!;
+        }
       }
       // Compact enum cols (REC / Buy) stay content-tight — ignore large presets.
       if (HomeUi.isCompactTableColumn(col.key)) {
         final double headerOnly = headerWidth + 8 + _headerChromeTrailing + 4;
         final double contentOnly = minWidth;
-        minWidth = contentOnly < 88 ? contentOnly.clamp(headerOnly, 88) : 88;
+        // Cap at 72 so "Buy"/"Sell" don't leave a wide empty band before EPS.
+        minWidth = contentOnly < 72 ? contentOnly.clamp(headerOnly, 72) : 72;
         if (minWidth < chromeFloor) minWidth = chromeFloor;
       }
       _naturalMinWidths[col.key] = minWidth;
@@ -889,7 +916,20 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
   double _baseColumnSpacing() {
     final preferred = widget.columnSpacing ?? _kDefaultColumnSpacing;
-    return preferred < _kMinColumnSpacing ? _kMinColumnSpacing : preferred;
+    final int count =
+        _visibleColumns.length + (widget.showTickerCell ? 1 : 0);
+    // More columns → tighter gaps. Few columns keep preferred spacing and
+    // let stretch expand column widths to fill the card.
+    double densified = preferred;
+    if (count >= 14) {
+      densified = 2;
+    } else if (count >= 10) {
+      densified = 3;
+    } else if (count >= 7) {
+      densified = preferred < 4 ? preferred : 4;
+    }
+    final double spacing = densified < preferred ? densified : preferred;
+    return spacing < _kMinColumnSpacing ? _kMinColumnSpacing : spacing;
   }
 
   double _effectiveColumnSpacing() => _liveColumnSpacing;
@@ -970,20 +1010,29 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
     final double minTable = contentSum + baseSpacing * gaps;
     if (usable > minTable) {
-      // Put leftover into column widths (not gaps). Large DataTable
-      // columnSpacing pads every mid-cell by spacing/2 but the last column
-      // only gets horizontalMargin on the end — that desyncs last-column
-      // header/cell right edges (e.g. market summary 1Y).
+      // Put leftover into flexible column widths (not gaps). Keep compact
+      // enum cols (REC / Buy) content-tight so they don't create empty gaps
+      // before the next metric (e.g. EPS).
       final double extra = usable - minTable;
-      final double perCol = extra / columns.length;
-      for (final col in columns) {
+      final List<DynamicTableColumn> stretchTargets = columns
+          .where((DynamicTableColumn c) =>
+              !HomeUi.isNonStretchTableColumn(c.key))
+          .toList();
+      if (stretchTargets.isEmpty) {
+        stretchTargets.addAll(columns);
+      }
+      final double perCol = extra / stretchTargets.length;
+      for (final col in stretchTargets) {
         _stretchedColumnWidths[col.key] =
             _stretchedColumnWidths[col.key]! + perCol;
       }
       _liveColumnSpacing = baseSpacing;
       _stretchFilledAvailableWidth = true;
     } else {
-      _liveColumnSpacing = baseSpacing;
+      // Crowded table: shrink gaps before relying on horizontal scroll.
+      final double cramped =
+          ((usable - contentSum) / gaps).clamp(_kMinColumnSpacing, baseSpacing);
+      _liveColumnSpacing = cramped;
       _stretchFilledAvailableWidth = true;
     }
   }
@@ -1242,7 +1291,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
           textAlign: col.align,
           maxLines: 1,
           softWrap: false,
-          overflow: TextOverflow.ellipsis,
+          overflow: TextOverflow.clip,
         );
 
     // Short Text alone shrink-wraps — force full width so textAlign.right
@@ -1252,7 +1301,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       label = SizedBox(width: double.infinity, child: label);
     }
 
-    // Short / sorted headers: hover shows the full original name.
+    // Short thead → full name on hover; Columns dropdown always uses fullLabel.
     if (col.headerWidget == null &&
         (sorted ||
             widget.showHeaderTooltip ||
@@ -1519,6 +1568,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     List<DynamicTableColumn> columns,
     Color textColor,
     String? expanderColumnKey, {
+    required String rowHoverKey,
     bool applyLeadingEdgeInset = false,
     bool applyTrailingEdgeInset = false,
   }) {
@@ -1538,9 +1588,14 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       if (value is Widget) {
         defaultCell = SizedBox(
           height: _effectiveDataRowHeight,
+          width: resolvedWidth,
           child: Align(
             alignment: _alignmentFor(col.align),
-            child: value,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: _alignmentFor(col.align),
+              child: value,
+            ),
           ),
         );
       } else {
@@ -1649,7 +1704,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
       return DataCell(
         _wrapRowHover(
-          row.id,
+          rowHoverKey,
           Align(
             alignment: _alignmentFor(col.align),
             child: SizedBox(
@@ -1754,9 +1809,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required Color mutedColor,
     required String? expanderColumnKey,
   }) {
-    final hasLeftChrome = widget.selectable ||
-        widget.showTickerCell ||
-        leftPinnedColumns.isNotEmpty;
     final hasRightChrome = rightPinnedColumns.isNotEmpty;
 
     final row = Row(
@@ -1804,7 +1856,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
-              applyLeadingEdgeInset: !hasLeftChrome,
+              applyLeadingEdgeInset: true,
               applyTrailingEdgeInset: !hasRightChrome,
             ),
           )
@@ -1816,7 +1868,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
-              applyLeadingEdgeInset: !hasLeftChrome,
+              applyLeadingEdgeInset: true,
               applyTrailingEdgeInset: !hasRightChrome,
             ),
           ),
@@ -1976,10 +2028,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         rows: rows.asMap().entries.map((entry) {
           final int rowIndex = entry.key;
           final row = entry.value;
+          final String hoverKey = _rowHoverKey(row, rowIndex);
           return DataRow(
             key: ValueKey<String>('row_${row.id}_$rowIndex'),
             color: WidgetStateProperty.all(
-              _hoveredRowId == row.id
+              _hoveredRowKey == hoverKey
                   ? HomeUi.tableRowHover(isDark)
                   : _zebraRowColor(rowIndex, isDark),
             ),
@@ -1987,7 +2040,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               if (includeSelectable)
                 DataCell(
                   _wrapRowHover(
-                    row.id,
+                    hoverKey,
                     Checkbox(
                       value: _selectedRowIds.contains(row.id),
                       onChanged: (val) {
@@ -2010,7 +2063,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               if (includeTicker)
                 DataCell(
                   _wrapRowHover(
-                    row.id,
+                    hoverKey,
                     SizedBox(
                       width: widget.tickerColumnWidth,
                       height: _effectiveDataRowHeight,
@@ -2036,6 +2089,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 columns,
                 textColor,
                 expanderColumnKey,
+                rowHoverKey: hoverKey,
                 applyLeadingEdgeInset:
                     applyLeadingEdgeInset && !includeTicker,
                 applyTrailingEdgeInset: applyTrailingEdgeInset,

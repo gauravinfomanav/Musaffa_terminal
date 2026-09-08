@@ -92,7 +92,10 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
   }
 
 
-  List<SimpleRowModel> _buildRows(List<MergedSuperInvestor> investors) {
+  List<SimpleRowModel> _buildRows(
+    List<MergedSuperInvestor> investors, {
+    required bool isDarkMode,
+  }) {
     return investors.asMap().entries.map((entry) {
       // Removed old index variable
       final investor = entry.value;
@@ -100,6 +103,7 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
           (investor.manager == null || investor.manager!.isEmpty)
               ? 'Unknown Manager'
               : investor.manager!;
+      final conviction = investor.convictionLevel ?? '--';
 
       return SimpleRowModel(
         symbol: managerName,
@@ -116,7 +120,8 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
           'percentage': _formatPercentage(investor.percentage),
           'percentageChange': _formatSignedPercent(investor.percentageChange),
           'trend': investor.trend ?? '--',
-          'convictionLevel': investor.convictionLevel ?? '--',
+          'convictionLevel': HomeUi.convictionLevelPill(isDarkMode, conviction),
+          'convictionLevelSort': conviction,
           'reportDate': _formatReportDate(investor.reportDate),
         },
       );
@@ -146,7 +151,7 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
           return const SizedBox.shrink();
         }
 
-        final rows = _buildRows(investors);
+        final rows = _buildRows(investors, isDarkMode: isDarkMode);
           final columns = [
             SimpleColumn(label: 'TXN', fieldName: 'transactionType', width: 70),
             SimpleColumn(label: 'CURRENT SHARES', fieldName: 'share', isNumeric: true),
@@ -158,7 +163,12 @@ class _SuperInvestorsSectionState extends State<SuperInvestorsSection> {
             SimpleColumn(label: 'PORTFOLIO %', fieldName: 'percentage', isNumeric: true),
             SimpleColumn(label: 'CHANGE %', fieldName: 'percentageChange', isNumeric: true),
             SimpleColumn(label: 'TREND', fieldName: 'trend', width: 80),
-            SimpleColumn(label: 'CONVICTION', fieldName: 'convictionLevel', width: 90),
+            SimpleColumn(
+              label: 'CONVICTION',
+              fieldName: 'convictionLevel',
+              sortValueKey: 'convictionLevelSort',
+              width: 118,
+            ),
           ];
         final hasMoreRows = rows.length > _collapsedRowLimit;
         final visibleRows =
