@@ -576,15 +576,22 @@ class HomeUi {
         k.contains('recommendation');
   }
 
-  /// Fixed-metric columns (stacked 1D change widgets, sparklines) — content-sized,
-  /// no stretch. Plain % text columns like screener `change1D` still stretch.
+  /// Fixed-metric columns (stacked 1D change widgets, sparklines, price) —
+  /// content-sized, no stretch. Later text/metric cols absorb leftover width
+  /// so the table fills the card when horizontal scroll is not needed.
   static bool isNonStretchTableColumn(String key) {
     final String k = key.toLowerCase();
     return isCompactTableColumn(k) ||
         k == 'change' ||
+        k == 'changecell' ||
+        k == 'change1dpercent' ||
+        k == 'change1d' ||
         k == 'sparkline' ||
         k == 'range52' ||
-        k == 'range52w';
+        k == 'range52w' ||
+        k == 'price' ||
+        k == 'pricedisplay' ||
+        k == 'currentprice';
   }
 
   /// Long prose (notes/comments) may ellipsize. Short labels/values must not.
@@ -802,6 +809,7 @@ class HomeUi {
       'transaction date': 'TXN DATE',
       'time ago': 'AGO',
       '1d change %': '1D %',
+      '1d change': 'CHANGE',
       'revenue growth': 'REV GR',
       'dividend yield': 'DIV YLD',
       'avg price': 'AVG PX',

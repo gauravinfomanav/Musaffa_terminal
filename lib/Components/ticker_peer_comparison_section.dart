@@ -45,8 +45,12 @@ class TickerPeerComparisonSection extends StatelessWidget {
           rows: _buildRows(controller.rows),
           showFixedColumn: true,
           considerPadding: false,
-          columnSpacing: 4,
-          fixedColumnWidth: 240,
+          columnSpacing: 2,
+          columnCellPadding: const EdgeInsets.only(left: 8, right: 4),
+          tableEdgeInset: const EdgeInsets.fromLTRB(16, 0, 12, 0),
+          // Fill card when content fits; C PRICE / 1D % stay content-tight.
+          enableColumnStretch: true,
+          fixedColumnWidth: 220,
           enableLivePrices: false,
           zebraStripes: true,
           enableColumnCustomization: true,
@@ -58,18 +62,54 @@ class TickerPeerComparisonSection extends StatelessWidget {
 
   List<SimpleColumn> _buildColumns() {
     return <SimpleColumn>[
-      const SimpleColumn(label: 'CURRENT PRICE', fieldName: 'currentPrice', isNumeric: true, width: 120),
-      const SimpleColumn(label: '1D CHANGE %', fieldName: 'change1DPercent', isNumeric: true, width: 110),
-      const SimpleColumn(label: 'MARKET CAP', fieldName: 'marketCap', isNumeric: true, width: 120),
-      const SimpleColumn(label: 'P/E', fieldName: 'peTTM', isNumeric: true, width: 90),
-      const SimpleColumn(label: 'EPS (TTM)', fieldName: 'epsTTM', isNumeric: true, width: 100),
-      const SimpleColumn(label: 'ROE', fieldName: 'roe', isNumeric: true, width: 120),
-      const SimpleColumn(label: 'REVENUE GROWTH', fieldName: 'revenueGrowth', isNumeric: true, width: 130),
-      const SimpleColumn(label: 'DIVIDEND YIELD', fieldName: 'dividendYield', isNumeric: true, width: 130),
-      const SimpleColumn(label: 'BETA', fieldName: 'beta', isNumeric: true, width: 80),
-      const SimpleColumn(label: 'ROA', fieldName: 'roa', isNumeric: true, width: 120),
-      const SimpleColumn(label: 'VOLUME', fieldName: 'volume', isNumeric: true, width: 110),
-      const SimpleColumn(label: 'EV/REVENUE', fieldName: 'evRevenue', isNumeric: true, width: 120),
+      const SimpleColumn(
+          label: 'CURRENT PRICE',
+          fieldName: 'currentPrice',
+          isNumeric: true,
+          width: 88),
+      const SimpleColumn(
+          label: '1D CHANGE %',
+          fieldName: 'change1DPercent',
+          isNumeric: true,
+          width: 72),
+      const SimpleColumn(
+          label: 'MARKET CAP',
+          fieldName: 'marketCap',
+          isNumeric: true,
+          width: 92),
+      const SimpleColumn(
+          label: 'P/E', fieldName: 'peTTM', isNumeric: true, width: 64),
+      const SimpleColumn(
+          label: 'EPS (TTM)',
+          fieldName: 'epsTTM',
+          isNumeric: true,
+          width: 72),
+      const SimpleColumn(
+          label: 'ROE', fieldName: 'roe', isNumeric: true, width: 72),
+      const SimpleColumn(
+          label: 'REVENUE GROWTH',
+          fieldName: 'revenueGrowth',
+          isNumeric: true,
+          width: 80),
+      const SimpleColumn(
+          label: 'DIVIDEND YIELD',
+          fieldName: 'dividendYield',
+          isNumeric: true,
+          width: 80),
+      const SimpleColumn(
+          label: 'BETA', fieldName: 'beta', isNumeric: true, width: 64),
+      const SimpleColumn(
+          label: 'ROA', fieldName: 'roa', isNumeric: true, width: 72),
+      const SimpleColumn(
+          label: 'VOLUME',
+          fieldName: 'volume',
+          isNumeric: true,
+          width: 80),
+      const SimpleColumn(
+          label: 'EV/REVENUE',
+          fieldName: 'evRevenue',
+          isNumeric: true,
+          width: 84),
     ];
   }
 

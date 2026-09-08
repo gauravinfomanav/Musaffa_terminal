@@ -806,7 +806,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   }
 
   double _cellRightPadding(DynamicTableColumn col) {
-    return _headerLeading + _cellTrailing + _headerActionReserve;
+    final EdgeInsets base = widget.columnCellPadding ??
+        EdgeInsets.only(left: _headerLeading, right: _cellTrailing);
+    return base.left + base.right + _headerActionReserve;
   }
 
   void _refreshNaturalMinWidths(List<DynamicTableColumn> columns) {
@@ -814,6 +816,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final cellStyle = HomeUi.tableCell(false).copyWith(
       fontWeight: FontWeight.w600,
     );
+    final EdgeInsets cellPad = widget.columnCellPadding ??
+        EdgeInsets.only(left: _headerLeading, right: _cellTrailing);
 
     for (final col in columns) {
       final headerWidth = _measureTextWidth(
@@ -826,7 +830,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       // Pure content/header auto width — no max-width caps.
       var minWidth = headerWidth + 8 + _headerChromeTrailing + 4;
       final double chromeFloor =
-          _headerLeading + _cellTrailing + _headerChromeTrailing + 12;
+          cellPad.left + cellPad.right + _headerChromeTrailing + 12;
       if (minWidth < chromeFloor) minWidth = chromeFloor;
 
       // Honor declared width as a floor (year cols + ⋮ chrome need this so
@@ -841,6 +845,18 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         // Widget cells: size from companion sort string (e.g. "Medium") so
         // chips keep full padding and never clip.
         if (value is Widget) {
+          final String key = col.key.toLowerCase();
+          // Dual-line 1D change stack — content-tight, not conviction-pill chrome.
+          if (key == 'change' || key == 'changecell') {
+            final double contentWidth =
+                _measureTextWidth(r'+$99.99', cellStyle) +
+                    _cellRightPadding(col) +
+                    6;
+            if (contentWidth > minWidth) {
+              minWidth = contentWidth;
+            }
+            continue;
+          }
           final String? sortKey = col.sortValueKey;
           if (sortKey == null) continue;
           final String sortText =
@@ -869,12 +885,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       }
       // Price must show full values (e.g. $759350.00) — size from content,
       // with a modest floor so typical quotes stay readable.
+      // Explicit [DynamicTableColumn.width] skips forced slack so dense tables
+      // (Sector Stocks PRICE↔CHANGE) can stay tight.
       if (HomeUi.isPriceTableColumn(col.key)) {
-        const double priceFloor = 96;
-        const double priceSlack = 12;
-        if (minWidth < priceFloor) minWidth = priceFloor;
-        minWidth += priceSlack;
-        if (col.width != null && col.width! > minWidth) {
+        if (col.width == null) {
+          const double priceFloor = 96;
+          const double priceSlack = 12;
+          if (minWidth < priceFloor) minWidth = priceFloor;
+          minWidth += priceSlack;
+        } else if (minWidth < col.width!) {
           minWidth = col.width!;
         }
       }
@@ -2490,6 +2509,22 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
       _menuOpen = true;
     });
 
+    final RenderBox? button = context.findRenderObject() as RenderBox?;
+    final Size screen = MediaQuery.sizeOf(context);
+    final double buttonH = button?.size.height ?? 36;
+    final Offset buttonOrigin =
+        button?.localToGlobal(Offset.zero) ?? Offset.zero;
+    const double gap = 8;
+    const double edgePad = 12;
+    final double spaceBelow =
+        screen.height - buttonOrigin.dy - buttonH - edgePad;
+    final double spaceAbove = buttonOrigin.dy - edgePad;
+    // Last tables near the page bottom: open upward so the menu stays on-screen.
+    final bool openUpward =
+        spaceBelow < 320 && spaceAbove > spaceBelow;
+    final double maxMenuHeight =
+        (openUpward ? spaceAbove : spaceBelow).clamp(220.0, 460.0) - gap;
+
     _overlayEntry = OverlayEntry(
       builder: (context) {
         final isDark = widget.isDark;
@@ -2505,9 +2540,11 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
             CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              targetAnchor: Alignment.bottomRight,
-              followerAnchor: Alignment.topRight,
-              offset: const Offset(0, 8),
+              targetAnchor:
+                  openUpward ? Alignment.topRight : Alignment.bottomRight,
+              followerAnchor:
+                  openUpward ? Alignment.bottomRight : Alignment.topRight,
+              offset: Offset(0, openUpward ? -gap : gap),
               child: Material(
                 color: Colors.transparent,
                 child: TweenAnimationBuilder<double>(
@@ -2518,14 +2555,17 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                     return Opacity(
                       opacity: value,
                       child: Transform.translate(
-                        offset: Offset(0, (1 - value) * -6),
+                        offset: Offset(
+                          0,
+                          (1 - value) * (openUpward ? 6 : -6),
+                        ),
                         child: child,
                       ),
                     );
                   },
                   child: Container(
                     width: 320,
-                    constraints: const BoxConstraints(maxHeight: 460),
+                    constraints: BoxConstraints(maxHeight: maxMenuHeight),
                     decoration: BoxDecoration(
                       color: HomeUi.cardBg(isDark),
                       borderRadius: BorderRadius.circular(16),
@@ -2537,7 +2577,7 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                         BoxShadow(
                           color: Colors.black.withOpacity(isDark ? 0.40 : 0.10),
                           blurRadius: 28,
-                          offset: const Offset(0, 12),
+                          offset: Offset(0, openUpward ? -8 : 12),
                         ),
                       ],
                     ),
@@ -2559,9 +2599,13 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                               const SizedBox(height: 4),
                               Text(
                                 'Add extra metrics or hide columns you do not need.',
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
                                 style: HomeUi.subtitle(isDark).copyWith(
-                                  fontSize: 12,
-                                  height: 1.3,
+                                  fontSize: 11,
+                                  height: 1.2,
+                                  letterSpacing: -0.1,
                                 ),
                               ),
                             ],
@@ -2594,7 +2638,9 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                                 minHeight: 36,
                               ),
                               filled: true,
-                              fillColor: HomeUi.elevatedBg(isDark),
+                              fillColor: isDark
+                                  ? HomeUi.elevatedBg(isDark)
+                                  : Colors.white,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 10,
                                 vertical: 8,
@@ -2635,10 +2681,10 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                             color: HomeUi.borderLight(isDark),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
                                 onPressed: () {
                                   widget.onReset!();
                                   _overlayVisibleColumns =
@@ -2649,18 +2695,30 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                                           .toSet();
                                   _overlayEntry?.markNeedsBuild();
                                 },
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: HomeUi.body(isDark),
+                                  backgroundColor: isDark
+                                      ? const Color(0xFF1A1D22)
+                                      : Colors.white,
+                                  side: BorderSide(
+                                    color: HomeUi.borderStrong(isDark),
                                   ),
-                                  minimumSize: Size.zero,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  minimumSize: const Size(0, 36),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                                   tapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
                                   'Reset to default',
-                                  style: HomeUi.subtitle(isDark).copyWith(
-                                    fontSize: 12,
+                                  style: HomeUi.control(isDark, active: true)
+                                      .copyWith(
+                                    fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

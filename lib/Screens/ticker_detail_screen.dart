@@ -91,6 +91,7 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
   bool _isInWatchlist = false;
 
   bool _isResearchNotesOpen = false;
+  bool _researchNotesMounted = false;
 
   // Live price state
   double? _livePrice;
@@ -268,12 +269,20 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       await researchNotesController.fetchNotes(ticker);
     }
     if (!mounted) return;
-    setState(() => _isResearchNotesOpen = true);
+    setState(() {
+      _researchNotesMounted = true;
+      _isResearchNotesOpen = true;
+    });
   }
 
   void _closeResearchNotesPanel() {
     if (!_isResearchNotesOpen || !mounted) return;
     setState(() => _isResearchNotesOpen = false);
+  }
+
+  void _onResearchNotesExitComplete() {
+    if (!mounted) return;
+    setState(() => _researchNotesMounted = false);
   }
 
   @override
@@ -357,29 +366,20 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
                 ),
               );
             }),
-            if (_isResearchNotesOpen)
-              Positioned.fill(
-                child: GestureDetector(
-                  onTap: _closeResearchNotesPanel,
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.24),
-                  ),
-                ),
-              ),
-            if (_isResearchNotesOpen)
-              Positioned(
+            if (_researchNotesMounted)
+              ResearchNotesSlideLayer(
+                visible: _isResearchNotesOpen,
+                isDarkMode: isDarkMode,
+                title: 'Research Notes',
+                subtitle: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
                 top: 112,
                 right: 20,
-                child: _ResearchNotesOverlayCard(
-                  isDarkMode: isDarkMode,
-                  title: 'Research Notes',
-                  subtitle: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                  onClose: _closeResearchNotesPanel,
-                  child: ResearchNotesPanelContent(
-                    ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
-                    controller: researchNotesController,
-                    onAddNote: () => _showAddNoteDialog(isDarkMode),
-                  ),
+                onRequestClose: _closeResearchNotesPanel,
+                onExitComplete: _onResearchNotesExitComplete,
+                child: ResearchNotesPanelContent(
+                  ticker: widget.ticker.symbol ?? widget.ticker.ticker ?? '',
+                  controller: researchNotesController,
+                  onAddNote: () => _showAddNoteDialog(isDarkMode),
                 ),
               ),
             // Global FAB Overlay
@@ -415,10 +415,8 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       return Stack(
         clipBehavior: Clip.none,
         children: [
-          HomeUi.ghostAction(
-            label: 'Research Notes',
-            dark: isDarkMode,
-            icon: Icons.sticky_note_2_outlined,
+          ResearchNotesHeaderButton(
+            isDark: isDarkMode,
             onTap: _openResearchNotesPanel,
           ),
           if (hasNotes)
@@ -1275,7 +1273,10 @@ class _TickerDetailScreenState extends State<TickerDetailScreen> {
       notesController: researchNotesController,
       onSaved: () {
         _showSuccessSnackBar('Note added successfully');
-        setState(() => _isResearchNotesOpen = true);
+        setState(() {
+          _researchNotesMounted = true;
+          _isResearchNotesOpen = true;
+        });
       },
     );
   }
@@ -1739,89 +1740,6 @@ class _MetricKvRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ResearchNotesOverlayCard extends StatelessWidget {
-  const _ResearchNotesOverlayCard({
-    required this.isDarkMode,
-    required this.title,
-    required this.subtitle,
-    required this.onClose,
-    required this.child,
-  });
-
-  final bool isDarkMode;
-  final String title;
-  final String subtitle;
-  final VoidCallback onClose;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: 420,
-        height: 560,
-        decoration: BoxDecoration(
-          color: HomeUi.cardBg(isDarkMode),
-          borderRadius: BorderRadius.circular(HomeUi.radiusCard),
-          border: Border.all(color: HomeUi.borderLight(isDarkMode)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDarkMode ? 0.38 : 0.12),
-              blurRadius: 28,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: HomeUi.tableToolbarHeader(
-                      isDarkMode,
-                      icon: Icons.sticky_note_2_outlined,
-                      title: title,
-                      subtitleText: subtitle.isNotEmpty ? subtitle : null,
-                    ),
-                  ),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: onClose,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: HomeUi.elevatedBg(isDarkMode),
-                          shape: BoxShape.circle,
-                          border:
-                              Border.all(color: HomeUi.borderLight(isDarkMode)),
-                        ),
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 16,
-                          color: HomeUi.muted(isDarkMode),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Divider(height: 1, color: HomeUi.borderLight(isDarkMode)),
-            Expanded(child: child),
-          ],
-        ),
       ),
     );
   }

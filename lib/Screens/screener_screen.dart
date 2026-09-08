@@ -968,9 +968,13 @@ class _ScreenerScreenState extends State<ScreenerScreen>
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            gradient: HomeUi.iconWellGradient,
+            color: isDarkMode ? const Color(0xFF1A1D22) : Colors.white,
             borderRadius: BorderRadius.circular(HomeUi.radiusPill),
-            border: Border.all(color: HomeUi.iconWellBorder),
+            border: Border.all(
+              color: isDarkMode
+                  ? const Color(0xFF2A2E3A)
+                  : HomeUi.iconWellBorder,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -1306,9 +1310,9 @@ class _ScreenerScreenState extends State<ScreenerScreen>
             columns: _getColumnsForSelectedTab(),
             rows: rows,
             toolbar: _buildResultsTabs(isDarkMode),
-            // Toolbar inset matches filter card; th/td get the same edge inset.
+            // Align COMPANY/TICKER with Overview pill (same inset as toolbar).
             toolbarPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            tableEdgeInset: const EdgeInsets.fromLTRB(8, 0, 10, 0),
+            tableEdgeInset: const EdgeInsets.fromLTRB(16, 0, 16, 0),
             showFixedColumn: true,
             considerPadding: false,
             showOuterShadow: false,

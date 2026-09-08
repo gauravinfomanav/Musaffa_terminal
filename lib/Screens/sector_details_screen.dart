@@ -869,45 +869,52 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   label: 'Price',
                   sortable: true,
                   align: TextAlign.right,
-                  width: 100),
+                  width: 72),
               DynamicTableColumn(
                   key: 'change',
-                  label: '1D',
+                  label: 'Change',
                   tooltipLabel: '1D Change',
                   sortable: true,
                   align: TextAlign.right,
-                  width: 100,
+                  width: 78,
                   sortValueKey: 'changePct'),
               DynamicTableColumn(
                   key: 'marketCap',
                   label: 'MKT CAP',
                   sortable: true,
-                  align: TextAlign.right),
+                  align: TextAlign.right,
+                  width: 92),
               DynamicTableColumn(
                   key: 'volume',
                   label: 'Volume',
                   sortable: true,
-                  align: TextAlign.right),
+                  align: TextAlign.right,
+                  width: 80),
               DynamicTableColumn(
-                  key: 'sector', label: 'Sector', sortable: true),
+                  key: 'sector',
+                  label: 'Sector',
+                  sortable: true,
+                  width: 160),
               DynamicTableColumn(
                   key: 'beta',
                   label: 'Beta',
                   sortable: true,
-                  align: TextAlign.right),
+                  align: TextAlign.right,
+                  width: 64),
               DynamicTableColumn(
                   key: 'range52',
                   label: '52W RANGE',
                   tooltipLabel: '52-Week Range',
                   sortable: true,
                   align: TextAlign.center,
-                  width: 176,
+                  width: 168,
                   sortValueKey: 'week52HighSort'),
               DynamicTableColumn(
                   key: 'avgVol10d',
                   label: 'Avg Vol 10D',
                   sortable: true,
-                  align: TextAlign.right),
+                  align: TextAlign.right,
+                  width: 88),
             ],
             rows: rows,
             searchable: true,
@@ -917,9 +924,14 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             stickyHeader: true,
             maxHeight: 560,
             useOuterContainer: false,
-            columnSpacing: 4,
-            // Less air after the ticker pin before PRICE / 1D.
-            tableEdgeInset: const EdgeInsets.fromLTRB(8, 0, 12, 0),
+            columnSpacing: 12,
+            // Right-aligned VOLUME sits flush against left-aligned SECTOR when
+            // spacing is 0 — match the visual gap PRICE↔CHANGE already has.
+            columnCellPadding: const EdgeInsets.only(left: 10, right: 8),
+            // Match toolbar title inset so TICKER lines up with "Sector Stocks".
+            tableEdgeInset: const EdgeInsets.fromLTRB(16, 0, 12, 0),
+            // Fill card width when content fits (no h-scroll). PRICE/CHANGE stay
+            // content-tight via isNonStretchTableColumn; later cols absorb slack.
             enableColumnStretch: true,
             onTickerTap: (row) {
               final ticker = row.data['ticker']?.toString() ?? '';
