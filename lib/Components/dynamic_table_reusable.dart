@@ -140,6 +140,7 @@ class DynamicTable extends StatefulWidget {
     this.onDragEnd,
     this.tableId,
     this.enableColumnCustomization = false,
+    this.defaultVisibleColumnKeys,
     this.onTickerTap,
     this.centerCellContent = false,
     this.compactHeaderText = false,
@@ -177,6 +178,8 @@ class DynamicTable extends StatefulWidget {
   final VoidCallback? onDragEnd;
   final String? tableId; // Unique identifier for this table instance
   final bool enableColumnCustomization; // Enable column customization features
+  /// Keys shown by default when no saved column prefs exist.
+  final List<String>? defaultVisibleColumnKeys;
   final Function(DynamicTableRow)? onTickerTap;
   final bool centerCellContent;
   final bool compactHeaderText;
@@ -210,6 +213,7 @@ class _DynamicTableState extends State<DynamicTable> {
   
   // Column customization
   List<SimpleColumn> _customizedColumns = [];
+  Set<String>? _visibleColumnKeys;
   TableColumnPreferencesService? _prefsService;
   int? _draggedColumnIndex;
   int? _dropTargetIndex;
@@ -247,6 +251,8 @@ class _DynamicTableState extends State<DynamicTable> {
     
     _prefsService = Get.find<TableColumnPreferencesService>();
     final prefs = _prefsService!.getColumnPreferences(widget.tableId!);
+    final columnMap = {for (var col in widget.columns) col.fieldName: col};
+    final defaultVisible = widget.defaultVisibleColumnKeys;
     
     if (prefs != null) {
       // Load saved column order
@@ -257,7 +263,6 @@ class _DynamicTableState extends State<DynamicTable> {
       // Reorder columns based on saved order
       if (columnOrder != null && columnOrder.isNotEmpty) {
         _customizedColumns = [];
-        final columnMap = {for (var col in widget.columns) col.fieldName: col};
         
         // Add columns in saved order
         for (var fieldName in columnOrder) {
@@ -275,17 +280,35 @@ class _DynamicTableState extends State<DynamicTable> {
       } else {
         _customizedColumns = List.from(widget.columns);
       }
+
+      final savedVisible = (prefs['visibleColumns'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .where((String key) => columnMap.containsKey(key))
+          .toSet();
+      if (savedVisible != null && savedVisible.isNotEmpty) {
+        _visibleColumnKeys = savedVisible;
+      } else if (defaultVisible != null && defaultVisible.isNotEmpty) {
+        _visibleColumnKeys = defaultVisible
+            .where((String key) => columnMap.containsKey(key))
+            .toSet();
+      }
     } else {
       // No saved preferences, use defaults
       _customizedColumns = List.from(widget.columns);
+      if (defaultVisible != null && defaultVisible.isNotEmpty) {
+        _visibleColumnKeys = defaultVisible
+            .where((String key) => columnMap.containsKey(key))
+            .toSet();
+      }
     }
   }
   
   Future<void> _saveColumnPreferences() async {
     if (widget.tableId == null || _prefsService == null) return;
     
-    // Save all columns as visible (no hide functionality)
-    final visibleColumns = _customizedColumns.map((col) => col.fieldName).toList();
+    final visibleColumns = (_visibleColumnKeys ??
+            _customizedColumns.map((col) => col.fieldName).toSet())
+        .toList();
     final columnOrder = _customizedColumns.map((col) => col.fieldName).toList();
     
     await _prefsService!.saveColumnPreferences(
@@ -768,6 +791,12 @@ class _DynamicTableState extends State<DynamicTable> {
       tickerHeaderLabel: widget.tickerHeaderLabel,
       tickerColumnWidth: widget.fixedColumnWidth,
       enableColumnVisibilityToggle: widget.enableColumnCustomization,
+      initialVisibleColumnKeys: _visibleColumnKeys?.toList(),
+      defaultVisibleColumnKeys: widget.defaultVisibleColumnKeys,
+      onColumnVisibilityChanged: (Set<String> visible) {
+        _visibleColumnKeys = visible;
+        _saveColumnPreferences();
+      },
       enableColumnReorder: widget.enableColumnCustomization,
       enableColumnPinning: true,
       stickyHeader: true,

@@ -158,15 +158,6 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                         );
                       },
                     )),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                  child: Row(
-                    children: [
-                      const Spacer(),
-                      _buildResearchNotesButton(isDarkMode),
-                    ],
-                  ),
-                ),
                 Expanded(
                   child: Obx(() {
                     if (controller.isLoading.value) {
@@ -244,7 +235,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
               ),
             if (_isResearchNotesOpen)
               Positioned(
-                top: 112,
+                top: 88,
                 right: 20,
                 child: _EtfResearchNotesOverlayCard(
                   isDarkMode: isDarkMode,
@@ -478,6 +469,8 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
                             );
                           },
                         ),
+                        const SizedBox(width: 8),
+                        _buildResearchNotesButton(isDarkMode),
                       ],
                     ),
                     const SizedBox(height: 16),

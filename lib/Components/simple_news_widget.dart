@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:musaffa_terminal/Controllers/market_news_controller.dart';
 import 'package:musaffa_terminal/Components/shimmer.dart';
 import 'package:musaffa_terminal/Screens/news_article_webview_screen.dart';
-import 'package:musaffa_terminal/models/market_news.dart';
+import 'package:musaffa_terminal/models/company_news_item.dart';
+import 'package:musaffa_terminal/models/news_headline_sentiment.dart';
+import 'package:musaffa_terminal/services/finnhub/company_news_service.dart';
+import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
 class SimpleNewsWidget extends StatefulWidget {
@@ -19,8 +20,13 @@ class SimpleNewsWidget extends StatefulWidget {
 }
 
 class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
-  final MarketNewsController controller = Get.put(MarketNewsController());
+  static const int _storyLimit = 10;
+
+  final CompanyNewsService _service = CompanyNewsService();
   String? _lastFetchedSymbol;
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<CompanyNewsItem> _articles = <CompanyNewsItem>[];
 
   @override
   void initState() {
@@ -32,17 +38,45 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
   void didUpdateWidget(SimpleNewsWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.symbol != widget.symbol) {
+      _articles = <CompanyNewsItem>[];
+      _errorMessage = null;
       _fetchNewsIfNeeded();
     }
   }
 
   void _fetchNewsIfNeeded() {
-    if (_lastFetchedSymbol != widget.symbol) {
-      _lastFetchedSymbol = widget.symbol;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          controller.fetchMarketNews(widget.symbol);
-        }
+    if (_lastFetchedSymbol == widget.symbol) return;
+    _lastFetchedSymbol = widget.symbol;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchNews();
+      }
+    });
+  }
+
+  Future<void> _fetchNews() async {
+    final String symbol = widget.symbol.trim();
+    if (symbol.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final List<CompanyNewsItem> items =
+          await _service.fetchForSymbol(symbol);
+      if (!mounted || widget.symbol.trim() != symbol) return;
+      setState(() {
+        _articles = items.take(_storyLimit).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted || widget.symbol.trim() != symbol) return;
+      setState(() {
+        _articles = <CompanyNewsItem>[];
+        _errorMessage = e.toString();
+        _isLoading = false;
       });
     }
   }
@@ -51,26 +85,23 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Obx(() {
-      Widget body;
-      if (controller.isLoading.value) {
-        body = _buildShimmer(isDarkMode);
-      } else if (controller.errorMessage.value.isNotEmpty) {
-        body = _buildError(controller.errorMessage.value, isDarkMode);
-      } else {
-        final latestNews = controller.getLatestNews(limit: 10);
-        body = latestNews.isEmpty
-            ? _buildEmpty(isDarkMode)
-            : _buildNewsList(latestNews, isDarkMode);
-      }
+    Widget body;
+    if (_isLoading && _articles.isEmpty) {
+      body = _buildShimmer(isDarkMode);
+    } else if (_errorMessage != null && _articles.isEmpty) {
+      body = _buildError(_errorMessage!, isDarkMode);
+    } else {
+      body = _articles.isEmpty
+          ? _buildEmpty(isDarkMode)
+          : _buildNewsList(_articles, isDarkMode);
+    }
 
-      return Container(
-        width: double.infinity,
-        clipBehavior: Clip.antiAlias,
-        decoration: HomeUi.cardDecoration(isDarkMode),
-        child: body,
-      );
-    });
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: HomeUi.cardDecoration(isDarkMode),
+      child: body,
+    );
   }
 
   Widget _buildShimmer(bool isDarkMode) {
@@ -122,7 +153,7 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
 
   static const double _newsItemHeight = 156;
 
-  Widget _buildNewsList(List<MarketNews> newsList, bool isDarkMode) {
+  Widget _buildNewsList(List<CompanyNewsItem> newsList, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
@@ -230,18 +261,18 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
   }
 
   Widget _buildNewsItem(
-    MarketNews news,
+    CompanyNewsItem news,
     bool isDarkMode, {
     bool showBottomBorder = true,
   }) {
-    final String headline = (news.headline ?? '').trim().isNotEmpty
-        ? _sanitizeDisplayText(news.headline!.trim())
+    final String headline = news.headline.trim().isNotEmpty
+        ? _sanitizeDisplayText(news.headline.trim())
         : '--';
-    final String summary = (news.summary ?? '').trim().isNotEmpty
-        ? _sanitizeDisplayText(news.summary!.trim())
+    final String summary = news.summary.trim().isNotEmpty
+        ? _sanitizeDisplayText(news.summary.trim())
         : '--';
-    final String source = (news.source ?? '').trim().isNotEmpty
-        ? _sanitizeDisplayText(news.source!.trim()).toUpperCase()
+    final String source = news.source.trim().isNotEmpty
+        ? _sanitizeDisplayText(news.source.trim()).toUpperCase()
         : 'UNKNOWN';
     final bool hasSummary = summary != '--';
 
@@ -252,7 +283,7 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
         showBottomBorder: showBottomBorder,
         onTap: () => openNewsArticle(
           context,
-          url: news.uRL,
+          url: news.url,
           title: headline,
           source: source,
         ),
@@ -260,16 +291,24 @@ class _SimpleNewsWidgetState extends State<SimpleNewsWidget> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                source,
-                style: HomeUi.overline(isDarkMode).copyWith(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.9,
-                  color: HomeUi.muted(isDarkMode),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                children: <Widget>[
+                  Flexible(
+                    child: Text(
+                      source,
+                      style: HomeUi.overline(isDarkMode).copyWith(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.9,
+                        color: HomeUi.muted(isDarkMode),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _NewsToneTag(tone: news.tone, isDarkMode: isDarkMode),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
@@ -483,6 +522,53 @@ class _NewsRowState extends State<_NewsRow> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NewsToneTag extends StatelessWidget {
+  const _NewsToneTag({
+    required this.tone,
+    required this.isDarkMode,
+  });
+
+  final NewsHeadlineTone tone;
+  final bool isDarkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color;
+    switch (tone) {
+      case NewsHeadlineTone.bullish:
+        color = HomeUi.positive(isDarkMode);
+        break;
+      case NewsHeadlineTone.bearish:
+        color = HomeUi.negative(isDarkMode);
+        break;
+      case NewsHeadlineTone.mixed:
+        color = isDarkMode ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+        break;
+      case NewsHeadlineTone.neutral:
+        color = HomeUi.muted(isDarkMode);
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDarkMode ? 0.16 : 0.10),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        tone.label.toUpperCase(),
+        style: TextStyle(
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+          color: color,
         ),
       ),
     );

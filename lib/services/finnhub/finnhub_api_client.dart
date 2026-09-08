@@ -242,6 +242,7 @@ class FinnhubApiClient {
   /// reference data (financials, profile, dividends, etc.) barely changes.
   static Duration _ttlFor(String apiPath, Map<String, String>? qp) {
     if (apiPath == 'quote') return const Duration(seconds: 20);
+    if (apiPath == 'company-news') return const Duration(minutes: 20);
     if (apiPath == 'stock/candle') {
       final String? resolution = qp?['resolution'];
       final bool daily = resolution == null ||

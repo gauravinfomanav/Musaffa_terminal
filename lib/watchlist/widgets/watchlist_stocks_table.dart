@@ -13,6 +13,7 @@ import 'package:musaffa_terminal/watchlist/widgets/add_stocks_modal.dart';
 import 'package:musaffa_terminal/watchlist/widgets/target_price_cell.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_shimmer.dart';
 import 'package:musaffa_terminal/watchlist/widgets/watchlist_table_cells.dart';
+import 'package:musaffa_terminal/watchlist/widgets/watchlist_table_columns.dart';
 import 'package:musaffa_terminal/web_service.dart';
 
 enum _WatchlistSortBy {
@@ -117,7 +118,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
         'filter_by':
             'id:=[${tickerIds.map((String id) => '`$id`').join(',')}]',
         'include_fields':
-            'id,currentPrice,usdMarketCap,volume,currency,priceChange1DPercent,change1DPercent,change1D,priceChange1D,52WeekHigh,52WeekLow,previous_close,open,high,low,peTTM,avgVolume10days,currentDividendYieldTTM,beta,exchange',
+            'id,currentPrice,usdMarketCap,volume,currency,priceChange1DPercent,change1DPercent,change1D,priceChange1D,52WeekHigh,52WeekLow,previous_close,open,high,low,peTTM,avgVolume10days,currentDividendYieldTTM,beta,exchange,sector,industry,epsTTM,pbAnnual,ROE,revenueGrowthTTMYoy,priceChange1WPercent,priceChange1MPercent,priceChangeYTDPercent',
         'per_page': '100',
       };
 
@@ -246,6 +247,19 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
             final double? beta = _toDouble(realTimeData['beta']);
             final String exchange =
                 realTimeData['exchange']?.toString() ?? '';
+            final String sector = realTimeData['sector']?.toString() ?? '';
+            final String industry = realTimeData['industry']?.toString() ?? '';
+            final double? epsTTM = _toDouble(realTimeData['epsTTM']);
+            final double? pbAnnual = _toDouble(realTimeData['pbAnnual']);
+            final double? roe = _toDouble(realTimeData['ROE']);
+            final double? revGrowth =
+                _toDouble(realTimeData['revenueGrowthTTMYoy']);
+            final double? change1W =
+                _toDouble(realTimeData['priceChange1WPercent']);
+            final double? change1M =
+                _toDouble(realTimeData['priceChange1MPercent']);
+            final double? changeYTD =
+                _toDouble(realTimeData['priceChangeYTDPercent']);
 
             final String logo = logoInfo?['logo'] ?? '';
             final String name = logoInfo?['name'] ?? watchlistStock.ticker;
@@ -295,17 +309,46 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
                     current: currentPrice,
                     isDark: isDark,
                   ),
-                  'weekHigh': weekHigh,
-                  'weekLow': weekLow,
-                  'open': open,
-                  'previousClose': previousClose,
-                  'high': high,
-                  'low': low,
-                  'peTTM': peTTM,
-                  'avgVolume': avgVolume,
-                  'dividendYield': dividendYield,
-                  'beta': beta,
-                  'exchange': exchange,
+                  'weekHigh': _fmtPrice(weekHigh),
+                  'weekLow': _fmtPrice(weekLow),
+                  'open': _fmtPrice(open),
+                  'openSort': open,
+                  'previousClose': _fmtPrice(previousClose),
+                  'previousCloseSort': previousClose,
+                  'high': _fmtPrice(high),
+                  'highSort': high,
+                  'low': _fmtPrice(low),
+                  'lowSort': low,
+                  'peTTM': _fmtNum(peTTM),
+                  'peTTMSort': peTTM,
+                  'epsTTM': _fmtNum(epsTTM),
+                  'epsTTMSort': epsTTM,
+                  'avgVolume': _formatVolumeShort(avgVolume ?? 0),
+                  'avgVolumeSort': avgVolume,
+                  'dividendYield': _fmtPct(dividendYield, signed: false),
+                  'dividendYieldSort': dividendYield,
+                  'beta': _fmtNum(beta),
+                  'betaSort': beta,
+                  'exchange': exchange.isEmpty ? '—' : exchange,
+                  'sector': sector.isEmpty ? '—' : sector,
+                  'industry': industry.isEmpty ? '—' : industry,
+                  'weekHighSort': weekHigh,
+                  'weekLowSort': weekLow,
+                  'pb': _fmtNum(pbAnnual),
+                  'pbSort': pbAnnual,
+                  'roe': _fmtPct(roe, signed: false),
+                  'roeSort': roe,
+                  'revGrowth': _fmtPct(revGrowth),
+                  'revGrowthSort': revGrowth,
+                  'change1W': _fmtPct(change1W),
+                  'change1WSort': change1W,
+                  'change1M': _fmtPct(change1M),
+                  'change1MSort': change1M,
+                  'changeYTD': _fmtPct(changeYTD),
+                  'changeYTDSort': changeYTD,
+                  'addedPriceDisplay': _fmtPrice(addedPrice),
+                  'gainLossDisplay': _fmtSignedPrice(priceDiff),
+                  'gainLossPercentDisplay': _fmtPct(gainLossPercent),
                   'targetPrice': TargetPriceCell(
                     ticker: watchlistStock.ticker,
                     bellStyle: true,
@@ -371,6 +414,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
                   'marketCapRaw': 0.0,
                   'volumeRaw': 0.0,
                   'volume': '—',
+                  ..._placeholderMetrics(),
                 },
               ),
             );
@@ -444,6 +488,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
             'marketCapRaw': 0.0,
             'volumeRaw': 0.0,
             'volume': '—',
+            ..._placeholderMetrics(),
           },
         ),
       );
@@ -933,60 +978,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
 
   Widget _buildTable() {
     final bool isDark = widget.isDarkMode;
-    final List<SimpleColumn> columns = <SimpleColumn>[
-      const SimpleColumn(
-        label: 'PRICE',
-        fieldName: 'priceDisplay',
-        isNumeric: true,
-        width: 100,
-      ),
-      const SimpleColumn(
-        label: 'CHANGE %',
-        fieldName: 'changeCell',
-        isNumeric: true,
-        width: 110,
-      ),
-      const SimpleColumn(
-        label: '1D CHART',
-        fieldName: 'sparkline',
-        isNumeric: false,
-        align: TextAlign.center,
-        width: 104,
-      ),
-      const SimpleColumn(
-        label: 'MKT CAP',
-        fieldName: 'marketCap',
-        isNumeric: true,
-        width: 112,
-      ),
-      const SimpleColumn(
-        label: 'VOLUME',
-        fieldName: 'volume',
-        isNumeric: true,
-        width: 96,
-      ),
-      const SimpleColumn(
-        label: '52W RANGE',
-        fieldName: 'range52',
-        isNumeric: false,
-        align: TextAlign.center,
-        width: 180,
-      ),
-      const SimpleColumn(
-        label: 'ALERTS',
-        fieldName: 'targetPrice',
-        isNumeric: false,
-        align: TextAlign.center,
-        width: 120,
-      ),
-      const SimpleColumn(
-        label: 'NOTES',
-        fieldName: 'notes',
-        isNumeric: false,
-        align: TextAlign.center,
-        width: 72,
-      ),
-    ];
+    final List<SimpleColumn> columns = WatchlistTableColumns.all();
 
     // Ensure page is valid after filter/sort.
     if (_page > _totalPages) {
@@ -1019,6 +1011,7 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
           zebraStripes: true,
           enableLivePrices: true,
           enableColumnCustomization: true,
+          defaultVisibleColumnKeys: WatchlistTableColumns.defaultVisibleKeys,
           tableId: 'watchlist_stocks_table_v2',
           showColumnActionMenu: true,
           showColumnResizeHandle: true,
@@ -1054,6 +1047,56 @@ class _WatchlistStocksTableState extends State<WatchlistStocksTable> {
       return double.tryParse(value.replaceAll('%', '').trim());
     }
     return null;
+  }
+
+  String _fmtNum(double? value, {int decimals = 2}) {
+    if (value == null) return '—';
+    return value.toStringAsFixed(decimals);
+  }
+
+  String _fmtPrice(double? value) {
+    if (value == null) return '—';
+    return '\$${value.toStringAsFixed(2)}';
+  }
+
+  String _fmtSignedPrice(double value) {
+    final String sign = value >= 0 ? '+' : '-';
+    return '$sign\$${value.abs().toStringAsFixed(2)}';
+  }
+
+  String _fmtPct(double? value, {bool signed = true}) {
+    if (value == null) return '—';
+    final String sign = signed ? (value >= 0 ? '+' : '') : '';
+    return '$sign${value.toStringAsFixed(2)}%';
+  }
+
+  Map<String, dynamic> _placeholderMetrics() {
+    const String dash = '—';
+    return <String, dynamic>{
+      'open': dash,
+      'previousClose': dash,
+      'high': dash,
+      'low': dash,
+      'peTTM': dash,
+      'epsTTM': dash,
+      'avgVolume': dash,
+      'dividendYield': dash,
+      'beta': dash,
+      'exchange': dash,
+      'sector': dash,
+      'industry': dash,
+      'weekHigh': dash,
+      'weekLow': dash,
+      'pb': dash,
+      'roe': dash,
+      'revGrowth': dash,
+      'change1W': dash,
+      'change1M': dash,
+      'changeYTD': dash,
+      'addedPriceDisplay': dash,
+      'gainLossDisplay': dash,
+      'gainLossPercentDisplay': dash,
+    };
   }
 
   /// Compact volume: 23.4K · 25.9M · 1.2B · 3.1T

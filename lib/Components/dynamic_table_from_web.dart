@@ -127,6 +127,9 @@ class DynamicTableFromWeb extends StatefulWidget {
   final bool paginated;
   final bool selectable;
   final bool enableColumnVisibilityToggle;
+  final List<String>? initialVisibleColumnKeys;
+  final List<String>? defaultVisibleColumnKeys;
+  final ValueChanged<Set<String>>? onColumnVisibilityChanged;
   final bool enableColumnReorder;
   final bool enableColumnPinning;
   final bool enableRowReorder;
@@ -213,6 +216,9 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.paginated = true,
     this.selectable = false,
     this.enableColumnVisibilityToggle = true,
+    this.initialVisibleColumnKeys,
+    this.defaultVisibleColumnKeys,
+    this.onColumnVisibilityChanged,
     this.enableColumnReorder = true,
     this.enableColumnPinning = true,
     this.enableRowReorder = true,
@@ -315,7 +321,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
   void initState() {
     super.initState();
     _columnOrder = _getEffectiveColumns().map((c) => c.key).toList();
-    _visibleColumns = Set.from(_columnOrder);
+    _visibleColumns = _resolveInitialVisibleColumns(_columnOrder);
     _selectedRowIds = <String>{};
     _columnFilterValues = <String, dynamic>{};
     _columnWidths = <String, double>{};
@@ -347,22 +353,47 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         oldWidget.showTwoYearCAGR != widget.showTwoYearCAGR ||
         oldWidget.showFiveYearCAGR != widget.showFiveYearCAGR ||
         oldWidget.showStandardDeviation != widget.showStandardDeviation) {
-      final effectiveKeys = _getEffectiveColumns().map((c) => c.key).toSet();
-      final nextOrder = <String>[];
-      for (final key in _columnOrder) {
-        if (effectiveKeys.contains(key)) {
-          nextOrder.add(key);
+      final List<String> oldKeys =
+          oldWidget.columns.map((DynamicTableColumn c) => c.key).toList();
+      final List<String> newKeys =
+          widget.columns.map((DynamicTableColumn c) => c.key).toList();
+      final bool keysChanged = oldKeys.join('|') != newKeys.join('|');
+      if (!keysChanged &&
+          oldWidget.showYoYGrowth == widget.showYoYGrowth &&
+          oldWidget.showThreeYearAvg == widget.showThreeYearAvg &&
+          oldWidget.showTwoYearCAGR == widget.showTwoYearCAGR &&
+          oldWidget.showFiveYearCAGR == widget.showFiveYearCAGR &&
+          oldWidget.showStandardDeviation == widget.showStandardDeviation) {
+        // Same column keys; keep current visibility.
+      } else {
+        final effectiveKeys = _getEffectiveColumns().map((c) => c.key).toSet();
+        final nextOrder = <String>[];
+        for (final key in _columnOrder) {
+          if (effectiveKeys.contains(key)) {
+            nextOrder.add(key);
+          }
         }
-      }
-      for (final col in _getEffectiveColumns()) {
-        if (!nextOrder.contains(col.key)) {
-          nextOrder.add(col.key);
+        for (final col in _getEffectiveColumns()) {
+          if (!nextOrder.contains(col.key)) {
+            nextOrder.add(col.key);
+          }
         }
+        _columnOrder = nextOrder;
+        _visibleColumns = _visibleColumns.intersection(effectiveKeys);
+        final Set<String> previousKeys = oldKeys.toSet();
+        for (final String key in nextOrder) {
+          if (previousKeys.contains(key)) continue;
+          final List<String>? defaults = widget.defaultVisibleColumnKeys ??
+              widget.initialVisibleColumnKeys;
+          if (defaults == null || defaults.contains(key)) {
+            _visibleColumns.add(key);
+          }
+        }
+        if (_visibleColumns.isEmpty && nextOrder.isNotEmpty) {
+          _visibleColumns.add(nextOrder.first);
+        }
+        _naturalMinWidths.clear();
       }
-      _columnOrder = nextOrder;
-      _visibleColumns = _visibleColumns.intersection(effectiveKeys);
-      _visibleColumns.addAll(nextOrder);
-      _naturalMinWidths.clear();
     }
     if (oldWidget.rows != widget.rows) {
       _initializeExpandedRows(widget.rows);
@@ -375,6 +406,47 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
     super.dispose();
+  }
+
+  Set<String> _resolveInitialVisibleColumns(List<String> order) {
+    final Set<String> orderSet = order.toSet();
+    final List<String>? preferred =
+        widget.initialVisibleColumnKeys ?? widget.defaultVisibleColumnKeys;
+    if (preferred != null && preferred.isNotEmpty) {
+      final Set<String> visible = preferred
+          .where((String key) => orderSet.contains(key))
+          .toSet();
+      if (visible.isNotEmpty) return visible;
+    }
+    return Set<String>.from(order);
+  }
+
+  void _toggleColumnVisibility(String key) {
+    setState(() {
+      if (_visibleColumns.contains(key)) {
+        if (_visibleColumns.length <= 1) return;
+        _visibleColumns.remove(key);
+      } else {
+        _visibleColumns.add(key);
+      }
+    });
+    widget.onColumnVisibilityChanged?.call(Set<String>.from(_visibleColumns));
+  }
+
+  void _resetColumnVisibility() {
+    setState(() {
+      _visibleColumns = _resolveInitialVisibleColumns(_columnOrder);
+      if (widget.defaultVisibleColumnKeys != null &&
+          widget.defaultVisibleColumnKeys!.isNotEmpty) {
+        _visibleColumns = widget.defaultVisibleColumnKeys!
+            .where(_columnOrder.contains)
+            .toSet();
+      }
+      if (_visibleColumns.isEmpty && _columnOrder.isNotEmpty) {
+        _visibleColumns = <String>{_columnOrder.first};
+      }
+    });
+    widget.onColumnVisibilityChanged?.call(Set<String>.from(_visibleColumns));
   }
 
   void _onRowHoverEnter(String rowId) {
@@ -2175,15 +2247,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                   ColumnVisibilityButton(
                     columns: effectiveColumns,
                     visibleColumns: _visibleColumns,
-                    onColumnToggle: (key) {
-                      setState(() {
-                        if (_visibleColumns.contains(key)) {
-                          _visibleColumns.remove(key);
-                        } else {
-                          _visibleColumns.add(key);
-                        }
-                      });
-                    },
+                    defaultVisibleKeys: widget.defaultVisibleColumnKeys,
+                    onColumnToggle: _toggleColumnVisibility,
+                    onReset: _resetColumnVisibility,
                     isDark: isDark,
                   ),
                 ],
@@ -2313,6 +2379,8 @@ class ColumnVisibilityButton extends StatefulWidget {
   final List<DynamicTableColumn> columns;
   final Set<String> visibleColumns;
   final Function(String) onColumnToggle;
+  final VoidCallback? onReset;
+  final List<String>? defaultVisibleKeys;
   final bool isDark;
 
   const ColumnVisibilityButton({
@@ -2320,6 +2388,8 @@ class ColumnVisibilityButton extends StatefulWidget {
     required this.visibleColumns,
     required this.onColumnToggle,
     required this.isDark,
+    this.onReset,
+    this.defaultVisibleKeys,
     Key? key,
   }) : super(key: key);
 
@@ -2329,12 +2399,15 @@ class ColumnVisibilityButton extends StatefulWidget {
 
 class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
   final LayerLink _layerLink = LayerLink();
+  final TextEditingController _searchController = TextEditingController();
   OverlayEntry? _overlayEntry;
   bool _menuOpen = false;
   Set<String> _overlayVisibleColumns = <String>{};
+  String _searchQuery = '';
 
   @override
   void dispose() {
+    _searchController.dispose();
     _removeOverlay();
     super.dispose();
   }
@@ -2356,6 +2429,8 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
     }
 
     _overlayVisibleColumns = Set<String>.from(widget.visibleColumns);
+    _searchQuery = '';
+    _searchController.clear();
 
     setState(() {
       _menuOpen = true;
@@ -2395,8 +2470,8 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                     );
                   },
                   child: Container(
-                    width: 300,
-                    constraints: const BoxConstraints(maxHeight: 380),
+                    width: 320,
+                    constraints: const BoxConstraints(maxHeight: 460),
                     decoration: BoxDecoration(
                       color: HomeUi.cardBg(isDark),
                       borderRadius: BorderRadius.circular(16),
@@ -2417,11 +2492,77 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          child: Text(
-                            'SHOW COLUMNS',
-                            style: HomeUi.overline(isDark).copyWith(
-                              letterSpacing: 1.2,
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'COLUMNS',
+                                style: HomeUi.overline(isDark).copyWith(
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Add extra metrics or hide columns you do not need.',
+                                style: HomeUi.subtitle(isDark).copyWith(
+                                  fontSize: 12,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (String value) {
+                              _searchQuery = value.trim().toLowerCase();
+                              _overlayEntry?.markNeedsBuild();
+                            },
+                            style: HomeUi.control(isDark, active: true)
+                                .copyWith(fontSize: 12.5),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'Search columns...',
+                              hintStyle: HomeUi.control(isDark).copyWith(
+                                fontSize: 12.5,
+                                color: HomeUi.muted(isDark),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                size: 16,
+                                color: HomeUi.muted(isDark),
+                              ),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              filled: true,
+                              fillColor: HomeUi.elevatedBg(isDark),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: HomeUi.borderLight(isDark),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: HomeUi.borderLight(isDark),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: HomeUi.borderStrong(isDark),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -2431,33 +2572,48 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
                           color: HomeUi.borderLight(isDark),
                         ),
                         Flexible(
-                          child: ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                            shrinkWrap: true,
-                            itemCount: widget.columns.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final col = widget.columns[index];
-                              final isVisible =
-                                  _overlayVisibleColumns.contains(col.key);
-                              return _ColumnMenuRow(
-                                label: col.fullLabel,
-                                selected: isVisible,
-                                isDark: isDark,
-                                onTap: () {
-                                  if (isVisible) {
-                                    _overlayVisibleColumns.remove(col.key);
-                                  } else {
-                                    _overlayVisibleColumns.add(col.key);
-                                  }
-                                  widget.onColumnToggle(col.key);
+                          child: _buildColumnPickerList(isDark),
+                        ),
+                        if (widget.onReset != null) ...[
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: HomeUi.borderLight(isDark),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: () {
+                                  widget.onReset!();
+                                  _overlayVisibleColumns =
+                                      (widget.defaultVisibleKeys ??
+                                              widget.columns
+                                                  .map((c) => c.key)
+                                                  .toList())
+                                          .toSet();
                                   _overlayEntry?.markNeedsBuild();
                                 },
-                              );
-                            },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Reset to default',
+                                  style: HomeUi.subtitle(isDark).copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -2470,6 +2626,89 @@ class _ColumnVisibilityButtonState extends State<ColumnVisibilityButton> {
     );
 
     Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  Widget _buildColumnPickerList(bool isDark) {
+    final String query = _searchQuery;
+    bool matches(DynamicTableColumn col) {
+      if (query.isEmpty) return true;
+      return col.fullLabel.toLowerCase().contains(query) ||
+          col.label.toLowerCase().contains(query) ||
+          col.key.toLowerCase().contains(query);
+    }
+
+    final List<DynamicTableColumn> shown = widget.columns
+        .where(
+          (DynamicTableColumn col) =>
+              _overlayVisibleColumns.contains(col.key) && matches(col),
+        )
+        .toList();
+    final List<DynamicTableColumn> available = widget.columns
+        .where(
+          (DynamicTableColumn col) =>
+              !_overlayVisibleColumns.contains(col.key) && matches(col),
+        )
+        .toList();
+
+    final List<Widget> slivers = <Widget>[];
+    void addSection(String title, List<DynamicTableColumn> items) {
+      if (items.isEmpty) return;
+      slivers.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+          child: Text(
+            title,
+            style: HomeUi.overline(isDark).copyWith(
+              fontSize: 10,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+      );
+      for (int i = 0; i < items.length; i++) {
+        final DynamicTableColumn col = items[i];
+        final bool isVisible = _overlayVisibleColumns.contains(col.key);
+        slivers.add(
+          Padding(
+            padding: EdgeInsets.only(bottom: i == items.length - 1 ? 8 : 8),
+            child: _ColumnMenuRow(
+              label: col.fullLabel,
+              selected: isVisible,
+              isDark: isDark,
+              onTap: () {
+                if (isVisible) {
+                  if (_overlayVisibleColumns.length <= 1) return;
+                  _overlayVisibleColumns.remove(col.key);
+                } else {
+                  _overlayVisibleColumns.add(col.key);
+                }
+                widget.onColumnToggle(col.key);
+                _overlayEntry?.markNeedsBuild();
+              },
+            ),
+          ),
+        );
+      }
+    }
+
+    addSection('Shown on table', shown);
+    addSection('Available to add', available);
+
+    if (slivers.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'No columns match that search.',
+          style: HomeUi.subtitle(isDark).copyWith(fontSize: 12),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      shrinkWrap: true,
+      children: slivers,
+    );
   }
 
   @override

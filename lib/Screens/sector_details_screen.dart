@@ -516,12 +516,12 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         marketSummaryController.data;
 
         final points = <_SectorPeriodReturn>[
-          _SectorPeriodReturn('1D', _getSectorChange('1D')),
-          _SectorPeriodReturn('5D', _getSectorChange('5D')),
-          _SectorPeriodReturn('1M', _getSectorChange('1M')),
-          _SectorPeriodReturn('3M', _getSectorChange('3M')),
-          _SectorPeriodReturn('6M', _getSectorChange('6M')),
-          _SectorPeriodReturn('1Y', _getSectorChange('1Y')),
+          _SectorPeriodReturn('1D', _sectorChartValue(_getSectorChange('1D'))),
+          _SectorPeriodReturn('5D', _sectorChartValue(_getSectorChange('5D'))),
+          _SectorPeriodReturn('1M', _sectorChartValue(_getSectorChange('1M'))),
+          _SectorPeriodReturn('3M', _sectorChartValue(_getSectorChange('3M'))),
+          _SectorPeriodReturn('6M', _sectorChartValue(_getSectorChange('6M'))),
+          _SectorPeriodReturn('1Y', _sectorChartValue(_getSectorChange('1Y'))),
         ];
 
         return SizedBox(
@@ -541,16 +541,38 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
     final values = points.map((p) => p.value).toList();
     final minVal = values.reduce((a, b) => a < b ? a : b);
     final maxVal = values.reduce((a, b) => a > b ? a : b);
-    final span = (maxVal - minVal).abs();
-    final pad = (span * 0.12).clamp(2.0, 10.0);
+    final bool allFlat = values.every((double v) => v == 0);
 
-    // Anchor to 0 so the wash fills the full plot (true area chart, not a thin ribbon).
-    final double yMin = minVal >= 0 ? 0 : (minVal - pad);
-    final double yMax = maxVal <= 0 ? 0 : (maxVal + pad);
+    late final double yMin;
+    late double yMax;
+    if (allFlat) {
+      // Keep the 0% baseline above the period labels.
+      yMin = -0.35;
+      yMax = 1.0;
+    } else {
+      final double span = (maxVal - minVal).abs();
+      final double pad = span < 0.5
+          ? (maxVal.abs() < 1 ? 0.45 : span * 0.22)
+          : (span * 0.16).clamp(0.45, 8.0);
+      yMin = minVal >= 0 ? -0.08 : (minVal - pad);
+      yMax = maxVal <= 0 ? pad : (maxVal + pad);
+      if (yMax <= yMin) {
+        yMax = yMin + 1;
+      }
+    }
+
+    final MarkerSettings markers = MarkerSettings(
+      isVisible: true,
+      height: 6,
+      width: 6,
+      color: theme.surface,
+      borderWidth: 2,
+      borderColor: lineColor,
+    );
 
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
-      margin: const EdgeInsets.only(top: 8, right: 4, bottom: 2, left: 2),
+      margin: const EdgeInsets.fromLTRB(8, 16, 10, 12),
       primaryXAxis: CategoryAxis(
         majorGridLines: const MajorGridLines(width: 0),
         axisLine: const AxisLine(width: 0),
@@ -558,16 +580,20 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         labelStyle: theme.axisLabel(size: 10),
         labelPlacement: LabelPlacement.onTicks,
         interval: 1,
+        plotOffset: 10,
       ),
       primaryYAxis: NumericAxis(
         opposedPosition: true,
+        minimum: yMin,
+        maximum: yMax,
+        rangePadding: ChartRangePadding.none,
+        plotOffsetStart: 8,
+        plotOffsetEnd: 14,
         majorGridLines: MajorGridLines(width: 0.5, color: theme.grid),
         axisLine: const AxisLine(width: 0),
         majorTickLines: const MajorTickLines(size: 0),
         labelStyle: theme.axisLabel(size: 10),
         labelFormat: '{value}%',
-        minimum: yMin,
-        maximum: yMax == yMin ? yMin + 1 : yMax,
       ),
       trackballBehavior: TrackballBehavior(
         enable: true,
@@ -589,9 +615,9 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
           final y = details.point?.y;
           if (x is! String || y is! num) return const SizedBox.shrink();
           final value = y.toDouble();
-          final valueColor = value > 0
+          final valueColor = value > 0.005
               ? theme.positive
-              : value < 0
+              : value < -0.005
                   ? theme.negative
                   : theme.muted;
           return Container(
@@ -613,30 +639,42 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
         },
       ),
       series: <CartesianSeries<_SectorPeriodReturn, String>>[
-        SplineAreaSeries<_SectorPeriodReturn, String>(
+        if (!allFlat)
+          AreaSeries<_SectorPeriodReturn, String>(
+            dataSource: points,
+            xValueMapper: (_SectorPeriodReturn p, _) => p.period,
+            yValueMapper: (_SectorPeriodReturn p, _) => p.value,
+            borderDrawMode: BorderDrawMode.top,
+            borderWidth: 0,
+            animationDuration: 700,
+            markerSettings: const MarkerSettings(isVisible: false),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const <double>[0.0, 0.45, 1.0],
+              colors: <Color>[
+                lineColor.withValues(alpha: isDark ? 0.55 : 0.42),
+                lineColor.withValues(alpha: isDark ? 0.22 : 0.16),
+                lineColor.withValues(alpha: isDark ? 0.04 : 0.02),
+              ],
+            ),
+          ),
+        LineSeries<_SectorPeriodReturn, String>(
           dataSource: points,
           xValueMapper: (_SectorPeriodReturn p, _) => p.period,
           yValueMapper: (_SectorPeriodReturn p, _) => p.value,
-          borderDrawMode: BorderDrawMode.top,
-          borderWidth: 2.4,
-          borderColor: lineColor,
+          color: lineColor,
+          width: 2.4,
           animationDuration: 700,
-          splineType: SplineType.cardinal,
-          cardinalSplineTension: 0.28,
-          markerSettings: const MarkerSettings(isVisible: false),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: const <double>[0.0, 0.45, 1.0],
-            colors: <Color>[
-              lineColor.withValues(alpha: isDark ? 0.55 : 0.42),
-              lineColor.withValues(alpha: isDark ? 0.22 : 0.16),
-              lineColor.withValues(alpha: isDark ? 0.04 : 0.02),
-            ],
-          ),
+          markerSettings: markers,
         ),
       ],
     );
+  }
+
+  /// Treat missing / rounded-to-zero returns as an exact 0 so the line stays flat.
+  double _sectorChartValue(double value) {
+    return value.abs() < 0.005 ? 0.0 : value;
   }
 
   double _getSectorChange(String period) {

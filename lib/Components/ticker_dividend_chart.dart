@@ -39,7 +39,8 @@ class TickerDividendChart extends StatelessWidget {
     }
 
     final List<DividendChartPoint> points = entries
-        .where((DividendEntry entry) => entry.amount != null)
+        .where((DividendEntry entry) =>
+            entry.amount != null && entry.amount! > 0)
         .map(
           (DividendEntry entry) => DividendChartPoint(
             date: entry.date,
@@ -62,6 +63,10 @@ class TickerDividendChart extends StatelessWidget {
       fontWeight: FontWeight.w500,
     );
     final Color lineColor = const Color(0xFFE4621E);
+    final double maxAmount = points
+        .map((DividendChartPoint p) => p.amount)
+        .reduce((double a, double b) => a > b ? a : b);
+    final double yMax = maxAmount <= 0 ? 1 : maxAmount * 1.32;
 
     return TickerFinnhubSectionCard(
       isDarkMode: isDarkMode,
@@ -76,10 +81,10 @@ class TickerDividendChart extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 228,
+            height: 236,
             child: SfCartesianChart(
               plotAreaBorderWidth: 0,
-              margin: const EdgeInsets.only(top: 8, right: 8),
+              margin: const EdgeInsets.fromLTRB(8, 20, 14, 8),
               primaryXAxis: DateTimeAxis(
                 majorGridLines: const MajorGridLines(width: 0),
                 axisLine: AxisLine(width: 1, color: axisColor),
@@ -88,6 +93,7 @@ class TickerDividendChart extends StatelessWidget {
                 labelIntersectAction: AxisLabelIntersectAction.none,
                 edgeLabelPlacement: EdgeLabelPlacement.shift,
                 desiredIntervals: 5,
+                plotOffset: 8,
                 axisLabelFormatter: (AxisLabelRenderDetails details) {
                   final DateTime date = DateTime.fromMillisecondsSinceEpoch(
                     details.value.toInt(),
@@ -99,6 +105,11 @@ class TickerDividendChart extends StatelessWidget {
                 },
               ),
               primaryYAxis: NumericAxis(
+                minimum: 0,
+                maximum: yMax,
+                rangePadding: ChartRangePadding.none,
+                plotOffsetEnd: 18,
+                plotOffsetStart: 10,
                 majorGridLines: const MajorGridLines(width: 0),
                 axisLine: AxisLine(width: 1, color: axisColor),
                 majorTickLines: const MajorTickLines(size: 0),
@@ -144,10 +155,11 @@ class TickerDividendChart extends StatelessWidget {
                 },
               ),
               series: <CartesianSeries<DividendChartPoint, DateTime>>[
-                SplineAreaSeries<DividendChartPoint, DateTime>(
+                AreaSeries<DividendChartPoint, DateTime>(
                   dataSource: points,
                   xValueMapper: (DividendChartPoint item, _) => item.date,
                   yValueMapper: (DividendChartPoint item, _) => item.amount,
+                  borderDrawMode: BorderDrawMode.top,
                   borderWidth: 2.5,
                   borderColor: lineColor,
                   gradient: LinearGradient(
@@ -161,8 +173,8 @@ class TickerDividendChart extends StatelessWidget {
                   ),
                   markerSettings: MarkerSettings(
                     isVisible: true,
-                    height: 7,
-                    width: 7,
+                    height: 6,
+                    width: 6,
                     color: HomeUi.cardBg(isDarkMode),
                     borderWidth: 2,
                     borderColor: lineColor,
