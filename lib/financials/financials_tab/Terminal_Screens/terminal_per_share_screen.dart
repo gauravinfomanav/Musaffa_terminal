@@ -100,15 +100,16 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       DynamicTableColumn(
         key: 'metric',
         label: 'Metric',
-        width: 260,
+        // Content-measured floor still grows for long labels (e.g. EPS TTM).
+        width: 200,
         align: TextAlign.left,
         sortable: false,
       ),
       ...sortedYears.map((year) => DynamicTableColumn(
             key: year,
             label: year,
-            // Year values like 8.8088 + ⋮ chrome need >80px or digits clip.
-            width: 118,
+            // 8.8088 + cell pad + ⋮ chrome — below ~104 the last digit clips.
+            width: 108,
             align: TextAlign.right,
             sortable: true,
           )),
@@ -221,8 +222,9 @@ class _TerminalPerShareScreenState extends State<TerminalPerShareScreen> {
       compactPinnedLayout: true,
       autoPinStatColumns: false,
       showPinnedSectionDividers: true,
-      columnSpacing: 4,
+      columnSpacing: 2,
       enableColumnStretch: true,
+      shrinkColumnsToFit: true,
       enforceColumnWidths: true,
       initialPinnedLeftColumnKeys: const <String>['metric'],
       onRowDoubleClick: (row) {

@@ -5,7 +5,18 @@ import 'package:flutter/material.dart';
 class QuarterlyChartColors {
   const QuarterlyChartColors._();
 
-  /// Soft human palette (olive → steel → slate → rose → amber → sky → seafoam).
+  /// Deep slate-blue → soft silver (Charts tab bar fill).
+  static const Color barDeep = Color(0xFF2D4E66);
+  static const Color barLight = Color(0xFFD4D8DB);
+
+  /// Vertical fill for positive quarterly bars.
+  static const LinearGradient barFillGradient = LinearGradient(
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+    colors: <Color>[barDeep, barLight],
+  );
+
+  /// Soft multi-tone palette kept for callers that still index by quarter.
   static const List<Color> palette = <Color>[
     Color(0xFFB8C96A), // light olive / pear
     Color(0xFF8FA3B8), // muted steel blue

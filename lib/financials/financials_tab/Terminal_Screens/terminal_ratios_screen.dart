@@ -34,17 +34,17 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
   double _getResponsiveRatiosColumnSpacing(List<String> periods) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // Mirrors this screen's outer layout: container margin (12+12) and inner padding (12+12).
+    // Outer margin (12+12) + card edge inset (12+12).
     final usableWidth = (screenWidth - 48).clamp(0, double.infinity).toDouble();
 
     const metricColumnWidth = 200.0;
-    const periodColumnWidth = 80.0;
+    const periodColumnWidth = 100.0;
     const derivedStatColumnsCount = 5;
-    const derivedStatColumnWidth = 110.0;
+    const derivedStatColumnWidth = 96.0;
 
     final centerColumnCount = periods.length + derivedStatColumnsCount;
     if (centerColumnCount <= 1) {
-      return 40;
+      return 4;
     }
 
     final centerColumnsWidth =
@@ -59,7 +59,8 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
     final calculatedSpacing =
         (availableCenterWidth - centerColumnsWidth) / spacingSlots;
 
-    return calculatedSpacing.clamp(40, 100).toDouble();
+    // Keep gaps tight so the table fits without a horizontal scrollbar.
+    return calculatedSpacing.clamp(2, 8).toDouble();
   }
 
   @override
@@ -177,6 +178,10 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               autoPinStatColumns: false,
               showPinnedSectionDividers: true,
               columnSpacing: responsiveColumnSpacing,
+              enableColumnStretch: true,
+              shrinkColumnsToFit: true,
+              enforceColumnWidths: true,
+              statColumnWidth: 96,
             );
       } else {
         // Show Annual Ratios
@@ -240,6 +245,10 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
               autoPinStatColumns: false,
               showPinnedSectionDividers: true,
               columnSpacing: responsiveColumnSpacing,
+              enableColumnStretch: true,
+              shrinkColumnsToFit: true,
+              enforceColumnWidths: true,
+              statColumnWidth: 96,
             );
       }
     });
@@ -250,7 +259,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       DynamicTableColumn(
         key: 'metric',
         label: 'Metric',
-        width: 260,
+        width: 200,
         align: TextAlign.left,
         sortable: false,
       ),
@@ -264,7 +273,7 @@ class _TerminalRatiosScreenState extends State<TerminalRatiosScreen> {
       return DynamicTableColumn(
         key: period,
         label: period,
-        width: 118,
+        width: 100,
         align: TextAlign.right,
         sortable: true,
       );

@@ -194,6 +194,11 @@ class DynamicTableFromWeb extends StatefulWidget {
   final bool showHeaderTooltip;
   /// When true, visible columns expand to fill unused horizontal space.
   final bool enableColumnStretch;
+  /// When true and columns still overflow after min gaps, shrink widths to fit
+  /// the available width (avoids a horizontal scrollbar when possible).
+  final bool shrinkColumnsToFit;
+  /// Width floor for auto-injected YoY / CAGR / Std Dev columns.
+  final double statColumnWidth;
   /// Optional override for header/cell horizontal insets inside each column.
   final EdgeInsets? columnCellPadding;
   /// Optional override for the title/toolbar row insets.
@@ -283,6 +288,8 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.showPinnedSectionDividers = true,
     this.showHeaderTooltip = true,
     this.enableColumnStretch = true,
+    this.shrinkColumnsToFit = false,
+    this.statColumnWidth = 110,
     this.columnCellPadding,
     this.toolbarPadding,
     this.tableEdgeInset,
@@ -485,7 +492,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       return DynamicTableColumn(
         key: key,
         label: label,
-        width: 110,
+        width: widget.statColumnWidth,
         sortable: true,
         searchable: false,
         pinnable: true,
@@ -541,9 +548,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       _columnShowsActionMenu(col) ? _headerActionReserve : 0;
 
   /// Breathing room from card edge into the first/last column.
+  /// Matches [toolbarPadding] left/right (16) so the first column lines up
+  /// with the card title icon.
   /// Pass [tableEdgeInset] as [EdgeInsets.zero] for intentionally flush tables.
   static const EdgeInsets _kDefaultTableEdgeInset =
-      EdgeInsets.symmetric(horizontal: 12);
+      EdgeInsets.symmetric(horizontal: 16);
 
   EdgeInsets get _effectiveTableEdge =>
       widget.tableEdgeInset ?? _kDefaultTableEdgeInset;
@@ -559,8 +568,14 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
         EdgeInsets.only(left: _headerLeading, right: _cellTrailing);
     final edge = _effectiveTableEdge;
     return EdgeInsets.only(
-      left: base.left + (leadingEdge ? edge.left : 0),
-      right: base.right + (trailingEdge ? edge.right : 0),
+      // Leading/trailing card columns: use edge inset only (same as toolbar
+      // icon at 16). Stacking base+edge pushed metric text past the icon.
+      left: leadingEdge
+          ? (edge.left > 0 ? edge.left : base.left)
+          : base.left,
+      right: trailingEdge
+          ? (edge.right > 0 ? edge.right : base.right)
+          : base.right,
     );
   }
 
@@ -1068,7 +1083,62 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       final double cramped =
           ((usable - contentSum) / gaps).clamp(_kMinColumnSpacing, baseSpacing);
       _liveColumnSpacing = cramped;
+      if (widget.shrinkColumnsToFit) {
+        final double widthBudget =
+            (usable - _kMinColumnSpacing * gaps).clamp(0, double.infinity);
+        if (widthBudget > 0 && contentSum > widthBudget) {
+          _liveColumnSpacing = _kMinColumnSpacing;
+          _shrinkWidthsToBudget(columns, widthBudget);
+        }
+      }
       _stretchFilledAvailableWidth = true;
+    }
+  }
+
+  /// Proportionally shrink column widths to [budget], honoring chrome floors.
+  void _shrinkWidthsToBudget(
+    List<DynamicTableColumn> columns,
+    double budget,
+  ) {
+    double contentSum = 0;
+    for (final col in columns) {
+      contentSum += _stretchedColumnWidths[col.key]!;
+    }
+    if (contentSum <= budget || contentSum <= 0) return;
+
+    final EdgeInsets cellPad = widget.columnCellPadding ??
+        EdgeInsets.only(left: _headerLeading, right: _cellTrailing);
+    final floors = <String, double>{};
+    double floorSum = 0;
+    for (final col in columns) {
+      final double chrome =
+          cellPad.left + cellPad.right + _actionReserveFor(col) + 4;
+      // Keep enough room for ~4–5 digits; metric needs a longer label floor.
+      final bool isMetric = col.key.toLowerCase() == 'metric';
+      final double floor = chrome + (isMetric ? 72.0 : 40.0);
+      final double natural = _stretchedColumnWidths[col.key]!;
+      floors[col.key] = floor < natural ? floor : natural;
+      floorSum += floors[col.key]!;
+    }
+
+    if (floorSum >= budget) {
+      for (final col in columns) {
+        _stretchedColumnWidths[col.key] = floors[col.key]!;
+      }
+      return;
+    }
+
+    double excessTotal = 0;
+    for (final col in columns) {
+      excessTotal += _stretchedColumnWidths[col.key]! - floors[col.key]!;
+    }
+    final double slack = budget - floorSum;
+    for (final col in columns) {
+      final double excess =
+          _stretchedColumnWidths[col.key]! - floors[col.key]!;
+      final double share =
+          excessTotal > 0 ? slack * (excess / excessTotal) : 0;
+      _stretchedColumnWidths[col.key] = floors[col.key]! + share;
     }
   }
 
@@ -1755,6 +1825,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             widget.enableColumnStretch || _stretchFilledAvailableWidth;
         final double contentW =
             fillWidth ? availableW : (tableW > 0 ? tableW : availableW);
+        final bool needsHScroll = tableW > availableW + 0.5;
         return SizedBox(
           width: availableW,
           child: AnimatedSize(
@@ -1763,12 +1834,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             alignment: Alignment.topLeft,
             child: Scrollbar(
               controller: _horizontalScrollController,
-              thumbVisibility: true,
+              thumbVisibility: needsHScroll,
               trackVisibility: false,
               scrollbarOrientation: ScrollbarOrientation.bottom,
               child: SingleChildScrollView(
                 controller: _horizontalScrollController,
                 scrollDirection: Axis.horizontal,
+                physics: needsHScroll
+                    ? null
+                    : const NeverScrollableScrollPhysics(),
                 child: SizedBox(
                   width: contentW > tableW ? contentW : tableW,
                   child: _buildAnimatedTableSection(
@@ -1808,18 +1882,20 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required String? expanderColumnKey,
   }) {
     final hasRightChrome = rightPinnedColumns.isNotEmpty;
+    final hasLeftChrome = widget.selectable ||
+        widget.showTickerCell ||
+        leftPinnedColumns.isNotEmpty;
 
+    final bool stretchToCard = widget.enableColumnStretch;
     final row = Row(
-      mainAxisSize: widget.compactPinnedLayout
-          ? MainAxisSize.min
-          : MainAxisSize.max,
+      mainAxisSize: stretchToCard || !widget.compactPinnedLayout
+          ? MainAxisSize.max
+          : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildPinnedSectionSlot(
           slotKey: 'left',
-          visible: widget.selectable ||
-              widget.showTickerCell ||
-              leftPinnedColumns.isNotEmpty,
+          visible: hasLeftChrome,
           child: Container(
             decoration: BoxDecoration(
               color: bgColor,
@@ -1845,7 +1921,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             ),
           ),
         ),
-        if (widget.compactPinnedLayout)
+        if (widget.compactPinnedLayout && !stretchToCard)
           Flexible(
             fit: FlexFit.loose,
             child: _buildScrollableCenterSection(
@@ -1854,7 +1930,8 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
-              applyLeadingEdgeInset: true,
+              // Only the true card-leading section gets toolbar-icon alignment.
+              applyLeadingEdgeInset: !hasLeftChrome,
               applyTrailingEdgeInset: !hasRightChrome,
             ),
           )
@@ -1866,7 +1943,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
-              applyLeadingEdgeInset: true,
+              applyLeadingEdgeInset: !hasLeftChrome,
               applyTrailingEdgeInset: !hasRightChrome,
             ),
           ),
