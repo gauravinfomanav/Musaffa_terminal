@@ -1896,9 +1896,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     final bool hasLeftChrome =
         widget.selectable || pinTicker || leftPinnedColumns.isNotEmpty;
     final hasRightChrome = rightPinnedColumns.isNotEmpty;
-    final hasLeftChrome = widget.selectable ||
-        widget.showTickerCell ||
-        leftPinnedColumns.isNotEmpty;
 
     final bool stretchToCard = widget.enableColumnStretch;
     final row = Row(
@@ -1909,7 +1906,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       children: [
         _buildPinnedSectionSlot(
           slotKey: 'left',
-          visible: hasLeftChrome,
           visible: hasLeftChrome,
           child: Container(
             decoration: BoxDecoration(
@@ -1959,7 +1955,6 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
-              applyLeadingEdgeInset: !hasLeftChrome,
               applyLeadingEdgeInset: !hasLeftChrome,
               applyTrailingEdgeInset: !hasRightChrome,
               includeTicker: embedTicker,

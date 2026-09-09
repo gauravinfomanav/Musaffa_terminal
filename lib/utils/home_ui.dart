@@ -147,30 +147,27 @@ class HomeUi {
 
   /// Solid bar fill for premium quarterly / overview charts.
   static Color chartBarColor(bool dark) =>
-      dark ? const Color(0xFF8BB4E0) : const Color(0xFF6B9FD4);
+      dark ? const Color(0xFFAECBF7) : const Color(0xFF9BBDF5);
 
   static Color chartNegativeBarColor(bool dark) =>
-      dark ? const Color(0xFFD49A90) : const Color(0xFFC4847A);
+      dark ? const Color(0xFFF5B5B6) : const Color(0xFFF0A2A3);
 
   /// Soft multi-tone palette for Charts-tab bars (not Custom Charts).
+  /// `#F4BA7D`, `#F0A2A3`, `#E3ABC0`, `#B493B8`, `#9BBDF5` (then repeats).
   static List<Color> chartBarPalette(bool dark) => dark
       ? const <Color>[
-          Color(0xFFC5D67E),
-          Color(0xFFA3B5C8),
-          Color(0xFF7A8BA0),
-          Color(0xFFD49A90),
-          Color(0xFFE0BC6A),
-          Color(0xFF8BB4E0),
-          Color(0xFF95C4B4),
+          Color(0xFFF7C892),
+          Color(0xFFF5B5B6),
+          Color(0xFFEBBDCE),
+          Color(0xFFC4A8C8),
+          Color(0xFFAECBF7),
         ]
       : const <Color>[
-          Color(0xFFB8C96A),
-          Color(0xFF8FA3B8),
-          Color(0xFF4A5A6E),
-          Color(0xFFC4847A),
-          Color(0xFFD4A84B),
-          Color(0xFF6B9FD4),
-          Color(0xFF7BAFA0),
+          Color(0xFFF4BA7D),
+          Color(0xFFF0A2A3),
+          Color(0xFFE3ABC0),
+          Color(0xFFB493B8),
+          Color(0xFF9BBDF5),
         ];
 
   static Color chartBarPaletteAt(bool dark, int index) {
@@ -711,8 +708,8 @@ class HomeUi {
       'analystrec': 'REC',
       // Ownership / investor / insider thead shorts (full name in tooltip).
       // Avoid generic keys like `share` / `change` — those collide across tables.
-      'previousshares': 'Prev Shares',
-      'prevshare': 'Prev Shares',
+      'previousshares': 'P Share',
+      'prevshare': 'P Share',
       'shareoftotal': 'T Shares',
       'valuechange': 'VAL CHG',
       'percentage': 'PORT %',

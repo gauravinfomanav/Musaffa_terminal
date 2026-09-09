@@ -154,6 +154,7 @@ class DynamicTable extends StatefulWidget {
     this.tableEdgeInset = const EdgeInsets.symmetric(horizontal: 12),
     this.columnCellPadding,
     this.enableColumnStretch = true,
+    this.shrinkColumnsToFit = false,
     this.showSortIndicators = false,
     this.pinTickerCell = true,
   }) : super(key: key);
@@ -197,6 +198,7 @@ class DynamicTable extends StatefulWidget {
   final EdgeInsets? tableEdgeInset;
   final EdgeInsets? columnCellPadding;
   final bool enableColumnStretch;
+  final bool shrinkColumnsToFit;
   final bool showSortIndicators;
   final bool pinTickerCell;
 
@@ -817,6 +819,7 @@ class _DynamicTableState extends State<DynamicTable> {
       columnSpacing: widget.columnSpacing,
       columnCellPadding: widget.columnCellPadding,
       enableColumnStretch: widget.enableColumnStretch,
+      shrinkColumnsToFit: widget.shrinkColumnsToFit,
       pinTickerCell: widget.pinTickerCell,
       zebraStripes: widget.zebraStripes,
       evenRowColor: widget.evenRowColor,

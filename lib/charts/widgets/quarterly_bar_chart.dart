@@ -25,6 +25,7 @@ class QuarterlyBarChart extends StatefulWidget {
     required this.data,
     this.priceData = const <PriceDataPoint>[],
     this.theme = const QuarterlyBarChartTheme(),
+    this.headerTrailing,
   });
 
   final String title;
@@ -33,6 +34,8 @@ class QuarterlyBarChart extends StatefulWidget {
   final List<QuarterDataPoint> data;
   final List<PriceDataPoint> priceData;
   final QuarterlyBarChartTheme theme;
+  /// Optional control opposite the title (e.g. Select Year range filter).
+  final Widget? headerTrailing;
 
   @override
   State<QuarterlyBarChart> createState() => _QuarterlyBarChartState();
@@ -369,7 +372,6 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
     final List<CartesianSeries<QuarterDataPoint, dynamic>> series =
         QuarterlyBarChartEngine.buildColumnSeries(
       data: widget.data,
-      latestIndex: widget.data.isEmpty ? -1 : widget.data.length - 1,
       hoveredIndex: _hoveredIndex,
       theme: widget.theme,
       dataLabelStyle: dataLabelStyle,
@@ -460,6 +462,7 @@ class _QuarterlyBarChartState extends State<QuarterlyBarChart> {
             valueStyle: valueStyle,
             unitStyle: unitStyle,
             inlineHeader: widget.theme.inlineHeader,
+            trailing: widget.headerTrailing,
           ),
           const SizedBox(height: 12),
           if (widget.theme.expandChart)
@@ -680,6 +683,7 @@ class _ChartHeader extends StatelessWidget {
     required this.valueStyle,
     required this.unitStyle,
     this.inlineHeader = false,
+    this.trailing,
   });
 
   final String title;
@@ -689,36 +693,53 @@ class _ChartHeader extends StatelessWidget {
   final TextStyle valueStyle;
   final TextStyle unitStyle;
   final bool inlineHeader;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     if (inlineHeader) {
       return Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Expanded(
-            child: Text(
-              title,
-              style: titleStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    title,
+                    style: titleStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(displayValue, style: valueStyle),
+                if (unit.isNotEmpty) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Text(unit, style: unitStyle),
+                ],
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          Text(displayValue, style: valueStyle),
-          if (unit.isNotEmpty) ...<Widget>[
-            const SizedBox(width: 4),
-            Text(unit, style: unitStyle),
+          if (trailing != null) ...<Widget>[
+            const SizedBox(width: 8),
+            Flexible(child: trailing!),
           ],
         ],
       );
     }
 
-    return Column(
+    final Widget titleAndValue = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(title, style: titleStyle),
+        Text(
+          title,
+          style: titleStyle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 4),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -728,6 +749,28 @@ class _ChartHeader extends StatelessWidget {
             const SizedBox(width: 6),
             Text(unit, style: unitStyle),
           ],
+        ),
+      ],
+    );
+
+    if (trailing == null) {
+      return titleAndValue;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(child: titleAndValue),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Align(
+            alignment: Alignment.topRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: trailing!,
+            ),
+          ),
         ),
       ],
     );

@@ -19,6 +19,11 @@ class TickerQuarterlyChartsController extends GetxController {
       FinancialStatementType.ic.obs;
   final RxList<QuarterlyChartViewModel> charts = <QuarterlyChartViewModel>[].obs;
 
+  /// Distinct quarter-end dates available for the Select Year range filter.
+  final RxList<DateTime> availablePeriods = <DateTime>[].obs;
+  final Rxn<DateTime> rangeStart = Rxn<DateTime>();
+  final Rxn<DateTime> rangeEnd = Rxn<DateTime>();
+
   String? _loadedSymbol;
   List<PriceDataPoint>? _priceSeriesCache;
   final Map<FinancialStatementType, List<QuarterlyChartViewModel>> _cache =
@@ -41,11 +46,15 @@ class TickerQuarterlyChartsController extends GetxController {
       _cache.clear();
       _priceSeriesCache = null;
       _loadedSymbol = null;
+      availablePeriods.clear();
+      rangeStart.value = null;
+      rangeEnd.value = null;
     }
 
     if (normalized == _loadedSymbol && _cache.containsKey(type)) {
       selectedStatement.value = type;
       charts.assignAll(_cache[type]!);
+      _syncPeriodsFromCharts(_cache[type]!);
       errorMessage.value = '';
       isLoading.value = false;
       return;
@@ -86,6 +95,7 @@ class TickerQuarterlyChartsController extends GetxController {
       _loadedSymbol = normalized;
       selectedStatement.value = type;
       charts.assignAll(built);
+      _syncPeriodsFromCharts(built);
     } on InfomanavApiException catch (e) {
       errorMessage.value = e.message;
       if (selectedStatement.value == type) {
@@ -114,12 +124,77 @@ class TickerQuarterlyChartsController extends GetxController {
 
     if (_cache.containsKey(statement)) {
       charts.assignAll(_cache[statement]!);
+      _syncPeriodsFromCharts(_cache[statement]!);
       errorMessage.value = '';
       isLoading.value = false;
       return;
     }
 
     load(_loadedSymbol!, statement: statement);
+  }
+
+  void setRangeStart(DateTime period) {
+    final DateTime? end = rangeEnd.value;
+    rangeStart.value = period;
+    if (end != null && period.isAfter(end)) {
+      rangeEnd.value = period;
+    }
+  }
+
+  void setRangeEnd(DateTime period) {
+    final DateTime? start = rangeStart.value;
+    rangeEnd.value = period;
+    if (start != null && period.isBefore(start)) {
+      rangeStart.value = period;
+    }
+  }
+
+  /// Charts clipped to the active Select Year range.
+  List<QuarterlyChartViewModel> get visibleCharts {
+    final DateTime? start = rangeStart.value;
+    final DateTime? end = rangeEnd.value;
+    if (start == null || end == null) {
+      return charts.toList();
+    }
+    return charts
+        .map((QuarterlyChartViewModel chart) => chart.inPeriodRange(start, end))
+        .toList();
+  }
+
+  void _syncPeriodsFromCharts(List<QuarterlyChartViewModel> built) {
+    final Set<int> seen = <int>{};
+    final List<DateTime> periods = <DateTime>[];
+
+    for (final QuarterlyChartViewModel chart in built) {
+      for (final QuarterDataPoint point in chart.data) {
+        final int key = point.date.year * 100 + point.date.month;
+        if (seen.add(key)) {
+          periods.add(DateTime(point.date.year, point.date.month, point.date.day));
+        }
+      }
+    }
+
+    periods.sort();
+    availablePeriods.assignAll(periods);
+
+    if (periods.isEmpty) {
+      rangeStart.value = null;
+      rangeEnd.value = null;
+      return;
+    }
+
+    final DateTime? currentStart = rangeStart.value;
+    final DateTime? currentEnd = rangeEnd.value;
+    final bool startValid = currentStart != null &&
+        !currentStart.isBefore(periods.first) &&
+        !currentStart.isAfter(periods.last);
+    final bool endValid = currentEnd != null &&
+        !currentEnd.isBefore(periods.first) &&
+        !currentEnd.isAfter(periods.last);
+
+    // Keep user selection when still in bounds; otherwise reset to placeholders.
+    rangeStart.value = startValid ? currentStart : null;
+    rangeEnd.value = endValid ? currentEnd : null;
   }
 
   bool get hasData => charts.isNotEmpty;

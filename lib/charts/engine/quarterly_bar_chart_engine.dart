@@ -364,7 +364,11 @@ class QuarterlyBarChartEngine {
         color: theme.axisLineColor,
       ),
       majorTickLines: const MajorTickLines(size: 0),
-      majorGridLines: const MajorGridLines(width: 0),
+      majorGridLines: MajorGridLines(
+        width: 1,
+        color: theme.gridLineColor,
+        dashArray: const <double>[4, 4],
+      ),
       labelStyle: axisLabelStyle.copyWith(
         fontSize: 11,
         height: 1.15,
@@ -400,7 +404,11 @@ class QuarterlyBarChartEngine {
         color: theme.axisLineColor,
       ),
       majorTickLines: const MajorTickLines(size: 0),
-      majorGridLines: const MajorGridLines(width: 0),
+      majorGridLines: MajorGridLines(
+        width: 1,
+        color: theme.gridLineColor,
+        dashArray: const <double>[4, 4],
+      ),
       labelStyle: axisLabelStyle,
       interval: quarterMonths.toDouble(),
       intervalType: DateTimeIntervalType.months,
@@ -435,7 +443,6 @@ class QuarterlyBarChartEngine {
 
   static List<CartesianSeries<QuarterDataPoint, dynamic>> buildColumnSeries({
     required List<QuarterDataPoint> data,
-    required int latestIndex,
     int? hoveredIndex,
     required QuarterlyBarChartTheme theme,
     required TextStyle dataLabelStyle,
@@ -465,12 +472,15 @@ class QuarterlyBarChartEngine {
           );
 
     Color colorFor(QuarterDataPoint point, int index) {
-      // Soft multi-tone bars (reference palette); negatives stay muted rose.
+      // Soft multi-tone bars (reference palette); negatives stay salmon.
       final Color filled = point.value < 0
           ? negativeColor
           : QuarterlyChartColors.paletteAt(index, dark: darkSurface);
-      final int focusIndex = hoveredIndex ?? latestIndex;
-      if (focusIndex < 0 || data.length <= 1 || index == focusIndex) {
+      // Default: all bars full opacity (screenshot look). Dim others only
+      // while hovering a specific bar.
+      if (hoveredIndex == null ||
+          data.length <= 1 ||
+          index == hoveredIndex) {
         return filled;
       }
       return filled.withValues(alpha: 0.62);
@@ -536,7 +546,7 @@ class QuarterlyBarChartEngine {
   static TextStyle defaultTitleStyle(BuildContext context, bool isDark) {
     return TextStyle(
       fontFamily: Constants.FONT_DEFAULT_NEW,
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: FontWeight.w500,
       color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
     );

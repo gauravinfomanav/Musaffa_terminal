@@ -48,9 +48,12 @@ class TickerPeerComparisonSection extends StatelessWidget {
           columnSpacing: 2,
           columnCellPadding: const EdgeInsets.only(left: 8, right: 4),
           tableEdgeInset: const EdgeInsets.fromLTRB(16, 0, 12, 0),
-          // Fill card when content fits; C PRICE / 1D % stay content-tight.
+          // Fill card when content fits; shrink when many peers/cols would scroll.
           enableColumnStretch: true,
-          fixedColumnWidth: 220,
+          shrinkColumnsToFit: false,
+          fixedColumnWidth: 200,
+          showColumnActionMenu: true,
+          showColumnResizeHandle: true,
           enableLivePrices: false,
           zebraStripes: true,
           enableColumnCustomization: true,

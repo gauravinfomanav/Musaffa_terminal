@@ -8,6 +8,7 @@ import 'package:musaffa_terminal/charts/controllers/ticker_quarterly_charts_cont
 import 'package:musaffa_terminal/charts/models/financial_statement_type.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_bar_chart_model.dart';
 import 'package:musaffa_terminal/charts/models/quarterly_chart_view_model.dart';
+import 'package:musaffa_terminal/charts/widgets/chart_period_range_filter.dart';
 import 'package:musaffa_terminal/charts/widgets/quarterly_bar_chart.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
@@ -80,9 +81,9 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
       priceAxisLabelColor: HomeUi.accent(isDark),
       barColor: HomeUi.chartBarColor(isDark),
       negativeBarColor: HomeUi.chartNegativeBarColor(isDark),
-      barCornerRadius: 9,
-      barWidth: 0.40,
-      barSpacing: 0.16,
+      barCornerRadius: 4,
+      barWidth: 0.34,
+      barSpacing: 0.22,
     );
 
     return Column(
@@ -112,8 +113,9 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                 child: _buildChartsGrid(
-                  charts: _controller.charts.toList(),
+                  charts: _controller.visibleCharts,
                   baseTheme: baseTheme,
+                  isDark: isDark,
                 ),
               ),
             );
@@ -180,6 +182,7 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
   Widget _buildChartsGrid({
     required List<QuarterlyChartViewModel> charts,
     required QuarterlyBarChartTheme baseTheme,
+    required bool isDark,
   }) {
     final List<Widget> rows = <Widget>[];
 
@@ -201,7 +204,11 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
               if (column > 0) const SizedBox(width: 16),
               Expanded(
                 child: column < rowCharts.length
-                    ? _buildChartCard(rowCharts[column], baseTheme)
+                    ? _buildChartCard(
+                        rowCharts[column],
+                        baseTheme,
+                        isDark: isDark,
+                      )
                     : const SizedBox.shrink(),
               ),
             ],
@@ -216,21 +223,34 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
     );
   }
 
+  Widget _buildPeriodFilter(bool isDark) {
+    return ChartPeriodRangeFilter(
+      periods: _controller.availablePeriods.toList(),
+      start: _controller.rangeStart.value,
+      end: _controller.rangeEnd.value,
+      onStartChanged: _controller.setRangeStart,
+      onEndChanged: _controller.setRangeEnd,
+      isDark: isDark,
+    );
+  }
+
   Widget _buildChartCard(
     QuarterlyChartViewModel chart,
-    QuarterlyBarChartTheme baseTheme,
-  ) {
+    QuarterlyBarChartTheme baseTheme, {
+    required bool isDark,
+  }) {
     final FinancialStatementType statement = _controller.selectedStatement.value;
     final bool showPrice = _showPriceOverlayByStatement[statement] ?? false;
 
     return SizedBox(
-      height: 300,
+      height: 320,
       child: QuarterlyBarChart(
         title: chart.title,
         displayValue: chart.displayValue,
         unit: chart.unit,
         data: chart.data,
         priceData: showPrice ? chart.priceData : const <PriceDataPoint>[],
+        headerTrailing: _buildPeriodFilter(isDark),
         theme: QuarterlyBarChartTheme(
           cardBackgroundColor: baseTheme.cardBackgroundColor,
           cardBorderColor: baseTheme.cardBorderColor,
@@ -269,7 +289,7 @@ class _TickerChartsTabContentState extends State<TickerChartsTabContent> {
                 if (column > 0) const SizedBox(width: 16),
                 Expanded(
                   child: ShimmerWidgets.chartShimmer(
-                    height: 300,
+                    height: 320,
                     baseColor: base,
                     highlightColor: highlight,
                   ),
