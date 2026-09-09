@@ -558,73 +558,102 @@ class _ValuationTab extends StatelessWidget {
     final v = snapshot.valuation;
     final liq = snapshot.liquidity;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _AnalyticsCard(
-          isDark: isDark,
-          title: 'Portfolio Valuation',
-          subtitle: 'Allocation-weighted fundamentals · Finnhub',
-          icon: Icons.account_balance_rounded,
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _KpiTile(isDark: isDark, label: 'Portfolio P/E', value: v.pe?.toStringAsFixed(1)),
-              _KpiTile(isDark: isDark, label: 'Portfolio P/B', value: v.pb?.toStringAsFixed(1)),
-              _KpiTile(
-                isDark: isDark,
-                label: 'Dividend yield',
-                value: v.dividendYield != null ? '${v.dividendYield!.toStringAsFixed(2)}%' : null,
-              ),
-              _KpiTile(
-                isDark: isDark,
-                label: 'Avg market cap',
-                value: v.avgMarketCapMillions != null
-                    ? Constants.formatMarketCapFromMillions(v.avgMarketCapMillions!)
-                    : null,
-              ),
-              _KpiTile(
-                isDark: isDark,
-                label: 'Avg volume (10D)',
-                value: v.avgVolume != null ? _formatVolume(v.avgVolume!) : null,
-              ),
-            ],
+    final valuationCard = _AnalyticsCard(
+      isDark: isDark,
+      title: 'Portfolio Valuation',
+      subtitle: 'Allocation-weighted fundamentals · Finnhub',
+      icon: Icons.account_balance_rounded,
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          _KpiTile(isDark: isDark, label: 'Portfolio P/E', value: v.pe?.toStringAsFixed(1)),
+          _KpiTile(isDark: isDark, label: 'Portfolio P/B', value: v.pb?.toStringAsFixed(1)),
+          _KpiTile(
+            isDark: isDark,
+            label: 'Dividend yield',
+            value: v.dividendYield != null ? '${v.dividendYield!.toStringAsFixed(2)}%' : null,
           ),
-        ),
-        const SizedBox(height: 12),
-        _AnalyticsCard(
-          isDark: isDark,
-          title: 'Liquidity',
-          subtitle: 'Volume-based holding classification',
-          icon: Icons.water_drop_rounded,
-          child: Row(
-            children: [
-              Expanded(
-                child: _KpiTile(
-                  isDark: isDark,
-                  label: 'High liquidity',
-                  value: '${liq.highLiquidityCount} holdings',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _KpiTile(
-                  isDark: isDark,
-                  label: 'Low liquidity',
-                  value: '${liq.lowLiquidityCount} holdings',
-                ),
-              ),
-            ],
+          _KpiTile(
+            isDark: isDark,
+            label: 'Avg market cap',
+            value: v.avgMarketCapMillions != null
+                ? Constants.formatMarketCapFromMillions(v.avgMarketCapMillions!)
+                : null,
           ),
-        ),
-        const SizedBox(height: 12),
-        _TopHoldingsCard(
-          isDark: isDark,
-          holdings: snapshot.topHoldings,
-          showFundamentals: true,
-        ),
-      ],
+          _KpiTile(
+            isDark: isDark,
+            label: 'Avg volume (10D)',
+            value: v.avgVolume != null ? _formatVolume(v.avgVolume!) : null,
+          ),
+        ],
+      ),
+    );
+    final liquidityCard = _AnalyticsCard(
+      isDark: isDark,
+      title: 'Liquidity',
+      subtitle: 'Volume-based holding classification',
+      icon: Icons.water_drop_rounded,
+      child: Row(
+        children: [
+          Expanded(
+            child: _KpiTile(
+              isDark: isDark,
+              label: 'High liquidity',
+              value: '${liq.highLiquidityCount} holdings',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _KpiTile(
+              isDark: isDark,
+              label: 'Low liquidity',
+              value: '${liq.lowLiquidityCount} holdings',
+            ),
+          ),
+        ],
+      ),
+    );
+    final holdingsCard = _TopHoldingsCard(
+      isDark: isDark,
+      holdings: snapshot.topHoldings,
+      showFundamentals: true,
+    );
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool wide = constraints.maxWidth >= 900;
+        if (!wide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              valuationCard,
+              const SizedBox(height: 12),
+              liquidityCard,
+              const SizedBox(height: 12),
+              holdingsCard,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  valuationCard,
+                  const SizedBox(height: 12),
+                  liquidityCard,
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: holdingsCard),
+          ],
+        );
+      },
     );
   }
 

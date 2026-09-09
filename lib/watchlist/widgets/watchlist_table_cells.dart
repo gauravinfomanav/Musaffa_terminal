@@ -106,8 +106,11 @@ class WatchlistRange52Cell extends StatelessWidget {
   final bool isDark;
 
   String _fmt(double v) {
-    if (v >= 1000) return v.toStringAsFixed(0);
-    if (v >= 100) return v.toStringAsFixed(1);
+    final double abs = v.abs();
+    if (abs >= 1000000) return '${(v / 1000000).toStringAsFixed(2)}M';
+    if (abs >= 10000) return '${(v / 1000).toStringAsFixed(1)}K';
+    if (abs >= 1000) return v.toStringAsFixed(0);
+    if (abs >= 100) return v.toStringAsFixed(1);
     return v.toStringAsFixed(2);
   }
 
@@ -116,33 +119,30 @@ class WatchlistRange52Cell extends StatelessWidget {
     final bool hasRange =
         low != null && high != null && high! > low! && current != null;
     if (!hasRange) {
-      return Text('—', style: HomeUi.tableCellSecondary(isDark));
+      return SizedBox(
+        width: double.infinity,
+        child: Center(
+          child: Text('--', style: HomeUi.tableCellSecondary(isDark)),
+        ),
+      );
     }
 
     final double t = ((current! - low!) / (high! - low!)).clamp(0.0, 1.0);
-    final TextStyle labelStyle = HomeUi.tableCellSecondary(isDark).copyWith(
-      fontSize: 11.5,
-      fontWeight: FontWeight.w600,
-      letterSpacing: -0.15,
-      height: 1,
-      color: HomeUi.muted(isDark),
-      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    final TextStyle labelStyle = HomeUi.tableNumeric(isDark).copyWith(
+      color: HomeUi.body(isDark),
     );
 
     return SizedBox(
-      width: 176,
+      width: double.infinity,
       child: Row(
         children: [
-          SizedBox(
-            width: 36,
-            child: Text(
-              _fmt(low!),
-              maxLines: 1,
-              overflow: TextOverflow.fade,
-              softWrap: false,
-              textAlign: TextAlign.right,
-              style: labelStyle,
-            ),
+          Text(
+            _fmt(low!),
+            maxLines: 1,
+            overflow: TextOverflow.visible,
+            softWrap: false,
+            textAlign: TextAlign.right,
+            style: labelStyle,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -159,16 +159,13 @@ class WatchlistRange52Cell extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          SizedBox(
-            width: 36,
-            child: Text(
-              _fmt(high!),
-              maxLines: 1,
-              overflow: TextOverflow.fade,
-              softWrap: false,
-              textAlign: TextAlign.left,
-              style: labelStyle,
-            ),
+          Text(
+            _fmt(high!),
+            maxLines: 1,
+            overflow: TextOverflow.visible,
+            softWrap: false,
+            textAlign: TextAlign.left,
+            style: labelStyle,
           ),
         ],
       ),

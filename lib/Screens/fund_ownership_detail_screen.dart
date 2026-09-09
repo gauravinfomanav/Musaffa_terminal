@@ -89,24 +89,15 @@ class _FundOwnershipDetailScreenState extends State<FundOwnershipDetailScreen> {
                       const SizedBox(height: 16),
                       _buildPositionCard(isDark),
                       const SizedBox(height: 16),
-                      if (_controller.isLoading) ...<Widget>[
-                        _shimmerCard(isDark),
-                        const SizedBox(height: 16),
-                        _shimmerCard(isDark, height: 220),
-                      ] else ...<Widget>[
+                      if (_controller.isLoading)
+                        _shimmerCard(isDark, height: 220)
+                      else ...<Widget>[
                         if (_controller.profile != null) ...<Widget>[
                           _buildProfileCard(isDark, _controller.profile!),
                           const SizedBox(height: 16),
                         ],
-                        if (_controller.holdings.isNotEmpty) ...<Widget>[
+                        if (_controller.holdings.isNotEmpty)
                           _buildHoldingsTable(isDark),
-                          const SizedBox(height: 16),
-                        ],
-                        if (_controller.relatedTickers.isNotEmpty)
-                          _buildRelatedTickers(isDark)
-                        else if (!_controller.isLoading &&
-                            _controller.holdings.isEmpty)
-                          _buildEmpty(isDark),
                       ],
                     ],
                   ),
@@ -286,9 +277,14 @@ class _FundOwnershipDetailScreenState extends State<FundOwnershipDetailScreen> {
       showOuterShadow: true,
       considerPadding: false,
       showFixedColumn: true,
+      pinTickerCell: false,
       tickerHeaderLabel: 'TICKER',
       enableLivePrices: false,
       zebraStripes: true,
+      columnSpacing: 16,
+      showColumnActionMenu: false,
+      showColumnResizeHandle: false,
+      enableColumnStretch: true,
       columns: const <SimpleColumn>[
         SimpleColumn(label: 'NAME', fieldName: 'name', width: 220),
         SimpleColumn(
@@ -321,7 +317,7 @@ class _FundOwnershipDetailScreenState extends State<FundOwnershipDetailScreen> {
           symbol: item.symbol,
           name: item.name,
           fields: <String, dynamic>{
-            'name': item.name,
+            'name': _shortTableName(item.name),
             'share': getShortenedT(item.share),
             'change': _signedCompact(item.change),
             'percentage': '${item.percentage.toStringAsFixed(2)}%',
@@ -348,82 +344,6 @@ class _FundOwnershipDetailScreenState extends State<FundOwnershipDetailScreen> {
     );
   }
 
-  Widget _buildRelatedTickers(bool isDark) {
-    return DynamicTable(
-      title: 'Related tickers',
-      subtitle: 'Stocks and ETFs matching this fund name',
-      toolbarLeadingIcon: Icons.search_outlined,
-      showOuterShadow: true,
-      considerPadding: false,
-      showFixedColumn: true,
-      tickerHeaderLabel: 'TICKER',
-      enableLivePrices: false,
-      zebraStripes: true,
-      columns: const <SimpleColumn>[
-        SimpleColumn(label: 'NAME', fieldName: 'name', width: 260),
-        SimpleColumn(label: 'TYPE', fieldName: 'type', width: 90),
-        SimpleColumn(
-          label: 'PRICE',
-          fieldName: 'price',
-          isNumeric: true,
-          width: 110,
-        ),
-      ],
-      rows: _controller.relatedTickers.map((TickerModel ticker) {
-        final String symbol =
-            (ticker.symbol ?? ticker.ticker ?? '').trim().toUpperCase();
-        final String name =
-            ticker.companyName ?? ticker.name ?? ticker.stockName ?? symbol;
-        return SimpleRowModel(
-          symbol: symbol,
-          name: name,
-          logo: ticker.logo,
-          price: ticker.currentPrice,
-          fields: <String, dynamic>{
-            'name': name,
-            'type': ticker.isStock ? 'Stock' : 'ETF',
-            'price': ticker.currentPrice == null
-                ? '--'
-                : valueWithCurrency(
-                    price: ticker.currentPrice,
-                    currency: ticker.currency ?? 'USD',
-                    showCurrencySymbol: true,
-                  ),
-            'isStock': ticker.isStock,
-          },
-        );
-      }).toList(),
-      onTickerTap: (row) {
-        final String symbol = row.data['_ticker_symbol']?.toString() ?? '';
-        final bool isStock = row.data['_is_stock'] != false;
-        final String name = row.data['_company_name']?.toString() ?? symbol;
-        _openKnownTicker(
-          TickerModel(
-            symbol: symbol,
-            ticker: symbol,
-            name: name,
-            companyName: name,
-            isStock: isStock,
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEmpty(bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: HomeUi.cardDecoration(isDark),
-      child: Text(
-        _controller.error ??
-            'No related tickers or fund holdings were found for this holder.',
-        style: HomeUi.subtitle(isDark),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
   Widget _shimmerCard(bool isDark, {double height = 120}) {
     return Container(
       width: double.infinity,
@@ -436,6 +356,12 @@ class _FundOwnershipDetailScreenState extends State<FundOwnershipDetailScreen> {
         borderRadius: BorderRadius.circular(10),
       ),
     );
+  }
+
+  String _shortTableName(String name) {
+    final String trimmed = name.trim();
+    if (trimmed.length <= 34) return trimmed;
+    return '${trimmed.substring(0, 34)}…';
   }
 
   String _signedCompact(num value) {

@@ -907,7 +907,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
                   tooltipLabel: '52-Week Range',
                   sortable: true,
                   align: TextAlign.center,
-                  width: 168,
+                  width: 196,
                   sortValueKey: 'week52HighSort'),
               DynamicTableColumn(
                   key: 'avgVol10d',
@@ -930,8 +930,7 @@ class _SectorDetailsScreenState extends State<SectorDetailsScreen> {
             columnCellPadding: const EdgeInsets.only(left: 10, right: 8),
             // Match toolbar title inset so TICKER lines up with "Sector Stocks".
             tableEdgeInset: const EdgeInsets.fromLTRB(16, 0, 12, 0),
-            // Fill card width when content fits (no h-scroll). PRICE/CHANGE stay
-            // content-tight via isNonStretchTableColumn; later cols absorb slack.
+            // Extra card width is shared as equal gutters between every column.
             enableColumnStretch: true,
             onTickerTap: (row) {
               final ticker = row.data['ticker']?.toString() ?? '';

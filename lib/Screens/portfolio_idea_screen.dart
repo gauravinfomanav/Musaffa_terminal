@@ -300,9 +300,6 @@ class _PortfolioIdeaScreenState extends State<PortfolioIdeaScreen>
 
       return Container(
         width: double.infinity,
-        padding: assignments.isEmpty && !isLoading
-            ? EdgeInsets.zero
-            : const EdgeInsets.fromLTRB(0, 16, 0, 16),
         decoration: HomeUi.cardDecoration(isDark),
         clipBehavior: Clip.antiAlias,
         child: content,

@@ -192,6 +192,9 @@ class DynamicTableFromWeb extends StatefulWidget {
   final bool autoPinStatColumns;
   final bool showPinnedSectionDividers;
   final bool showHeaderTooltip;
+  /// When false, the ticker column scrolls with the others so gutters stay even.
+  /// Default keeps ticker pinned on the left.
+  final bool pinTickerCell;
   /// When true, visible columns expand to fill unused horizontal space.
   final bool enableColumnStretch;
   /// Optional override for header/cell horizontal insets inside each column.
@@ -282,6 +285,7 @@ class DynamicTableFromWeb extends StatefulWidget {
     this.autoPinStatColumns = true,
     this.showPinnedSectionDividers = true,
     this.showHeaderTooltip = true,
+    this.pinTickerCell = true,
     this.enableColumnStretch = true,
     this.columnCellPadding,
     this.toolbarPadding,
@@ -873,6 +877,11 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             }
             continue;
           }
+          if (key == 'range52' || key == 'range52w') {
+            const double rangeFloor = 196;
+            if (minWidth < rangeFloor) minWidth = rangeFloor;
+            continue;
+          }
           final String? sortKey = col.sortValueKey;
           if (sortKey == null) continue;
           final String sortText =
@@ -1019,16 +1028,16 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
     double reserved =
         _usesCellEdgeInset ? 0.0 : widget.horizontalMargin * 2;
-    if (includeTicker) {
-      reserved += (widget.tickerColumnWidth ?? 200) + 8;
-    }
+    final double tickerW =
+        includeTicker ? (widget.tickerColumnWidth ?? 200) : 0.0;
 
-    double contentSum = 0;
+    double contentSum = tickerW;
     for (final col in columns) {
       contentSum += _stretchedColumnWidths[col.key]!;
     }
 
-    final int gaps = (columns.length - 1).clamp(0, 999);
+    final int gaps = (columns.length - 1 + (includeTicker ? 1 : 0))
+        .clamp(0, 999);
     final double baseSpacing = _baseColumnSpacing();
     final double usable = availableWidth - reserved;
 
@@ -1045,23 +1054,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
 
     final double minTable = contentSum + baseSpacing * gaps;
     if (usable > minTable) {
-      // Put leftover into flexible column widths (not gaps). Keep compact
-      // enum cols (REC / Buy) content-tight so they don't create empty gaps
-      // before the next metric (e.g. EPS).
-      final double extra = usable - minTable;
-      final List<DynamicTableColumn> stretchTargets = columns
-          .where((DynamicTableColumn c) =>
-              !HomeUi.isNonStretchTableColumn(c.key))
-          .toList();
-      if (stretchTargets.isEmpty) {
-        stretchTargets.addAll(columns);
-      }
-      final double perCol = extra / stretchTargets.length;
-      for (final col in stretchTargets) {
-        _stretchedColumnWidths[col.key] =
-            _stretchedColumnWidths[col.key]! + perCol;
-      }
-      _liveColumnSpacing = baseSpacing;
+      // Leftover width becomes identical gutters so every pair of columns
+      // has the same space. Inflating only some columns (MKT CAP / VOLUME)
+      // made a few gaps look huge while PRICE↔CHANGE and VOLUME↔52W stayed tight.
+      _liveColumnSpacing = (usable - contentSum) / gaps;
       _stretchFilledAvailableWidth = true;
     } else {
       // Crowded table: shrink gaps before relying on horizontal scroll.
@@ -1584,17 +1580,22 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       Widget defaultCell;
 
       if (value is Widget) {
+        final String widgetKey = col.key.toLowerCase();
+        final bool isRangeCell =
+            widgetKey == 'range52' || widgetKey == 'range52w';
         defaultCell = SizedBox(
           height: _effectiveDataRowHeight,
           width: resolvedWidth,
-          child: Align(
-            alignment: _alignmentFor(col.align),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: _alignmentFor(col.align),
-              child: value,
-            ),
-          ),
+          child: isRangeCell
+              ? value
+              : Align(
+                  alignment: _alignmentFor(col.align),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: _alignmentFor(col.align),
+                    child: value,
+                  ),
+                ),
         );
       } else {
         final parsed = _parseNumericString(cellText);
@@ -1739,8 +1740,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required String? expanderColumnKey,
     bool applyLeadingEdgeInset = false,
     bool applyTrailingEdgeInset = false,
+    bool includeTicker = false,
   }) {
-    if (centerColumns.isEmpty) return const SizedBox.shrink();
+    if (centerColumns.isEmpty && !includeTicker) return const SizedBox.shrink();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1749,8 +1751,15 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             : 0;
         if (availableW <= 0) return const SizedBox.shrink();
 
-        _computeAutoWidthsAndEqualSpacing(centerColumns, availableW);
-        final double tableW = _tableWidthForColumns(centerColumns);
+        _computeAutoWidthsAndEqualSpacing(
+          centerColumns,
+          availableW,
+          includeTicker: includeTicker,
+        );
+        final double tableW = _tableWidthForColumns(centerColumns) +
+            (includeTicker
+                ? (widget.tickerColumnWidth ?? 200) + _liveColumnSpacing
+                : 0);
         final bool fillWidth =
             widget.enableColumnStretch || _stretchFilledAvailableWidth;
         final double contentW =
@@ -1773,7 +1782,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                   width: contentW > tableW ? contentW : tableW,
                   child: _buildAnimatedTableSection(
                     key: ValueKey<String>(
-                      'center:${centerColumns.map((c) => c.key).join('|')}',
+                      'center:${includeTicker ? 'ticker|' : ''}${centerColumns.map((c) => c.key).join('|')}',
                     ),
                     child: _buildTableSection(
                       context: context,
@@ -1782,6 +1791,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                       textColor: textColor,
                       mutedColor: mutedColor,
                       expanderColumnKey: expanderColumnKey,
+                      includeTicker: includeTicker,
                       applyLeadingEdgeInset: applyLeadingEdgeInset,
                       applyTrailingEdgeInset: applyTrailingEdgeInset,
                     ),
@@ -1807,6 +1817,10 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
     required Color mutedColor,
     required String? expanderColumnKey,
   }) {
+    final bool pinTicker = widget.showTickerCell && widget.pinTickerCell;
+    final bool embedTicker = widget.showTickerCell && !widget.pinTickerCell;
+    final bool hasLeftChrome =
+        widget.selectable || pinTicker || leftPinnedColumns.isNotEmpty;
     final hasRightChrome = rightPinnedColumns.isNotEmpty;
 
     final row = Row(
@@ -1817,9 +1831,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
       children: [
         _buildPinnedSectionSlot(
           slotKey: 'left',
-          visible: widget.selectable ||
-              widget.showTickerCell ||
-              leftPinnedColumns.isNotEmpty,
+          visible: hasLeftChrome,
           child: Container(
             decoration: BoxDecoration(
               color: bgColor,
@@ -1829,7 +1841,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
             ),
             child: _buildAnimatedTableSection(
               key: ValueKey<String>(
-                'left:${leftPinnedColumns.map((c) => c.key).join('|')}:${widget.selectable}:${widget.showTickerCell}',
+                'left:${leftPinnedColumns.map((c) => c.key).join('|')}:${widget.selectable}:$pinTicker',
               ),
               child: _buildTableSection(
                 context: context,
@@ -1839,7 +1851,7 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
                 mutedColor: mutedColor,
                 expanderColumnKey: expanderColumnKey,
                 includeSelectable: widget.selectable,
-                includeTicker: widget.showTickerCell,
+                includeTicker: pinTicker,
                 applyLeadingEdgeInset: true,
               ),
             ),
@@ -1854,8 +1866,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
-              applyLeadingEdgeInset: true,
+              applyLeadingEdgeInset: !hasLeftChrome,
               applyTrailingEdgeInset: !hasRightChrome,
+              includeTicker: embedTicker,
             ),
           )
         else
@@ -1866,8 +1879,9 @@ class _DynamicTableFromWebState extends State<DynamicTableFromWeb> {
               textColor: textColor,
               mutedColor: mutedColor,
               expanderColumnKey: expanderColumnKey,
-              applyLeadingEdgeInset: true,
+              applyLeadingEdgeInset: !hasLeftChrome,
               applyTrailingEdgeInset: !hasRightChrome,
+              includeTicker: embedTicker,
             ),
           ),
         _buildPinnedSectionSlot(
