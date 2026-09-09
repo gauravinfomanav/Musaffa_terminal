@@ -1,13 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_from_web.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
-import 'package:musaffa_terminal/Components/app_sidebar.dart';
 import 'package:musaffa_terminal/Components/sliding_pill_tabs.dart';
+import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Components/table_pagination_bar.dart';
+import 'package:musaffa_terminal/Components/watchlist_sidebar.dart';
 import 'package:musaffa_terminal/Controllers/earnings_calendar_controller.dart';
 import 'package:musaffa_terminal/Controllers/earnings_detail_controller.dart';
 import 'package:musaffa_terminal/Screens/earnings_detail_screen.dart';
@@ -15,6 +15,7 @@ import 'package:musaffa_terminal/models/earnings_calendar_model.dart';
 import 'package:musaffa_terminal/services/company_enrichment_cache.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
+import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 
@@ -27,12 +28,11 @@ class EarningsCalendarScreen extends StatefulWidget {
 
 class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
   late final EarningsCalendarController _controller;
-  late final TextEditingController _searchController;
   late final TextEditingController _fromController;
   late final TextEditingController _toController;
   final DateFormat _displayDate = DateFormat('MMM d, yyyy');
-  bool _searchFocused = false;
-  bool _searchHover = false;
+  final GlobalWatchlistService _watchlistService =
+      Get.find<GlobalWatchlistService>();
 
   static const Color _amc = Color(0xFF2563EB);
   static const Color _dmh = Color(0xFFEAB308);
@@ -41,7 +41,6 @@ class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
   void initState() {
     super.initState();
     _controller = Get.put(EarningsCalendarController());
-    _searchController = TextEditingController();
     _fromController = TextEditingController(
       text: _displayDate.format(_controller.fromDate.value),
     );
@@ -61,7 +60,6 @@ class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     _fromController.dispose();
     _toController.dispose();
     if (Get.isRegistered<EarningsCalendarController>()) {
@@ -95,28 +93,12 @@ class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
     );
   }
 
-  Future<void> _downloadCsv() async {
-    final StringBuffer buf = StringBuffer();
-    buf.writeln(
-      'date,symbol,hour,quarter,year,epsActual,epsEstimate,revenueActual,revenueEstimate',
-    );
-    for (final EarningsCalendarModel e in _controller.filteredEvents) {
-      buf.writeln(
-        '${e.date},${e.symbol},${e.hour ?? ''},${e.quarter ?? ''},${e.year ?? ''},${e.epsActual ?? ''},${e.epsEstimate ?? ''},${e.revenueActual ?? ''},${e.revenueEstimate ?? ''}',
-      );
+  void _toggleWatchlist() => _watchlistService.toggleWatchlist();
+
+  void _closeWatchlist() {
+    if (_watchlistService.isWatchlistOpen.value) {
+      _watchlistService.closeWatchlist();
     }
-    await Clipboard.setData(ClipboardData(text: buf.toString()));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Earnings CSV copied to clipboard'),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(HomeUi.radiusMd),
-        ),
-      ),
-    );
   }
 
   Color _hourColor(String hourKey, bool isDark, Color muted) {
@@ -153,287 +135,125 @@ class _EarningsCalendarScreenState extends State<EarningsCalendarScreen> {
 
     return Scaffold(
       backgroundColor: pageBg,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            final double width = constraints.maxWidth;
-            final EdgeInsets pagePad = HomeUi.pagePadding(width);
-            final bool compact = width < 900;
-            final bool narrow = width < 700;
-
-            return Column(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
               children: [
-                _buildTopBar(
-                  isDark,
-                  title,
-                  muted,
-                  border,
-                  cardBg,
-                  compact: compact,
+                Obx(
+                  () => HomeTabBar(
+                    showBackButton: true,
+                    isWatchlistOpen: _watchlistService.isWatchlistOpen.value,
+                    onWatchlistToggle: _toggleWatchlist,
+                    onThemeToggle: () {
+                      final Brightness currentTheme =
+                          Theme.of(context).brightness;
+                      Get.changeThemeMode(
+                        currentTheme == Brightness.dark
+                            ? ThemeMode.light
+                            : ThemeMode.dark,
+                      );
+                    },
+                  ),
                 ),
                 Expanded(
-                  child: RefreshIndicator(
-                    color: HomeUi.accent(isDark),
-                    backgroundColor: cardBg,
-                    onRefresh: _controller.refreshCalendar,
-                    child: ListView(
-                      padding: EdgeInsets.fromLTRB(14, 12, 14, pagePad.bottom),
-                      children: [
-                        _buildHeader(
-                          isDark,
-                          title,
-                          muted,
-                          narrow: narrow,
-                          compact: compact,
+                  child: LayoutBuilder(
+                    builder:
+                        (BuildContext context, BoxConstraints constraints) {
+                      final double width = constraints.maxWidth;
+                      final EdgeInsets pagePad = HomeUi.pagePadding(width);
+                      final bool compact = width < 900;
+                      final bool narrow = width < 700;
+
+                      return RefreshIndicator(
+                        color: HomeUi.accent(isDark),
+                        backgroundColor: cardBg,
+                        onRefresh: _controller.refreshCalendar,
+                        child: ListView(
+                          padding: EdgeInsets.fromLTRB(
+                            pagePad.left,
+                            12,
+                            pagePad.right,
+                            pagePad.bottom,
+                          ),
+                          children: [
+                            _buildHeader(
+                              isDark,
+                              title,
+                              muted,
+                              narrow: narrow,
+                              compact: compact,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildPresetRow(
+                              isDark,
+                              border,
+                              cardBg,
+                              muted,
+                              title,
+                              compact: compact,
+                            ),
+                            _buildFilterBar(
+                              isDark,
+                              border,
+                              cardBg,
+                              muted,
+                              title,
+                              compact: compact,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildSummaryStrip(
+                              isDark,
+                              border,
+                              muted,
+                              title,
+                              compact: compact,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTableCard(
+                              isDark,
+                              cardBg,
+                              border,
+                              title,
+                              muted,
+                              compact: compact,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        _buildPresetRow(
-                          isDark,
-                          border,
-                          cardBg,
-                          muted,
-                          title,
-                          compact: compact,
-                        ),
-                        _buildFilterBar(
-                          isDark,
-                          border,
-                          cardBg,
-                          muted,
-                          title,
-                          compact: compact,
-                        ),
-                        const SizedBox(height: 10),
-                        _buildSummaryStrip(
-                          isDark,
-                          border,
-                          muted,
-                          title,
-                          compact: compact,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildTableCard(
-                          isDark,
-                          cardBg,
-                          border,
-                          title,
-                          muted,
-                          compact: compact,
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               ],
+            ),
+          ),
+          Obx(() {
+            if (!_watchlistService.isWatchlistOpen.value) {
+              return const SizedBox.shrink();
+            }
+            return Positioned.fill(
+              child: GestureDetector(
+                onTap: _closeWatchlist,
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  child: Row(
+                    children: [
+                      const Expanded(child: SizedBox.expand()),
+                      GestureDetector(
+                        onTap: () {},
+                        child: WatchlistSidebar(
+                          isDarkMode: isDark,
+                          onClose: _closeWatchlist,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopBar(
-    bool isDark,
-    Color title,
-    Color muted,
-    Color border,
-    Color cardBg, {
-    required bool compact,
-  }) {
-    final double screenWidth = MediaQuery.sizeOf(context).width;
-    final double searchWidth =
-        compact ? double.infinity : (screenWidth * 0.45).clamp(300.0, 520.0);
-    final bool searchActive = _searchFocused || _searchHover;
-    final Color searchBorder = _searchFocused
-        ? const Color(0xFFC42329).withValues(alpha: isDark ? 0.55 : 0.42)
-        : HomeUi.borderStrong(isDark);
-    final BorderRadius searchRadius = BorderRadius.circular(HomeUi.radiusMd);
-
-    OutlineInputBorder searchOutline(Color color, double width) =>
-        OutlineInputBorder(
-          borderRadius: searchRadius,
-          borderSide: BorderSide(color: color, width: width),
-        );
-
-    final Widget searchField = MouseRegion(
-      onEnter: (_) => setState(() => _searchHover = true),
-      onExit: (_) => setState(() => _searchHover = false),
-      cursor: SystemMouseCursors.text,
-      child: Focus(
-        onFocusChange: (bool focused) =>
-            setState(() => _searchFocused = focused),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOut,
-          width: compact ? null : searchWidth,
-          height: HomeUi.controlHeight,
-          decoration: BoxDecoration(
-            borderRadius: searchRadius,
-            boxShadow: _searchFocused
-                ? <BoxShadow>[
-                    BoxShadow(
-                      color: const Color(0xFFC42329)
-                          .withValues(alpha: isDark ? 0.18 : 0.10),
-                      blurRadius: 8,
-                      offset: const Offset(0, 1),
-                    ),
-                  ]
-                : HomeUi.cardShadow(isDark, hover: true),
-          ),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (String value) {
-              _controller.onSearchChanged(value);
-              setState(() {});
-            },
-            onSubmitted: _controller.onSearchSubmitted,
-            textInputAction: TextInputAction.search,
-            cursorColor: const Color(0xFFC42329),
-            cursorWidth: 1.2,
-            cursorHeight: 14,
-            style: HomeUi.control(isDark, active: true).copyWith(
-              fontSize: 14,
-              height: 1.2,
-              color: HomeUi.title(isDark),
-            ),
-            decoration: InputDecoration(
-              isDense: true,
-              filled: true,
-              fillColor: HomeUi.cardBg(isDark),
-              hintText: 'Search by symbol or company',
-              hintStyle: HomeUi.subtitle(isDark).copyWith(
-                fontSize: 13.5,
-                height: 1.2,
-                fontWeight: FontWeight.w400,
-              ),
-              contentPadding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
-              prefixIcon: Padding(
-                padding: const EdgeInsets.only(left: 12, right: 4),
-                child: searchActive
-                    ? HomeUi.brandIcon(
-                        icon: CupertinoIcons.search,
-                        size: HomeUi.iconMd,
-                        gradient: HomeUi.iconFillGradient,
-                      )
-                    : HomeUi.vectorIcon(
-                        icon: CupertinoIcons.search,
-                        size: HomeUi.iconMd,
-                        color: HomeUi.muted(isDark),
-                      ),
-              ),
-              prefixIconConstraints: const BoxConstraints(
-                minWidth: 36,
-                minHeight: HomeUi.controlHeight,
-              ),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      tooltip: 'Clear',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: HomeUi.controlHeight,
-                      ),
-                      onPressed: () {
-                        _searchController.clear();
-                        _controller.onSearchChanged('');
-                        setState(() {});
-                      },
-                      icon: HomeUi.vectorIcon(
-                        icon: CupertinoIcons.xmark_circle_fill,
-                        size: HomeUi.iconSm,
-                        color: HomeUi.muted(isDark),
-                      ),
-                    )
-                  : null,
-              suffixIconConstraints: const BoxConstraints(
-                minWidth: 28,
-                minHeight: HomeUi.controlHeight,
-              ),
-              border: searchOutline(searchBorder, searchActive ? 1 : 0.5),
-              enabledBorder:
-                  searchOutline(searchBorder, searchActive ? 1 : 0.5),
-              focusedBorder: searchOutline(searchBorder, 1),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final Widget backButton = _EarningsBackButton(isDark: isDark);
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            HomeUi.headerBg(isDark),
-            isDark ? const Color(0xFF101317) : const Color(0xFFFBFBFC),
-          ],
-        ),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? const Color(0xFF2A2F33) : const Color(0xFFE8EAED),
-            width: 0.5,
-          ),
-        ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.04),
-            blurRadius: isDark ? 16 : 18,
-            offset: const Offset(0, 4),
-          ),
+          }),
         ],
       ),
-      child: compact
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    SidebarMenuButton(isDarkMode: isDark),
-                    const SizedBox(width: 12),
-                    backButton,
-                    const SizedBox(width: 10),
-                    Text(
-                      'Earnings',
-                      style: HomeUi.wordmark(isDark).copyWith(fontSize: 14),
-                    ),
-                    const Spacer(),
-                    HomeUi.ghostAction(
-                      label: 'Download',
-                      dark: isDark,
-                      icon: CupertinoIcons.cloud_download,
-                      onTap: _downloadCsv,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                searchField,
-              ],
-            )
-          : Row(
-              children: [
-                SidebarMenuButton(isDarkMode: isDark),
-                const SizedBox(width: 12),
-                backButton,
-                const SizedBox(width: 10),
-                Text(
-                  'Earnings',
-                  style: HomeUi.wordmark(isDark).copyWith(fontSize: 14),
-                ),
-                const Spacer(),
-                searchField,
-                const SizedBox(width: 12),
-                HomeUi.ghostAction(
-                  label: 'Download',
-                  dark: isDark,
-                  icon: CupertinoIcons.cloud_download,
-                  onTap: _downloadCsv,
-                ),
-              ],
-            ),
     );
   }
 
@@ -1718,44 +1538,6 @@ class _SuggestionChipState extends State<_SuggestionChip> {
                   ? HomeUi.accent(widget.isDark)
                   : HomeUi.title(widget.isDark),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EarningsBackButton extends StatefulWidget {
-  const _EarningsBackButton({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  State<_EarningsBackButton> createState() => _EarningsBackButtonState();
-}
-
-class _EarningsBackButtonState extends State<_EarningsBackButton> {
-  bool _hovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool dark = widget.isDark;
-    final Color color = _hovering
-        ? (dark ? const Color(0xFFFFFFFF) : const Color(0xFF111827))
-        : (dark ? const Color(0xFFB0B7C3) : const Color(0xFF6B7280));
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => Get.back(),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Icon(
-            Icons.arrow_back_rounded,
-            size: 20,
-            color: color,
           ),
         ),
       ),
