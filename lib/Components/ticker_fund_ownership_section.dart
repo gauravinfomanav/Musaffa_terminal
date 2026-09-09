@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/Components/dynamic_table_reusable.dart';
 import 'package:musaffa_terminal/Components/ticker_finnhub_section_card.dart';
+import 'package:musaffa_terminal/Controllers/search_service.dart';
 import 'package:musaffa_terminal/Controllers/ticker_fund_ownership_controller.dart';
+import 'package:musaffa_terminal/Screens/etf_details_screen.dart';
 import 'package:musaffa_terminal/Screens/fund_ownership_detail_screen.dart';
+import 'package:musaffa_terminal/models/feature_keys.dart';
 import 'package:musaffa_terminal/models/fund_ownership_model.dart';
+import 'package:musaffa_terminal/models/ticker_model.dart';
 import 'package:musaffa_terminal/services/finnhub/finnhub_display_formatters.dart';
+import 'package:musaffa_terminal/utils/feature_navigation.dart';
 import 'package:musaffa_terminal/utils/home_ui.dart';
 import 'package:musaffa_terminal/utils/utils.dart';
 
@@ -166,16 +171,7 @@ class TickerFundOwnershipSection extends StatelessWidget {
             }
             match ??= visibleItems.isEmpty ? null : visibleItems.first;
             if (match == null) return;
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => FundOwnershipDetailScreen(
-                  fund: match!,
-                  holdingSymbol: holdingSymbol,
-                  holdingName: holdingName ?? holdingSymbol,
-                  currentPrice: currentPrice,
-                ),
-              ),
-            );
+            _openHolder(context, match);
           },
         );
       },
@@ -183,6 +179,84 @@ class TickerFundOwnershipSection extends StatelessWidget {
   }
 
 
+
+  Future<void> _openHolder(
+    BuildContext context,
+    FundOwnershipModel fund,
+  ) async {
+    if (_nameLooksLikeEtf(fund.name) ||
+        (fund.symbol ?? '').trim().isNotEmpty) {
+      final TickerModel? etf = await _resolveEtfTicker(fund);
+      if (!context.mounted) return;
+      if (etf != null) {
+        FeatureNavigation.pushIfAllowed(
+          context,
+          FeatureKeys.etfDetails,
+          EtfDetailsScreen(ticker: etf),
+        );
+        return;
+      }
+    }
+
+    if (!context.mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FundOwnershipDetailScreen(
+          fund: fund,
+          holdingSymbol: holdingSymbol,
+          holdingName: holdingName ?? holdingSymbol,
+          currentPrice: currentPrice,
+        ),
+      ),
+    );
+  }
+
+  bool _nameLooksLikeEtf(String name) {
+    return RegExp(r'\bETFs?\b', caseSensitive: false).hasMatch(name);
+  }
+
+  Future<TickerModel?> _resolveEtfTicker(FundOwnershipModel fund) async {
+    final String? symbol = fund.symbol?.trim();
+    final List<String> queries = <String>[
+      if (symbol != null && symbol.isNotEmpty) symbol,
+      fund.name,
+    ];
+
+    for (final String query in queries) {
+      if (query.trim().isEmpty) continue;
+      final List<TickerModel> results = await SearchService.searchStocks(query);
+      if (symbol != null && symbol.isNotEmpty) {
+        final String needle = symbol.toUpperCase();
+        for (final TickerModel ticker in results) {
+          final String candidate =
+              (ticker.symbol ?? ticker.ticker ?? '').trim().toUpperCase();
+          if (candidate == needle && !ticker.isStock) {
+            return ticker;
+          }
+        }
+      }
+      if (_nameLooksLikeEtf(fund.name)) {
+        for (final TickerModel ticker in results) {
+          if (!ticker.isStock) {
+            return ticker;
+          }
+        }
+      }
+    }
+
+    if (symbol != null &&
+        symbol.isNotEmpty &&
+        _nameLooksLikeEtf(fund.name)) {
+      return TickerModel(
+        symbol: symbol.toUpperCase(),
+        ticker: symbol.toUpperCase(),
+        name: fund.name,
+        companyName: fund.name,
+        isStock: false,
+      );
+    }
+    return null;
+  }
 
   String _compact(num value) {
     return getShortenedT(value);

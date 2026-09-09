@@ -155,6 +155,7 @@ class DynamicTable extends StatefulWidget {
     this.columnCellPadding,
     this.enableColumnStretch = true,
     this.showSortIndicators = false,
+    this.pinTickerCell = true,
   }) : super(key: key);
 
   final List<SimpleColumn> columns;
@@ -197,6 +198,7 @@ class DynamicTable extends StatefulWidget {
   final EdgeInsets? columnCellPadding;
   final bool enableColumnStretch;
   final bool showSortIndicators;
+  final bool pinTickerCell;
 
   @override
   State<DynamicTable> createState() => _DynamicTableState();
@@ -815,6 +817,7 @@ class _DynamicTableState extends State<DynamicTable> {
       columnSpacing: widget.columnSpacing,
       columnCellPadding: widget.columnCellPadding,
       enableColumnStretch: widget.enableColumnStretch,
+      pinTickerCell: widget.pinTickerCell,
       zebraStripes: widget.zebraStripes,
       evenRowColor: widget.evenRowColor,
       oddRowColor: widget.oddRowColor,

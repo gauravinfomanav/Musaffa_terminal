@@ -1196,7 +1196,7 @@ class _EtfDetailsScreenState extends State<EtfDetailsScreen> {
             label: '52W RANGE',
             fieldName: 'range52',
             isNumeric: false,
-            width: 176,
+            width: 196,
             align: TextAlign.center,
             sortValueKey: 'week52HighSort',
           ),

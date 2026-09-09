@@ -58,7 +58,7 @@ class WatchlistTableColumns {
         fieldName: 'range52',
         isNumeric: false,
         align: TextAlign.center,
-        width: 180,
+        width: 196,
       ),
       SimpleColumn(
         label: 'ALERTS',

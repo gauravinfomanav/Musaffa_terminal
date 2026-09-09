@@ -1460,7 +1460,7 @@ class _ScreenerScreenState extends State<ScreenerScreen>
   double _screenerColumnWidth(String id, String type) {
     if (id == 'sector') return 168;
     if (id == 'recommendation') return 72;
-    if (id == 'range52W' || id == 'range52') return 176;
+    if (id == 'range52W' || id == 'range52') return 196;
     if (type == 'percentage') return 96;
     if (type == 'currency' || type == 'number') return 100;
     return 120;
