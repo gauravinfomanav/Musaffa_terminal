@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,6 +6,7 @@ import 'package:musaffa_terminal/Controllers/auth_controller.dart';
 import 'package:musaffa_terminal/Screens/earnings_calendar_screen.dart';
 import 'package:musaffa_terminal/Screens/economic_calendar_screen.dart';
 import 'package:musaffa_terminal/Screens/portfolio_idea_screen.dart';
+import 'package:musaffa_terminal/Screens/splash_animation_lab_screen.dart';
 import 'package:musaffa_terminal/portfolio/screens/model_portfolios_screen.dart';
 import 'package:musaffa_terminal/Screens/screener_screen.dart';
 import 'package:musaffa_terminal/Screens/trading_ideas_screen.dart';
@@ -27,33 +28,25 @@ class AppSidebarPanel extends StatefulWidget {
 
 class _AppSidebarPanelState extends State<AppSidebarPanel>
     with SingleTickerProviderStateMixin {
-  static const double _width = 300;
+  static const double _width = 304;
 
   late final AnimationController _contentAnim;
   late final Animation<double> _contentFade;
-  late final Animation<Offset> _contentSlide;
 
   @override
   void initState() {
     super.initState();
     _contentAnim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 480),
+      duration: const Duration(milliseconds: 920),
     );
     _contentFade = CurvedAnimation(
       parent: _contentAnim,
-      curve: const Interval(0.18, 1.0, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
     );
-    _contentSlide = Tween<Offset>(
-      begin: const Offset(-0.04, 0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _contentAnim,
-        curve: const Interval(0.12, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
-    _contentAnim.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _contentAnim.forward();
+    });
   }
 
   @override
@@ -208,6 +201,17 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
     Get.to(() => const EconomicCalendarScreen());
   }
 
+  void _goSplashLab() {
+    final sidebar = Get.find<GlobalSidebarService>();
+    if (sidebar.activeItem.value == SidebarNavItem.splashLab) {
+      sidebar.close();
+      return;
+    }
+    sidebar.setActive(SidebarNavItem.splashLab);
+    sidebar.close();
+    Get.to(() => const SplashAnimationLabScreen());
+  }
+
   void _showProfileSheet(bool isDark) {
     final sidebar = Get.find<GlobalSidebarService>();
     sidebar.setActive(SidebarNavItem.profile);
@@ -288,260 +292,245 @@ class _AppSidebarPanelState extends State<AppSidebarPanel>
       color: Colors.transparent,
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(20),
-          bottomRight: Radius.circular(20),
+          topRight: Radius.circular(18),
+          bottomRight: Radius.circular(18),
         ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
-            width: _width,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? const [
-                        Color(0xF2161A21),
-                        Color(0xF01C2129),
-                      ]
-                    : const [
-                        Color(0xFFF8FAFC),
-                        Color(0xFFFFFFFF),
-                      ],
+        child: Container(
+          width: _width,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF121417) : Colors.white,
+            border: Border(
+              right: BorderSide(
+                color: isDark
+                    ? const Color(0xFF2A2E34)
+                    : const Color(0xFFE8EAED),
+                width: 0.8,
               ),
-              border: Border(
-                right: BorderSide(color: HomeUi.borderLight(isDark)),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0F172A).withValues(
-                    alpha: isDark ? 0.55 : 0.14,
-                  ),
-                  blurRadius: 36,
-                  offset: const Offset(12, 0),
-                ),
-              ],
             ),
-            child: SafeArea(
-              child: FadeTransition(
-                opacity: _contentFade,
-                child: SlideTransition(
-                  position: _contentSlide,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 18, 12, 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Obx(() {
-                                final user = auth.user.value;
-                                final name =
-                                    (user?.name.trim().isNotEmpty == true)
-                                        ? user!.name.trim()
-                                        : 'User';
-                                final email = user?.email ?? '';
-                                final profileSelected =
-                                    sidebar.activeItem.value ==
-                                        SidebarNavItem.profile;
-                                final initials = _initials(name, email);
-
-                                return MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: GestureDetector(
-                                    onTap: () => _showProfileSheet(isDark),
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const MusaffaLogo(height: 22),
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          children: [
-                                            _Avatar(
-                                              initials: initials,
-                                              size: 36,
-                                              isDark: isDark,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    name,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: HomeUi.sectionTitle(
-                                                      isDark,
-                                                    ).copyWith(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: profileSelected
-                                                          ? const Color(
-                                                              0xFFE4621E)
-                                                          : HomeUi.title(
-                                                              isDark),
-                                                    ),
-                                                  ),
-                                                  if (email.isNotEmpty) ...[
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      email,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
-                                                      style: HomeUi.subtitle(
-                                                        isDark,
-                                                      ).copyWith(fontSize: 11),
-                                                    ),
-                                                  ],
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                            _IconHit(
-                              isDark: isDark,
-                              onTap: sidebar.close,
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 18,
-                                color: HomeUi.muted(isDark),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
-                        child: Divider(
-                          height: 1,
-                          color: HomeUi.borderLight(isDark),
-                        ),
-                      ),
-                      Expanded(
-                        child: Obx(() {
-                          final active = sidebar.activeItem.value;
-                          final canScreener = FeatureNavigation.isEnabled(
-                            FeatureKeys.screener,
-                          );
-                          final canIdeas = FeatureNavigation.isEnabled(
-                            FeatureKeys.tradingIdeas,
-                          );
-                          final canPortfolios = FeatureNavigation.isEnabled(
-                            FeatureKeys.portfolios,
-                          );
-                          final canWatchlists = FeatureNavigation.isEnabled(
-                            FeatureKeys.watchlists,
-                          );
-                          return ListView(
-                            padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
-                            children: [
-                              _NavTile(
-                                glyph: SidebarGlyph.dashboard,
-                                label: 'Dashboard',
-                                selected:
-                                    active == SidebarNavItem.dashboard,
-                                isDark: isDark,
-                                onTap: _goDashboard,
-                              ),
-                              if (canScreener)
-                                _NavTile(
-                                  glyph: SidebarGlyph.screener,
-                                  label: 'Stock Screener',
-                                  selected:
-                                      active == SidebarNavItem.screener,
-                                  isDark: isDark,
-                                  onTap: _goScreener,
-                                ),
-                              if (canIdeas)
-                                _NavTile(
-                                  glyph: SidebarGlyph.ideas,
-                                  label: 'Trading Ideas',
-                                  selected: active == SidebarNavItem.ideas,
-                                  isDark: isDark,
-                                  onTap: _goIdeas,
-                                ),
-                              if (canPortfolios)
-                                _NavTile(
-                                  glyph: SidebarGlyph.portfolio,
-                                  label: 'Model Portfolios',
-                                  selected:
-                                      active == SidebarNavItem.modelPortfolio,
-                                  isDark: isDark,
-                                  onTap: _goModelPortfolios,
-                                ),
-                              if (canPortfolios)
-                                _NavTile(
-                                  glyph: SidebarGlyph.portfolio,
-                                  label: 'Assignments',
-                                  selected:
-                                      active == SidebarNavItem.portfolio,
-                                  isDark: isDark,
-                                  onTap: _goPortfolio,
-                                ),
-                              if (canWatchlists)
-                                _NavTile(
-                                  glyph: SidebarGlyph.watchlist,
-                                  label: 'Watchlist',
-                                  selected:
-                                      active == SidebarNavItem.watchlist,
-                                  isDark: isDark,
-                                  onTap: _goWatchlist,
-                                ),
-                              _NavTile(
-                                glyph: SidebarGlyph.earnings,
-                                label: 'Earnings Calendar',
-                                selected:
-                                    active == SidebarNavItem.earnings,
-                                isDark: isDark,
-                                onTap: _goEarnings,
-                              ),
-                              _NavTile(
-                                glyph: SidebarGlyph.economic,
-                                label: 'Economic Calendar',
-                                selected: active ==
-                                    SidebarNavItem.economicCalendar,
-                                isDark: isDark,
-                                onTap: _goEconomicCalendar,
-                              ),
-                            ],
-                          );
-                        }),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 18),
-                        child: Column(
-                          children: [
-                            Divider(
-                              height: 1,
-                              color: HomeUi.borderLight(isDark),
-                            ),
-                            const SizedBox(height: 10),
-                            _LogoutTile(
-                              isDark: isDark,
-                              onTap: () => _confirmAndLogout(isDark),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withValues(
+                  alpha: isDark ? 0.45 : 0.06,
                 ),
+                blurRadius: 28,
+                offset: const Offset(8, 0),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: FadeTransition(
+              opacity: _contentFade,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 12, 0),
+                    child: _Reveal(
+                      animation: _contentAnim,
+                      index: 0,
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: MusaffaLogo(height: 20),
+                            ),
+                          ),
+                          _IconHit(
+                            isDark: isDark,
+                            onTap: sidebar.close,
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: HomeUi.muted(isDark),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 14, 0),
+                    child: _Reveal(
+                      animation: _contentAnim,
+                      index: 1,
+                      child: Obx(() {
+                        final user = auth.user.value;
+                        final name = (user?.name.trim().isNotEmpty == true)
+                            ? user!.name.trim()
+                            : 'User';
+                        final email = user?.email ?? '';
+                        final profileSelected = sidebar.activeItem.value ==
+                            SidebarNavItem.profile;
+                        return _ProfileChip(
+                          isDark: isDark,
+                          name: name,
+                          email: email,
+                          initials: _initials(name, email),
+                          selected: profileSelected,
+                          onTap: () => _showProfileSheet(isDark),
+                        );
+                      }),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: HomeUi.borderLight(isDark).withValues(alpha: 0.9),
+                    ),
+                  ),
+                  Expanded(
+                    child: Obx(() {
+                      final active = sidebar.activeItem.value;
+                      final canScreener = FeatureNavigation.isEnabled(
+                        FeatureKeys.screener,
+                      );
+                      final canIdeas = FeatureNavigation.isEnabled(
+                        FeatureKeys.tradingIdeas,
+                      );
+                      final canPortfolios = FeatureNavigation.isEnabled(
+                        FeatureKeys.portfolios,
+                      );
+                      final canWatchlists = FeatureNavigation.isEnabled(
+                        FeatureKeys.watchlists,
+                      );
+
+                      var i = 2;
+                      final children = <Widget>[];
+
+                      void section(String label, List<Widget> tiles) {
+                        if (tiles.isEmpty) return;
+                        children.add(
+                          _Reveal(
+                            animation: _contentAnim,
+                            index: i++,
+                            child: _SectionLabel(
+                              label: label,
+                              isDark: isDark,
+                            ),
+                          ),
+                        );
+                        for (final tile in tiles) {
+                          children.add(
+                            _Reveal(
+                              animation: _contentAnim,
+                              index: i++,
+                              child: tile,
+                            ),
+                          );
+                        }
+                      }
+
+                      section('Workspace', [
+                        _NavTile(
+                          glyph: SidebarGlyph.dashboard,
+                          label: 'Dashboard',
+                          selected: active == SidebarNavItem.dashboard,
+                          isDark: isDark,
+                          onTap: _goDashboard,
+                        ),
+                        if (canScreener)
+                          _NavTile(
+                            glyph: SidebarGlyph.screener,
+                            label: 'Stock Screener',
+                            selected: active == SidebarNavItem.screener,
+                            isDark: isDark,
+                            onTap: _goScreener,
+                          ),
+                        if (canIdeas)
+                          _NavTile(
+                            glyph: SidebarGlyph.ideas,
+                            label: 'Trading Ideas',
+                            selected: active == SidebarNavItem.ideas,
+                            isDark: isDark,
+                            onTap: _goIdeas,
+                          ),
+                      ]);
+                      section('Portfolios', [
+                        if (canPortfolios)
+                          _NavTile(
+                            glyph: SidebarGlyph.portfolio,
+                            label: 'Model Portfolios',
+                            selected:
+                                active == SidebarNavItem.modelPortfolio,
+                            isDark: isDark,
+                            onTap: _goModelPortfolios,
+                          ),
+                        if (canPortfolios)
+                          _NavTile(
+                            glyph: SidebarGlyph.assignments,
+                            label: 'Assignments',
+                            selected: active == SidebarNavItem.portfolio,
+                            isDark: isDark,
+                            onTap: _goPortfolio,
+                          ),
+                        if (canWatchlists)
+                          _NavTile(
+                            glyph: SidebarGlyph.watchlist,
+                            label: 'Watchlist',
+                            selected: active == SidebarNavItem.watchlist,
+                            isDark: isDark,
+                            onTap: _goWatchlist,
+                          ),
+                      ]);
+                      section('Markets', [
+                        _NavTile(
+                          glyph: SidebarGlyph.earnings,
+                          label: 'Earnings Calendar',
+                          selected: active == SidebarNavItem.earnings,
+                          isDark: isDark,
+                          onTap: _goEarnings,
+                        ),
+                        _NavTile(
+                          glyph: SidebarGlyph.economic,
+                          label: 'Economic Calendar',
+                          selected:
+                              active == SidebarNavItem.economicCalendar,
+                          isDark: isDark,
+                          onTap: _goEconomicCalendar,
+                        ),
+                        _NavTile(
+                          glyph: SidebarGlyph.splash,
+                          label: 'Splash Animations',
+                          selected: active == SidebarNavItem.splashLab,
+                          isDark: isDark,
+                          onTap: _goSplashLab,
+                        ),
+                      ]);
+
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 2, 12, 8),
+                        physics: const BouncingScrollPhysics(),
+                        children: children,
+                      );
+                    }),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+                    child: _Reveal(
+                      animation: _contentAnim,
+                      index: 14,
+                      child: Column(
+                        children: [
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: HomeUi.borderLight(isDark)
+                                .withValues(alpha: 0.9),
+                          ),
+                          const SizedBox(height: 12),
+                          _LogoutTile(
+                            isDark: isDark,
+                            onTap: () => _confirmAndLogout(isDark),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -845,6 +834,206 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
+class _Reveal extends StatelessWidget {
+  const _Reveal({
+    required this.animation,
+    required this.index,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = math.min(0.04 + index * 0.032, 0.55);
+    final end = math.min(start + 0.42, 1.0);
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(-0.035, 0),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label, required this.isDark});
+
+  final String label;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 16, 10, 6),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontFamily: Constants.FONT_DEFAULT_NEW,
+          fontFamilyFallback: Constants.FONT_FALLBACK,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.85,
+          height: 1,
+          color: HomeUi.muted(isDark).withValues(alpha: 0.75),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileChip extends StatefulWidget {
+  const _ProfileChip({
+    required this.isDark,
+    required this.name,
+    required this.email,
+    required this.initials,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final bool isDark;
+  final String name;
+  final String email;
+  final String initials;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_ProfileChip> createState() => _ProfileChipState();
+}
+
+class _ProfileChipState extends State<_ProfileChip> {
+  bool _hovering = false;
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() {
+        _hovering = false;
+        _pressed = false;
+      }),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _pressed = false),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedScale(
+          scale: _pressed ? 0.985 : 1,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: widget.isDark
+                  ? const Color(0xFF1A1D22)
+                  : const Color(0xFFF3F3F3),
+            ),
+            child: Row(
+              children: [
+                Stack(
+                  children: [
+                    _Avatar(
+                      initials: widget.initials,
+                      size: 38,
+                      isDark: widget.isDark,
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF22C55E),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: widget.isDark
+                                ? const Color(0xFF1A1D22)
+                                : const Color(0xFFF7F8FA),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                          fontFamilyFallback: Constants.FONT_FALLBACK,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.07,
+                          color: HomeUi.title(widget.isDark),
+                        ),
+                      ),
+                      if (widget.email.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                            fontFamilyFallback: Constants.FONT_FALLBACK,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                            color: HomeUi.muted(widget.isDark),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                AnimatedSlide(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  offset: _hovering ? const Offset(0.1, 0) : Offset.zero,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: HomeUi.muted(widget.isDark).withValues(
+                      alpha: _hovering ? 0.95 : 0.55,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Avatar extends StatelessWidget {
   final String initials;
   final double size;
@@ -858,22 +1047,34 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fontSize = size * 0.34;
+
     return Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: HomeUi.iconWellGradient,
-        border: Border.all(color: HomeUi.iconWellBorder),
+        color: isDark ? const Color(0xFF252A32) : Colors.white,
       ),
-      child: Text(
-        initials,
-        style: TextStyle(
-          fontFamily: Constants.FONT_DEFAULT_NEW,
-          fontSize: size * 0.34,
-          fontWeight: FontWeight.w700,
-          color: HomeUi.title(isDark),
+      child: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) => HomeUi.iconFillGradient.createShader(
+          // Full avatar bounds so the brand wash reads clearly on a single glyph.
+          Rect.fromLTWH(0, 0, size, size),
+        ),
+        child: Text(
+          initials,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: Constants.FONT_DEFAULT_NEW,
+            fontFamilyFallback: Constants.FONT_FALLBACK,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.08,
+            height: 1,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -899,117 +1100,144 @@ class _NavTile extends StatefulWidget {
   State<_NavTile> createState() => _NavTileState();
 }
 
-class _NavTileState extends State<_NavTile> {
+class _NavTileState extends State<_NavTile>
+    with SingleTickerProviderStateMixin {
   bool _hovering = false;
+  bool _pressed = false;
+  late final AnimationController _selectPulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+      value: widget.selected ? 1 : 0,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _NavTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected == widget.selected) return;
+    if (widget.selected) {
+      _selectPulse.forward(from: 0);
+    } else {
+      _selectPulse.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _selectPulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final selected = widget.selected;
     final showHover = _hovering && !selected;
+    const idle = SidebarNavIcon.idleColor;
+    final ink = SidebarNavIcon.hover(widget.isDark);
+    final labelColor = showHover ? ink : idle;
+
+    final baseStyle = TextStyle(
+      fontFamily: Constants.FONT_DEFAULT_NEW,
+      fontFamilyFallback: Constants.FONT_FALLBACK,
+      fontSize: 13.25,
+      letterSpacing: 0.07,
+      height: 1.15,
+      fontWeight: FontWeight.w500,
+    );
+
+    // Measure once so the brand gradient spans the glyph run (not a fixed box).
+    // Using TextStyle.foreground (not ShaderMask) keeps Windows AA crisp.
+    TextStyle labelStyle;
+    if (selected) {
+      final painter = TextPainter(
+        text: TextSpan(text: widget.label, style: baseStyle),
+        maxLines: 1,
+        textDirection: TextDirection.ltr,
+        ellipsis: '…',
+      )..layout(maxWidth: 220);
+      labelStyle = baseStyle.copyWith(
+        foreground: Paint()
+          ..isAntiAlias = true
+          ..shader = HomeUi.iconFillGradient.createShader(
+            Rect.fromLTWH(0, 0, painter.width.clamp(1, 220), painter.height),
+          ),
+      );
+    } else {
+      labelStyle = baseStyle.copyWith(color: labelColor);
+    }
+
+    final label = Text(
+      widget.label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: labelStyle,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: MouseRegion(
         onEnter: (_) => setState(() => _hovering = true),
-        onExit: (_) => setState(() => _hovering = false),
+        onExit: (_) => setState(() {
+          _hovering = false;
+          _pressed = false;
+        }),
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) {
+            setState(() => _pressed = false);
+            widget.onTap();
+          },
+          onTapCancel: () => setState(() => _pressed = false),
+          child: AnimatedScale(
+            scale: _pressed ? 0.985 : 1,
+            duration: const Duration(milliseconds: 140),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            decoration: BoxDecoration(
-              color: selected
-                  ? HomeUi.elevatedBg(widget.isDark)
-                  : (showHover
-                      ? HomeUi.elevatedBg(widget.isDark).withValues(
-                          alpha: widget.isDark ? 0.55 : 0.7,
-                        )
-                      : Colors.transparent),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              height: 46,
+              padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+              alignment: Alignment.centerLeft,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: selected ? HomeUi.sidebarActiveBgGradient : null,
                 color: selected
-                    ? HomeUi.borderStrong(widget.isDark)
+                    ? null
                     : (showHover
-                        ? HomeUi.borderLight(widget.isDark)
+                        ? (widget.isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : const Color(0xFFF4F5F7))
                         : Colors.transparent),
               ),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF0F172A).withValues(
-                          alpha: widget.isDark ? 0.22 : 0.05,
-                        ),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: selected
-                        ? HomeUi.softBrandWellGradient
-                        : LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0x0FE4621E),
-                              const Color(0x146B7280),
-                            ],
-                          ),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: selected
-                          ? HomeUi.buttonBorder.withValues(alpha: 0.48)
-                          : HomeUi.iconWellBorder.withValues(
-                              alpha: widget.isDark ? 0.22 : 0.32,
-                            ),
-                      width: selected ? 1.0 : 0.75,
-                    ),
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: const Color(0xFFE4621E).withValues(
-                                alpha: widget.isDark ? 0.18 : 0.12,
-                              ),
-                              blurRadius: 12,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: SidebarNavIcon(
-                    glyph: widget.glyph,
-                    selected: selected,
-                    size: 17,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: HomeUi.control(
-                      widget.isDark,
-                      active: selected || showHover,
-                    ).copyWith(
-                      fontSize: 13,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected
-                          ? HomeUi.title(widget.isDark)
-                          : HomeUi.muted(widget.isDark),
+              child: Row(
+                children: [
+                  AnimatedBuilder(
+                    animation: _selectPulse,
+                    builder: (context, child) {
+                      final scale =
+                          selected ? (0.90 + 0.10 * _selectPulse.value) : 1.0;
+                      return Transform.scale(scale: scale, child: child);
+                    },
+                    child: SidebarNavIcon(
+                      glyph: widget.glyph,
+                      selected: selected,
+                      size: 17,
+                      // Selected → brand gradient via ShaderMask (no solid tint).
+                      // Idle / hover → solid grey.
+                      color: selected ? null : labelColor,
+                      gradient: selected ? HomeUi.iconFillGradient : null,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 11),
+                  Expanded(child: label),
+                ],
+              ),
             ),
           ),
         ),
@@ -1030,63 +1258,77 @@ class _LogoutTile extends StatefulWidget {
 
 class _LogoutTileState extends State<_LogoutTile> {
   bool _hovering = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final danger = HomeUi.negative(widget.isDark);
+    const idle = SidebarNavIcon.idleColor;
+    final color = _hovering ? danger : idle;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
+      onExit: (_) => setState(() {
+        _hovering = false;
+        _pressed = false;
+      }),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.985 : 1,
+          duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            color: _hovering ? HomeUi.negativeSoft(widget.isDark) : Colors.transparent,
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            height: 46,
+            padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+            alignment: Alignment.centerLeft,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
               color: _hovering
-                  ? danger.withValues(alpha: 0.28)
-                  : HomeUi.borderLight(widget.isDark),
+                  ? danger.withValues(alpha: widget.isDark ? 0.12 : 0.06)
+                  : Colors.transparent,
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: HomeUi.negativeSoft(widget.isDark),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(
-                    color: danger.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: SidebarNavIcon(
+            child: Row(
+              children: [
+                SidebarNavIcon(
                   glyph: SidebarGlyph.logout,
-                  selected: true,
-                  size: 16,
-                  gradient: LinearGradient(
-                    colors: [danger, danger.withValues(alpha: 0.82)],
+                  selected: false,
+                  size: 17,
+                  color: color,
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    'Sign out',
+                    style: TextStyle(
+                      fontFamily: Constants.FONT_DEFAULT_NEW,
+                      fontFamilyFallback: Constants.FONT_FALLBACK,
+                      fontSize: 13.25,
+                      letterSpacing: 0.07,
+                      fontWeight: FontWeight.w500,
+                      color: color,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Sign out',
-                style: TextStyle(
-                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: danger,
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 160),
+                  opacity: _hovering ? 1 : 0.35,
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 15,
+                    color: color,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1127,14 +1369,11 @@ class _IconHitState extends State<_IconHit> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: _hovering
-                ? HomeUi.elevatedBg(widget.isDark)
+                ? (widget.isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : const Color(0xFFF4F5F7))
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: _hovering
-                  ? HomeUi.borderStrong(widget.isDark)
-                  : Colors.transparent,
-            ),
           ),
           child: widget.child,
         ),
@@ -1212,17 +1451,13 @@ class _SidebarMenuButtonState extends State<SidebarMenuButton>
                   hover: _hovering,
                   active: isOpen,
                 ),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: SidebarMenuGlyph(
-                    key: ValueKey(isOpen),
-                    open: isOpen,
-                    active: isOpen || _hovering,
-                    size: 17,
-                    mutedColor: widget.isDarkMode
-                        ? const Color(0xFFE0E0E0)
-                        : const Color(0xFF374151),
-                  ),
+                child: SidebarMenuGlyph(
+                  open: isOpen,
+                  active: isOpen || _hovering,
+                  size: 17,
+                  mutedColor: widget.isDarkMode
+                      ? const Color(0xFFE0E0E0)
+                      : const Color(0xFF374151),
                 ),
               ),
             ),

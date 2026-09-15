@@ -98,6 +98,21 @@ class HomeUi {
     stops: <double>[0.0, 0.25, 0.50, 0.75, 1.0],
   );
 
+  /// Sidebar active row wash —
+  /// `linear-gradient(90deg, #FEF7EE … #F0F5FE)`.
+  static const LinearGradient sidebarActiveBgGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: <Color>[
+      Color(0xFFFEF7EE),
+      Color(0xFFFEECEC),
+      Color(0xFFF9E9EF),
+      Color(0xFFF0E9F1),
+      Color(0xFFF0F5FE),
+    ],
+    stops: <double>[0.0047, 0.2526, 0.5005, 0.7484, 0.9963],
+  );
+
   /// Soft brand glyph tint for homepage-style decorative icons.
   static const LinearGradient softBrandIconGradient = LinearGradient(
     begin: Alignment.topLeft,
