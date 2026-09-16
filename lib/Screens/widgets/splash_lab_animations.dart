@@ -11,6 +11,7 @@ part 'splash_lab_reveals.dart';
 
 enum SplashLabStyle {
   // Flagship premium set
+  tudum,
   noir,
   mercury,
   editorial,
@@ -79,10 +80,12 @@ class _SplashLabPlayerState extends State<SplashLabPlayer>
 
   Duration get _duration {
     switch (widget.style) {
+      case SplashLabStyle.tudum:
+        return const Duration(milliseconds: 3800);
       case SplashLabStyle.noir:
         return const Duration(milliseconds: 3400);
       case SplashLabStyle.mercury:
-        return const Duration(milliseconds: 3600);
+        return const Duration(milliseconds: 4000);
       case SplashLabStyle.editorial:
         return const Duration(milliseconds: 3300);
       case SplashLabStyle.atelier:
@@ -203,6 +206,8 @@ class _SplashLabPlayerState extends State<SplashLabPlayer>
                 final t = _master.value;
                 final Widget splash;
                 switch (widget.style) {
+                  case SplashLabStyle.tudum:
+                    splash = _TudumSplash(t: t);
                   case SplashLabStyle.noir:
                     splash = _NoirSplash(t: t);
                   case SplashLabStyle.mercury:

@@ -115,6 +115,17 @@ class _SplashAnimationLabScreenState extends State<SplashAnimationLabScreen> {
                                   final cards = [
                                     // Flagship premium set first
                                     _StyleCard(
+                                      title: 'Tudum',
+                                      subtitle:
+                                          'Netflix-grade cinematic logo punch',
+                                      accent: const Color(0xFFE50914),
+                                      darkAccent: const Color(0xFF000000),
+                                      isDark: isDark,
+                                      preview: const MiniTudum(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.tudum),
+                                    ),
+                                    _StyleCard(
                                       title: 'Noir',
                                       subtitle:
                                           'Dark-grey BG iris-opens 0 → full screen',
@@ -128,7 +139,7 @@ class _SplashAnimationLabScreenState extends State<SplashAnimationLabScreen> {
                                     _StyleCard(
                                       title: 'Mercury',
                                       subtitle:
-                                          'Quiet liquid sheen across the mark',
+                                          'Liquid metal bloom with dual sheen',
                                       accent: const Color(0xFFD4D4D8),
                                       darkAccent: const Color(0xFF09090B),
                                       isDark: isDark,

@@ -26,6 +26,8 @@ enum SplashRevealKind {
 
 SplashRevealKind splashRevealFor(SplashLabStyle style) {
   switch (style) {
+    case SplashLabStyle.tudum:
+      return SplashRevealKind.horizontal;
     case SplashLabStyle.noir:
       return SplashRevealKind.circle;
     case SplashLabStyle.mercury:

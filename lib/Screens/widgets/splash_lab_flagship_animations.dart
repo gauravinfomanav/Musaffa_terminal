@@ -1602,109 +1602,272 @@ class _NoirSplash extends StatelessWidget {
   }
 }
 
-// --- 41. Mercury - quiet liquid sheen across the existing mark ---------------
+// --- 41. Mercury - liquid metal bloom, dual sheen, quiet settle --------------
 
 class _MercurySplash extends StatelessWidget {
   const _MercurySplash({required this.t});
   final double t;
+
+  static double _liquidSettle(double x) {
+    x = x.clamp(0.0, 1.0);
+    // Soft mercury settle — brief overshoot then still.
+    return 1 - math.exp(-6.8 * x) * math.cos(2.1 * x);
+  }
 
   @override
   Widget build(BuildContext context) {
     final reduce = MediaQuery.disableAnimationsOf(context);
     final tt = reduce ? 1.0 : t;
 
-    final form = _easeOutQuint(_seg(tt, 0.06, 0.42));
-    final sheen = _easeInOutQuint(_seg(tt, 0.28, 0.72));
-    final wordIn = _easeOutCubic(_seg(tt, 0.48, 0.70));
-    final exit = _easeInOutQuint(_seg(tt, 0.76, 1.0));
+    // Cinematic mercury timing (~4.0s):
+    // 0.00-0.18  atmosphere wakes
+    // 0.08-0.46  mark blooms from soft liquid blur → crisp
+    // 0.30-0.78  dual sheen sweeps across the mark
+    // 0.42-0.68  word + tag settle
+    // 0.78-1.00  quiet fade exit
+    final atmosphere = _easeOutCubic(_seg(tt, 0.0, 0.28));
+    final form = _liquidSettle(_seg(tt, 0.08, 0.48));
+    final sheenA = _easeInOutQuint(_seg(tt, 0.30, 0.68));
+    final sheenB = _easeInOutQuint(_seg(tt, 0.42, 0.82));
+    final ripple = _easeOutQuint(_seg(tt, 0.18, 0.62));
+    final wordIn = _easeOutCubic(_seg(tt, 0.50, 0.72));
+    final tagIn = _easeOutCubic(_seg(tt, 0.60, 0.80));
+    final exit = _easeInOutQuint(_seg(tt, 0.78, 1.0));
 
     final size = MediaQuery.sizeOf(context);
-    final logoSize = (size.shortestSide * 0.15).clamp(78.0, 118.0);
-    final scale = 0.94 + form * 0.06;
+    final logoSize = (size.shortestSide * 0.16).clamp(82.0, 124.0);
+
+    final scale = 1.12 - form * 0.12;
+    final blur = ((1 - form) * 10).clamp(0.01, 10.0);
+    final markOpacity = (atmosphere * 0.2 + form * 0.8).clamp(0.0, 1.0);
+    final rise = (1 - form) * 14;
+    final exitOpacity = (1 - exit).clamp(0.0, 1.0);
+    final exitScale = 1 - exit * 0.04;
 
     return ColoredBox(
-      color: const Color(0xFF09090B),
+      color: const Color(0xFF07070A),
       child: Opacity(
-        opacity: (1 - exit).clamp(0.0, 1.0),
-        child: Transform.translate(
-          offset: Offset(0, -exit * 14),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        opacity: exitOpacity,
+        child: Transform.scale(
+          scale: exitScale,
+          filterQuality: FilterQuality.high,
+          child: Transform.translate(
+            offset: Offset(0, -exit * 16),
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                Opacity(
-                  opacity: form,
-                  child: Transform.scale(
-                    scale: scale,
-                    filterQuality: FilterQuality.high,
-                    child: SizedBox(
-                      width: logoSize,
-                      height: logoSize,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _MusaffaLogoMark(size: logoSize),
-                          // Soft sheen sweep — clipped to logo bounds only
-                          IgnorePointer(
-                            child: ClipRect(
-                              child: Opacity(
-                                opacity: 0.35 * form,
-                                child: Transform.translate(
-                                  offset: Offset(
-                                    -logoSize + sheen * logoSize * 2.2,
-                                    0,
-                                  ),
-                                  child: Transform.rotate(
-                                    angle: -0.4,
+                // Cool graphite atmosphere
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0, -0.12),
+                      radius: 1.05,
+                      colors: [
+                        Color.lerp(
+                          const Color(0xFF07070A),
+                          const Color(0xFF1A1C22),
+                          atmosphere * 0.9,
+                        )!,
+                        const Color(0xFF07070A),
+                      ],
+                    ),
+                  ),
+                ),
+                // Soft mercury field + expanding ripples
+                CustomPaint(
+                  painter: _MercuryFieldPainter(
+                    atmosphere: atmosphere,
+                    ripple: ripple,
+                    sheen: sheenA,
+                  ),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Transform.translate(
+                        offset: Offset(0, rise),
+                        child: Opacity(
+                          opacity: markOpacity,
+                          child: Transform.scale(
+                            scale: scale,
+                            filterQuality: FilterQuality.high,
+                            child: SizedBox(
+                              width: logoSize * 1.55,
+                              height: logoSize * 1.55,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Ambient liquid glow behind mark
+                                  IgnorePointer(
                                     child: Container(
-                                      width: logoSize * 0.35,
-                                      height: logoSize * 1.6,
+                                      width: logoSize * 1.35,
+                                      height: logoSize * 1.35,
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(
+                                        shape: BoxShape.circle,
+                                        gradient: RadialGradient(
                                           colors: [
-                                            Colors.transparent,
-                                            Colors.white.withValues(alpha: 0.55),
+                                            const Color(0xFFC8D0DC)
+                                                .withValues(
+                                              alpha: 0.16 * form,
+                                            ),
+                                            const Color(0xFF8FA0B8)
+                                                .withValues(
+                                              alpha: 0.05 * form,
+                                            ),
                                             Colors.transparent,
                                           ],
+                                          stops: const [0.0, 0.45, 1.0],
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
+                                  ImageFiltered(
+                                    imageFilter: ui.ImageFilter.blur(
+                                      sigmaX: blur,
+                                      sigmaY: blur,
+                                    ),
+                                    child: _MusaffaLogoMark(size: logoSize),
+                                  ),
+                                  // Primary liquid sheen
+                                  IgnorePointer(
+                                    child: ClipOval(
+                                      child: SizedBox(
+                                        width: logoSize,
+                                        height: logoSize,
+                                        child: Opacity(
+                                          opacity: 0.55 * form,
+                                          child: Transform.translate(
+                                            offset: Offset(
+                                              -logoSize +
+                                                  sheenA * logoSize * 2.35,
+                                              0,
+                                            ),
+                                            child: Transform.rotate(
+                                              angle: -0.42,
+                                              child: Container(
+                                                width: logoSize * 0.42,
+                                                height: logoSize * 1.7,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Colors.transparent,
+                                                      const Color(0xFFB8C4D4)
+                                                          .withValues(
+                                                        alpha: 0.25,
+                                                      ),
+                                                      Colors.white.withValues(
+                                                        alpha: 0.72,
+                                                      ),
+                                                      const Color(0xFF9EB0C4)
+                                                          .withValues(
+                                                        alpha: 0.2,
+                                                      ),
+                                                      Colors.transparent,
+                                                    ],
+                                                    stops: const [
+                                                      0.0,
+                                                      0.28,
+                                                      0.5,
+                                                      0.72,
+                                                      1.0,
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Secondary cooler sheen (offset angle)
+                                  IgnorePointer(
+                                    child: ClipOval(
+                                      child: SizedBox(
+                                        width: logoSize,
+                                        height: logoSize,
+                                        child: Opacity(
+                                          opacity: 0.28 * form,
+                                          child: Transform.translate(
+                                            offset: Offset(
+                                              -logoSize +
+                                                  sheenB * logoSize * 2.5,
+                                              logoSize * 0.08,
+                                            ),
+                                            child: Transform.rotate(
+                                              angle: -0.55,
+                                              child: Container(
+                                                width: logoSize * 0.22,
+                                                height: logoSize * 1.5,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Colors.transparent,
+                                                      const Color(0xFFA8C0D8)
+                                                          .withValues(
+                                                        alpha: 0.45,
+                                                      ),
+                                                      Colors.transparent,
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: logoSize * 0.26),
-                Opacity(
-                  opacity: wordIn,
-                  child: Text(
-                    'TERMINAL',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.94),
-                      fontSize: (size.width * 0.034).clamp(20.0, 32.0),
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 9,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Opacity(
-                  opacity: _easeOutCubic(_seg(tt, 0.58, 0.78)),
-                  child: Text(
-                    'LIQUID PRECISION',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 4.6,
-                      fontFamily: Constants.FONT_DEFAULT_NEW,
-                    ),
+                      SizedBox(height: logoSize * 0.08),
+                      // Mirror pool under the mark
+                      Opacity(
+                        opacity: form * 0.9,
+                        child: CustomPaint(
+                          size: Size(logoSize * 1.15, logoSize * 0.22),
+                          painter: _MercuryMirrorPainter(progress: form),
+                        ),
+                      ),
+                      SizedBox(height: logoSize * 0.18),
+                      Opacity(
+                        opacity: wordIn,
+                        child: Transform.translate(
+                          offset: Offset(0, (1 - wordIn) * 8),
+                          child: Text(
+                            'TERMINAL',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.94),
+                              fontSize:
+                                  (size.width * 0.034).clamp(20.0, 32.0),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 10,
+                              fontFamily: Constants.FONT_DEFAULT_NEW,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Opacity(
+                        opacity: tagIn,
+                        child: Text(
+                          'LIQUID PRECISION',
+                          style: TextStyle(
+                            color: const Color(0xFFB0B8C4)
+                                .withValues(alpha: 0.42),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 4.8,
+                            fontFamily: Constants.FONT_DEFAULT_NEW,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1714,6 +1877,129 @@ class _MercurySplash extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Soft mercury atmosphere — cool bloom + expanding liquid ripples.
+class _MercuryFieldPainter extends CustomPainter {
+  _MercuryFieldPainter({
+    required this.atmosphere,
+    required this.ripple,
+    required this.sheen,
+  });
+
+  final double atmosphere;
+  final double ripple;
+  final double sheen;
+
+  static const _silver = Color(0xFFC4CCD8);
+  static const _cool = Color(0xFF8FA3BC);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (atmosphere < 0.01) return;
+    final c = Offset(size.width / 2, size.height * 0.42);
+    final a = atmosphere.clamp(0.0, 1.0);
+
+    // Core cool bloom
+    canvas.drawCircle(
+      c,
+      size.shortestSide * 0.34,
+      Paint()
+        ..color = _cool.withValues(alpha: 0.07 * a)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 48),
+    );
+
+    // Expanding liquid ripples
+    if (ripple > 0.02) {
+      for (var i = 0; i < 3; i++) {
+        final local = ((ripple - i * 0.12) / (1 - i * 0.12)).clamp(0.0, 1.0);
+        if (local <= 0) continue;
+        final r = size.shortestSide * (0.12 + local * 0.38);
+        final fade = (1 - local) * a * 0.35;
+        canvas.drawCircle(
+          c,
+          r,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.1
+            ..color = _silver.withValues(alpha: fade)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        );
+      }
+    }
+
+    // Horizontal light skim across field
+    if (sheen > 0.01) {
+      final y = size.height * (0.28 + sheen * 0.28);
+      final rect = Rect.fromLTWH(0, y - 18, size.width, 36);
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = ui.Gradient.linear(
+            Offset(0, y),
+            Offset(size.width, y),
+            [
+              Colors.transparent,
+              _silver.withValues(alpha: 0.05 * a),
+              Colors.transparent,
+            ],
+            const [0.15, 0.5, 0.85],
+          )
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MercuryFieldPainter old) =>
+      old.atmosphere != atmosphere ||
+      old.ripple != ripple ||
+      old.sheen != sheen;
+}
+
+/// Thin reflective pool under the mark — liquid mirror line.
+class _MercuryMirrorPainter extends CustomPainter {
+  _MercuryMirrorPainter({required this.progress});
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress < 0.01) return;
+    final p = progress.clamp(0.0, 1.0);
+    final w = size.width * (0.35 + p * 0.65);
+    final left = (size.width - w) / 2;
+    final cy = size.height * 0.35;
+
+    final rect = Rect.fromLTWH(left, cy - 6, w, 12);
+    canvas.drawOval(
+      rect,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(size.width / 2, cy),
+          w * 0.55,
+          [
+            Colors.white.withValues(alpha: 0.18 * p),
+            const Color(0xFF9AABBE).withValues(alpha: 0.06 * p),
+            Colors.transparent,
+          ],
+          const [0.0, 0.45, 1.0],
+        )
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+
+    canvas.drawLine(
+      Offset(left + w * 0.08, cy),
+      Offset(left + w * 0.92, cy),
+      Paint()
+        ..strokeWidth = 0.8
+        ..strokeCap = StrokeCap.round
+        ..color = Colors.white.withValues(alpha: 0.22 * p),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MercuryMirrorPainter old) =>
+      old.progress != progress;
 }
 
 // --- 42. Editorial - magazine masthead assemble ------------------------------
@@ -1806,4 +2092,263 @@ class _EditorialSplash extends StatelessWidget {
       ),
     );
   }
+}
+
+// --- Tudum - authentic Netflix-style ribbon draw → logo impact --------------
+
+class _TudumSplash extends StatelessWidget {
+  const _TudumSplash({required this.t});
+  final double t;
+
+  static double _impact(double x) {
+    x = x.clamp(0.0, 1.0);
+    // Tight cinematic settle (Netflix punch, not spring bounce).
+    return 1 - math.exp(-9.5 * x) * math.cos(1.6 * x);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    final tt = reduce ? 1.0 : t;
+
+    // Netflix bumper timing (~3.6s):
+    // 0.00-0.52  red ribbons draw (N-language curves)
+    // 0.42-0.62  ribbons bloom + logo impact punch
+    // 0.62-0.78  solid hold
+    // 0.78-1.00  smooth zoom handoff into app
+    final draw = _easeInOutCubic(_seg(tt, 0.0, 0.52));
+    final climax = _easeOutQuint(_seg(tt, 0.40, 0.58));
+    final punch = _impact(_seg(tt, 0.44, 0.64));
+    final hold = _seg(tt, 0.62, 0.78);
+    final exit = _easeInOutQuint(_seg(tt, 0.78, 1.0));
+
+    final size = MediaQuery.sizeOf(context);
+    final logoSize = (size.shortestSide * 0.18).clamp(92.0, 140.0);
+
+    // Ribbons fade as logo takes the stage
+    final ribbonFade = (1.0 - climax * 0.92).clamp(0.0, 1.0);
+    // Logo: invisible → sudden Netflix-scale punch (1.55 → 1.0)
+    final logoScale = 1.55 - punch * 0.55;
+    final logoOpacity = punch.clamp(0.0, 1.0);
+    // Exit continues the camera push
+    final exitScale = 1.0 + exit * 0.72;
+    final exitOpacity = (1.0 - _easeInOutCubic(exit)).clamp(0.0, 1.0);
+
+    // Single-frame impact flash at the "tudum" moment
+    final tudumFlash = punch > 0.92 && punch < 1.0
+        ? (1 - (punch - 0.92) / 0.08) * 0.22
+        : (hold > 0 && hold < 0.15 ? 0.05 : 0.0);
+
+    return ColoredBox(
+      color: const Color(0xFF000000),
+      child: Opacity(
+        opacity: exitOpacity,
+        child: Transform.scale(
+          scale: exitScale,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.high,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CustomPaint(
+                painter: _TudumRibbonsPainter(
+                  draw: draw,
+                  fade: ribbonFade,
+                ),
+              ),
+              // Impact bloom — the "tudum" hit
+              if (tudumFlash > 0.001)
+                IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFFE50914).withValues(alpha: tudumFlash),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.55],
+                      ),
+                    ),
+                  ),
+                ),
+              Center(
+                child: Opacity(
+                  opacity: logoOpacity,
+                  child: Transform.scale(
+                    scale: logoScale.clamp(0.98, 1.6),
+                    filterQuality: FilterQuality.high,
+                    child: _MusaffaLogoMark(size: logoSize),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Thick Netflix-style red ribbons — progressive stroke draw with edge lighting.
+class _TudumRibbonsPainter extends CustomPainter {
+  _TudumRibbonsPainter({required this.draw, required this.fade});
+
+  final double draw;
+  final double fade;
+
+  static const _red = Color(0xFFE50914);
+  static const _redHi = Color(0xFFFF2A2A);
+  static const _redLo = Color(0xFF8B0008);
+
+  Path _leftStem(Size size) {
+    final w = size.width;
+    final h = size.height;
+    return Path()
+      ..moveTo(w * 0.34, h * -0.08)
+      ..cubicTo(
+        w * 0.30,
+        h * 0.22,
+        w * 0.31,
+        h * 0.55,
+        w * 0.36,
+        h * 1.08,
+      );
+  }
+
+  Path _diagonal(Size size) {
+    final w = size.width;
+    final h = size.height;
+    return Path()
+      ..moveTo(w * 0.72, h * -0.05)
+      ..cubicTo(
+        w * 0.58,
+        h * 0.28,
+        w * 0.42,
+        h * 0.62,
+        w * 0.28,
+        h * 1.05,
+      );
+  }
+
+  Path _rightStem(Size size) {
+    final w = size.width;
+    final h = size.height;
+    return Path()
+      ..moveTo(w * 0.66, h * -0.08)
+      ..cubicTo(
+        w * 0.70,
+        h * 0.25,
+        w * 0.69,
+        h * 0.58,
+        w * 0.64,
+        h * 1.08,
+      );
+  }
+
+  void _strokeRibbon(
+    Canvas canvas,
+    Path full, {
+    required double localDraw,
+    required double width,
+    required double alpha,
+  }) {
+    if (localDraw <= 0.001 || alpha <= 0.001) return;
+    final metrics = full.computeMetrics();
+    if (metrics.isEmpty) return;
+    final metric = metrics.first;
+    final len = metric.length * localDraw.clamp(0.0, 1.0);
+    final drawn = metric.extractPath(0, len);
+
+    // Soft outer glow
+    canvas.drawPath(
+      drawn,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width * 1.55
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = _red.withValues(alpha: 0.22 * alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+    );
+
+    // Deep shadow edge
+    canvas.drawPath(
+      drawn,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width * 1.08
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = _redLo.withValues(alpha: 0.85 * alpha),
+    );
+
+    // Core ribbon body
+    canvas.drawPath(
+      drawn,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = _red.withValues(alpha: alpha),
+    );
+
+    // Specular highlight edge (Netflix metallic sheen)
+    canvas.drawPath(
+      drawn,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width * 0.28
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = _redHi.withValues(alpha: 0.55 * alpha),
+    );
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (draw < 0.01 && fade < 0.01) return;
+    final a = fade.clamp(0.0, 1.0);
+    final ribbonW = size.shortestSide * 0.085;
+
+    // Staggered Netflix N-language strokes
+    _strokeRibbon(
+      canvas,
+      _leftStem(size),
+      localDraw: _easeInOutCubic((draw / 0.55).clamp(0.0, 1.0)),
+      width: ribbonW,
+      alpha: a,
+    );
+    _strokeRibbon(
+      canvas,
+      _diagonal(size),
+      localDraw: _easeInOutCubic(((draw - 0.12) / 0.55).clamp(0.0, 1.0)),
+      width: ribbonW * 0.95,
+      alpha: a,
+    );
+    _strokeRibbon(
+      canvas,
+      _rightStem(size),
+      localDraw: _easeInOutCubic(((draw - 0.22) / 0.55).clamp(0.0, 1.0)),
+      width: ribbonW,
+      alpha: a,
+    );
+
+    // Center convergence bloom as ribbons complete
+    if (draw > 0.45) {
+      final bloom = ((draw - 0.45) / 0.35).clamp(0.0, 1.0) * a;
+      final c = Offset(size.width / 2, size.height / 2);
+      canvas.drawCircle(
+        c,
+        size.shortestSide * 0.28 * bloom,
+        Paint()
+          ..color = _red.withValues(alpha: 0.20 * bloom)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 42),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TudumRibbonsPainter old) =>
+      old.draw != draw || old.fade != fade;
 }

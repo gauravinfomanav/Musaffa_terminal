@@ -4,6 +4,49 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+class MiniTudum extends StatelessWidget {
+  const MiniTudum({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 72,
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 14,
+            child: Container(
+              height: 6,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(3),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    const Color(0xFFE50914).withValues(alpha: 0.85),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class MiniNoir extends StatelessWidget {
   const MiniNoir({super.key});
 
@@ -55,29 +98,60 @@ class MiniMercury extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 40,
+      width: 44,
       height: 40,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
-            width: 22,
-            height: 22,
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.white.withValues(alpha: 0.75),
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFFC8D0DC).withValues(alpha: 0.35),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              color: Colors.white.withValues(alpha: 0.82),
             ),
           ),
           Transform.rotate(
-            angle: -0.4,
+            angle: -0.42,
             child: Container(
-              width: 8,
-              height: 36,
+              width: 7,
+              height: 34,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    Colors.white.withValues(alpha: 0.9),
+                    const Color(0xFFB8C4D4).withValues(alpha: 0.5),
+                    Colors.white.withValues(alpha: 0.95),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 4,
+            child: Container(
+              width: 22,
+              height: 2,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(1),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.white.withValues(alpha: 0.45),
                     Colors.transparent,
                   ],
                 ),
