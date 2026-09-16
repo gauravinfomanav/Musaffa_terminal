@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:musaffa_terminal/Components/tabbar.dart';
 import 'package:musaffa_terminal/Screens/widgets/splash_lab_animations.dart';
+import 'package:musaffa_terminal/Screens/widgets/splash_lab_flagship_mini_previews.dart';
 import 'package:musaffa_terminal/services/global_sidebar_service.dart';
 import 'package:musaffa_terminal/services/global_watchlist_service.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
@@ -76,7 +77,11 @@ class _SplashAnimationLabScreenState extends State<SplashAnimationLabScreen> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final pad = HomeUi.pagePadding(constraints.maxWidth);
-                      return SingleChildScrollView(
+                      return ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context).copyWith(
+                          scrollbars: false,
+                        ),
+                        child: SingleChildScrollView(
                         padding: EdgeInsets.fromLTRB(
                           pad.left,
                           20,
@@ -99,16 +104,6 @@ class _SplashAnimationLabScreenState extends State<SplashAnimationLabScreen> {
                                   color: HomeUi.title(isDark),
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Twenty-three premium Terminal intros — US-level motion. Tap to preview.',
-                                style: TextStyle(
-                                  fontFamily: Constants.FONT_DEFAULT_NEW,
-                                  fontSize: 13,
-                                  height: 1.45,
-                                  color: HomeUi.muted(isDark),
-                                ),
-                              ),
                               const SizedBox(height: 28),
                               LayoutBuilder(
                                 builder: (context, c) {
@@ -118,6 +113,217 @@ class _SplashAnimationLabScreenState extends State<SplashAnimationLabScreen> {
                                           ? 2
                                           : 1;
                                   final cards = [
+                                    // Flagship premium set first
+                                    _StyleCard(
+                                      title: 'Noir',
+                                      subtitle:
+                                          'Dark-grey BG iris-opens 0 → full screen',
+                                      accent: const Color(0xFFE5E5E5),
+                                      darkAccent: const Color(0xFF060608),
+                                      isDark: isDark,
+                                      preview: const MiniNoir(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.noir),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Mercury',
+                                      subtitle:
+                                          'Quiet liquid sheen across the mark',
+                                      accent: const Color(0xFFD4D4D8),
+                                      darkAccent: const Color(0xFF09090B),
+                                      isDark: isDark,
+                                      preview: const MiniMercury(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.mercury),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Editorial',
+                                      subtitle:
+                                          'Magazine masthead assemble',
+                                      accent: const Color(0xFFFAFAFA),
+                                      darkAccent: const Color(0xFF0A0A0A),
+                                      isDark: isDark,
+                                      preview: const MiniEditorial(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.editorial),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Atelier',
+                                      subtitle:
+                                          'Luxury seal press — mark stamps into place',
+                                      accent: const Color(0xFFF5F5F4),
+                                      darkAccent: const Color(0xFF08070A),
+                                      isDark: isDark,
+                                      preview: const MiniAtelier(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.atelier),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Zenith',
+                                      subtitle:
+                                          'Swiss ultra-minimal institutional quiet',
+                                      accent: const Color(0xFFFAFAFA),
+                                      darkAccent: const Color(0xFF050505),
+                                      isDark: isDark,
+                                      preview: const MiniZenith(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.zenith),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Porcelain',
+                                      subtitle:
+                                          'Soft top-light product pedestal reveal',
+                                      accent: const Color(0xFFE7E5E4),
+                                      darkAccent: const Color(0xFF0A0A0C),
+                                      isDark: isDark,
+                                      preview: const MiniPorcelain(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.porcelain),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Signature',
+                                      subtitle:
+                                          'Cinematic 3s fintech logo opening',
+                                      accent: const Color(0xFFFAFAFA),
+                                      darkAccent: const Color(0xFF07070A),
+                                      isDark: isDark,
+                                      preview: const MiniSignature(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.signature),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Lumina',
+                                      subtitle:
+                                          'Apple-grade lens flare bloom reveal',
+                                      accent: const Color(0xFFFAFAFA),
+                                      darkAccent: const Color(0xFF060608),
+                                      isDark: isDark,
+                                      preview: const MiniLumina(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.lumina),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Ethereal',
+                                      subtitle:
+                                          'Mist clears, brand emerges in light',
+                                      accent: const Color(0xFFE9D5FF),
+                                      darkAccent: const Color(0xFF0A0A0E),
+                                      isDark: isDark,
+                                      preview: const MiniEthereal(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.ethereal),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Sovereign',
+                                      subtitle:
+                                          'Radial brand rays bloom from core',
+                                      accent: const Color(0xFFE4621E),
+                                      darkAccent: const Color(0xFF08060A),
+                                      isDark: isDark,
+                                      preview: const MiniSovereign(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.sovereign),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Velvet',
+                                      subtitle:
+                                          'Luxury curtains part to reveal',
+                                      accent: const Color(0xFFD2364C),
+                                      darkAccent: const Color(0xFF120A10),
+                                      isDark: isDark,
+                                      preview: const MiniVelvet(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.velvet),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Obsidian',
+                                      subtitle:
+                                          'Glossy dark plane + specular sweep',
+                                      accent: const Color(0xFFA1A1AA),
+                                      darkAccent: const Color(0xFF050506),
+                                      isDark: isDark,
+                                      preview: const MiniObsidian(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.obsidian),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Quantum',
+                                      subtitle:
+                                          'Particle field converges to core',
+                                      accent: const Color(0xFF6366F1),
+                                      darkAccent: const Color(0xFF050508),
+                                      isDark: isDark,
+                                      preview: const MiniQuantum(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.quantum),
+                                    ),
+                                    // Premium set
+                                    _StyleCard(
+                                      title: 'Beacon',
+                                      subtitle:
+                                          'Searchlight sweep locks onto brand',
+                                      accent: const Color(0xFFE4621E),
+                                      darkAccent: const Color(0xFF06060A),
+                                      isDark: isDark,
+                                      preview: const _MiniBeacon(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.beacon),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Ledger',
+                                      subtitle:
+                                          'Precision fintech rules draw in',
+                                      accent: const Color(0xFFA1A1AA),
+                                      darkAccent: const Color(0xFF08090C),
+                                      isDark: isDark,
+                                      preview: const _MiniLedger(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.ledger),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Nova',
+                                      subtitle:
+                                          'Soft brand wash rings bloom open',
+                                      accent: const Color(0xFFD2364C),
+                                      darkAccent: const Color(0xFF050508),
+                                      isDark: isDark,
+                                      preview: const _MiniNova(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.nova),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Parallax',
+                                      subtitle:
+                                          'Multi-layer depth drift settle',
+                                      accent: const Color(0xFFA72669),
+                                      darkAccent: const Color(0xFF07070B),
+                                      isDark: isDark,
+                                      preview: const _MiniParallax(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.parallax),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Signal',
+                                      subtitle:
+                                          'Acquisition scan locks brand core',
+                                      accent: const Color(0xFF22C55E),
+                                      darkAccent: const Color(0xFF05070A),
+                                      isDark: isDark,
+                                      preview: const _MiniSignal(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.signal),
+                                    ),
+                                    _StyleCard(
+                                      title: 'Vault',
+                                      subtitle:
+                                          'Concentric frames dilate open',
+                                      accent: const Color(0xFFF4F4F5),
+                                      darkAccent: const Color(0xFF09090B),
+                                      isDark: isDark,
+                                      preview: const _MiniVault(),
+                                      onPlay: () =>
+                                          _play(SplashLabStyle.vault),
+                                    ),
                                     // Best / US-level first
                                     _StyleCard(
                                       title: 'Whisper',
@@ -392,6 +598,7 @@ class _SplashAnimationLabScreenState extends State<SplashAnimationLabScreen> {
                               ),
                             ],
                           ),
+                        ),
                         ),
                       );
                     },
@@ -1324,4 +1531,221 @@ class _MiniCascade extends StatelessWidget {
       }),
     );
   }
+}
+
+class _MiniBeacon extends StatelessWidget {
+  const _MiniBeacon();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(88, 48),
+      painter: _MiniBeaconPainter(),
+    );
+  }
+}
+
+class _MiniBeaconPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * 0.55, 0)
+      ..lineTo(size.width * 0.2, size.height)
+      ..lineTo(size.width * 0.9, size.height)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x88E4621E), Color(0x00E4621E)],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.5, size.height * 0.55),
+      5,
+      Paint()..color = Colors.white,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _MiniLedger extends StatelessWidget {
+  const _MiniLedger();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (i) {
+        return Container(
+          width: 70.0 - i * 4,
+          height: 1.5,
+          margin: const EdgeInsets.symmetric(vertical: 3),
+          color: i == 2
+              ? const Color(0xFFE4621E).withValues(alpha: 0.7)
+              : Colors.white.withValues(alpha: 0.25),
+        );
+      }),
+    );
+  }
+}
+
+class _MiniNova extends StatelessWidget {
+  const _MiniNova();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(56, 56),
+      painter: _MiniNovaPainter(),
+    );
+  }
+}
+
+class _MiniNovaPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    for (var i = 1; i <= 3; i++) {
+      canvas.drawCircle(
+        c,
+        8.0 * i,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = Color.lerp(
+            const Color(0xFFE4621E),
+            const Color(0xFF232C64),
+            i / 3,
+          )!
+              .withValues(alpha: 0.55),
+      );
+    }
+    canvas.drawCircle(c, 4, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _MiniParallax extends StatelessWidget {
+  const _MiniParallax();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 72,
+      height: 48,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 4,
+            top: 4,
+            child: _orb(const Color(0xFFE4621E), 22),
+          ),
+          Positioned(
+            right: 2,
+            top: 10,
+            child: _orb(const Color(0xFFA72669), 18),
+          ),
+          Positioned(
+            left: 18,
+            bottom: 2,
+            child: _orb(const Color(0xFF232C64), 26),
+          ),
+          const Center(
+            child: Icon(Icons.circle, size: 8, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _orb(Color c, double s) => Container(
+        width: s,
+        height: s,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: c.withValues(alpha: 0.35),
+        ),
+      );
+}
+
+class _MiniSignal extends StatelessWidget {
+  const _MiniSignal();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(72, 48),
+      painter: _MiniSignalPainter(),
+    );
+  }
+}
+
+class _MiniSignalPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final y = size.height * 0.55;
+    canvas.drawLine(
+      Offset(6, y),
+      Offset(size.width - 6, y),
+      Paint()
+        ..color = const Color(0xFFE4621E)
+        ..strokeWidth = 1.4,
+    );
+    final c = Offset(size.width / 2, size.height * 0.45);
+    final p = Paint()
+      ..color = const Color(0xFF22C55E)
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(c + const Offset(-12, -10), c + const Offset(-5, -10), p);
+    canvas.drawLine(c + const Offset(-12, -10), c + const Offset(-12, -3), p);
+    canvas.drawLine(c + const Offset(12, -10), c + const Offset(5, -10), p);
+    canvas.drawLine(c + const Offset(12, -10), c + const Offset(12, -3), p);
+    canvas.drawCircle(c, 3.5, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _MiniVault extends StatelessWidget {
+  const _MiniVault();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(72, 48),
+      painter: _MiniVaultPainter(),
+    );
+  }
+}
+
+class _MiniVaultPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    for (var i = 1; i <= 3; i++) {
+      final rect = Rect.fromCenter(
+        center: c,
+        width: 18.0 * i,
+        height: 12.0 * i,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(4.0 + i)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.1
+          ..color = Colors.white.withValues(alpha: 0.35 + i * 0.1),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

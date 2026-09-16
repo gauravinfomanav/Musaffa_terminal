@@ -4,8 +4,34 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:musaffa_terminal/utils/constants.dart';
 import 'package:musaffa_terminal/utils/flower_logo_cache.dart';
+import 'package:musaffa_terminal/utils/home_ui.dart';
+
+part 'splash_lab_flagship_animations.dart';
+part 'splash_lab_reveals.dart';
 
 enum SplashLabStyle {
+  // Flagship premium set
+  noir,
+  mercury,
+  editorial,
+  atelier,
+  zenith,
+  porcelain,
+  signature,
+  ethereal,
+  obsidian,
+  sovereign,
+  velvet,
+  quantum,
+  lumina,
+  // Premium set
+  beacon,
+  ledger,
+  nova,
+  parallax,
+  signal,
+  vault,
+  // Existing catalog
   sable,
   circleReveal,
   orbit,
@@ -31,7 +57,7 @@ enum SplashLabStyle {
   cascade,
 }
 
-/// Full-screen premium splash preview — Terminal logo, twenty-three motion styles.
+/// Full-screen premium splash preview - Terminal logo, forty-two motion styles.
 class SplashLabPlayer extends StatefulWidget {
   const SplashLabPlayer({
     super.key,
@@ -53,6 +79,44 @@ class _SplashLabPlayerState extends State<SplashLabPlayer>
 
   Duration get _duration {
     switch (widget.style) {
+      case SplashLabStyle.noir:
+        return const Duration(milliseconds: 3400);
+      case SplashLabStyle.mercury:
+        return const Duration(milliseconds: 3600);
+      case SplashLabStyle.editorial:
+        return const Duration(milliseconds: 3300);
+      case SplashLabStyle.atelier:
+        return const Duration(milliseconds: 3400);
+      case SplashLabStyle.zenith:
+        return const Duration(milliseconds: 3000);
+      case SplashLabStyle.porcelain:
+        return const Duration(milliseconds: 3600);
+      case SplashLabStyle.signature:
+        return const Duration(milliseconds: 3200);
+      case SplashLabStyle.ethereal:
+        return const Duration(milliseconds: 5600);
+      case SplashLabStyle.obsidian:
+        return const Duration(milliseconds: 5400);
+      case SplashLabStyle.sovereign:
+        return const Duration(milliseconds: 5800);
+      case SplashLabStyle.velvet:
+        return const Duration(milliseconds: 5600);
+      case SplashLabStyle.quantum:
+        return const Duration(milliseconds: 5400);
+      case SplashLabStyle.lumina:
+        return const Duration(milliseconds: 5600);
+      case SplashLabStyle.beacon:
+        return const Duration(milliseconds: 5400);
+      case SplashLabStyle.ledger:
+        return const Duration(milliseconds: 5200);
+      case SplashLabStyle.nova:
+        return const Duration(milliseconds: 5600);
+      case SplashLabStyle.parallax:
+        return const Duration(milliseconds: 5400);
+      case SplashLabStyle.signal:
+        return const Duration(milliseconds: 5200);
+      case SplashLabStyle.vault:
+        return const Duration(milliseconds: 5400);
       case SplashLabStyle.sable:
         return const Duration(milliseconds: 4400);
       case SplashLabStyle.circleReveal:
@@ -136,54 +200,102 @@ class _SplashLabPlayerState extends State<SplashLabPlayer>
             child: AnimatedBuilder(
               animation: _master,
               builder: (context, _) {
+                final t = _master.value;
+                final Widget splash;
                 switch (widget.style) {
+                  case SplashLabStyle.noir:
+                    splash = _NoirSplash(t: t);
+                  case SplashLabStyle.mercury:
+                    splash = _MercurySplash(t: t);
+                  case SplashLabStyle.editorial:
+                    splash = _EditorialSplash(t: t);
+                  case SplashLabStyle.atelier:
+                    splash = _AtelierSplash(t: t);
+                  case SplashLabStyle.zenith:
+                    splash = _ZenithSplash(t: t);
+                  case SplashLabStyle.porcelain:
+                    splash = _PorcelainSplash(t: t);
+                  case SplashLabStyle.signature:
+                    splash = _SignatureSplash(t: t);
+                  case SplashLabStyle.ethereal:
+                    splash = _EtherealSplash(t: t);
+                  case SplashLabStyle.obsidian:
+                    splash = _ObsidianSplash(t: t);
+                  case SplashLabStyle.sovereign:
+                    splash = _SovereignSplash(t: t);
+                  case SplashLabStyle.velvet:
+                    splash = _VelvetSplash(t: t);
+                  case SplashLabStyle.quantum:
+                    splash = _QuantumSplash(t: t);
+                  case SplashLabStyle.lumina:
+                    splash = _LuminaSplash(t: t);
+                  case SplashLabStyle.beacon:
+                    splash = _BeaconSplash(t: t);
+                  case SplashLabStyle.ledger:
+                    splash = _LedgerSplash(t: t);
+                  case SplashLabStyle.nova:
+                    splash = _NovaSplash(t: t);
+                  case SplashLabStyle.parallax:
+                    splash = _ParallaxSplash(t: t);
+                  case SplashLabStyle.signal:
+                    splash = _SignalSplash(t: t);
+                  case SplashLabStyle.vault:
+                    splash = _VaultSplash(t: t);
                   case SplashLabStyle.sable:
-                    return _SableSplash(t: _master.value);
+                    splash = _SableSplash(t: t);
                   case SplashLabStyle.circleReveal:
-                    return _CircleRevealSplash(t: _master.value);
+                    splash = _CircleRevealSplash(t: t);
                   case SplashLabStyle.orbit:
-                    return _OrbitSplash(t: _master.value);
+                    splash = _OrbitSplash(t: t);
                   case SplashLabStyle.prism:
-                    return _PrismSplash(t: _master.value);
+                    splash = _PrismSplash(t: t);
                   case SplashLabStyle.aurora:
-                    return _AuroraSplash(t: _master.value);
+                    splash = _AuroraSplash(t: t);
                   case SplashLabStyle.liquidMetal:
-                    return _LiquidMetalSplash(t: _master.value);
+                    splash = _LiquidMetalSplash(t: t);
                   case SplashLabStyle.constellation:
-                    return _ConstellationSplash(t: _master.value);
+                    splash = _ConstellationSplash(t: t);
                   case SplashLabStyle.ripple:
-                    return _RippleSplash(t: _master.value);
+                    splash = _RippleSplash(t: t);
                   case SplashLabStyle.neonTrace:
-                    return _NeonTraceSplash(t: _master.value);
+                    splash = _NeonTraceSplash(t: t);
                   case SplashLabStyle.particleBloom:
-                    return _ParticleBloomSplash(t: _master.value);
+                    splash = _ParticleBloomSplash(t: t);
                   case SplashLabStyle.horizon:
-                    return _HorizonSplash(t: _master.value);
+                    splash = _HorizonSplash(t: t);
                   case SplashLabStyle.silkWipe:
-                    return _SilkWipeSplash(t: _master.value);
+                    splash = _SilkWipeSplash(t: t);
                   case SplashLabStyle.helix:
-                    return _HelixSplash(t: _master.value);
+                    splash = _HelixSplash(t: t);
                   case SplashLabStyle.mirrorDrop:
-                    return _MirrorDropSplash(t: _master.value);
+                    splash = _MirrorDropSplash(t: t);
                   case SplashLabStyle.whisper:
-                    return _WhisperSplash(t: _master.value);
+                    splash = _WhisperSplash(t: t);
                   case SplashLabStyle.aperture:
-                    return _ApertureSplash(t: _master.value);
+                    splash = _ApertureSplash(t: t);
                   case SplashLabStyle.meshGlow:
-                    return _MeshGlowSplash(t: _master.value);
+                    splash = _MeshGlowSplash(t: t);
                   case SplashLabStyle.monogram:
-                    return _MonogramSplash(t: _master.value);
+                    splash = _MonogramSplash(t: t);
                   case SplashLabStyle.springInertia:
-                    return _SpringInertiaSplash(t: _master.value);
+                    splash = _SpringInertiaSplash(t: t);
                   case SplashLabStyle.cinema:
-                    return _CinemaSplash(t: _master.value);
+                    splash = _CinemaSplash(t: t);
                   case SplashLabStyle.magnetic:
-                    return _MagneticSplash(t: _master.value);
+                    splash = _MagneticSplash(t: t);
                   case SplashLabStyle.frostClear:
-                    return _FrostClearSplash(t: _master.value);
+                    splash = _FrostClearSplash(t: t);
                   case SplashLabStyle.cascade:
-                    return _CascadeSplash(t: _master.value);
+                    splash = _CascadeSplash(t: t);
                 }
+
+                // Unique stage-open transition per style (0 → full).
+                final reveal = _easeInOutQuint(_seg(t, 0.0, 0.36));
+                return _SplashRevealGate(
+                  progress: reveal,
+                  kind: splashRevealFor(widget.style),
+                  child: splash,
+                );
               },
             ),
           ),
@@ -257,7 +369,7 @@ class _SkipChip extends StatelessWidget {
   }
 }
 
-// ─── Shared logo ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Shared logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _MusaffaLogoMark extends StatefulWidget {
   const _MusaffaLogoMark({
@@ -327,7 +439,7 @@ double _easeOutExpo(double t) {
   return t >= 1 ? 1 : 1 - math.pow(2, -10 * t).toDouble();
 }
 
-/// Unified soft exit window — longer, smoother fade for every style.
+/// Unified soft exit window â€” longer, smoother fade for every style.
 double _exitOf(double t) => _easeInOutQuint(_seg(t, 0.86, 1.0));
 
 /// Premium exit: opacity + micro scale + soft blur dissolve.
@@ -357,7 +469,7 @@ class _SplashExit extends StatelessWidget {
   }
 }
 
-// ─── 1. Sable — typographic invert reveal ─────────────────────────────────────
+// â”€â”€â”€ 1. Sable â€” typographic invert reveal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SableSplash extends StatelessWidget {
   const _SableSplash({required this.t});
@@ -365,11 +477,11 @@ class _SableSplash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Phase map: 0–0.22 black hold + letters form
-    // 0.22–0.48 logo + wordmark settle on black
-    // 0.48–0.62 color invert wipe
-    // 0.62–0.88 hold on white
-    // 0.88–1.0 soft exit
+    // Phase map: 0â€“0.22 black hold + letters form
+    // 0.22â€“0.48 logo + wordmark settle on black
+    // 0.48â€“0.62 color invert wipe
+    // 0.62â€“0.88 hold on white
+    // 0.88â€“1.0 soft exit
     final invert = _easeInOutCubic(_seg(t, 0.48, 0.62));
     final bg = Color.lerp(const Color(0xFF050505), Colors.white, invert)!;
     final fg = Color.lerp(Colors.white, const Color(0xFF0A0A0A), invert)!;
@@ -491,7 +603,7 @@ class _SableLetter extends StatelessWidget {
   }
 }
 
-// ─── 2. Circle reveal — white → expanding black → logo + wordmark ────────────
+// â”€â”€â”€ 2. Circle reveal â€” white â†’ expanding black â†’ logo + wordmark â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CircleRevealSplash extends StatelessWidget {
   const _CircleRevealSplash({required this.t});
@@ -602,7 +714,7 @@ class _ExpandingCirclePainter extends CustomPainter {
       old.radius != radius || old.color != color;
 }
 
-// ─── 3. Orbit / ONE — path draw + traveling dot + logo settle ────────────────
+// â”€â”€â”€ 3. Orbit / ONE â€” path draw + traveling dot + logo settle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _OrbitSplash extends StatelessWidget {
   const _OrbitSplash({required this.t});
@@ -767,7 +879,7 @@ const _brandSpectrum = [
   Color(0xFF232C64),
 ];
 
-// ─── 4. Prism — chromatic light refraction + spectral sweep ──────────────────
+// â”€â”€â”€ 4. Prism â€” chromatic light refraction + spectral sweep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _PrismSplash extends StatelessWidget {
   const _PrismSplash({required this.t});
@@ -970,7 +1082,7 @@ class _PrismBeamsPainter extends CustomPainter {
       old.progress != progress || old.flash != flash;
 }
 
-// ─── 5. Aurora — flowing northern-light ribbons + soft brand settle ──────────
+// â”€â”€â”€ 5. Aurora â€” flowing northern-light ribbons + soft brand settle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _AuroraSplash extends StatelessWidget {
   const _AuroraSplash({required this.t});
@@ -1142,7 +1254,7 @@ class _AuroraRibbonsPainter extends CustomPainter {
       old.progress != progress || old.flow != flow;
 }
 
-// ─── 6. Liquid Metal — morphing chrome blob → logo settle ────────────────────
+// â”€â”€â”€ 6. Liquid Metal â€” morphing chrome blob â†’ logo settle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _LiquidMetalSplash extends StatelessWidget {
   const _LiquidMetalSplash({required this.t});
@@ -1330,7 +1442,7 @@ class _LiquidBlobPainter extends CustomPainter {
       old.progress != progress || old.settle != settle;
 }
 
-// ─── 7. Constellation — star network forms brand mark ────────────────────────
+// â”€â”€â”€ 7. Constellation â€” star network forms brand mark â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ConstellationSplash extends StatelessWidget {
   const _ConstellationSplash({required this.t});
@@ -1546,7 +1658,7 @@ class _ConstellationPainter extends CustomPainter {
       old.stars != stars || old.links != links || old.pulse != pulse;
 }
 
-// ─── 8. Ripple — concentric sonic rings from logo core ────────────────────────
+// â”€â”€â”€ 8. Ripple â€” concentric sonic rings from logo core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _RippleSplash extends StatelessWidget {
   const _RippleSplash({required this.t});
@@ -1677,7 +1789,7 @@ class _RippleRingsPainter extends CustomPainter {
       old.progress != progress || old.flow != flow;
 }
 
-// ─── 9. Neon Trace — glowing outline draws then fills brand ───────────────────
+// â”€â”€â”€ 9. Neon Trace â€” glowing outline draws then fills brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _NeonTraceSplash extends StatelessWidget {
   const _NeonTraceSplash({required this.t});
@@ -1871,7 +1983,7 @@ class _NeonFramePainter extends CustomPainter {
   bool shouldRepaint(covariant _NeonFramePainter old) => old.progress != progress;
 }
 
-// ─── 10. Particle Bloom — burst then coalesce into logo ──────────────────────
+// â”€â”€â”€ 10. Particle Bloom â€” burst then coalesce into logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ParticleBloomSplash extends StatelessWidget {
   const _ParticleBloomSplash({required this.t});
@@ -2002,7 +2114,7 @@ class _ParticleBloomPainter extends CustomPainter {
       old.burst != burst || old.coalesce != coalesce;
 }
 
-// ─── 11. Horizon — premium dawn rise + atmospheric brand settle ──────────────
+// â”€â”€â”€ 11. Horizon â€” premium dawn rise + atmospheric brand settle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _HorizonSplash extends StatelessWidget {
   const _HorizonSplash({required this.t});
@@ -2033,7 +2145,7 @@ class _HorizonSplash extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Deep night → warm dawn sky
+            // Deep night â†’ warm dawn sky
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -2259,7 +2371,7 @@ class _HorizonSplash extends StatelessWidget {
               ),
             ),
 
-            // Brand content — sits just above the horizon glow
+            // Brand content â€” sits just above the horizon glow
             Positioned(
               left: 0,
               right: 0,
@@ -2372,7 +2484,7 @@ class _HorizonStarsPainter extends CustomPainter {
       old.opacity != opacity || old.twinkle != twinkle;
 }
 
-// ─── 12. Silk Wipe — soft dual curtains + elegant brand settle ────────────────
+// â”€â”€â”€ 12. Silk Wipe â€” soft dual curtains + elegant brand settle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SilkWipeSplash extends StatelessWidget {
   const _SilkWipeSplash({required this.t});
@@ -2541,7 +2653,7 @@ class _SilkWipeSplash extends StatelessWidget {
   }
 }
 
-// ─── 13. Helix — dual spiral ribbons coil into the brand ──────────────────────
+// â”€â”€â”€ 13. Helix â€” dual spiral ribbons coil into the brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _HelixSplash extends StatelessWidget {
   const _HelixSplash({required this.t});
@@ -2694,7 +2806,7 @@ class _HelixPainter extends CustomPainter {
       old.progress != progress || old.flow != flow;
 }
 
-// ─── 14. Mirror Drop — logo drops with soft bounce + floor reflection ─────────
+// â”€â”€â”€ 14. Mirror Drop â€” logo drops with soft bounce + floor reflection â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _MirrorDropSplash extends StatelessWidget {
   const _MirrorDropSplash({required this.t});
@@ -2763,7 +2875,7 @@ class _MirrorDropSplash extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _MusaffaLogoMark(size: logoSize),
-                          // Short reflection — keeps logo↔text gap tight
+                          // Short reflection â€” keeps logoâ†”text gap tight
                           SizedBox(
                             height: logoSize * 0.36,
                             child: ClipRect(
@@ -2843,7 +2955,7 @@ class _MirrorDropSplash extends StatelessWidget {
   }
 }
 
-// ─── 15. Whisper — ultra-soft blur dissolve (Apple-keynote calm) ──────────────
+// â”€â”€â”€ 15. Whisper â€” ultra-soft blur dissolve (Apple-keynote calm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _WhisperSplash extends StatelessWidget {
   const _WhisperSplash({required this.t});
@@ -2945,7 +3057,7 @@ class _WhisperSplash extends StatelessWidget {
   }
 }
 
-// ─── 16. Aperture — camera iris blades open (Apple Camera grade) ──────────────
+// â”€â”€â”€ 16. Aperture â€” camera iris blades open (Apple Camera grade) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ApertureSplash extends StatelessWidget {
   const _ApertureSplash({required this.t});
@@ -3096,7 +3208,7 @@ class _AperturePainter extends CustomPainter {
         ..color = Colors.white.withValues(alpha: 0.12 * (1 - open * 0.5)),
     );
 
-    // Keep analyzer happy — maxR used as safety for huge screens
+    // Keep analyzer happy â€” maxR used as safety for huge screens
     if (maxR < 0) return;
   }
 
@@ -3104,7 +3216,7 @@ class _AperturePainter extends CustomPainter {
   bool shouldRepaint(covariant _AperturePainter old) => old.open != open;
 }
 
-// ─── 17. Mesh Glow — Stripe/Linear soft mesh gradient morph ───────────────────
+// â”€â”€â”€ 17. Mesh Glow â€” Stripe/Linear soft mesh gradient morph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _MeshGlowSplash extends StatelessWidget {
   const _MeshGlowSplash({required this.t});
@@ -3252,7 +3364,7 @@ class _SoftNoisePainter extends CustomPainter {
   bool shouldRepaint(covariant _SoftNoisePainter old) => old.seed != seed;
 }
 
-// ─── 18. Monogram — T mark expands into TERMINAL wordmark ─────────────────────
+// â”€â”€â”€ 18. Monogram â€” T mark expands into TERMINAL wordmark â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _MonogramSplash extends StatelessWidget {
   const _MonogramSplash({required this.t});
@@ -3347,7 +3459,7 @@ class _MonogramSplash extends StatelessWidget {
   }
 }
 
-// ─── 19. Spring Inertia — iOS-spring zoom settle with overshoot ───────────────
+// â”€â”€â”€ 19. Spring Inertia â€” iOS-spring zoom settle with overshoot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SpringInertiaSplash extends StatelessWidget {
   const _SpringInertiaSplash({required this.t});
@@ -3447,7 +3559,7 @@ class _SpringInertiaSplash extends StatelessWidget {
   }
 }
 
-// ─── 20. Cinema — letterbox bars + soft brand reveal (trailer grade) ──────────
+// â”€â”€â”€ 20. Cinema â€” letterbox bars + soft brand reveal (trailer grade) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CinemaSplash extends StatelessWidget {
   const _CinemaSplash({required this.t});
@@ -3545,7 +3657,7 @@ class _CinemaSplash extends StatelessWidget {
   }
 }
 
-// ─── 21. Magnetic — floating orbs pull into the brand core ────────────────────
+// â”€â”€â”€ 21. Magnetic â€” floating orbs pull into the brand core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _MagneticSplash extends StatelessWidget {
   const _MagneticSplash({required this.t});
@@ -3698,7 +3810,7 @@ class _MagneticOrbsPainter extends CustomPainter {
       old.pull != pull || old.flow != flow;
 }
 
-// ─── 22. Frost Clear — frosted glass thaws into crisp brand ───────────────────
+// â”€â”€â”€ 22. Frost Clear â€” frosted glass thaws into crisp brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _FrostClearSplash extends StatelessWidget {
   const _FrostClearSplash({required this.t});
@@ -3824,7 +3936,7 @@ class _FrostNoisePainter extends CustomPainter {
   bool shouldRepaint(covariant _FrostNoisePainter old) => old.density != density;
 }
 
-// ─── 23. Cascade — soft staggered blinds lift to reveal brand ─────────────────
+// â”€â”€â”€ 23. Cascade â€” soft staggered blinds lift to reveal brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CascadeSplash extends StatelessWidget {
   const _CascadeSplash({required this.t});
@@ -3924,4 +4036,754 @@ class _CascadeSplash extends StatelessWidget {
       ),
     );
   }
+}
+
+// --- 24. Beacon — soft searchlight locks onto brand ---------------------------
+
+class _BeaconSplash extends StatelessWidget {
+  const _BeaconSplash({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final sweep = _easeInOutQuint(_seg(t, 0.0, 0.48));
+    final lock = _easeOutExpo(_seg(t, 0.38, 0.62));
+    final wordIn = _easeOutCubic(_seg(t, 0.52, 0.76));
+    final exit = _exitOf(t);
+    final logoSize = (size.shortestSide * 0.14).clamp(72.0, 110.0);
+    final beamX = -0.9 + sweep * 1.8;
+
+    return ColoredBox(
+      color: const Color(0xFF06060A),
+      child: _SplashExit(
+        exit: exit,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(
+              painter: _BeaconBeamPainter(beamX: beamX, intensity: lock),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Transform.scale(
+                    scale: 0.72 + lock * 0.28,
+                    child: Opacity(
+                      opacity: lock,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE4621E)
+                                  .withValues(alpha: 0.32 * lock),
+                              blurRadius: 48,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: _MusaffaLogoMark(size: logoSize),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: logoSize * 0.28),
+                  Opacity(
+                    opacity: wordIn,
+                    child: Text(
+                      'TERMINAL',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: (size.width * 0.038).clamp(24.0, 36.0),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 9,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Opacity(
+                    opacity: _easeOutCubic(_seg(t, 0.62, 0.84)),
+                    child: Text(
+                      'GUIDED BY LIGHT',
+                      style: TextStyle(
+                        color: const Color(0xFFE4621E).withValues(alpha: 0.45),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 4.5,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BeaconBeamPainter extends CustomPainter {
+  _BeaconBeamPainter({required this.beamX, required this.intensity});
+
+  final double beamX;
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * (0.5 + beamX * 0.42);
+    final top = Offset(cx, -size.height * 0.05);
+    final path = Path()
+      ..moveTo(top.dx - size.width * 0.04, top.dy)
+      ..lineTo(cx - size.width * 0.22, size.height * 1.05)
+      ..lineTo(cx + size.width * 0.22, size.height * 1.05)
+      ..close();
+    final glow = Paint()
+      ..shader = ui.Gradient.linear(
+        top,
+        Offset(cx, size.height),
+        [
+          const Color(0x66E4621E),
+          const Color(0x22D2364C),
+          const Color(0x00A72669),
+        ],
+        const [0.0, 0.45, 1.0],
+      );
+    canvas.drawPath(path, glow);
+    // Soft core wash after lock
+    if (intensity > 0.01) {
+      canvas.drawCircle(
+        Offset(size.width / 2, size.height * 0.42),
+        size.shortestSide * 0.28 * intensity,
+        Paint()
+          ..color = const Color(0xFFE4621E).withValues(alpha: 0.10 * intensity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BeaconBeamPainter old) =>
+      old.beamX != beamX || old.intensity != intensity;
+}
+
+// --- 25. Ledger — fintech rule lines draw, brand settles ----------------------
+
+class _LedgerSplash extends StatelessWidget {
+  const _LedgerSplash({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final draw = _easeInOutCubic(_seg(t, 0.0, 0.48));
+    final logoIn = _easeOutExpo(_seg(t, 0.32, 0.58));
+    final wordIn = _easeOutCubic(_seg(t, 0.50, 0.74));
+    final exit = _exitOf(t);
+    final logoSize = (size.shortestSide * 0.14).clamp(72.0, 110.0);
+
+    return ColoredBox(
+      color: const Color(0xFF08090C),
+      child: _SplashExit(
+        exit: exit,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(painter: _LedgerLinesPainter(progress: draw)),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Opacity(
+                    opacity: logoIn,
+                    child: Transform.scale(
+                      scale: 0.82 + logoIn * 0.18,
+                      child: _MusaffaLogoMark(size: logoSize),
+                    ),
+                  ),
+                  SizedBox(height: logoSize * 0.28),
+                  Opacity(
+                    opacity: wordIn,
+                    child: Text(
+                      'TERMINAL',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: (size.width * 0.038).clamp(24.0, 36.0),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 9,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Opacity(
+                    opacity: _easeOutCubic(_seg(t, 0.60, 0.82)),
+                    child: Text(
+                      'PRECISION LEDGER',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 4.5,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LedgerLinesPainter extends CustomPainter {
+  _LedgerLinesPainter({required this.progress});
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const rows = 9;
+    for (var i = 0; i < rows; i++) {
+      final delay = i / rows * 0.35;
+      final local = ((progress - delay) / (1 - delay)).clamp(0.0, 1.0);
+      final y = size.height * (0.18 + i / (rows - 1) * 0.64);
+      final w = size.width * 0.72 * _easeOutCubic(local);
+      final x0 = (size.width - w) / 2;
+      final alpha = 0.06 + 0.10 * local;
+      canvas.drawLine(
+        Offset(x0, y),
+        Offset(x0 + w, y),
+        Paint()
+          ..color = Colors.white.withValues(alpha: alpha)
+          ..strokeWidth = i == 4 ? 1.4 : 0.85
+          ..strokeCap = StrokeCap.round,
+      );
+      if (i == 4 && local > 0.4) {
+        canvas.drawLine(
+          Offset(x0, y),
+          Offset(x0 + w, y),
+          Paint()
+            ..color = const Color(0xFFE4621E).withValues(alpha: 0.35 * local)
+            ..strokeWidth = 1.2
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LedgerLinesPainter old) =>
+      old.progress != progress;
+}
+
+// --- 26. Nova — soft brand wash rings bloom into mark -------------------------
+
+class _NovaSplash extends StatelessWidget {
+  const _NovaSplash({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final bloom = _easeOutQuint(_seg(t, 0.0, 0.55));
+    final logoIn = _easeOutExpo(_seg(t, 0.28, 0.58));
+    final wordIn = _easeOutCubic(_seg(t, 0.50, 0.74));
+    final exit = _exitOf(t);
+    final logoSize = (size.shortestSide * 0.14).clamp(72.0, 110.0);
+
+    return ColoredBox(
+      color: const Color(0xFF050508),
+      child: _SplashExit(
+        exit: exit,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(
+              painter: _NovaRingsPainter(bloom: bloom, flow: t),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Transform.scale(
+                    scale: 0.55 + logoIn * 0.45,
+                    child: Opacity(
+                      opacity: logoIn,
+                      child: _MusaffaLogoMark(size: logoSize),
+                    ),
+                  ),
+                  SizedBox(height: logoSize * 0.28),
+                  Opacity(
+                    opacity: wordIn,
+                    child: Text(
+                      'TERMINAL',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: (size.width * 0.038).clamp(24.0, 36.0),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 9,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Opacity(
+                    opacity: _easeOutCubic(_seg(t, 0.60, 0.82)),
+                    child: Text(
+                      'IGNITION',
+                      style: TextStyle(
+                        color: const Color(0xFFD2364C).withValues(alpha: 0.45),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 5,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NovaRingsPainter extends CustomPainter {
+  _NovaRingsPainter({required this.bloom, required this.flow});
+
+  final double bloom;
+  final double flow;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height * 0.42);
+    final maxR = size.shortestSide * 0.55;
+    for (var i = 0; i < 5; i++) {
+      final delay = i * 0.08;
+      final local = ((bloom - delay) / (1 - delay)).clamp(0.0, 1.0);
+      final r = maxR * (0.25 + i * 0.18) * local;
+      final color = _brandSpectrum[i % _brandSpectrum.length];
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4
+          ..color = color.withValues(alpha: 0.35 * (1 - local * 0.55)),
+      );
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6
+          ..color = color.withValues(alpha: 0.08 * (1 - local * 0.4))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+      );
+    }
+    final pulse = 1 + 0.04 * math.sin(flow * math.pi * 5);
+    canvas.drawCircle(
+      c,
+      maxR * 0.22 * bloom * pulse,
+      Paint()
+        ..color = const Color(0xFFE4621E).withValues(alpha: 0.14 * bloom)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _NovaRingsPainter old) =>
+      old.bloom != bloom || old.flow != flow;
+}
+
+// --- 27. Parallax — multi-layer depth drift settle ----------------------------
+
+class _ParallaxSplash extends StatelessWidget {
+  const _ParallaxSplash({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final settle = _easeOutQuint(_seg(t, 0.0, 0.58));
+    final logoIn = _easeOutExpo(_seg(t, 0.28, 0.55));
+    final wordIn = _easeOutCubic(_seg(t, 0.48, 0.72));
+    final exit = _exitOf(t);
+    final logoSize = (size.shortestSide * 0.14).clamp(72.0, 110.0);
+
+    Widget layer({
+      required Alignment align,
+      required double depth,
+      required Color color,
+      required double radius,
+    }) {
+      final drift = (1 - settle) * 48 * depth;
+      return Align(
+        alignment: align,
+        child: Transform.translate(
+          offset: Offset(drift * align.x, drift * 0.55),
+          child: Opacity(
+            opacity: 0.55 + settle * 0.45,
+            child: Container(
+              width: radius,
+              height: radius,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.18),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.25),
+                    blurRadius: 60,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ColoredBox(
+      color: const Color(0xFF07070B),
+      child: _SplashExit(
+        exit: exit,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            layer(
+              align: const Alignment(-0.75, -0.55),
+              depth: 1.2,
+              color: const Color(0xFFE4621E),
+              radius: size.shortestSide * 0.42,
+            ),
+            layer(
+              align: const Alignment(0.8, 0.2),
+              depth: 0.85,
+              color: const Color(0xFFA72669),
+              radius: size.shortestSide * 0.36,
+            ),
+            layer(
+              align: const Alignment(-0.35, 0.75),
+              depth: 0.55,
+              color: const Color(0xFF232C64),
+              radius: size.shortestSide * 0.48,
+            ),
+            Center(
+              child: Transform.translate(
+                offset: Offset(0, (1 - settle) * 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Opacity(
+                      opacity: logoIn,
+                      child: Transform.scale(
+                        scale: 0.88 + logoIn * 0.12,
+                        child: _MusaffaLogoMark(size: logoSize),
+                      ),
+                    ),
+                    SizedBox(height: logoSize * 0.28),
+                    Opacity(
+                      opacity: wordIn,
+                      child: Text(
+                        'TERMINAL',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          fontSize: (size.width * 0.038).clamp(24.0, 36.0),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 9,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Opacity(
+                      opacity: _easeOutCubic(_seg(t, 0.58, 0.80)),
+                      child: Text(
+                        'DEPTH IN MOTION',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.35),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 4.5,
+                          fontFamily: Constants.FONT_DEFAULT_NEW,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- 28. Signal — acquisition scan locks onto brand ---------------------------
+
+class _SignalSplash extends StatelessWidget {
+  const _SignalSplash({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final scan = _easeInOutCubic(_seg(t, 0.0, 0.52));
+    final lock = _easeOutExpo(_seg(t, 0.40, 0.65));
+    final wordIn = _easeOutCubic(_seg(t, 0.55, 0.78));
+    final exit = _exitOf(t);
+    final logoSize = (size.shortestSide * 0.14).clamp(72.0, 110.0);
+
+    return ColoredBox(
+      color: const Color(0xFF05070A),
+      child: _SplashExit(
+        exit: exit,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(
+              painter: _SignalScanPainter(scan: scan, lock: lock),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Opacity(
+                    opacity: lock,
+                    child: Transform.scale(
+                      scale: 0.78 + lock * 0.22,
+                      child: _MusaffaLogoMark(size: logoSize),
+                    ),
+                  ),
+                  SizedBox(height: logoSize * 0.28),
+                  Opacity(
+                    opacity: wordIn,
+                    child: Text(
+                      'TERMINAL',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: (size.width * 0.038).clamp(24.0, 36.0),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 9,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Opacity(
+                    opacity: _easeOutCubic(_seg(t, 0.64, 0.84)),
+                    child: Text(
+                      'SIGNAL ACQUIRED',
+                      style: TextStyle(
+                        color: const Color(0xFF22C55E).withValues(alpha: 0.55),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 4.5,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SignalScanPainter extends CustomPainter {
+  _SignalScanPainter({required this.scan, required this.lock});
+
+  final double scan;
+  final double lock;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Soft grid
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: 0.04)
+      ..strokeWidth = 0.7;
+    for (var i = 1; i < 12; i++) {
+      final x = size.width * i / 12;
+      final y = size.height * i / 12;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
+    }
+
+    final y = size.height * (0.12 + scan * 0.76);
+    final scanPaint = Paint()
+      ..shader = ui.Gradient.linear(
+        Offset(0, y - 18),
+        Offset(0, y + 18),
+        [
+          Colors.transparent,
+          const Color(0x88E4621E),
+          Colors.transparent,
+        ],
+      );
+    canvas.drawRect(Rect.fromLTWH(0, y - 18, size.width, 36), scanPaint);
+    canvas.drawLine(
+      Offset(size.width * 0.08, y),
+      Offset(size.width * 0.92, y),
+      Paint()
+        ..color = const Color(0xFFE4621E).withValues(alpha: 0.75)
+        ..strokeWidth = 1.2,
+    );
+
+    // Lock brackets
+    if (lock > 0.01) {
+      final c = Offset(size.width / 2, size.height * 0.42);
+      final arm = 28.0 * lock;
+      final gap = 52.0;
+      final p = Paint()
+        ..color = const Color(0xFF22C55E).withValues(alpha: 0.7 * lock)
+        ..strokeWidth = 1.6
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      // TL
+      canvas.drawLine(c + Offset(-gap, -gap), c + Offset(-gap + arm, -gap), p);
+      canvas.drawLine(c + Offset(-gap, -gap), c + Offset(-gap, -gap + arm), p);
+      // TR
+      canvas.drawLine(c + Offset(gap, -gap), c + Offset(gap - arm, -gap), p);
+      canvas.drawLine(c + Offset(gap, -gap), c + Offset(gap, -gap + arm), p);
+      // BL
+      canvas.drawLine(c + Offset(-gap, gap), c + Offset(-gap + arm, gap), p);
+      canvas.drawLine(c + Offset(-gap, gap), c + Offset(-gap, gap - arm), p);
+      // BR
+      canvas.drawLine(c + Offset(gap, gap), c + Offset(gap - arm, gap), p);
+      canvas.drawLine(c + Offset(gap, gap), c + Offset(gap, gap - arm), p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SignalScanPainter old) =>
+      old.scan != scan || old.lock != lock;
+}
+
+// --- 29. Vault — concentric frames dilate open to brand -----------------------
+
+class _VaultSplash extends StatelessWidget {
+  const _VaultSplash({required this.t});
+  final double t;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final open = _easeInOutQuint(_seg(t, 0.0, 0.55));
+    final logoIn = _easeOutExpo(_seg(t, 0.32, 0.60));
+    final wordIn = _easeOutCubic(_seg(t, 0.52, 0.76));
+    final exit = _exitOf(t);
+    final logoSize = (size.shortestSide * 0.14).clamp(72.0, 110.0);
+
+    return ColoredBox(
+      color: const Color(0xFF09090B),
+      child: _SplashExit(
+        exit: exit,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(painter: _VaultFramesPainter(open: open)),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Opacity(
+                    opacity: logoIn,
+                    child: Transform.scale(
+                      scale: 0.8 + logoIn * 0.2,
+                      child: _MusaffaLogoMark(size: logoSize),
+                    ),
+                  ),
+                  SizedBox(height: logoSize * 0.28),
+                  Opacity(
+                    opacity: wordIn,
+                    child: Text(
+                      'TERMINAL',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: (size.width * 0.038).clamp(24.0, 36.0),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 9,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Opacity(
+                    opacity: _easeOutCubic(_seg(t, 0.62, 0.84)),
+                    child: Text(
+                      'SECURE ACCESS',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 4.5,
+                        fontFamily: Constants.FONT_DEFAULT_NEW,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VaultFramesPainter extends CustomPainter {
+  _VaultFramesPainter({required this.open});
+  final double open;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    for (var i = 0; i < 6; i++) {
+      final delay = i * 0.06;
+      final local = ((open - delay) / (1 - delay)).clamp(0.0, 1.0);
+      final base = size.shortestSide * (0.12 + i * 0.09);
+      final expand = base + local * size.shortestSide * 0.55;
+      final rect = Rect.fromCenter(
+        center: c,
+        width: expand * 1.15,
+        height: expand * 0.78,
+      );
+      final rrect = RRect.fromRectAndRadius(
+        rect,
+        Radius.circular(18 + i * 4.0),
+      );
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.1
+          ..color = Colors.white.withValues(alpha: 0.12 * (1 - local * 0.7)),
+      );
+      if (i == 2) {
+        canvas.drawRRect(
+          rrect,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = const Color(0xFFE4621E)
+                .withValues(alpha: 0.22 * (1 - local * 0.5))
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _VaultFramesPainter old) => old.open != open;
 }
